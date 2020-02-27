@@ -1,0 +1,7 @@
+.RaidsPage {
+    width: -moz-calc(100% - 2vh);
+    width: -webkit-calc(100% - 2vh);
+    width: -o-calc(100% - 2vh);
+    width: calc(100% - 2vh);
+    margin: 2vh;
+}
