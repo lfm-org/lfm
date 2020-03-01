@@ -1,46 +1,36 @@
-import React from 'react';
-import './App.css';
-import { PageContainer } from './components/PageContainer';
-import { AppBar, Toolbar, Button } from '@material-ui/core';
+import { AppBar, Toolbar, IconButton } from "@material-ui/core";
+import { AccountCircle } from "@material-ui/icons";
+import React from "react";
+import "./App.css";
+import { Logo } from "./components/Logo";
+import { RaidsPage } from "./components/RaidsPage";
 
+// tslint:disable-next-line:no-empty-interface
 interface IAppProps {
 }
 
+// tslint:disable-next-line:no-empty-interface
 interface IAppState {
-  clickTarget: string;
-  isLoggedIn: boolean;
 }
 
 class App extends React.Component<IAppProps, IAppState> {
   constructor(props: Readonly<IAppProps>) {
     super(props);
-    this.handleLogin = this.handleLogin.bind(this);
-    this.handleLogout = this.handleLogout.bind(this);
-    this.state = { clickTarget: "raids", isLoggedIn: false };
-  }
-
-  public handleLogin(e: React.MouseEvent) {
-    this.setState({ clickTarget: "raid", isLoggedIn: true });
-  }
-
-  public handleLogout(e: React.MouseEvent) {
-    this.setState({ clickTarget: "raids", isLoggedIn: false });
+    this.state = { page: "raids", isLoggedIn: false };
   }
 
   public render() {
-    const isLoggedIn = this.state.isLoggedIn;
     return (
       <div className="App">
-        <AppBar position="static">
-          <Toolbar variant="dense">
-            {isLoggedIn ? (
-              <Button color="inherit" onClick={this.handleLogout}>Logout</Button>
-            ) : (
-                <Button color="inherit" onClick={this.handleLogin}>Login</Button>
-              )}
+        <AppBar position="static" color="inherit">
+          <Toolbar variant="dense" color="inherit">
+            <Logo image="favicon.ico" title={document.title} />
+            <IconButton color="inherit">
+              <AccountCircle color="inherit" />
+            </IconButton>
           </Toolbar>
         </AppBar>
-        <PageContainer currentPage={this.state.clickTarget} />
+        <RaidsPage />
       </div>
     );
   }

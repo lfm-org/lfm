@@ -1,0 +1,12 @@
+.Logo {
+    display: flex;
+    align-items: center;
+    justify-items: start;
+    justify-content: flex-start;
+    flex-grow: 1;
+}
+
+.Logo > .title {
+    margin-left: 0.7em;
+    margin-right: 2.5em;
+}

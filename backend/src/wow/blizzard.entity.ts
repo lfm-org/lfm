@@ -1,0 +1,18 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn
+} from "typeorm";
+
+@Entity()
+export class Blizzard {
+  @PrimaryGeneratedColumn()
+  public id: number;
+
+  @CreateDateColumn({ name: "created_time", type: "timestamp with time zone" })
+  public createdTime: Date;
+
+  @Column()
+  public success: boolean;
+}

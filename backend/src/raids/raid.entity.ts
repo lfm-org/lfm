@@ -1,43 +1,47 @@
 import {
-  Entity,
   Column,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
   JoinTable,
   ManyToMany,
-  OneToOne,
-  JoinColumn
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
 } from "typeorm";
-import { Instance } from "../wow/instance.entity";
 import { Character } from "../characters/character.entity";
+import { Instance } from "../wow/instance.entity";
 
 @Entity()
 export class Raid {
   @PrimaryGeneratedColumn()
-  id: number;
+  public id: number;
 
   @CreateDateColumn({ name: "start_time", type: "timestamp with time zone" })
-  startTime: Date;
+  public startTime: Date;
 
   @UpdateDateColumn({ name: "updated_time", type: "timestamp with time zone" })
-  updatedTime: Date;
+  public updatedTime: Date;
 
   @Column({ name: "signup_close_time", type: "timestamp with time zone" })
-  signupCloseTime: Date;
+  public signupCloseTime: Date;
 
   @Column({ name: "description", type: "text", default: null })
-  description: string;
+  public description: string;
 
-  @OneToOne(() => Instance)
-  @JoinColumn()
-  instance: Instance;
+  @Column({ name: "mode", type: "text", default: null })
+  public mode: string;
+
+  @ManyToOne(
+    () => Instance,
+    instance => instance.raids
+  )
+  public instance: Instance;
 
   @ManyToMany(() => Character)
   @JoinTable()
-  roster: Character[];
+  public roster: Character[];
 
   @ManyToMany(() => Character)
   @JoinTable()
-  bench: Character[];
+  public bench: Character[];
 }

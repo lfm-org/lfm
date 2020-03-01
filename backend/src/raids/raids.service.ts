@@ -10,21 +10,22 @@ export class RaidsService {
     private readonly raidsRepository: Repository<Raid>
   ) {}
 
-  findAll(): Promise<Raid[]> {
+  public findAll(): Promise<Raid[]> {
     return this.raidsRepository.find({
       relations: ["roster", "bench", "instance"]
     });
   }
 
-  findOne(id: string): Promise<Raid> {
+  public findOne(id: string): Promise<Raid> {
     return this.raidsRepository.findOne(id);
   }
 
-  async create(raid: Raid): Promise<void> {
-    await this.raidsRepository.save(raid);
+  public async create(raid: Raid): Promise<void> {
+    const entity = Object.assign(this.raidsRepository.create(), raid);
+    await this.raidsRepository.save(entity);
   }
 
-  async remove(raid: Raid): Promise<void> {
+  public async remove(raid: Raid): Promise<void> {
     await this.raidsRepository.delete(raid.id);
   }
 }

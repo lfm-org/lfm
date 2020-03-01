@@ -1,22 +1,35 @@
-import { Entity, UpdateDateColumn, Column, PrimaryColumn } from "typeorm";
+import { Raid } from "src/raids/raid.entity";
+import {
+  Column,
+  Entity,
+  OneToMany,
+  PrimaryColumn,
+  UpdateDateColumn
+} from "typeorm";
 
 @Entity()
 export class Instance {
   @PrimaryColumn()
-  id: number;
+  public id: number;
 
   @UpdateDateColumn({ name: "updated_time", type: "timestamp with time zone" })
-  updatedTime: Date;
+  public updatedTime: Date;
 
   @Column({ type: "text", nullable: false })
-  name: string;
+  public name: string;
 
   @Column({ type: "text", array: true, nullable: false })
-  modes: string[];
+  public modes: string[];
 
   @Column({ type: "text", nullable: false })
-  type: string;
+  public type: string;
 
   @Column({ name: "minimum_level", nullable: false })
-  minLevel: number;
+  public minLevel: number;
+
+  @OneToMany(
+    () => Raid,
+    raid => raid.instance
+  )
+  public raids: Raid[];
 }

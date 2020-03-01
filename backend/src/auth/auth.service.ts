@@ -1,13 +1,11 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import * as bcrypt from "bcrypt";
 import { Raider } from "src/raiders/raider.entity";
 import { RaidersService } from "src/raiders/raiders.service";
+import CryptoHelpers from "./utility.crypto";
 
 @Injectable()
 export class AuthService {
-  private readonly saltRounds = 10;
-
   constructor(
     private readonly raidersService: RaidersService,
     private readonly jwtService: JwtService
@@ -15,7 +13,7 @@ export class AuthService {
 
   public async validateUser(username: string, password: string): Promise<any> {
     const raider = await this.raidersService.findOneByNameAuth(username);
-    if (raider && (await bcrypt.compare(password, raider.passwordHash))) {
+    if (raider && CryptoHelpers.verify(password, raider.passwordHash)) {
       return raider;
     }
     return null;
@@ -35,7 +33,7 @@ export class AuthService {
     }
     const newRaider = await this.raidersService.create(
       body.name,
-      await bcrypt.hash(body.password, this.saltRounds)
+      CryptoHelpers.generate(body.password)
     );
     const payload = { username: newRaider.name, sub: newRaider.id };
     return {

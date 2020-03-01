@@ -10,19 +10,20 @@ export class CharactersService {
     private readonly charactersRepository: Repository<Character>
   ) {}
 
-  findAll(): Promise<Character[]> {
+  public findAll(): Promise<Character[]> {
     return this.charactersRepository.find();
   }
 
-  findOne(id: number): Promise<Character> {
+  public findOne(id: number): Promise<Character> {
     return this.charactersRepository.findOne(id);
   }
 
-  async create(character: Character): Promise<void> {
-    await this.charactersRepository.save(character);
+  public async create(character: Character): Promise<void> {
+    const entity = Object.assign(this.charactersRepository.create(), character);
+    await this.charactersRepository.save(entity);
   }
 
-  async remove(character: Character): Promise<void> {
+  public async remove(character: Character): Promise<void> {
     await this.charactersRepository.delete(character.id);
   }
 }

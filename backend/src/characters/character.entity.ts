@@ -1,47 +1,47 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
   Column,
-  OneToOne,
+  Entity,
   JoinColumn,
-  ManyToOne
+  ManyToOne,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
 } from "typeorm";
-import { Race } from "../wow/race.entity";
-import { Class } from "../wow/class.entity";
 import { Raider } from "../raiders/raider.entity";
+import { Class } from "../wow/class.entity";
+import { Race } from "../wow/race.entity";
 
 @Entity()
 export class Character {
   @PrimaryGeneratedColumn()
-  id: number;
+  public id: number;
 
   @UpdateDateColumn({ name: "updated_time", type: "timestamp with time zone" })
-  updatedTime: Date;
+  public updatedTime: Date;
 
   @Column({ type: "text", nullable: false })
-  region: string;
+  public region: string;
 
   @Column({ type: "text", nullable: false })
-  realm: string;
+  public realm: string;
 
   @Column({ type: "text", nullable: false })
-  name: string;
+  public name: string;
 
   @OneToOne(() => Class)
   @JoinColumn()
-  class: Class;
+  public class: Class;
 
   @OneToOne(() => Race)
   @JoinColumn()
-  race: Race;
+  public race: Race;
 
   @Column({ nullable: true })
-  level?: number;
+  public level?: number;
 
   @ManyToOne(
     () => Raider,
     raider => raider.characters
   )
-  raider: Raider;
+  public raider: Raider;
 }

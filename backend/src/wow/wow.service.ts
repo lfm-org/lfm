@@ -1,9 +1,11 @@
-import { Injectable, HttpService, Logger } from "@nestjs/common";
-import { Class } from "./class.entity";
-import { Repository } from "typeorm";
+import { HttpService, Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Race } from "./race.entity";
+import * as moment from "moment";
+import { MoreThan, Repository } from "typeorm";
+import { Blizzard } from "./blizzard.entity";
+import { Class } from "./class.entity";
 import { Instance } from "./instance.entity";
+import { Race } from "./race.entity";
 
 @Injectable()
 export class WoWService {
@@ -12,6 +14,8 @@ export class WoWService {
 
   constructor(
     private readonly httpService: HttpService,
+    @InjectRepository(Blizzard)
+    private readonly blizzardRepository: Repository<Blizzard>,
     @InjectRepository(Class)
     private readonly classesRepository: Repository<Class>,
     @InjectRepository(Race)
@@ -20,20 +24,41 @@ export class WoWService {
     private readonly instancesRepository: Repository<Instance>
   ) {}
 
-  defaultParams() {
+  public async isTimeToUpdate(): Promise<boolean> {
+    const response = await this.blizzardRepository.findAndCount({
+      select: ["createdTime", "success"],
+      where: {
+        createdTime: MoreThan(
+          moment
+            .utc()
+            .subtract(1, "days")
+            .format()
+        ),
+        success: true
+      }
+    });
+    return response[1] < 1;
+  }
+
+  public async lastUpdated(success: boolean): Promise<void> {
+    const entity = Object.assign(this.blizzardRepository.create(), { success });
+    await this.blizzardRepository.save(entity);
+  }
+
+  public defaultParams() {
     return {
       locale: "en_US"
     };
   }
 
-  defaultHeaders(bnetns = "static") {
+  public defaultHeaders(bnetns = "static") {
     return {
       Authorization: "Bearer " + this.accessToken,
       "Battlenet-Namespace": bnetns + "-eu"
     };
   }
 
-  async auth() {
+  public async auth() {
     this.accessToken = null;
     await this.httpService
       .post(
@@ -41,8 +66,8 @@ export class WoWService {
         "grant_type=client_credentials",
         {
           auth: {
-            username: "REDACTED_CLIENT_ID",
-            password: "REDACTED_CLIENT_SECRET"
+            password: "REDACTED_CLIENT_SECRET",
+            username: "REDACTED_CLIENT_ID"
           }
         }
       )
@@ -51,7 +76,7 @@ export class WoWService {
       .catch(error => this.onError(error));
   }
 
-  async classes() {
+  public async classes() {
     await this.httpService
       .get(this.baseUrl + "playable-class/index", {
         headers: this.defaultHeaders(),
@@ -66,14 +91,14 @@ export class WoWService {
               params: this.defaultParams()
             })
             .toPromise()
-            .then(response => this.onClasses(response))
+            .then(response2 => this.onClasses(response2))
             .catch(error => this.onError(error))
         );
       })
       .catch(error => this.onError(error));
   }
 
-  async races() {
+  public async races() {
     await this.httpService
       .get(this.baseUrl + "playable-race/index", {
         headers: this.defaultHeaders(),
@@ -88,14 +113,14 @@ export class WoWService {
               params: this.defaultParams()
             })
             .toPromise()
-            .then(response => this.onRaces(response))
+            .then(response2 => this.onRaces(response2))
             .catch(error => this.onError(error))
         );
       })
       .catch(error => this.onError(error));
   }
 
-  async instances() {
+  public async instances() {
     await this.httpService
       .get(this.baseUrl + "journal-instance/index", {
         headers: this.defaultHeaders(),
@@ -110,25 +135,25 @@ export class WoWService {
               params: this.defaultParams()
             })
             .toPromise()
-            .then(response => this.onInstances(response))
+            .then(response2 => this.onInstances(response2))
             .catch(error => this.onError(error))
         );
       })
       .catch(error => this.onError(error));
   }
 
-  onAuth(response) {
+  public onAuth(response) {
     this.accessToken = response.data.access_token;
   }
 
-  onClasses(response) {
+  public onClasses(response) {
     const newClass = new Class();
     newClass.id = response.data.id;
     newClass.name = response.data.name;
     this.classesRepository.save(newClass);
   }
 
-  onRaces(response) {
+  public onRaces(response) {
     const newRace = new Race();
     newRace.id = response.data.id;
     newRace.name = response.data.name;
@@ -136,7 +161,7 @@ export class WoWService {
     this.racesRepository.save(newRace);
   }
 
-  onInstances(response) {
+  public onInstances(response) {
     const newInstance = new Instance();
     newInstance.id = response.data.id;
     newInstance.name = response.data.name;
@@ -148,7 +173,7 @@ export class WoWService {
     this.instancesRepository.save(newInstance);
   }
 
-  onError(error) {
+  public onError(error) {
     Logger.log(
       JSON.stringify(error.response.statusText) +
         " [" +
@@ -158,15 +183,15 @@ export class WoWService {
     );
   }
 
-  async race(raceId) {
+  public async race(raceId) {
     return await this.racesRepository.findOne(raceId);
   }
 
-  async class(classId) {
+  public async class(classId) {
     return await this.classesRepository.findOne(classId);
   }
 
-  async instance(instanceId) {
+  public async instance(instanceId) {
     return await this.instancesRepository.findOne(instanceId);
   }
 }
