@@ -43,7 +43,7 @@ export class RaidsPage extends React.Component<IRaidsPageProps, IRaidsPageStates
             process.env.REACT_APP_API_HOST + ":" + (process.env.REACT_APP_API_PORT || "3000") +
             "/raids";
         console.log("Calling endpoint: " + endpoint);
-        fetch(endpoint, {mode: "cors"})
+        fetch(endpoint)
             .then((response) => {
                 const data = response.json();
                 return data;
