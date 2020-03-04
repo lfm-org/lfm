@@ -10,8 +10,6 @@ services:
             context: ./frontend
         environment:
             REACT_APP_API_HOST: backend
-        volumes:
-            - ./frontend:/usr/src/app
     backend:
         depends_on:
             - database
@@ -20,21 +18,18 @@ services:
             - "3000:3000"
         build:
             context: ./backend
-        environment: 
+        environment:
             TYPEORM_HOST: database
             FRONTEND_HOST: frontend
-        volumes:
-            - ./backend:/usr/src/app
     database:
         container_name: pugme_database
         image: postgres:11-alpine
         volumes:
             - "/var/run/postgres/postgres.sock:/var/run/postgres/postgres.sock"
-            - database:/var/lib/lib/postgresql/data
+            - "database:/var/lib/lib/postgresql/data"
         ports:
             - "5432:5432"
         restart: always
-        env_file: 
-            - .env
+        env_file: .env
 volumes:
     database:
