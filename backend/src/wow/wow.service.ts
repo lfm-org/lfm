@@ -66,8 +66,8 @@ export class WoWService {
         "grant_type=client_credentials",
         {
           auth: {
-            password: "REDACTED_CLIENT_SECRET",
-            username: "REDACTED_CLIENT_ID"
+            password: process.env.BLIZZARD_PASSWORD,
+            username: process.env.BLIZZARD_USERNAME
           }
         }
       )

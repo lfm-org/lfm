@@ -3,7 +3,7 @@ services:
     frontend:
         depends_on:
             - backend
-        container_name: sisu_raidcal_frontend
+        container_name: pugme_frontend
         ports:
             - "3001:3001"
         build:
@@ -15,7 +15,7 @@ services:
     backend:
         depends_on:
             - database
-        container_name: sisu_raidcal_backend
+        container_name: pugme_backend
         ports:
             - "3000:3000"
         build:
@@ -26,21 +26,15 @@ services:
         volumes:
             - ./backend:/usr/src/app
     database:
-        container_name: sisu_raidcal_database
+        container_name: pugme_database
         image: postgres:11-alpine
         volumes:
             - "/var/run/postgres/postgres.sock:/var/run/postgres/postgres.sock"
             - database:/var/lib/lib/postgresql/data
-        expose:
-            - "5432"
         ports:
             - "5432:5432"
         restart: always
-        environment:
-            POSTGRES_HOST: database
-            POSTGRES_PORT: 5432
-            POSTGRES_USER: sisuraidcal
-            POSTGRES_PASSWORD: REDACTED_DB_PASSWORD
-            POSTGRES_DB: sisu-raidcal
+        env_file: 
+            - .env
 volumes:
     database:
