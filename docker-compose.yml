@@ -1,11 +1,12 @@
 version: "3.7"
 services:
     frontend:
+        tty: true
         depends_on:
             - backend
         container_name: pugme_frontend
         ports:
-            - "3001:3001"
+            - "80:80"
         build:
             context: ./frontend
         environment:
@@ -28,7 +29,7 @@ services:
             - "/var/run/postgres/postgres.sock:/var/run/postgres/postgres.sock"
             - "database:/var/lib/lib/postgresql/data"
         ports:
-            - "5432:5432"
+            - "5433:5432"
         restart: always
         env_file: .env
 volumes:

@@ -1,4 +1,4 @@
-FROM node:13-alpine
+FROM node:13-alpine as build
 
 RUN apk add --no-cache --virtual .build-deps python make g++
 
@@ -21,6 +21,13 @@ RUN apk del .build-deps
 
 USER node:node
 
-EXPOSE 3001
+CMD ["npm", "run", "build"]
 
-CMD ["npm", "run", "start"]
+FROM nginx:1.19.3-alpine
+
+COPY --from=build /usr/src/app/build/ /usr/share/nginx/html
+COPY /nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
