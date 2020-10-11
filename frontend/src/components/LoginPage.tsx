@@ -1,11 +1,15 @@
 import React from "react";
+import { RouteComponentProps } from "react-router-dom";
 
 // tslint:disable-next-line:no-empty-interface
-export interface ILoginPageProps {
+interface RouterProps {
+}
+
+interface ILoginPageProps extends RouteComponentProps<RouterProps> {
 }
 
 // tslint:disable-next-line:no-empty-interface
-export interface ILoginPageState {
+interface ILoginPageState {
 }
 
 export class LoginPage extends React.Component<ILoginPageProps, ILoginPageState> {

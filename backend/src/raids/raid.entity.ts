@@ -1,14 +1,14 @@
+import { RaidCharacter } from "src/raid_characters/raid_character.entity";
 import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
+  JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from "typeorm";
-import { Character } from "../characters/character.entity";
 import { Instance } from "../wow/instance.entity";
 
 @Entity()
@@ -35,13 +35,13 @@ export class Raid {
     () => Instance,
     instance => instance.raids
   )
+  @JoinColumn({ name: "instance" })
   public instance: Instance;
 
-  @ManyToMany(() => Character)
-  @JoinTable()
-  public roster: Character[];
-
-  @ManyToMany(() => Character)
-  @JoinTable()
-  public bench: Character[];
+  @OneToMany(
+    () => RaidCharacter,
+    raidCharacter => raidCharacter.raid
+  )
+  @JoinColumn({ name: "raid_characters" })
+  public raidCharacters: RaidCharacter[];
 }

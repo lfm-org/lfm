@@ -1,13 +1,20 @@
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Link } from "@material-ui/core";
-import Paper from "@material-ui/core/Paper";
-import moment from "moment";
 import React, { Fragment } from "react";
+
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Link as MaterialLink, Paper } from "@material-ui/core";
+import moment from "moment";
 import { useTable } from "react-table";
 import { DateUtils } from "../util/DateUtil";
 import "./RaidsPage.css";
+import {
+    Link, RouteComponentProps
+} from "react-router-dom";
+import Axios from "axios";
 
 // tslint:disable-next-line:no-empty-interface
-interface IRaidsPageProps {
+interface RouterProps {
+}
+
+interface IRaidsPageProps extends RouteComponentProps<RouterProps> {
 }
 
 interface IRaidsPageStates {
@@ -43,29 +50,27 @@ export class RaidsPage extends React.Component<IRaidsPageProps, IRaidsPageStates
             process.env.REACT_APP_API_HOST + ":" + (process.env.REACT_APP_API_PORT || "3000") +
             "/raids";
         console.log("Calling endpoint: " + endpoint);
-        fetch(endpoint)
+        Axios.get(endpoint)
             .then((response) => {
-                const data = response.json();
-                return data;
-            })
-            .then((data) => {
-                const sortedRaids = data.raids.sort(this.ByStartTime);
+                const sortedRaids = response.data.raids.sort(this.ByStartTime);
                 this.setState({ isFetching: false, raids: sortedRaids });
             });
     }
 
     public render() {
-        return (<this.Table raids={this.state.raids} />);
+        return (<this.RaidList raids={this.state.raids} />);
     }
 
-    private Table({ raids }: { raids: any[] }) {
+    public RaidList({ raids }: { raids: any[] }) {
         const columns = React.useMemo(() => [
             {
                 Header: "Instance",
                 accessor: "instance.name",
                 Cell: (props: any) =>
                     <Fragment>
-                        <Link color="inherit" onClick={() => { }}>{props.row.original.instance.name}</Link>
+                        <MaterialLink color="inherit" component={Link} to={`/raids/${props.row.original.id}`}>
+                            {props.row.original.instance.name}
+                        </MaterialLink>
                     </Fragment>
             },
             {

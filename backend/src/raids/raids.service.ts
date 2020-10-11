@@ -12,12 +12,14 @@ export class RaidsService {
 
   public findAll(): Promise<Raid[]> {
     return this.raidsRepository.find({
-      relations: ["roster", "bench", "instance"]
+      relations: ["instance"]
     });
   }
 
-  public findOne(id: string): Promise<Raid> {
-    return this.raidsRepository.findOne(id);
+  public findOne(id: number): Promise<Raid> {
+    return this.raidsRepository.findOne(id, {
+      relations: ["raidCharacters", "raidCharacters.character", "instance"]
+    });
   }
 
   public async create(raid: Raid): Promise<void> {

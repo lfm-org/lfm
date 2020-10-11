@@ -4,11 +4,13 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn
 } from "typeorm";
 import { Character } from "../characters/character.entity";
 
 @Entity()
+@Unique("unique_name", ["name"])
 export class Raider {
   @PrimaryGeneratedColumn()
   public id: number;

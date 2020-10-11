@@ -35,4 +35,4 @@ import { RaidersModule } from "src/raiders/raiders.module";
     WoWModule
   ]
 })
-export class AppModule {}
+export class AppModule { }
