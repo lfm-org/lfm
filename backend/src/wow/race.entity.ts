@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
-export class Race {
+export class WoWRace {
   @PrimaryColumn()
   public id: number;
 

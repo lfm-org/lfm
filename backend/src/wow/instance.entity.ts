@@ -8,7 +8,7 @@ import {
 } from "typeorm";
 
 @Entity()
-export class Instance {
+export class WoWInstance {
   @PrimaryColumn()
   public id: number;
 

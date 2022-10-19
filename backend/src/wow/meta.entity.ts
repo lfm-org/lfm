@@ -2,11 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
 } from "typeorm";
 
 @Entity()
-export class Blizzard {
+export class WoWMeta {
   @PrimaryGeneratedColumn()
   public id: number;
 
