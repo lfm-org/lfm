@@ -5,7 +5,6 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn
@@ -32,11 +31,11 @@ export class Character {
   @Column({ type: "text", nullable: false })
   public name: string;
 
-  @OneToOne(() => Class, { nullable: false, eager: true })
+  @ManyToOne(() => Class, { nullable: false, eager: true })
   @JoinColumn({ name: "class" })
   public class: Class;
 
-  @OneToOne(() => Race, { nullable: false, eager: true })
+  @ManyToOne(() => Race, { nullable: false, eager: true })
   @JoinColumn({ name: "race" })
   public race: Race;
 
