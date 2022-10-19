@@ -33,7 +33,7 @@ class App extends React.Component<IAppProps, IAppState> {
         <AppBar position="static" color="inherit">
           <Toolbar variant="dense" color="inherit">
             <Logo image="/favicon.ico" title={document.title} />
-            <IconButton color="inherit" href="login">
+            <IconButton color="inherit" href="/login">
               <AccountCircle color="inherit" />
             </IconButton>
           </Toolbar>
