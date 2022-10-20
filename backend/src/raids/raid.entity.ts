@@ -7,9 +7,9 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from "typeorm";
-import { Instance } from "../wow/instance.entity";
+import { WoWInstance } from "../wow/instance.entity";
 
 @Entity()
 export class Raid {
@@ -32,15 +32,15 @@ export class Raid {
   public mode: string;
 
   @ManyToOne(
-    () => Instance,
-    instance => instance.raids
+    () => WoWInstance,
+    (instance) => instance.raids
   )
   @JoinColumn({ name: "instance" })
-  public instance: Instance;
+  public instance: WoWInstance;
 
   @OneToMany(
     () => RaidCharacter,
-    raidCharacter => raidCharacter.raid
+    (raidCharacter) => raidCharacter.raid
   )
   @JoinColumn({ name: "raid_characters" })
   public raidCharacters: RaidCharacter[];

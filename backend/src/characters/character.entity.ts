@@ -7,11 +7,11 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   Unique,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from "typeorm";
 import { Raider } from "../raiders/raider.entity";
-import { Class } from "../wow/class.entity";
-import { Race } from "../wow/race.entity";
+import { WoWClass } from "../wow/class.entity";
+import { WoWRace } from "../wow/race.entity";
 
 @Entity()
 @Unique("unique_region_realm_name", ["region", "realm", "name"])
@@ -31,20 +31,20 @@ export class Character {
   @Column({ type: "text", nullable: false })
   public name: string;
 
-  @ManyToOne(() => Class, { nullable: false, eager: true })
+  @ManyToOne(() => WoWClass, { nullable: false, eager: true })
   @JoinColumn({ name: "class" })
-  public class: Class;
+  public class: WoWClass;
 
-  @ManyToOne(() => Race, { nullable: false, eager: true })
+  @ManyToOne(() => WoWRace, { nullable: false, eager: true })
   @JoinColumn({ name: "race" })
-  public race: Race;
+  public race: WoWRace;
 
   @Column({ nullable: true })
   public level?: number;
 
   @ManyToOne(
     () => Raider,
-    raider => raider.characters,
+    (raider) => raider.characters,
     { cascade: true }
   )
   @JoinColumn({ name: "raider" })
@@ -52,7 +52,7 @@ export class Character {
 
   @OneToMany(
     () => RaidCharacter,
-    raidCharacter => raidCharacter.raid
+    (raidCharacter) => raidCharacter.raid
   )
   @JoinColumn({ name: "raid_characters" })
   public raidCharacters: RaidCharacter[];

@@ -1,0 +1,3 @@
+interface WoWKey {
+  href: string;
+}

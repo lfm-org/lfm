@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
-@Entity()
+@Entity("wow_race")
 export class WoWRace {
   @PrimaryColumn()
   public id: number;
@@ -13,4 +13,12 @@ export class WoWRace {
 
   @Column({ type: "text", nullable: false })
   public name: string;
+
+  constructor(playableRace?: WoWPlayableRace) {
+    if (playableRace) {
+      this.id = playableRace.id;
+      this.name = playableRace.name.en_GB || "";
+      this.faction = playableRace.faction.type;
+    }
+  }
 }

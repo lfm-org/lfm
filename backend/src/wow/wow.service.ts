@@ -9,13 +9,22 @@ import { WoWRace } from "./race.entity";
 
 @Injectable()
 export class WoWService {
+  private readonly region: WoWHeaderOptionsRegion = WoWHeaderOptionsRegion.EU;
+  private readonly baseUrls: { [key in WoWHeaderOptionsRegion]: string } = {
+    [WoWHeaderOptionsRegion.US]: "https://us.api.blizzard.com",
+    [WoWHeaderOptionsRegion.EU]: "https://eu.api.blizzard.com",
+    [WoWHeaderOptionsRegion.KR]: "https://kr.api.blizzard.com",
+    [WoWHeaderOptionsRegion.TW]: "https://tw.api.blizzard.com",
+    [WoWHeaderOptionsRegion.CN]: "https://gateway.battlenet.com.cn",
+  };
+  private readonly baseUrl: string = `${this.baseUrls[this.region]}/data/wow`;
+  private readonly rateLimitDelay: number = 20;
   private accessToken: string;
-  private readonly baseUrl: string = "https://eu.api.blizzard.com/data/wow/";
 
   constructor(
     private readonly httpService: HttpService,
     @InjectRepository(WoWMeta)
-    private readonly blizzardRepository: Repository<WoWMeta>,
+    private readonly metaRepository: Repository<WoWMeta>,
     @InjectRepository(WoWClass)
     private readonly classesRepository: Repository<WoWClass>,
     @InjectRepository(WoWRace)
@@ -25,13 +34,13 @@ export class WoWService {
   ) {}
 
   private async isTimeToUpdate(): Promise<boolean> {
-    const response = await this.blizzardRepository.findAndCount({
+    const response = await this.metaRepository.findAndCount({
       select: ["createdTime", "success"],
       where: {
         createdTime: MoreThan(
           moment
             .utc()
-            .subtract(1, "days")
+            .subtract(1, "months")
             .format()
         ),
         success: true,
@@ -41,29 +50,23 @@ export class WoWService {
   }
 
   private async lastUpdated(success: boolean): Promise<void> {
-    const entity = Object.assign(this.blizzardRepository.create(), { success });
-    await this.blizzardRepository.save(entity);
+    const entity = Object.assign(this.metaRepository.create(), { success });
+    await this.metaRepository.save(entity);
   }
 
-  private defaultParams() {
-    return {
-      locale: "en_US",
-    };
-  }
-
-  private defaultHeaders(bnetns = "static", isClassic = false) {
+  private headers(options: WoWHeaderOptions) {
     return {
       Authorization: `Bearer ${this.accessToken}`,
-      "Battlenet-Namespace": `${bnetns}${
-        isClassic === true ? "-classic" : ""
-      }-eu`,
+      "Battlenet-Namespace": `${options.namespaceCategory}${
+        options.classic === true ? "-classic" : ""
+      }-${options.region}`,
     };
   }
 
-  private async auth() {
+  private auth(onComplete: () => void, onError: () => void) {
     this.accessToken = null;
-    await this.httpService
-      .post(
+    this.httpService
+      .post<WoWAuth>(
         "https://eu.battle.net/oauth/token",
         "grant_type=client_credentials",
         {
@@ -73,114 +76,153 @@ export class WoWService {
           },
         }
       )
-      .toPromise()
-      .then((response) => this.onAuth(response))
-      .catch((error) => this.onError(error));
+      .subscribe(
+        (response) => {
+          this.onAuth(response.data);
+        },
+        (error) => {
+          onError();
+          this.onError("auth", error);
+        },
+        () => {
+          onComplete();
+        }
+      );
   }
 
-  private async classes() {
-    await this.httpService
-      .get(this.baseUrl + "playable-class/index", {
-        headers: this.defaultHeaders(),
-        params: this.defaultParams(),
+  private async updateClasses() {
+    const headers = this.headers({
+      region: this.region,
+      namespaceCategory: WoWHeaderOptionsNamespaceCategory.STATIC,
+      classic: true,
+    });
+    this.httpService
+      .get<WoWPlayableClassIndex>(`${this.baseUrl}/playable-class/index`, {
+        headers: headers,
       })
-      .toPromise()
-      .then((response) => {
-        response.data.classes.map((classEntry) =>
-          this.httpService
-            .get(this.baseUrl + "playable-class/" + classEntry.id, {
-              headers: this.defaultHeaders(),
-              params: this.defaultParams(),
-            })
-            .toPromise()
-            .then((response2) => this.onClasses(response2))
-            .catch((error) => this.onError(error))
-        );
-      })
-      .catch((error) => this.onError(error));
+      .subscribe(
+        (indexResponse) => {
+          indexResponse.data.classes.forEach(async (entry, index) => {
+            await this.sleep(index * this.rateLimitDelay);
+            this.httpService
+              .get<WoWPlayableClass>(entry.key.href, {
+                headers: headers,
+              })
+              .subscribe(
+                (entryResponse) => {
+                  this.onClass(entryResponse.data);
+                },
+                (error) => {
+                  this.onError("playable class", error);
+                }
+              );
+          });
+        },
+        (error) => {
+          this.onError("playable classes index", error);
+        }
+      );
   }
 
-  private async races() {
-    await this.httpService
-      .get(this.baseUrl + "playable-race/index", {
-        headers: this.defaultHeaders(),
-        params: this.defaultParams(),
+  private async updateRaces() {
+    const headers = this.headers({
+      region: this.region,
+      namespaceCategory: WoWHeaderOptionsNamespaceCategory.STATIC,
+      classic: true,
+    });
+    this.httpService
+      .get<WoWPlayableRaceIndex>(`${this.baseUrl}/playable-race/index`, {
+        headers: headers,
       })
-      .toPromise()
-      .then((response) => {
-        response.data.races.map((raceEntry) =>
-          this.httpService
-            .get(this.baseUrl + "playable-race/" + raceEntry.id, {
-              headers: this.defaultHeaders(),
-              params: this.defaultParams(),
-            })
-            .toPromise()
-            .then((response2) => this.onRaces(response2))
-            .catch((error) => this.onError(error))
-        );
-      })
-      .catch((error) => this.onError(error));
+      .subscribe(
+        (indexResponse) => {
+          indexResponse.data.races.forEach(async (entry, index) => {
+            await this.sleep(index * this.rateLimitDelay);
+            this.httpService
+              .get<WoWPlayableRace>(entry.key.href, {
+                headers: headers,
+              })
+              .subscribe(
+                (entryResponse) => {
+                  this.onRace(entryResponse.data);
+                },
+                (error) => {
+                  this.onError("playable race", error);
+                }
+              );
+          });
+        },
+        (error) => {
+          this.onError("playable races index", error);
+        }
+      );
   }
 
-  private async instances() {
-    await this.httpService
-      .get(this.baseUrl + "journal-instance/index", {
-        headers: this.defaultHeaders(),
-        params: this.defaultParams(),
+  private async updateInstances() {
+    const headers = this.headers({
+      region: this.region,
+      namespaceCategory: WoWHeaderOptionsNamespaceCategory.STATIC,
+      classic: false, // classic doesn't have instances api, so fetching from retail api
+    });
+    this.httpService
+      .get<WoWJournalInstanceIndex>(`${this.baseUrl}/journal-instance/index`, {
+        headers: headers,
       })
-      .toPromise()
-      .then((response) => {
-        response.data.instances.map((instanceEntry) =>
-          this.httpService
-            .get(this.baseUrl + "journal-instance/" + instanceEntry.id, {
-              headers: this.defaultHeaders(),
-              params: this.defaultParams(),
-            })
-            .toPromise()
-            .then((response2) => this.onInstances(response2))
-            .catch((error) => this.onError(error))
-        );
-      })
-      .catch((error) => this.onError(error));
+      .subscribe(
+        (indexResponse) => {
+          indexResponse.data.instances.forEach(async (entry, index) => {
+            await this.sleep(index * this.rateLimitDelay);
+            this.httpService
+              .get(entry.key.href, {
+                headers: headers,
+              })
+              .subscribe(
+                (entryResponse) => {
+                  this.onInstance(entryResponse.data);
+                },
+                (error) => {
+                  this.onError("instance", error);
+                }
+              );
+          });
+        },
+        (error) => {
+          this.onError("instances index", error);
+        }
+      );
   }
 
-  private onAuth(response) {
-    this.accessToken = response.data.access_token;
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private onClasses(response) {
-    const newClass = new WoWClass();
-    newClass.id = response.data.id;
-    newClass.name = response.data.name;
+  private onAuth(auth: WoWAuth) {
+    this.accessToken = auth.access_token;
+  }
+
+  private onClass(playableClass: WoWPlayableClass) {
+    const newClass = new WoWClass(playableClass);
     this.classesRepository.save(newClass);
   }
 
-  private onRaces(response) {
-    const newRace = new WoWRace();
-    newRace.id = response.data.id;
-    newRace.name = response.data.name;
-    newRace.faction = response.data.faction.type;
+  private onRace(playableRace: WoWPlayableRace) {
+    const newRace = new WoWRace(playableRace);
     this.racesRepository.save(newRace);
   }
 
-  private onInstances(response) {
-    const newInstance = new WoWInstance();
-    newInstance.id = response.data.id;
-    newInstance.name = response.data.name;
-    newInstance.type = response.data.category.type;
-    newInstance.minLevel = response.data.minimum_level || 0;
-    newInstance.modes = response.data.modes.map(
-      (modeEntry) => modeEntry.mode.name
-    );
+  private onInstance(instance: WoWJournalInstance) {
+    const newInstance = new WoWInstance(instance);
     this.instancesRepository.save(newInstance);
   }
 
-  private onError(error) {
+  private onError(context: string, error) {
     error.response
       ? Logger.log(
-          `${JSON.stringify(error.response.statusText)} [${JSON.stringify(
-            error.response.status
-          )}] ${JSON.stringify(error.response.data)}`
+          `[${context}] ${JSON.stringify(
+            error.response.statusText
+          )} [${JSON.stringify(error.response.status)}] ${JSON.stringify(
+            error.response.data
+          )}`
         )
       : Logger.log(`${JSON.stringify(error)}`);
   }
@@ -188,17 +230,18 @@ export class WoWService {
   public async update(): Promise<void> {
     this.isTimeToUpdate().then((update) => {
       if (update) {
-        this.auth()
-          .then(() => {
-            this.classes();
-            this.races();
-            this.instances();
-            this.lastUpdated(true);
-            Logger.log("Blizzard Update Completed.");
-          })
-          .catch(() => {
+        this.auth(
+          () => {
+            this.updateClasses();
+            this.updateRaces();
+            this.updateInstances();
+            // this.lastUpdated(true);
+            Logger.debug("WoW API data updated");
+          },
+          () => {
             this.lastUpdated(false);
-          });
+          }
+        );
       }
     });
   }

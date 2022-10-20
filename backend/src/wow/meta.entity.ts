@@ -5,7 +5,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 
-@Entity()
+@Entity("wow_meta")
 export class WoWMeta {
   @PrimaryGeneratedColumn()
   public id: number;
