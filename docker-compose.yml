@@ -11,6 +11,8 @@ services:
             context: ./frontend
         environment:
             REACT_APP_API_HOST: backend
+        volumes:
+          - ./frontend:/usr/src/app
     backend:
         depends_on:
             - database
@@ -22,6 +24,8 @@ services:
         environment:
             TYPEORM_HOST: database
             FRONTEND_HOST: frontend
+        volumes:
+          - ./backend:/usr/src/app
     database:
         container_name: pugme_database
         image: postgres:11-alpine
