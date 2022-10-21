@@ -1,53 +1,54 @@
 import { AppBar, Toolbar, IconButton } from "@material-ui/core";
 import { AccountCircle } from "@material-ui/icons";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "./App.css";
 import { Logo } from "./components/Logo";
 import { RaidPage } from "./components/RaidPage";
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { LoginPage } from "./components/LoginPage";
 import { RaidsPage } from "./components/RaidsPage";
+import { LoginSuccessPage } from "./components/LoginSuccessPage";
+import { store } from "./store";
+import { UserLoginState } from "./models/user.model";
 
-// tslint:disable-next-line:no-empty-interface
-interface IAppProps {
-}
+function App() {
+  const [loginState, setLoginState] = useState(
+    store.getState().user.loginState
+  );
 
-interface IAppState {
-  isLoggedIn: boolean;
-}
+  useEffect(() => {
+    setLoginState(store.getState().user.loginState);
+  }, []);
 
-class App extends React.Component<IAppProps, IAppState> {
-  constructor(props: Readonly<IAppProps>) {
-    super(props);
-
-    this.state = { isLoggedIn: false };
-  }
-
-  public render() {
-    return (
-      <div className="App">
-        <AppBar position="static" color="inherit">
-          <Toolbar variant="dense" color="inherit">
-            <Logo image="/favicon.ico" title={document.title} />
-            <IconButton color="inherit" href="/login">
-              <AccountCircle color="inherit" />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-        <Router>
-          <Switch>
-            <Route exact path="/login" component={LoginPage} />
-            <Route exact path="/raids/:id" component={RaidPage} />
-            <Route exact path={["/", "/raids"]} component={RaidsPage} />
-          </Switch>
-        </Router>
-      </div>
-    );
-  }
+  return (
+    <div className="App">
+      <AppBar position="static" color="inherit">
+        <Toolbar variant="dense" color="inherit">
+          <Logo image="/favicon.ico" title={document.title} />
+          {loginState === UserLoginState.LoggedIn && (
+            <div>{store.getState().user.name}</div>
+          )}
+          <IconButton color="inherit" href="/login">
+            <AccountCircle color="inherit" />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+      <Router>
+        <Routes>
+          <Route caseSensitive path="/" element={<RaidsPage />} />
+          <Route
+            caseSensitive
+            path="/login/success"
+            element={<LoginSuccessPage />}
+          />
+          <Route caseSensitive path="/login/failed" element={<LoginPage />} />
+          <Route caseSensitive path="/login" element={<LoginPage />} />
+          <Route caseSensitive path="/raids/:id" element={<RaidPage />} />
+          <Route caseSensitive path="/raids" element={<RaidsPage />} />
+        </Routes>
+      </Router>
+    </div>
+  );
 }
 
 export default App;

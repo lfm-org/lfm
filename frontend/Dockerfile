@@ -1,6 +1,6 @@
-FROM node:13-alpine as build
+FROM node:16-alpine as build
 
-RUN apk add --no-cache --virtual .build-deps python make g++
+RUN apk add --no-cache --virtual .build-deps python3 make g++
 
 RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app
 
@@ -23,7 +23,7 @@ USER node:node
 
 CMD ["npm", "run", "build"]
 
-FROM nginx:1.19.3-alpine
+FROM nginx:1.23.2-alpine
 
 COPY --from=build /usr/src/app/build/ /usr/share/nginx/html
 COPY /nginx.conf /etc/nginx/nginx.conf

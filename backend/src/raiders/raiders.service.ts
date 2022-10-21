@@ -10,18 +10,18 @@ export class RaidersService {
     private readonly raidersRepository: Repository<Raider>
   ) {}
 
-  public findOneById(id: number): Promise<Raider | undefined> {
-    return this.raidersRepository.findOne({ id });
+  public findOneById(id: number): Promise<Raider | null> {
+    return this.raidersRepository.findOneBy({ id: id });
   }
 
-  public findOneByName(name: string): Promise<Raider> {
-    return this.raidersRepository.findOne(
-      { name },
-      { relations: ["characters", "characters.race", "characters.class"] }
-    );
+  public findOneByName(name: string): Promise<Raider | null> {
+    return this.raidersRepository.findOne({
+      where: { name: name },
+      relations: ["characters", "characters.race", "characters.class"],
+    });
   }
 
-  public findOneByNameAuth(name: string): Promise<Partial<Raider>> {
+  public findOneByNameAuth(name: string): Promise<Raider | null> {
     return this.raidersRepository
       .createQueryBuilder("raider")
       .where("raider.name = :name", { name })
@@ -30,11 +30,19 @@ export class RaidersService {
       .getOne();
   }
 
-  public async create(name: string, passwordHash: string): Promise<Raider> {
+  public findOneByGoogleSub(googleSub: string): Promise<Raider | null> {
+    return this.raidersRepository.findOneBy({ googleSub: googleSub });
+  }
+
+  public async create(dto: RaiderCreateDTO): Promise<Raider | null> {
+    // Must contain at least one sub
+    if (dto.googleSub === undefined) {
+      return null;
+    }
     const entity = Object.assign(this.raidersRepository.create(), {
-      name,
-      passwordHash
-    });
+      name: dto.name,
+      googleSub: dto.googleSub,
+    } as Raider);
     return this.raidersRepository.save(entity);
   }
 }

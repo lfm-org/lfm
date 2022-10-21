@@ -1,6 +1,6 @@
-FROM node:13-alpine
+FROM node:16-alpine
 
-RUN apk add --no-cache --virtual .build-deps python make g++
+RUN apk add --no-cache --virtual .build-deps python3 make g++
 RUN npm i -g @nestjs/cli
 
 RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app

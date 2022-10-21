@@ -15,7 +15,7 @@ export class CharactersService {
   }
 
   public findOne(id: number): Promise<Character> {
-    return this.charactersRepository.findOne(id);
+    return this.charactersRepository.findOneBy({ id: id });
   }
 
   public async create(character: Character): Promise<void> {

@@ -2,15 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
-  Unique,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from "typeorm";
 import { Character } from "../characters/character.entity";
 
 @Entity()
-@Unique("unique_name", ["name"])
 export class Raider {
   @PrimaryGeneratedColumn()
   public id: number;
@@ -23,19 +22,19 @@ export class Raider {
 
   @OneToMany(
     () => Character,
-    character => character.raider
+    (character) => character.raider
   )
   public characters: Character[];
 
-  @Column({ type: "text", nullable: false })
-  public name: string;
+  @Column({ type: "text", nullable: true })
+  public name?: string;
 
   @Column({
     type: "text",
-    // tslint:disable-next-line:object-literal-sort-keys
-    name: "password_hash",
-    nullable: false,
-    select: false
+    name: "google_sub",
+    nullable: true,
+    select: false,
   })
-  public passwordHash: string;
+  @Index({ nullFiltered: true, unique: true })
+  public googleSub?: string;
 }

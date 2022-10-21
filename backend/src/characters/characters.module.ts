@@ -5,17 +5,11 @@ import { WoWModule } from "../wow/wow.module";
 import { CharactersController } from "./characters.controller";
 import { CharactersService } from "./characters.service";
 import { RaidersModule } from "../raiders/raiders.module";
-import { AuthModule } from "../auth/auth.module";
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Character]),
-    RaidersModule,
-    WoWModule,
-    AuthModule
-  ],
+  imports: [TypeOrmModule.forFeature([Character]), RaidersModule, WoWModule],
   controllers: [CharactersController],
   providers: [CharactersService],
-  exports: [CharactersService]
+  exports: [CharactersService],
 })
 export class CharactersModule {}

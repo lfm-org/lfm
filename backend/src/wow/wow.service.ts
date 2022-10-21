@@ -1,4 +1,5 @@
-import { HttpService, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as moment from "moment";
 import { MoreThan, Repository } from "typeorm";
@@ -41,7 +42,7 @@ export class WoWService {
           moment
             .utc()
             .subtract(1, "months")
-            .format()
+            .toDate()
         ),
         success: true,
       },

@@ -17,7 +17,8 @@ export class RaidsService {
   }
 
   public findOne(id: number): Promise<Raid> {
-    return this.raidsRepository.findOne(id, {
+    return this.raidsRepository.findOne({
+      where: { id: id },
       relations: ["raidCharacters", "raidCharacters.character", "instance"]
     });
   }

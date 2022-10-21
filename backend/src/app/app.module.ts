@@ -2,10 +2,10 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { CharactersModule } from "src/characters/characters.module";
-import { AuthModule } from "src/auth/auth.module";
 import { WoWModule } from "src/wow/wow.module";
 import { RaidsModule } from "src/raids/raids.module";
 import { RaidersModule } from "src/raiders/raiders.module";
+import { GoogleModule } from "../auth/google/google.module";
 
 @Module({
   imports: [
@@ -23,16 +23,16 @@ import { RaidersModule } from "src/raiders/raiders.module";
         migrationsRun: config.get("TYPEORM_MIGRATIONS_RUN", false),
         logging: config.get("TYPEORM_LOGGING", false),
         dropSchema: config.get("TYPEORM_DROP_SCHEMA", false),
-        synchronize: config.get("TYPEORM_SYNCHRONIZE", false)
+        synchronize: config.get("TYPEORM_SYNCHRONIZE", false),
       }),
       imports: [ConfigModule],
-      inject: [ConfigService]
+      inject: [ConfigService],
     }),
     CharactersModule,
-    AuthModule,
+    GoogleModule,
     RaidersModule,
     RaidsModule,
-    WoWModule
-  ]
+    WoWModule,
+  ],
 })
-export class AppModule { }
+export class AppModule {}
