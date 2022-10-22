@@ -21,7 +21,7 @@ RUN apk del .build-deps
 
 USER node:node
 
-CMD ["npm", "run", "build"]
+RUN npm run build
 
 FROM nginx:1.23.2-alpine
 
