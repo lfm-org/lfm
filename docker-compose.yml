@@ -11,6 +11,7 @@ services:
             context: ./frontend
         environment:
             REACT_APP_API_HOST: backend
+            REACT_APP_API_PORT: 3000
         volumes:
           - ./frontend:/usr/src/app
     backend:
@@ -23,7 +24,9 @@ services:
             context: ./backend
         environment:
             TYPEORM_HOST: database
-            FRONTEND_HOST: frontend
+            FRONTEND_SCHEME: http
+            FRONTEND_HOST: localhost
+            FRONTEND_PORT: 80
         volumes:
           - ./backend:/usr/src/app
     database:

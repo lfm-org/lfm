@@ -13,6 +13,14 @@ export function LoginButtonGoogle() {
     };
   }, []);
 
+  const endpoint =
+    (process.env.REACT_APP_API_SCHEME || "http") +
+    "://" +
+    process.env.REACT_APP_API_HOST +
+    ":" +
+    (process.env.REACT_APP_API_PORT || "3000") +
+    "/google/login";
+
   return (
     <div
       style={{
@@ -26,7 +34,7 @@ export function LoginButtonGoogle() {
         data-client_id="583226176003-jge4ljfh6cahrgn2eevcosnj93vokqce.apps.googleusercontent.com"
         data-context="signin"
         data-ux_mode="popup"
-        data-login_uri="http://localhost:3000/google/login"
+        data-login_uri={endpoint}
         data-auto_select="true"
         data-auto_prompt="false"
         data-itp_support="false"
