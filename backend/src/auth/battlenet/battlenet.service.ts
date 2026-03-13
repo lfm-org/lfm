@@ -48,9 +48,17 @@ const PROFILE_NAMESPACES: Record<BattleNetRegion, string> = {
   cn: "profile-cn",
 };
 
+const IDENTITY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface CachedIdentity {
+  identity: BattleNetIdentity;
+  expiresAt: number;
+}
+
 @Injectable()
 export class BattlenetService {
   private readonly logger = new Logger(BattlenetService.name);
+  private readonly identityCache = new Map<string, CachedIdentity>();
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly redirectUri: string;
@@ -88,7 +96,18 @@ export class BattlenetService {
   public async resolveIdentity(
     accessToken: string
   ): Promise<BattleNetIdentity | null> {
-    return this.authenticateWithToken(accessToken);
+    const cached = this.identityCache.get(accessToken);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.identity;
+    }
+    const identity = await this.authenticateWithToken(accessToken);
+    if (identity) {
+      this.identityCache.set(accessToken, {
+        identity,
+        expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS,
+      });
+    }
+    return identity;
   }
 
   private async authenticateWithToken(
@@ -185,7 +204,7 @@ export class BattlenetService {
     url.searchParams.set("response_type", "code");
     url.searchParams.set("client_id", this.clientId);
     url.searchParams.set("redirect_uri", this.redirectUri);
-    url.searchParams.set("scope", "openid");
+    url.searchParams.set("scope", "openid wow.profile");
     url.searchParams.set("state", payload);
     return url.toString();
   }
@@ -278,10 +297,8 @@ export class BattlenetService {
     accessToken: string
   ): Promise<BattleNetUserInfo | null> {
     try {
-      const url = new URL(this.userInfoUrl);
-      url.searchParams.set("namespace", this.profileNamespace);
       const response = await firstValueFrom(
-        this.httpService.get<BattleNetUserInfo>(url.toString(), {
+        this.httpService.get<BattleNetUserInfo>(this.userInfoUrl, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
