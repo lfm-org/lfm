@@ -3,9 +3,10 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { CharactersModule } from "src/characters/characters.module";
 import { WoWModule } from "src/wow/wow.module";
+import { HealthModule } from "src/health/health.module";
 import { RaidsModule } from "src/raids/raids.module";
 import { RaidersModule } from "src/raiders/raiders.module";
-import { GoogleModule } from "../auth/google/google.module";
+import { BattlenetModule } from "src/auth/battlenet/battlenet.module";
 
 @Module({
   imports: [
@@ -29,10 +30,11 @@ import { GoogleModule } from "../auth/google/google.module";
       inject: [ConfigService],
     }),
     CharactersModule,
-    GoogleModule,
     RaidersModule,
     RaidsModule,
     WoWModule,
+    BattlenetModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
