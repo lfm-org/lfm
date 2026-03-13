@@ -13,13 +13,17 @@ import {
 import moment from "moment";
 import { useTable } from "react-table";
 import { DateUtils } from "../util/DateUtil";
+import { buildApiUrl } from "../util/ApiUtil";
 import "./RaidsPage.css";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Axios from "axios";
+import { getAccessToken, clearAccessToken } from "../util/AuthUtil";
 
 export function RaidsPage() {
   const [, setFetching] = useState(false);
   const [raids, setRaids] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   function ByStartTime(a: any, b: any): number {
     const at = moment(a.startTime).local();
@@ -33,25 +37,40 @@ export function RaidsPage() {
   }
 
   useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      navigate("/login", {
+        state: { from: { pathname: location.pathname } },
+      });
+      return;
+    }
     setFetching(true);
-    const endpoint =
-      (process.env.REACT_APP_API_SCHEME || "http") +
-      "://" +
-      process.env.REACT_APP_API_HOST +
-      ":" +
-      (process.env.REACT_APP_API_PORT || "3000") +
-      "/raids";
+    const endpoint = buildApiUrl("/raids");
     console.log("Calling endpoint: " + endpoint);
-    Axios.get(endpoint).then((response) => {
-      const sortedRaids = response.data.raids.sort(ByStartTime);
-      setFetching(false);
-      setRaids(sortedRaids);
-    });
+    Axios.get(endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        const sortedRaids = response.data.raids.sort(ByStartTime);
+        setFetching(false);
+        setRaids(sortedRaids);
+      })
+      .catch((error) => {
+        setFetching(false);
+        if (error?.response?.status === 401) {
+          clearAccessToken();
+          navigate("/login", {
+            state: { from: { pathname: location.pathname } },
+          });
+        }
+      });
 
     return () => {
       setFetching(false);
     };
-  }, []);
+  }, [navigate, location.pathname]);
 
   function RaidList({ raids }: { raids: any[] }) {
     const columns = React.useMemo(

@@ -1,4 +1,6 @@
-interface RaiderCreateDTO {
+export interface RaiderCreateDTO {
   name?: string;
-  googleSub?: string;
+  battleNetId?: string;
+  battleTag?: string;
+  guildName?: string;
 }

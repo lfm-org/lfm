@@ -11,37 +11,60 @@ import {
   Paper,
 } from "@material-ui/core";
 
-import { Link, useParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
 import "./RaidPage.css";
 import { useTable } from "react-table";
 import Axios from "axios";
 import { DateUtils } from "../util/DateUtil";
+import { buildApiUrl } from "../util/ApiUtil";
+import { getAccessToken, clearAccessToken } from "../util/AuthUtil";
 
 export function RaidPage() {
   const [, setFetching] = useState(false);
   const [raid, setRaid] = useState({ raidCharacters: [] });
   const params = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      navigate("/login", {
+        state: { from: { pathname: location.pathname } },
+      });
+      return;
+    }
     setFetching(true);
-    const endpoint =
-      (process.env.REACT_APP_API_SCHEME || "http") +
-      "://" +
-      process.env.REACT_APP_API_HOST +
-      ":" +
-      (process.env.REACT_APP_API_PORT || "3000") +
-      "/raids/" +
-      params.id;
+    const endpoint = buildApiUrl(`/raids/${params.id}`);
     console.log("Calling endpoint: " + endpoint);
-    Axios.get(endpoint).then((response) => {
-      setFetching(false);
-      setRaid(response.data.raid);
-    });
+    Axios.get(endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        setFetching(false);
+        setRaid(response.data.raid);
+      })
+      .catch((error) => {
+        setFetching(false);
+        if (error?.response?.status === 401) {
+          clearAccessToken();
+          navigate("/login", {
+            state: { from: { pathname: location.pathname } },
+          });
+        }
+      });
 
     return () => {
       setFetching(false);
     };
-  }, [params]);
+  }, [params, navigate, location.pathname]);
 
   function InstanceInfo({ raid }: { raid: any }) {
     const instance = raid?.instance;

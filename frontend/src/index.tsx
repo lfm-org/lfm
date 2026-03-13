@@ -6,13 +6,15 @@ import * as serviceWorker from "./serviceWorker";
 import { ThemeProvider } from "@material-ui/core/styles";
 import theme from "./theme";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import "reflect-metadata";
+import { BrowserRouter } from "react-router-dom";
 
 ReactDOM.render(
-  <ThemeProvider theme={theme}>
-    <CssBaseline />
-    <App />
-  </ThemeProvider>,
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ThemeProvider>,
   document.getElementById("root")
 );
 

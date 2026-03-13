@@ -1,28 +1,39 @@
 import React, { useEffect } from "react";
-import "./LoginPage.css";
+import { Typography } from "@material-ui/core";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { store } from "../store";
+import "./LoginPage.css";
+import {
+  setAccessToken,
+  setDisplayName,
+  setGuildName,
+} from "../util/AuthUtil";
 
 export function LoginSuccessPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const accessToken = searchParams.get("access_token") || undefined;
-    const name = searchParams.get("name") || undefined;
-    console.log(JSON.stringify(accessToken));
+    const accessToken = searchParams.get("access_token");
+    const name = searchParams.get("name");
+    const guild = searchParams.get("guild");
+    const redirectPath = searchParams.get("redirect") || "/raids";
     if (accessToken) {
-      const { redirectUrl } = store.getState().user;
-      const { dispatch } = store;
-      dispatch.user.login(accessToken, name);
-      console.log(JSON.stringify(redirectUrl));
-      if (redirectUrl) {
-        navigate(redirectUrl, { replace: true });
+      setAccessToken(accessToken);
+      if (name) {
+        setDisplayName(name);
       }
+      if (guild) {
+        setGuildName(guild);
+      }
+      navigate(redirectPath, { replace: true });
     } else {
       navigate("/login/failed", { replace: true });
     }
   }, [navigate, searchParams]);
 
-  return <div />;
+  return (
+    <div className="LoginPage">
+      <Typography>Signing you in...</Typography>
+    </div>
+  );
 }

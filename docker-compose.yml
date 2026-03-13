@@ -1,43 +1,66 @@
-version: "3.7"
 services:
-    frontend:
-        tty: true
-        depends_on:
-            - backend
-        container_name: pugme_frontend
-        ports:
-            - "80:80"
-        build:
-            context: ./frontend
-        environment:
-            REACT_APP_API_HOST: backend
-            REACT_APP_API_PORT: 3000
-        volumes:
-          - ./frontend:/usr/src/app
-    backend:
-        depends_on:
-            - database
-        container_name: pugme_backend
-        ports:
-            - "3000:3000"
-        build:
-            context: ./backend
-        environment:
-            TYPEORM_HOST: database
-            FRONTEND_SCHEME: http
-            FRONTEND_HOST: localhost
-            FRONTEND_PORT: 80
-        volumes:
-          - ./backend:/usr/src/app
-    database:
-        container_name: pugme_database
-        image: postgres:11-alpine
-        volumes:
-            - "/var/run/postgres/postgres.sock:/var/run/postgres/postgres.sock"
-            - "database:/var/lib/lib/postgresql/data"
-        ports:
-            - "5433:5432"
-        restart: always
-        env_file: .env
+  frontend:
+    depends_on:
+      backend:
+        condition: service_healthy
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_BASE_URL: /api
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+  backend:
+    depends_on:
+      database:
+        condition: service_healthy
+    build:
+      context: ./backend
+    environment:
+      PORT: "3000"
+      TYPEORM_HOST: database
+      TYPEORM_PORT: "5432"
+      TYPEORM_USERNAME: ${POSTGRES_USER}
+      TYPEORM_PASSWORD: ${POSTGRES_PASSWORD}
+      TYPEORM_DATABASE: ${POSTGRES_DB}
+      TYPEORM_ENTITIES: '["dist/**/*.entity{.ts,.js}"]'
+      TYPEORM_MIGRATIONS: "[]"
+      TYPEORM_MIGRATIONS_RUN: "false"
+      TYPEORM_LOGGING: "false"
+      TYPEORM_DROP_SCHEMA: "false"
+      TYPEORM_SYNCHRONIZE: "true"
+      BLIZZARD_USERNAME: ""
+      BLIZZARD_PASSWORD: ""
+      SISU_RAIDCAL_CLIENT_ID: ""
+      SISU_RAIDCAL_CLIENT_SECRET: ""
+      BATTLE_NET_REGION: eu
+      BATTLE_NET_REDIRECT_URI: http://localhost:3000/battlenet/callback
+      FRONTEND_BASE_URL: http://localhost:8080
+      BATTLE_NET_LOGIN_SUCCESS_PATH: /login/success
+      BATTLE_NET_LOGIN_FAILURE_PATH: /login/failed
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/raids || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  database:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 volumes:
-    database:
+  database:

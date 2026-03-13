@@ -1,52 +1,52 @@
-import { AppBar, Toolbar, IconButton } from "@material-ui/core";
-import { AccountCircle } from "@material-ui/icons";
-import React, { useEffect, useState } from "react";
+import { AppBar, Button, Toolbar } from "@material-ui/core";
+import React from "react";
 import "./App.css";
 import { Logo } from "./components/Logo";
 import { RaidPage } from "./components/RaidPage";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { LoginPage } from "./components/LoginPage";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { RaidsPage } from "./components/RaidsPage";
+import { LoginPage } from "./components/LoginPage";
 import { LoginSuccessPage } from "./components/LoginSuccessPage";
-import { store } from "./store";
-import { UserLoginState } from "./models/user.model";
+import { LoginFailedPage } from "./components/LoginFailedPage";
 
 function App() {
-  const [loginState, setLoginState] = useState(
-    store.getState().user.loginState
-  );
-
-  useEffect(() => {
-    setLoginState(store.getState().user.loginState);
-  }, []);
+  const location = useLocation();
+  const loginState = { from: { pathname: location.pathname } };
 
   return (
     <div className="App">
       <AppBar position="static" color="inherit">
         <Toolbar variant="dense" color="inherit">
           <Logo image="/favicon.ico" title={document.title} />
-          {loginState === UserLoginState.LoggedIn && (
-            <div>{store.getState().user.name}</div>
-          )}
-          <IconButton color="inherit" href="/login">
-            <AccountCircle color="inherit" />
-          </IconButton>
+          <Button
+            component={Link}
+            to="/raids"
+            color="inherit"
+            size="small"
+            style={{ marginLeft: "16px" }}
+          >
+            Raids
+          </Button>
+          <Button
+            component={Link}
+            to="/login"
+            state={loginState}
+            color="inherit"
+            size="small"
+            style={{ marginLeft: "8px" }}
+          >
+            Login
+          </Button>
         </Toolbar>
       </AppBar>
-      <Router>
-        <Routes>
-          <Route caseSensitive path="/" element={<RaidsPage />} />
-          <Route
-            caseSensitive
-            path="/login/success"
-            element={<LoginSuccessPage />}
-          />
-          <Route caseSensitive path="/login/failed" element={<LoginPage />} />
-          <Route caseSensitive path="/login" element={<LoginPage />} />
-          <Route caseSensitive path="/raids/:id" element={<RaidPage />} />
-          <Route caseSensitive path="/raids" element={<RaidsPage />} />
-        </Routes>
-      </Router>
+      <Routes>
+        <Route caseSensitive path="/" element={<RaidsPage />} />
+        <Route caseSensitive path="/raids/:id" element={<RaidPage />} />
+        <Route caseSensitive path="/raids" element={<RaidsPage />} />
+        <Route caseSensitive path="/login" element={<LoginPage />} />
+        <Route path="/login/success" element={<LoginSuccessPage />} />
+        <Route path="/login/failed" element={<LoginFailedPage />} />
+      </Routes>
     </div>
   );
 }

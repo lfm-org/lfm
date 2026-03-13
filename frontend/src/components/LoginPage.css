@@ -1,11 +1,10 @@
 .LoginPage {
-    width: -moz-calc(100% - 2vh);
-    width: -webkit-calc(100% - 2vh);
-    width: -o-calc(100% - 2vh);
-    width: calc(100% - 2vh);
-    margin: 2vh;
-}
-
-.LoginPage div {
-    margin-bottom: 0.25rem;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 24px;
 }

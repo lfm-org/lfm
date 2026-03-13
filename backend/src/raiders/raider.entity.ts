@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Character } from "../characters/character.entity";
+import { Raid } from "../raids/raid.entity";
 
 @Entity()
 export class Raider {
@@ -29,12 +30,24 @@ export class Raider {
   @Column({ type: "text", nullable: true })
   public name?: string;
 
+  @Column({ type: "text", name: "battle_tag", nullable: true })
+  public battleTag?: string;
+
   @Column({
     type: "text",
-    name: "google_sub",
+    name: "battle_net_id",
     nullable: true,
     select: false,
   })
   @Index({ nullFiltered: true, unique: true })
-  public googleSub?: string;
+  public battleNetId?: string;
+
+  @Column({ type: "text", name: "guild_name", nullable: true })
+  public guildName?: string;
+
+  @OneToMany(
+    () => Raid,
+    (raid) => raid.creator
+  )
+  public raids: Raid[];
 }

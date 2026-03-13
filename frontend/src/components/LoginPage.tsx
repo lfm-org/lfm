@@ -1,32 +1,40 @@
-import React, { useEffect, useState } from "react";
-import "./LoginPage.css";
-import { LoginButtonGoogle } from "./LoginButtonGoogle";
-import { store } from "../store";
+import React from "react";
+import { Button, Typography } from "@material-ui/core";
 import { useLocation } from "react-router-dom";
-import { UserLoginState } from "../models/user.model";
+import { buildApiUrl } from "../util/ApiUtil";
+import "./LoginPage.css";
+
+type LocationState = {
+  from?: {
+    pathname?: string;
+  };
+};
 
 export function LoginPage() {
-  const [loginState, setLoginState] = useState(
-    store.getState().user.loginState
-  );
   const location = useLocation();
-  const redirectUrl = location.pathname;
-
-  useEffect(() => {
-    const { dispatch } = store;
-    if (store.getState().user.loginState === UserLoginState.LoggedOut) {
-      dispatch.user.startLogin(redirectUrl);
-    }
-    setLoginState(store.getState().user.loginState);
-  }, [redirectUrl]);
+  const state = location.state as LocationState;
+  const redirectPath = state?.from?.pathname || "/raids";
+  const endpoint = `${buildApiUrl("/battlenet/login")}?redirect=${encodeURIComponent(
+    redirectPath
+  )}`;
 
   return (
     <div className="LoginPage">
-      {loginState === UserLoginState.LoggingIn && (
-        <>
-          <LoginButtonGoogle />
-        </>
-      )}
+      <Typography variant="h4" component="h1" gutterBottom>
+        Sign in with Battle.net
+      </Typography>
+      <Typography>
+        Continue with your Battle.net account to keep track of raid signups.
+      </Typography>
+      <Button
+        variant="contained"
+        color="primary"
+        size="large"
+        disableElevation
+        href={endpoint}
+      >
+        Continue with Battle.net
+      </Button>
     </div>
   );
 }
