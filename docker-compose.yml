@@ -31,13 +31,13 @@ services:
       TYPEORM_SYNCHRONIZE: "true"
       BLIZZARD_USERNAME: ""
       BLIZZARD_PASSWORD: ""
-      SISU_RAIDCAL_CLIENT_ID: ""
-      SISU_RAIDCAL_CLIENT_SECRET: ""
-      BATTLE_NET_REGION: eu
-      BATTLE_NET_REDIRECT_URI: http://localhost:3000/battlenet/callback
-      FRONTEND_BASE_URL: http://localhost:8080
-      BATTLE_NET_LOGIN_SUCCESS_PATH: /login/success
-      BATTLE_NET_LOGIN_FAILURE_PATH: /login/failed
+      SISU_RAIDCAL_CLIENT_ID: ${SISU_RAIDCAL_CLIENT_ID}
+      SISU_RAIDCAL_CLIENT_SECRET: ${SISU_RAIDCAL_CLIENT_SECRET}
+      BATTLE_NET_REGION: ${BATTLE_NET_REGION:-eu}
+      BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI:-http://localhost:3000/battlenet/callback}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
+      BATTLE_NET_LOGIN_SUCCESS_PATH: ${BATTLE_NET_LOGIN_SUCCESS_PATH:-/login/success}
+      BATTLE_NET_LOGIN_FAILURE_PATH: ${BATTLE_NET_LOGIN_FAILURE_PATH:-/login/failed}
     ports:
       - "3000:3000"
     restart: unless-stopped
