@@ -73,7 +73,7 @@ Write a BDD scenario for every new public function, every new route handler, and
 3. Work in a dedicated branch: `claude/<short-slug>`.
    - Default branch-creation command: `git switch -c claude/<short-slug>`.
 4. Prefer `git switch -c` over `git checkout -b` unless a concrete repo-specific reason requires a different command form.
-5. Avoid using `git -C`.
+5. Always use `git -C` with absolute paths.
 6. Keep changesets small by default:
    - Small commit target: `<= 5` files changed and `<= 250` total changed lines (additions + deletions).
    - Small task-branch target: `<= 30` files changed and `<= 900` total changed lines relative to `main`.
