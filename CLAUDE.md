@@ -41,14 +41,7 @@ Use TypeScript throughout with strict mode. Keep double quotes and semicolons, f
 
 ## Behavior-Driven Development (BDD)
 
-Testing is test-first by default:
-
-1. Write a failing Given/When/Then scenario before any implementation code.
-2. Run the test — confirm it fails for the right reason (Red).
-3. Write the minimum implementation to make it pass (Green).
-4. Refactor freely — the passing test is your safety net (Refactor).
-
-Never write implementation code without a failing test to justify it. The test drives the design.
+Use the `superpowers:test-driven-development` skill for the TDD workflow. Project-specific conventions:
 
 **Naming pattern** — use `Given / When / Then` in `describe` and `it` strings:
 
@@ -90,17 +83,15 @@ Write a BDD scenario for every new public function, every new route handler, and
    - Before branch closure recommendation, run a quick commit-stack review and normalize commit structure (split/squash/reword) when clarity or traceability needs improvement.
    - If projected work exceeds small-task thresholds, split automatically into sequenced subtasks/branches before continuing.
 7. Merge strategy is rebase-and-merge.
-8. Branch closure policy:
-   - Claude may close task branches at their own consideration once closure prerequisites are satisfied.
-   - No separate user close approval is required.
-   - Branch closure must still use rebase-and-merge and keep workspace clean on `main`.
-   - Closure prerequisites: all changes committed, no unstaged modifications, branch task complete.
-   - After a skill (e.g. `/simplify`, `/security-review`) produces changes, commit them and close immediately if no further branch work remains — do not wait for the user to prompt closure.
+8. When all branch work is complete, use `superpowers:finishing-a-development-branch` to close.
+   Rebase-and-merge is the required strategy; keep workspace clean on `main` after close.
 9. Guidance changes based on user policy approvals must be documented in guidance files in the same task.
-10. Close branch and return to clean `main` for the next task.
-11. Commit message style: short, imperative subjects — e.g. `Fix docker`, `Add raids route`. Keep commits scoped and direct.
-12. Pull request descriptions: explain the change, list any env or schema changes, and include screenshots for UI work.
-13. Do not add `Co-Authored-By` trailers to commits. AI usage is acknowledged in `README.md` instead.
+10. Before claiming work complete or closing a branch, use `superpowers:verification-before-completion`
+    to confirm tests pass and the build is clean.
+11. For non-trivial tasks, use `superpowers:requesting-code-review` before merging.
+12. Commit message style: short, imperative subjects — e.g. `Fix docker`, `Add raids route`. Keep commits scoped and direct.
+13. Pull request descriptions: explain the change, list any env or schema changes, and include screenshots for UI work.
+14. Do not add `Co-Authored-By` trailers to commits. AI usage is acknowledged in `README.md` instead.
 
 ## Configuration & Secrets
 
