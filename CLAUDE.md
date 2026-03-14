@@ -38,28 +38,29 @@ Use TypeScript throughout with strict mode. Keep double quotes and semicolons, f
 
 ## Behavior-Driven Development (BDD)
 All tests use Given/When/Then naming and test observable behavior, not implementation internals. Testing is test-first: write a failing scenario before writing implementation code.
-→ See [docs/TESTING.md](docs/TESTING.md)
+@docs/TESTING.md
 
 ## Mandatory Git Workflow
 Start clean, work in a `claude/<short-slug>` branch, keep changesets small, and rebase-and-merge to `main`.
 Do not add `Co-Authored-By` trailers to commits. AI usage is acknowledged in `README.md` instead.
-→ See [docs/GIT.md](docs/GIT.md)
+@docs/GIT.md
 
 ## Configuration & Secrets
 Never commit populated `.env` files or credentials. Prefer named constants over magic strings; use env vars for environment-specific values.
-→ See [docs/SECURITY.md](docs/SECURITY.md) and [docs/DATA_DRIVEN.md](docs/DATA_DRIVEN.md)
+@docs/SECURITY.md
+@docs/DATA_DRIVEN.md
 
 ## DevSecOps & Dependency Security
 Pin exact dependency versions (never `^` or `~`). Follow OWASP A01–A09 controls.
-→ See [docs/SECURITY.md](docs/SECURITY.md)
+@docs/SECURITY.md
 
 ## Data-Driven Development
 Prefer config arrays and named constants over scattered magic strings and repeated literals.
-→ See [docs/DATA_DRIVEN.md](docs/DATA_DRIVEN.md)
+@docs/DATA_DRIVEN.md
 
 ## Using Context7 for Library Documentation
 Before non-trivial changes to an external library, pull docs via Context7 MCP.
-→ See [docs/CONTEXT7.md](docs/CONTEXT7.md)
+@docs/CONTEXT7.md
 
 ## Documentation Separation
 `CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, and architectural decisions for the AI agent. Do not mix in user-facing content (setup guides, feature docs, API references for humans). User-facing documentation belongs in `README.md` or a separate `docs/user/` subtree.
