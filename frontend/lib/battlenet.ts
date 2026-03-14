@@ -164,6 +164,44 @@ export class BattlenetService {
     return this.buildBase("/login/failed");
   }
 
+  public async fetchAccountCharacters(
+    accessToken: string
+  ): Promise<Array<{ name: string; realm: string; realmName: string; level: number; region: string }>> {
+    if (process.env.TEST_MODE === "true") {
+      return [
+        { name: "TestChar", realm: "test-realm", realmName: "Test Realm", level: 80, region: this.region },
+      ];
+    }
+    try {
+      const url = new URL(`https://${API_HOSTS[this.region]}/profile/user/wow`);
+      url.searchParams.set("namespace", this.profileNamespace);
+      const response = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) return [];
+      const data = await response.json() as {
+        wow_accounts?: Array<{
+          characters?: Array<{
+            name: string;
+            realm: { slug: string; name: string };
+            level: number;
+          }>;
+        }>;
+      };
+      return (data.wow_accounts ?? []).flatMap((account) =>
+        (account.characters ?? []).map((c) => ({
+          name: c.name,
+          realm: c.realm.slug,
+          realmName: c.realm.name,
+          level: c.level,
+          region: this.region,
+        }))
+      );
+    } catch {
+      return [];
+    }
+  }
+
   public async resolveIdentity(
     accessToken: string
   ): Promise<BattleNetIdentity | null> {
