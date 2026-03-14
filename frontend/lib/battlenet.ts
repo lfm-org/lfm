@@ -15,7 +15,7 @@ interface BattleNetTokenResponse {
 }
 
 interface BattleNetUserInfo {
-  id: string;
+  id: number;
   battletag: string;
 }
 
@@ -79,7 +79,7 @@ function normalizeRedirectPath(path?: string): string {
   return trimmed;
 }
 
-class BattlenetService {
+export class BattlenetService {
   private readonly identityCache = new Map<string, CachedIdentity>();
   private readonly clientId: string;
   private readonly clientSecret: string;
@@ -101,7 +101,7 @@ class BattlenetService {
     this.region = determineRegion(process.env.BATTLE_NET_REGION);
     this.authorizeUrl = `https://${AUTH_HOSTS[this.region]}/oauth/authorize`;
     this.tokenUrl = `https://${AUTH_HOSTS[this.region]}/oauth/token`;
-    this.userInfoUrl = `https://${API_HOSTS[this.region]}/oauth/userinfo`;
+    this.userInfoUrl = `https://${AUTH_HOSTS[this.region]}/oauth/userinfo`;
     this.profileNamespace = PROFILE_NAMESPACES[this.region];
   }
 
@@ -132,9 +132,15 @@ class BattlenetService {
     const parsedState = this.decodeState(state);
     const redirect = normalizeRedirectPath(parsedState?.redirect);
     const token = await this.exchangeCodeForToken(code);
-    if (!token) return null;
+    if (!token) {
+      console.warn("Battle.net handleCallback: token exchange returned null");
+      return null;
+    }
     const identity = await this.authenticateWithToken(token.access_token);
-    if (!identity) return null;
+    if (!identity) {
+      console.warn("Battle.net handleCallback: authenticateWithToken returned null");
+      return null;
+    }
     return {
       accessToken: token.access_token,
       name: identity.name,
@@ -185,18 +191,23 @@ class BattlenetService {
     accessToken: string
   ): Promise<BattleNetIdentity | null> {
     const profile = await this.fetchUserProfile(accessToken);
-    if (!profile) return null;
+    if (!profile) {
+      console.warn("Battle.net authenticateWithToken: fetchUserProfile returned null");
+      return null;
+    }
     const guildName = await this.fetchGuildName(accessToken);
 
+    const battleNetId = String(profile.id);
+
     let raider = await prisma.raider.findUnique({
-      where: { battleNetId: profile.id },
+      where: { battleNetId },
     });
 
     if (!raider) {
       raider = await prisma.raider.create({
         data: {
           name: profile.battletag,
-          battleNetId: profile.id,
+          battleNetId,
           battleTag: profile.battletag,
           guildName,
         },
@@ -215,7 +226,7 @@ class BattlenetService {
     if (!raider) return null;
 
     return {
-      battleNetId: profile.id,
+      battleNetId,
       battleTag: profile.battletag,
       name: raider.name ?? undefined,
       guildName: raider.guildName,
@@ -249,7 +260,8 @@ class BattlenetService {
       });
 
       if (!response.ok) {
-        console.warn(`Battle.net token exchange failed: ${response.status}`);
+        const body = await response.text().catch(() => "(unreadable)");
+        console.warn(`Battle.net token exchange failed: ${response.status} ${body}`);
         return null;
       }
       return response.json() as Promise<BattleNetTokenResponse>;
@@ -266,9 +278,14 @@ class BattlenetService {
       const response = await fetch(this.userInfoUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        const body = await response.text().catch(() => "(unreadable)");
+        console.warn(`Battle.net fetchUserProfile failed: ${response.status} ${body}`);
+        return null;
+      }
       return response.json() as Promise<BattleNetUserInfo>;
-    } catch {
+    } catch (error) {
+      console.warn(`Battle.net fetchUserProfile error: ${error}`);
       return null;
     }
   }
