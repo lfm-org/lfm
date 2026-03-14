@@ -68,3 +68,6 @@ Prefer config arrays and named constants over scattered magic strings and repeat
 ## Using Context7 for Library Documentation
 Before non-trivial changes to an external library, pull docs via Context7 MCP.
 → See [docs/CONTEXT7.md](docs/CONTEXT7.md)
+
+## Documentation Separation
+`CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, and architectural decisions for the AI agent. Do not mix in user-facing content (setup guides, feature docs, API references for humans). User-facing documentation belongs in `README.md` or a separate `docs/user/` subtree.
