@@ -41,7 +41,7 @@ export default async function CharactersPage({ searchParams }: Props) {
               variant="outlined"
               style={{ display: "flex", flexDirection: "column", padding: "1rem", minWidth: "120px" }}
             >
-              <Typography variant="body1">{char.name}</Typography>
+              <Typography variant="body1" component="span">{char.name}</Typography>
               <Typography variant="caption">{char.realmName}</Typography>
               <Typography variant="caption">Level {char.level}</Typography>
             </Button>
