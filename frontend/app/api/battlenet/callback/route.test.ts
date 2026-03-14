@@ -8,9 +8,7 @@ jest.mock("@/lib/prisma", () => ({
     raider: {
       upsert: jest.fn().mockResolvedValue({
         id: 1,
-        battleNetId: "test-bnet-id",
-        battleTag: "TestUser#1234",
-        name: "TestUser#1234",
+        battleNetId: "test-bnet-id-hashed",
         guildName: null,
         createdTime: new Date(),
         updatedTime: new Date(),
@@ -59,7 +57,8 @@ describe("GET /api/battlenet/callback — TEST_MODE stub", () => {
       expect(res.status).toBe(307);
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { battleNetId: "test-bnet-id" },
+          where: { battleNetId: expect.any(String) },
+          create: expect.not.objectContaining({ battleTag: expect.anything() }),
         })
       );
       expect(res.headers.get("set-cookie")).toContain(
@@ -81,5 +80,35 @@ describe("GET /api/battlenet/callback — TEST_MODE stub", () => {
         "battlenet_token=test_battlenet_token"
       );
     });
+  });
+});
+
+describe("given TEST_MODE=false and handleCallback returns selectedCharacterId: null", () => {
+  beforeEach(() => {
+    delete process.env.TEST_MODE;
+  });
+
+  it("then redirects to /characters with the original redirect preserved", async () => {
+    const { battlenet: mockBattlenet } = jest.mocked(
+      await import("@/lib/battlenet")
+    );
+    (mockBattlenet.handleCallback as jest.Mock).mockResolvedValueOnce({
+      accessToken: "tok",
+      redirect: "/raids",
+      guildName: null,
+      selectedCharacterId: null,
+    });
+    (mockBattlenet.buildFrontendFailureUrl as jest.Mock).mockReturnValue(
+      "http://localhost:3001/login/failed"
+    );
+
+    const req = new NextRequest(
+      "http://localhost:3001/api/battlenet/callback?code=realcode&state=xyz"
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/characters");
+    expect(res.headers.get("location")).toContain("redirect=%2Fraids");
   });
 });

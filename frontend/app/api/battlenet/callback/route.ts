@@ -7,22 +7,16 @@ export async function GET(request: NextRequest) {
     const code = request.nextUrl.searchParams.get("code");
     if (code === "test_code_valid") {
       await prisma.raider.upsert({
-        where: { battleNetId: "test-bnet-id" },
-        update: { name: "TestUser#1234", battleTag: "TestUser#1234" },
+        where: { battleNetId: "test-bnet-id-hashed" },
+        update: {},
         create: {
-          battleNetId: "test-bnet-id",
-          battleTag: "TestUser#1234",
-          name: "TestUser#1234",
+          battleNetId: "test-bnet-id-hashed",
           guildName: null,
         },
       });
-      const successUrl = new URL(
-        battlenet.buildFrontendSuccessUrl({
-          accessToken: "test_battlenet_token",
-          redirect: "/raids",
-        })
+      const res = NextResponse.redirect(
+        new URL("/characters?redirect=%2Fraids", request.url)
       );
-      const res = NextResponse.redirect(successUrl);
       res.cookies.set("battlenet_token", "test_battlenet_token", {
         httpOnly: true,
         sameSite: "lax",
@@ -43,13 +37,25 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const successUrl = new URL(battlenet.buildFrontendSuccessUrl(response));
-  const res = NextResponse.redirect(successUrl);
-  res.cookies.set("battlenet_token", response.accessToken, {
+  const cookieOptions = {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: process.env.BATTLE_NET_COOKIE_SECURE === "true",
     path: "/",
-  });
-  return res;
+  };
+
+  if (response.selectedCharacterId === null) {
+    const redirect = encodeURIComponent(response.redirect ?? "/raids");
+    const charactersRes = NextResponse.redirect(
+      new URL(`/characters?redirect=${redirect}`, request.url)
+    );
+    charactersRes.cookies.set("battlenet_token", response.accessToken, cookieOptions);
+    return charactersRes;
+  }
+
+  const successRes = NextResponse.redirect(
+    new URL(battlenet.buildFrontendSuccessUrl(response))
+  );
+  successRes.cookies.set("battlenet_token", response.accessToken, cookieOptions);
+  return successRes;
 }
