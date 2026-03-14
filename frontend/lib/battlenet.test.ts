@@ -4,7 +4,7 @@
 // Test only the pure, side-effect-free behaviours of BattlenetService.
 // DB and network calls are not exercised here.
 
-jest.mock("./prisma", () => ({ prisma: {} }));
+jest.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { battlenet } from "./battlenet";
 
