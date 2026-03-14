@@ -1,7 +1,10 @@
+/**
+ * @jest-environment node
+ */
 // Test only the pure, side-effect-free behaviours of BattlenetService.
 // DB and network calls are not exercised here.
 
-jest.mock("./prisma", () => ({ prisma: {} }));
+jest.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { battlenet } from "./battlenet";
 
@@ -92,6 +95,29 @@ describe("BattlenetService", () => {
       expect(new URL(battlenet.buildFrontendFailureUrl()).pathname).toBe(
         "/login/failed"
       );
+    });
+  });
+});
+
+describe("BattlenetService.resolveIdentity — TEST_MODE stub", () => {
+  beforeEach(() => {
+    process.env.TEST_MODE = "true";
+  });
+
+  afterEach(() => {
+    delete process.env.TEST_MODE;
+  });
+
+  describe("given TEST_MODE=true and token=test_battlenet_token", () => {
+    it("then returns the test identity without calling BNet", async () => {
+      const identity = await battlenet.resolveIdentity("test_battlenet_token");
+
+      expect(identity).toEqual({
+        battleNetId: "test-bnet-id",
+        battleTag: "TestUser#1234",
+        name: "TestUser#1234",
+        guildName: null,
+      });
     });
   });
 });

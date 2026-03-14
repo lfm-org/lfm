@@ -1,0 +1,72 @@
+services:
+  database-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: raidcal_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d raidcal_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - test
+
+  frontend-test:
+    build:
+      context: ./frontend
+      target: dev
+    command: >
+      sh -c "npx prisma generate &&
+             npx prisma migrate deploy &&
+             npx prisma db seed &&
+             npm run dev"
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    environment:
+      DATABASE_URL: postgresql://test:test@database-test:5432/raidcal_test
+      TEST_MODE: "true"
+      APP_BASE_URL: http://frontend-test:3001
+      BATTLE_NET_REDIRECT_URI: http://frontend-test:3001/api/battlenet/callback
+      BATTLE_NET_COOKIE_SECURE: "false"
+      SISU_RAIDCAL_CLIENT_ID: "test"
+      SISU_RAIDCAL_CLIENT_SECRET: "test"
+      BATTLE_NET_REGION: eu
+    depends_on:
+      database-test:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - >
+          node -e "require('http').get('http://localhost:3001/api/health',
+          r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks:
+      - test
+
+  playwright:
+    build:
+      context: .
+      dockerfile: playwright/Dockerfile
+    command: npx playwright test
+    volumes:
+      - ./frontend:/e2e
+      - /e2e/node_modules
+    environment:
+      PLAYWRIGHT_BASE_URL: http://frontend-test:3001
+    depends_on:
+      frontend-test:
+        condition: service_healthy
+    networks:
+      - test
+
+networks:
+  test:
+    driver: bridge
