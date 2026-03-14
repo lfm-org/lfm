@@ -10,25 +10,40 @@ jest.mock("./Logo", () => ({
   Logo: () => <div data-testid="logo" />,
 }));
 
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return <img {...props} />;
+  },
+}));
+
 describe("NavBar", () => {
-  describe("given no battleTag (logged out)", () => {
+  describe("given no character (logged out)", () => {
     it("then shows the Login link", () => {
-      render(<NavBar battleTag={null} />);
+      render(<NavBar character={null} />);
       expect(screen.getByRole("link", { name: /login/i })).toBeInTheDocument();
     });
   });
 
-  describe("given a battleTag (logged in)", () => {
-    it("then shows the battle tag", () => {
-      render(<NavBar battleTag="User#1234" />);
-      expect(screen.getByText("User#1234")).toBeInTheDocument();
+  describe("given a selected character (logged in)", () => {
+    const character = { name: "TestChar", portraitUrl: "/test-portrait.jpg" };
+
+    it("then shows the character name as a link to /characters", () => {
+      render(<NavBar character={character} />);
+      const link = screen.getByRole("link", { name: /TestChar/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute("href", "/characters");
+    });
+
+    it("then shows the Logout link", () => {
+      render(<NavBar character={character} />);
+      expect(screen.getByRole("link", { name: /logout/i })).toBeInTheDocument();
     });
 
     it("then does not show the Login link", () => {
-      render(<NavBar battleTag="User#1234" />);
-      expect(
-        screen.queryByRole("link", { name: /login/i })
-      ).not.toBeInTheDocument();
+      render(<NavBar character={character} />);
+      expect(screen.queryByRole("link", { name: /login/i })).not.toBeInTheDocument();
     });
   });
 });

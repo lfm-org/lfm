@@ -1,15 +1,21 @@
 "use client";
 
-import { AppBar, Button, Toolbar, Typography } from "@mui/material";
+import { AppBar, Button, Toolbar } from "@mui/material";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 
-interface NavBarProps {
-  battleTag?: string | null;
+interface NavBarCharacter {
+  name: string;
+  portraitUrl: string | null;
 }
 
-export default function NavBar({ battleTag = null }: NavBarProps) {
+interface NavBarProps {
+  character?: NavBarCharacter | null;
+}
+
+export default function NavBar({ character = null }: NavBarProps) {
   const pathname = usePathname();
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
 
@@ -26,14 +32,36 @@ export default function NavBar({ battleTag = null }: NavBarProps) {
         >
           Raids
         </Button>
-        {battleTag ? (
-          <Typography
-            variant="body2"
-            color="inherit"
-            style={{ marginLeft: "8px" }}
-          >
-            {battleTag}
-          </Typography>
+        {character ? (
+          <>
+            {character.portraitUrl && (
+              <Image
+                src={character.portraitUrl}
+                alt={character.name}
+                width={32}
+                height={32}
+                style={{ borderRadius: "50%", marginLeft: "8px" }}
+              />
+            )}
+            <Button
+              component={Link}
+              href="/characters"
+              color="inherit"
+              size="small"
+              style={{ marginLeft: "4px" }}
+            >
+              {character.name}
+            </Button>
+            <Button
+              component={Link}
+              href="/api/battlenet/logout"
+              color="inherit"
+              size="small"
+              style={{ marginLeft: "4px" }}
+            >
+              Logout
+            </Button>
+          </>
         ) : (
           <Button
             component={Link}
