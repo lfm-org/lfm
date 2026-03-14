@@ -41,17 +41,8 @@ All tests use Given/When/Then naming and test observable behavior, not implement
 → See [docs/TESTING.md](docs/TESTING.md)
 
 ## Mandatory Git Workflow
-1. Start every task with a clean workspace.
-2. If workspace is not clean, stop and alert the user.
-3. Work in a dedicated branch: `claude/<short-slug>`.
-4. Keep changesets small by default (≤ 5 files / ≤ 250 lines per commit; ≤ 30 files / ≤ 900 lines per branch).
-5. Merge strategy is rebase-and-merge.
-6. Branch closure policy: Claude may close task branches without separate user approval once prerequisites are satisfied.
-7. Guidance changes based on user policy approvals must be documented in guidance files in the same task.
-8. Close branch and return to clean `main` for the next task.
-9. Commit message style: short, imperative subjects — e.g. `Fix docker`, `Add raids route`. Keep commits scoped and direct.
-10. Pull request descriptions: explain the change, list any env or schema changes, and include screenshots for UI work.
-→ See [docs/GIT.md](docs/GIT.md) for full detail including branch-creation commands and changeset guidance.
+Start clean, work in a `claude/<short-slug>` branch, keep changesets small, and rebase-and-merge to `main`.
+→ See [docs/GIT.md](docs/GIT.md)
 
 ## Configuration & Secrets
 Never commit populated `.env` files or credentials. Prefer named constants over magic strings; use env vars for environment-specific values.

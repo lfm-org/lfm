@@ -18,6 +18,8 @@
    - Claude may close task branches at their own consideration once closure prerequisites are satisfied.
    - No separate user close approval is required.
    - Branch closure must still use rebase-and-merge and keep workspace clean on `main`.
+   - Closure prerequisites: all changes committed, no unstaged modifications, branch task complete.
+   - After a skill (e.g. `/simplify`, `/security-review`) produces changes, commit them and close immediately if no further branch work remains — do not wait for the user to prompt closure.
 7. Guidance changes based on user policy approvals must be documented in guidance files in the same task.
 8. Close branch and return to clean `main` for the next task.
 9. Commit message style: short, imperative subjects — e.g. `Fix docker`, `Add raids route`. Keep commits scoped and direct.

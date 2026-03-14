@@ -16,6 +16,8 @@ Before making non-trivial changes to code that uses an external library, use the
 | MUI v6 | `/mui/material-ui` |
 | TanStack Table v8 | `/tanstack/table` |
 | Compose Specification | `/compose-spec/compose-spec` |
+| axios | `/axios/axios` |
+| date-fns | `/date-fns/date-fns` |
 
 ## When to Use It
 

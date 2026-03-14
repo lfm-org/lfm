@@ -4,7 +4,7 @@
 
 Do not commit populated `.env` files or real Blizzard or database credentials. Use the checked-in `example.env` files as templates, and keep local overrides out of version control.
 
-## Dependency Pinning (OWASP A06)
+## Dependency Pinning
 
 **Pin exact versions — never use ranges for dependencies.**
 Using `^` or `~` silently accepts future versions that may introduce vulnerabilities or supply-chain compromises. Always specify exact versions:
