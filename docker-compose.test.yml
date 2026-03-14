@@ -37,6 +37,7 @@ services:
       SISU_RAIDCAL_CLIENT_ID: "test"
       SISU_RAIDCAL_CLIENT_SECRET: "test"
       BATTLE_NET_REGION: eu
+      HMAC_SECRET: "test-hmac-secret-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     depends_on:
       database-test:
         condition: service_healthy

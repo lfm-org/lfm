@@ -17,5 +17,6 @@ services:
       BATTLE_NET_REDIRECT_URI: http://localhost:3001/api/battlenet/callback
       APP_BASE_URL: http://localhost:3001
       BATTLE_NET_COOKIE_SECURE: "false"
+      HMAC_SECRET: ${HMAC_SECRET}
       BLIZZARD_USERNAME: ""
       BLIZZARD_PASSWORD: ""
