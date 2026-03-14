@@ -4,9 +4,25 @@
 // Test only the pure, side-effect-free behaviours of BattlenetService.
 // DB and network calls are not exercised here.
 
-jest.mock("@/lib/prisma", () => ({ prisma: {} }));
+jest.mock("@/lib/prisma", () => ({
+  prisma: {
+    raider: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+}));
 
-import { battlenet } from "./battlenet";
+import { battlenet, BattlenetService } from "./battlenet";
+import { prisma } from "@/lib/prisma";
+
+const mockFindUnique = prisma.raider.findUnique as jest.MockedFunction<
+  typeof prisma.raider.findUnique
+>;
+const mockCreate = prisma.raider.create as jest.MockedFunction<
+  typeof prisma.raider.create
+>;
 
 // Helpers
 function decodeState(url: string): { redirect?: string } {
@@ -95,6 +111,91 @@ describe("BattlenetService", () => {
       expect(new URL(battlenet.buildFrontendFailureUrl()).pathname).toBe(
         "/login/failed"
       );
+    });
+  });
+});
+
+// Battle.net userinfo returns id as an integer, not a string.
+const USERINFO_RESPONSE = { id: 463557, battletag: "User#1234" };
+const TOKEN_RESPONSE = {
+  access_token: "test_access_token",
+  token_type: "Bearer",
+  expires_in: 3600,
+};
+const TEST_RAIDER = {
+  id: 1,
+  battleNetId: "463557",
+  battleTag: "User#1234",
+  name: "User#1234",
+  guildName: null,
+  createdTime: new Date(),
+  updatedTime: new Date(),
+};
+
+describe("BattlenetService.handleCallback — real network calls mocked", () => {
+  let service: BattlenetService;
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    process.env.SISU_RAIDCAL_CLIENT_ID = "test-id";
+    process.env.SISU_RAIDCAL_CLIENT_SECRET = "test-secret";
+    process.env.BATTLE_NET_REGION = "eu";
+    service = new BattlenetService();
+
+    fetchSpy = jest
+      .spyOn(global, "fetch")
+      .mockImplementation((url: RequestInfo | URL) => {
+        const urlStr = String(url);
+        if (urlStr.includes("/oauth/token")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => TOKEN_RESPONSE,
+          } as Response);
+        }
+        if (urlStr.includes("/oauth/userinfo")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => USERINFO_RESPONSE,
+          } as Response);
+        }
+        return Promise.resolve({ ok: false } as Response);
+      });
+
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue(TEST_RAIDER as never);
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+    jest.clearAllMocks();
+  });
+
+  describe("given a valid authorization code", () => {
+    it("then fetches userinfo from eu.battle.net (AUTH_HOSTS), not eu.api.blizzard.com", async () => {
+      await service.handleCallback("some_code");
+
+      const urls = fetchSpy.mock.calls.map(([url]: [RequestInfo | URL]) =>
+        String(url)
+      );
+      const userInfoUrl = urls.find((u) => u.includes("/oauth/userinfo"));
+
+      expect(userInfoUrl).toContain("eu.battle.net");
+      expect(userInfoUrl).not.toContain("api.blizzard.com");
+    });
+
+    it("then converts the integer id from userinfo to a string battleNetId for prisma", async () => {
+      await service.handleCallback("some_code");
+
+      expect(mockFindUnique).toHaveBeenCalledWith({
+        where: { battleNetId: "463557" },
+      });
+    });
+
+    it("then returns a LoginResponse with the access token", async () => {
+      const result = await service.handleCallback("some_code");
+
+      expect(result).not.toBeNull();
+      expect(result?.accessToken).toBe("test_access_token");
     });
   });
 });

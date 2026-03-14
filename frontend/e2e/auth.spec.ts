@@ -18,6 +18,9 @@ test.describe("Battle.net auth flow", () => {
     // /login/success performs a client-side router.replace() — wait for it
     await page.waitForURL("/raids");
     await expect(page).toHaveURL("/raids");
+    // NavBar should reflect the logged-in identity, not show Login
+    await expect(page.getByText("TestUser#1234")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Login" })).not.toBeVisible();
   });
 
   test("Given no code is provided to the callback, When the request completes, Then the user lands on /login/failed", async ({
