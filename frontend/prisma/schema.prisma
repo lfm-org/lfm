@@ -18,15 +18,15 @@ enum Attendance {
 }
 
 model Raider {
-  id          Int          @id @default(autoincrement())
-  createdTime DateTime     @default(now()) @map("created_time") @db.Timestamptz(6)
-  updatedTime DateTime     @updatedAt      @map("updated_time") @db.Timestamptz(6)
-  name        String?
-  battleTag   String?      @map("battle_tag")
-  battleNetId String?      @unique         @map("battle_net_id")
-  guildName   String?      @map("guild_name")
-  characters  Character[]
-  raids       Raid[]
+  id                  Int        @id @default(autoincrement())
+  createdTime         DateTime   @default(now()) @map("created_time") @db.Timestamptz(6)
+  updatedTime         DateTime   @updatedAt      @map("updated_time") @db.Timestamptz(6)
+  battleNetId         String     @unique         @map("battle_net_id")
+  guildName           String?    @map("guild_name")
+  selectedCharacterId Int?       @map("selected_character")
+  selectedCharacter   Character? @relation("selected_character", fields: [selectedCharacterId], references: [id], onDelete: SetNull)
+  characters          Character[] @relation("owned_characters")
+  raids               Raid[]
 
   @@map("raider")
 }
@@ -38,13 +38,15 @@ model Character {
   realm          String
   name           String
   level          Int?
-  classId        Int             @map("class")
-  raceId         Int             @map("race")
+  classId        Int?            @map("class")
+  raceId         Int?            @map("race")
+  portraitUrl    String?         @map("portrait_url")
   raiderId       Int             @map("raider")
-  class          WowClass        @relation(fields: [classId],  references: [id])
-  race           WowRace         @relation(fields: [raceId],   references: [id])
-  raider         Raider          @relation(fields: [raiderId], references: [id])
+  class          WowClass?       @relation(fields: [classId], references: [id])
+  race           WowRace?        @relation(fields: [raceId],  references: [id])
+  raider         Raider          @relation("owned_characters", fields: [raiderId], references: [id])
   raidCharacters RaidCharacter[]
+  selectedBy     Raider[]        @relation("selected_character")
 
   @@unique([region, realm, name], name: "unique_region_realm_name")
   @@map("character")
