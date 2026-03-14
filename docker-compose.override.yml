@@ -1,29 +1,21 @@
 services:
-  backend:
-    userns_mode: keep-id:uid=1000,gid=1000
-    volumes:
-      - ./backend/src:/usr/src/app/src
-    environment:
-      FRONTEND_BASE_URL: http://localhost:3001
-
   frontend:
-    build:
-      target: dev
-    userns_mode: keep-id:uid=1000,gid=1000
+    image: node:24.14.0-alpine
+    command: sh -c "npm install && npm run dev"
+    working_dir: /usr/src/app
     ports:
-      - "3001:3000"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
-      WATCHPACK_POLLING: "true"
-      REACT_APP_API_BASE_URL: ""
-      REACT_APP_API_SCHEME: http
-      REACT_APP_API_HOST: localhost
-      REACT_APP_API_PORT: "3000"
+      - "3001:3001"
     volumes:
-      - ./frontend/src:/usr/src/app/src
-      - ./frontend/public:/usr/src/app/public
-
-# userns_mode: keep-id requires containers to run outside a Podman pod.
-# This is a no-op for Docker Compose (which has no pod concept).
-x-podman:
-  in_pod: false
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      SISU_RAIDCAL_CLIENT_ID: ${SISU_RAIDCAL_CLIENT_ID}
+      SISU_RAIDCAL_CLIENT_SECRET: ${SISU_RAIDCAL_CLIENT_SECRET}
+      BATTLE_NET_REGION: ${BATTLE_NET_REGION:-eu}
+      BATTLE_NET_REDIRECT_URI: http://localhost:3001/api/battlenet/callback
+      APP_BASE_URL: http://localhost:3001
+      BATTLE_NET_COOKIE_SECURE: "false"
+      BLIZZARD_USERNAME: ""
+      BLIZZARD_PASSWORD: ""

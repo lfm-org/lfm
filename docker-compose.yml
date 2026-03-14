@@ -1,52 +1,23 @@
 services:
   frontend:
-    depends_on:
-      backend:
-        condition: service_healthy
     build:
       context: ./frontend
-      args:
-        REACT_APP_API_BASE_URL: /api
-    ports:
-      - "8080:80"
-    restart: unless-stopped
-  backend:
     depends_on:
       database:
         condition: service_healthy
-    build:
-      context: ./backend
+    ports:
+      - "8080:3000"
+    restart: unless-stopped
     environment:
-      PORT: "3000"
-      TYPEORM_HOST: database
-      TYPEORM_PORT: "5432"
-      TYPEORM_USERNAME: ${POSTGRES_USER}
-      TYPEORM_PASSWORD: ${POSTGRES_PASSWORD}
-      TYPEORM_DATABASE: ${POSTGRES_DB}
-      TYPEORM_ENTITIES: '["dist/**/*.entity{.ts,.js}"]'
-      TYPEORM_MIGRATIONS: "[]"
-      TYPEORM_MIGRATIONS_RUN: "false"
-      TYPEORM_LOGGING: "false"
-      TYPEORM_DROP_SCHEMA: "false"
-      TYPEORM_SYNCHRONIZE: "true"
-      BLIZZARD_USERNAME: ""
-      BLIZZARD_PASSWORD: ""
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       SISU_RAIDCAL_CLIENT_ID: ${SISU_RAIDCAL_CLIENT_ID}
       SISU_RAIDCAL_CLIENT_SECRET: ${SISU_RAIDCAL_CLIENT_SECRET}
       BATTLE_NET_REGION: ${BATTLE_NET_REGION:-eu}
-      BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI:-http://localhost:3000/battlenet/callback}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
-      BATTLE_NET_LOGIN_SUCCESS_PATH: ${BATTLE_NET_LOGIN_SUCCESS_PATH:-/login/success}
-      BATTLE_NET_LOGIN_FAILURE_PATH: ${BATTLE_NET_LOGIN_FAILURE_PATH:-/login/failed}
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
+      BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI:-http://localhost:8080/api/battlenet/callback}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      BATTLE_NET_COOKIE_SECURE: ${BATTLE_NET_COOKIE_SECURE:-false}
+      BLIZZARD_USERNAME: ""
+      BLIZZARD_PASSWORD: ""
   database:
     image: postgres:16-alpine
     env_file:
@@ -54,13 +25,14 @@ services:
     ports:
       - "5433:5432"
     restart: unless-stopped
-    volumes:
-      - database:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 10s
+    volumes:
+      - database:/var/lib/postgresql/data
+
 volumes:
   database:
