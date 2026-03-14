@@ -105,3 +105,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Claude Code project settings and memory
+.claude/
