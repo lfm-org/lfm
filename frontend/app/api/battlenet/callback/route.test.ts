@@ -112,3 +112,32 @@ describe("given TEST_MODE=false and handleCallback returns selectedCharacterId: 
     expect(res.headers.get("location")).toContain("redirect=%2Fraids");
   });
 });
+
+describe("given TEST_MODE=false and handleCallback returns selectedCharacterId set", () => {
+  beforeEach(() => {
+    delete process.env.TEST_MODE;
+  });
+
+  it("then redirects to the success URL", async () => {
+    const { battlenet: mockBattlenet } = jest.mocked(
+      await import("@/lib/battlenet")
+    );
+    (mockBattlenet.handleCallback as jest.Mock).mockResolvedValueOnce({
+      accessToken: "tok",
+      redirect: "/raids",
+      guildName: null,
+      selectedCharacterId: 42,
+    });
+    (mockBattlenet.buildFrontendSuccessUrl as jest.Mock).mockReturnValue(
+      "http://localhost:3001/login/success?redirect=%2Fraids"
+    );
+
+    const req = new NextRequest(
+      "http://localhost:3001/api/battlenet/callback?code=realcode&state=xyz"
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/login/success");
+  });
+});

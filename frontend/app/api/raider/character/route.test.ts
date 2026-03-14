@@ -110,6 +110,18 @@ describe("POST /api/raider/character", () => {
       expect(res.headers.get("location")).toContain("/raids");
     });
 
+    it("then returns 400 when body is missing required fields", async () => {
+      const req = makeRequest({});
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("then defaults redirect to /raids when redirect is /characters", async () => {
+      const req = makeRequest({ region: "eu", realm: "silvermoon", name: "TestChar" }, "/characters");
+      const res = await POST(req);
+      expect(res.headers.get("location")).toContain("/raids");
+    });
+
     it("then normalises a non-relative redirect to /raids", async () => {
       const req = makeRequest(
         { region: "eu", realm: "silvermoon", name: "TestChar" },

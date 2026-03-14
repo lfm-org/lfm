@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
     name = formData.get("name") as string;
   }
 
+  if (!region || !realm || !name) {
+    return NextResponse.json({ error: "region, realm, and name are required" }, { status: 400 });
+  }
+
   const raider = await prisma.raider.findUnique({
     where: { battleNetId: identity.battleNetId },
   });
@@ -63,7 +67,7 @@ export async function POST(request: NextRequest) {
   });
 
   const redirectParam = request.nextUrl.searchParams.get("redirect");
-  const normalized = redirectParam ? normalizeRedirectPath(redirectParam) : null;
-  const destination = (normalized && normalized !== "/") ? normalized : "/raids";
+  const normalized = normalizeRedirectPath(redirectParam ?? undefined);
+  const destination = (!normalized || normalized === "/" || normalized === "/characters") ? "/raids" : normalized;
   return NextResponse.redirect(new URL(destination, request.url));
 }
