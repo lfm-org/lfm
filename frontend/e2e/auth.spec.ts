@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-// Pre-encode state = { redirect: "/raids" } as base64, matching battlenet.ts encodeState()
+// Encode state in the same format as battlenet.ts encodeState().
+// The TEST_MODE stub ignores state and always redirects to /raids,
+// but passing a valid state keeps the URL realistic.
 const TEST_STATE = Buffer.from(
   JSON.stringify({ redirect: "/raids" }),
   "utf-8"
