@@ -25,7 +25,7 @@ const RATE_LIMIT_DELAY_MS = 20;
 
 async function getBlizzardToken(): Promise<string> {
   const credentials = Buffer.from(
-    `${process.env.BLIZZARD_USERNAME}:${process.env.BLIZZARD_PASSWORD}`
+    `${process.env.SISU_RAIDCAL_CLIENT_ID}:${process.env.SISU_RAIDCAL_CLIENT_SECRET}`
   ).toString("base64");
 
   const response = await fetch(
@@ -167,8 +167,8 @@ async function isUpdateNeeded(): Promise<boolean> {
 // ── Route handler ──────────────────────────────────────────────────────────
 
 export async function POST() {
-  const { BLIZZARD_USERNAME, BLIZZARD_PASSWORD } = process.env;
-  if (!BLIZZARD_USERNAME || !BLIZZARD_PASSWORD) {
+  const { SISU_RAIDCAL_CLIENT_ID, SISU_RAIDCAL_CLIENT_SECRET } = process.env;
+  if (!SISU_RAIDCAL_CLIENT_ID || !SISU_RAIDCAL_CLIENT_SECRET) {
     return NextResponse.json(
       { message: "Blizzard credentials not configured — skipping update" },
       { status: 200 }
