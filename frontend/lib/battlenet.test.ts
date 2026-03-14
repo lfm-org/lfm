@@ -72,34 +72,35 @@ describe("BattlenetService", () => {
   });
 
   describe("buildFrontendSuccessUrl", () => {
-    describe("given a login response with name, guild, and redirect", () => {
+    describe("given a login response with redirect and guild", () => {
       it("then builds a URL on the /login/success path", () => {
         const url = battlenet.buildFrontendSuccessUrl({
           accessToken: "tok",
-          name: "Frostmourne",
           guildName: "Sisu",
           redirect: "/raids",
+          selectedCharacterId: null,
         });
         expect(new URL(url).pathname).toBe("/login/success");
       });
 
-      it("then includes name, guild, and redirect as query params", () => {
+      it("then includes only the redirect as a query param", () => {
         const url = battlenet.buildFrontendSuccessUrl({
           accessToken: "tok",
-          name: "Frostmourne",
-          guildName: "Sisu",
           redirect: "/raids",
+          guildName: "Sisu",
+          selectedCharacterId: null,
         });
         const params = new URL(url).searchParams;
-        expect(params.get("name")).toBe("Frostmourne");
-        expect(params.get("guild")).toBe("Sisu");
         expect(params.get("redirect")).toBe("/raids");
+        expect(params.has("name")).toBe(false);
+        expect(params.has("guild")).toBe(false);
       });
 
-      it("then does NOT expose the access_token in the URL (HttpOnly cookie guards this)", () => {
+      it("then does NOT expose the access_token in the URL", () => {
         const url = battlenet.buildFrontendSuccessUrl({
           accessToken: "super-secret-token",
-          name: "Player",
+          redirect: "/raids",
+          selectedCharacterId: null,
         });
         expect(url).not.toContain("super-secret-token");
       });
@@ -124,10 +125,9 @@ const TOKEN_RESPONSE = {
 };
 const TEST_RAIDER = {
   id: 1,
-  battleNetId: "463557",
-  battleTag: "User#1234",
-  name: "User#1234",
+  battleNetId: "463557-hashed", // exact value checked separately
   guildName: null,
+  selectedCharacterId: null,
   createdTime: new Date(),
   updatedTime: new Date(),
 };
@@ -140,6 +140,7 @@ describe("BattlenetService.handleCallback — real network calls mocked", () => 
     process.env.SISU_RAIDCAL_CLIENT_ID = "test-id";
     process.env.SISU_RAIDCAL_CLIENT_SECRET = "test-secret";
     process.env.BATTLE_NET_REGION = "eu";
+    process.env.HMAC_SECRET = "test-secret-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     service = new BattlenetService();
 
     fetchSpy = jest
@@ -167,6 +168,7 @@ describe("BattlenetService.handleCallback — real network calls mocked", () => 
 
   afterEach(() => {
     fetchSpy.mockRestore();
+    delete process.env.HMAC_SECRET;
     jest.clearAllMocks();
   });
 
@@ -183,12 +185,13 @@ describe("BattlenetService.handleCallback — real network calls mocked", () => 
       expect(userInfoUrl).not.toContain("api.blizzard.com");
     });
 
-    it("then converts the integer id from userinfo to a string battleNetId for prisma", async () => {
+    it("then stores battleNetId as its HMAC hash, not the raw value", async () => {
       await service.handleCallback("some_code");
 
-      expect(mockFindUnique).toHaveBeenCalledWith({
-        where: { battleNetId: "463557" },
-      });
+      const storedId = (mockFindUnique.mock.calls[0][0] as { where: { battleNetId: string } })
+        .where.battleNetId;
+      expect(storedId).not.toBe("463557");
+      expect(storedId).toHaveLength(64); // hex SHA-256 digest
     });
 
     it("then returns a LoginResponse with the access token", async () => {
@@ -196,6 +199,12 @@ describe("BattlenetService.handleCallback — real network calls mocked", () => 
 
       expect(result).not.toBeNull();
       expect(result?.accessToken).toBe("test_access_token");
+    });
+
+    it("then returns selectedCharacterId: null when raider has no character selected", async () => {
+      const result = await service.handleCallback("some_code");
+
+      expect(result?.selectedCharacterId).toBeNull();
     });
   });
 });
@@ -213,12 +222,12 @@ describe("BattlenetService.resolveIdentity — TEST_MODE stub", () => {
     it("then returns the test identity without calling BNet", async () => {
       const identity = await battlenet.resolveIdentity("test_battlenet_token");
 
-      expect(identity).toEqual({
-        battleNetId: "test-bnet-id",
-        battleTag: "TestUser#1234",
-        name: "TestUser#1234",
+      expect(identity).toMatchObject({
+        battleNetId: expect.any(String),
         guildName: null,
       });
+      expect(identity).not.toHaveProperty("battleTag");
+      expect(identity).not.toHaveProperty("name");
     });
   });
 });

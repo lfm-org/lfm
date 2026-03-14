@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { hashBattleNetId } from "./crypto";
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
 
@@ -21,16 +22,19 @@ interface BattleNetUserInfo {
 
 export interface BattleNetIdentity {
   battleNetId: string;
-  battleTag: string;
-  name?: string;
   guildName?: string | null;
 }
 
 export interface LoginResponse {
   accessToken: string;
-  name?: string;
   redirect?: string;
   guildName?: string | null;
+  selectedCharacterId: number | null;
+}
+
+interface AuthenticationResult {
+  identity: BattleNetIdentity;
+  selectedCharacterId: number | null;
 }
 
 const AUTH_HOSTS: Record<BattleNetRegion, string> = {
@@ -72,7 +76,7 @@ function determineRegion(value?: string): BattleNetRegion {
   return "eu";
 }
 
-function normalizeRedirectPath(path?: string): string {
+export function normalizeRedirectPath(path?: string): string {
   if (!path) return "/";
   const trimmed = path.trim();
   if (!trimmed.startsWith("/")) return "/";
@@ -136,25 +140,23 @@ export class BattlenetService {
       console.warn("Battle.net handleCallback: token exchange returned null");
       return null;
     }
-    const identity = await this.authenticateWithToken(token.access_token);
-    if (!identity) {
+    const result = await this.authenticateWithToken(token.access_token);
+    if (!result) {
       console.warn("Battle.net handleCallback: authenticateWithToken returned null");
       return null;
     }
     return {
       accessToken: token.access_token,
-      name: identity.name,
       redirect,
-      guildName: identity.guildName,
+      guildName: result.identity.guildName,
+      selectedCharacterId: result.selectedCharacterId,
     };
   }
 
   public buildFrontendSuccessUrl(payload: LoginResponse): string {
     const base = this.buildBase("/login/success");
     const url = new URL(base);
-    if (payload.name) url.searchParams.set("name", payload.name);
     if (payload.redirect) url.searchParams.set("redirect", payload.redirect);
-    if (payload.guildName) url.searchParams.set("guild", payload.guildName);
     return url.toString();
   }
 
@@ -167,9 +169,7 @@ export class BattlenetService {
   ): Promise<BattleNetIdentity | null> {
     if (process.env.TEST_MODE === "true" && accessToken === "test_battlenet_token") {
       return {
-        battleNetId: "test-bnet-id",
-        battleTag: "TestUser#1234",
-        name: "TestUser#1234",
+        battleNetId: "test-bnet-id-hashed",
         guildName: null,
       };
     }
@@ -177,59 +177,45 @@ export class BattlenetService {
     if (cached && cached.expiresAt > Date.now()) {
       return cached.identity;
     }
-    const identity = await this.authenticateWithToken(accessToken);
-    if (identity) {
+    const result = await this.authenticateWithToken(accessToken);
+    if (result) {
       this.identityCache.set(accessToken, {
-        identity,
+        identity: result.identity,
         expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS,
       });
     }
-    return identity;
+    return result?.identity ?? null;
   }
 
   private async authenticateWithToken(
     accessToken: string
-  ): Promise<BattleNetIdentity | null> {
+  ): Promise<AuthenticationResult | null> {
     const profile = await this.fetchUserProfile(accessToken);
     if (!profile) {
       console.warn("Battle.net authenticateWithToken: fetchUserProfile returned null");
       return null;
     }
     const guildName = await this.fetchGuildName(accessToken);
+    const battleNetId = hashBattleNetId(profile.id);
 
-    const battleNetId = String(profile.id);
-
-    let raider = await prisma.raider.findUnique({
-      where: { battleNetId },
-    });
+    let raider = await prisma.raider.findUnique({ where: { battleNetId } });
 
     if (!raider) {
       raider = await prisma.raider.create({
-        data: {
-          name: profile.battletag,
-          battleNetId,
-          battleTag: profile.battletag,
-          guildName,
-        },
+        data: { battleNetId, guildName: guildName ?? null },
       });
     } else {
       raider = await prisma.raider.update({
         where: { id: raider.id },
-        data: {
-          name: profile.battletag,
-          battleTag: profile.battletag,
-          ...(guildName ? { guildName } : {}),
-        },
+        data: { ...(guildName ? { guildName } : {}) },
       });
     }
 
     if (!raider) return null;
 
     return {
-      battleNetId,
-      battleTag: profile.battletag,
-      name: raider.name ?? undefined,
-      guildName: raider.guildName,
+      identity: { battleNetId, guildName: raider.guildName },
+      selectedCharacterId: raider.selectedCharacterId,
     };
   }
 
