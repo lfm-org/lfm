@@ -6,7 +6,6 @@ export async function seedCookie(context: BrowserContext): Promise<void> {
       name: "battlenet_token",
       value: "test_battlenet_token",
       url: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001",
-      path: "/",
     },
   ]);
 }
