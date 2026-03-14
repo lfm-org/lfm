@@ -183,7 +183,7 @@ export class BattlenetService {
         wow_accounts?: Array<{
           characters?: Array<{
             name: string;
-            realm: { slug: string; name: string };
+            realm: { slug: string; name: string | Record<string, string> };
             level: number;
           }>;
         }>;
@@ -192,7 +192,11 @@ export class BattlenetService {
         (account.characters ?? []).map((c) => ({
           name: c.name,
           realm: c.realm.slug,
-          realmName: c.realm.name,
+          realmName: typeof c.realm.name === "string"
+              ? c.realm.name
+              : (c.realm.name as Record<string, string>).en_US
+                ?? (c.realm.name as Record<string, string>).en_GB
+                ?? c.realm.slug,
           level: c.level,
           region: this.region,
         }))
