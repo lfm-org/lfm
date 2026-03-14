@@ -159,6 +159,14 @@ class BattlenetService {
   public async resolveIdentity(
     accessToken: string
   ): Promise<BattleNetIdentity | null> {
+    if (process.env.TEST_MODE === "true" && accessToken === "test_battlenet_token") {
+      return {
+        battleNetId: "test-bnet-id",
+        battleTag: "TestUser#1234",
+        name: "TestUser#1234",
+        guildName: null,
+      };
+    }
     const cached = this.identityCache.get(accessToken);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.identity;
