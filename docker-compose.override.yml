@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       target: dev
-    command: npm run dev
+    command: sh -c "npx prisma generate && npm run dev"
     ports:
       - "3001:3001"
     volumes:
