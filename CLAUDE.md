@@ -42,6 +42,7 @@ All tests use Given/When/Then naming and test observable behavior, not implement
 
 ## Mandatory Git Workflow
 Start clean, work in a `claude/<short-slug>` branch, keep changesets small, and rebase-and-merge to `main`.
+Do not add `Co-Authored-By` trailers to commits. AI usage is acknowledged in `README.md` instead.
 → See [docs/GIT.md](docs/GIT.md)
 
 ## Configuration & Secrets
