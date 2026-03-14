@@ -30,7 +30,7 @@ test.describe("Raid detail page", () => {
       .getByRole("link")
       .click();
     await page.waitForURL(/\/raids\/\d+/);
-    // RaidPage renders <h4>"Alpha Raid"</h4> — Playwright getByText does substring match
-    await expect(page.getByText("Alpha Raid")).toBeVisible();
+    // RaidPage renders <h4>"Alpha Raid"</h4> — scope to h4 to avoid multi-element match
+    await expect(page.locator("h4")).toContainText("Alpha Raid");
   });
 });
