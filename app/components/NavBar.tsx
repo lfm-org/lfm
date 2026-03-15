@@ -53,7 +53,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               {character.name}
             </Button>
             <Button
-              component={Link}
+              component="a"
               href="/api/battlenet/logout"
               color="inherit"
               size="small"

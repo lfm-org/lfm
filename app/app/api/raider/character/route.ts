@@ -69,5 +69,5 @@ export async function POST(request: NextRequest) {
   const redirectParam = request.nextUrl.searchParams.get("redirect");
   const normalized = normalizeRedirectPath(redirectParam ?? undefined);
   const destination = (!normalized || normalized === "/" || normalized === "/characters") ? "/raids" : normalized;
-  return NextResponse.redirect(new URL(destination, request.url));
+  return NextResponse.redirect(new URL(destination, process.env.APP_BASE_URL ?? request.url));
 }

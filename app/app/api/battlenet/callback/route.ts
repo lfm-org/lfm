@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         },
       });
       const res = NextResponse.redirect(
-        new URL("/characters?redirect=%2Fraids", request.url)
+        new URL("/characters?redirect=%2Fraids", process.env.APP_BASE_URL ?? request.url)
       );
       res.cookies.set("battlenet_token", "test_battlenet_token", {
         httpOnly: true,

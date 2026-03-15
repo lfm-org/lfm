@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export function GET() {
   const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3001";
-  const res = NextResponse.redirect(new URL("/", baseUrl), { status: 307 });
+  const res = NextResponse.redirect(new URL("/login", baseUrl), { status: 307 });
   res.cookies.set("battlenet_token", "", {
     httpOnly: true,
     sameSite: "lax",
