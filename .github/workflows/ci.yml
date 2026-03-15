@@ -47,14 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/build-push-action@v7
-        with:
-          context: ./app
-          file: app/Dockerfile
-          target: runner
-          push: false
-          tags: sisu-raidcal:ci
+      - run: docker build --target runner -t sisu-raidcal:ci -f app/Dockerfile ./app
 
   e2e:
     needs: [lint, test, docker-build]
