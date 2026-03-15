@@ -69,7 +69,6 @@ describe("GET /api/raids", () => {
     it("then queries only for PUBLIC raids", async () => {
       mockRequireAuth.mockResolvedValue({
         battleNetId: "123",
-        battleTag: "Player#1234",
         guildName: null,
       });
       mockFindMany.mockResolvedValue([publicRaid] as any);
@@ -91,7 +90,6 @@ describe("GET /api/raids", () => {
     it("then queries for PUBLIC raids and GUILD raids matching their guild", async () => {
       mockRequireAuth.mockResolvedValue({
         battleNetId: "456",
-        battleTag: "Guildie#0001",
         guildName: "Sisu",
       });
       mockFindMany.mockResolvedValue([publicRaid, guildRaid] as any);

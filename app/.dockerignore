@@ -2,3 +2,9 @@
 *Dockerfile*
 *docker-compose*
 node_modules
+.next
+.env*
+coverage
+tsconfig.tsbuildinfo
+**/*.test.ts
+**/*.test.tsx
