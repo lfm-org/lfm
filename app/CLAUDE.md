@@ -100,7 +100,7 @@ Adding a new Blizzard entity = one new array entry, no new control flow.
 
 ## Using Context7 for Library Documentation
 
-Before non-trivial changes to external library code, use Context7 MCP tools instead of relying on training-data knowledge:
+Always use Context7 MCP tools when working with any library in this project. Prefer it over training-data knowledge — APIs change and Context7 has current docs.
 
 1. `mcp__context7__resolve-library-id` — get the library ID
 2. `mcp__context7__query-docs` — query with a specific question
@@ -109,8 +109,11 @@ Before non-trivial changes to external library code, use Context7 MCP tools inst
 |---------|-------------|
 | Next.js | `/vercel/next.js` |
 | Prisma | `/prisma/prisma` |
+| React 19 | `/facebook/react/v19_2_0` |
 | MUI v6 | `/mui/material-ui` |
 | TanStack Table v8 | `/tanstack/table` |
+| Testing Library | `/websites/testing-library` |
+| Playwright | `/microsoft/playwright` |
 | Compose Specification | `/compose-spec/compose-spec` |
 | axios | `/axios/axios` |
 | date-fns | `/date-fns/date-fns` |

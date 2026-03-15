@@ -57,7 +57,7 @@ function makeHeaders(
 }
 
 async function fetchJson<T>(url: string, headers: Record<string, string>): Promise<T> {
-  const response = await fetch(url, { headers });
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error(`Fetch failed ${url}: ${response.status}`);
   return response.json() as Promise<T>;
 }
@@ -81,7 +81,7 @@ interface EntitySyncDef {
   indexPath: string;
   indexKey: string;
   namespace: string;
-  upsert: (token: string, headers: Record<string, string>, entry: WowNamedRef, index: number) => Promise<void>;
+  upsert: (token: string, headers: Record<string, string>, entry: WowNamedRef) => Promise<void>;
 }
 
 const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
@@ -89,8 +89,8 @@ const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
     indexPath: "/playable-class/index",
     indexKey: "classes",
     namespace: `static-classic-${BLIZZARD_REGION}`,
-    upsert: async (_token, headers, entry, index) => {
-      await sleep(index * RATE_LIMIT_DELAY_MS);
+    upsert: async (_token, headers, entry) => {
+      await sleep(RATE_LIMIT_DELAY_MS);
       const detail = await fetchJson<{ id: number; name: { en_GB?: string } }>(
         entry.key.href,
         headers
@@ -106,8 +106,8 @@ const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
     indexPath: "/playable-race/index",
     indexKey: "races",
     namespace: `static-classic-${BLIZZARD_REGION}`,
-    upsert: async (_token, headers, entry, index) => {
-      await sleep(index * RATE_LIMIT_DELAY_MS);
+    upsert: async (_token, headers, entry) => {
+      await sleep(RATE_LIMIT_DELAY_MS);
       const detail = await fetchJson<{
         id: number;
         name: { en_GB?: string };
@@ -128,8 +128,8 @@ const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
     indexPath: "/journal-instance/index",
     indexKey: "instances",
     namespace: `static-${BLIZZARD_REGION}`, // retail — classic has no instances API
-    upsert: async (_token, headers, entry, index) => {
-      await sleep(index * RATE_LIMIT_DELAY_MS);
+    upsert: async (_token, headers, entry) => {
+      await sleep(RATE_LIMIT_DELAY_MS);
       const detail = await fetchJson<{
         id: number;
         name: { en_GB?: string };
@@ -158,58 +158,62 @@ const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
 
 async function isUpdateNeeded(): Promise<boolean> {
   const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const count = await prisma.wowMeta.count({
+  const recentSuccess = await prisma.wowMeta.count({
     where: { createdTime: { gte: oneMonthAgo }, success: true },
   });
-  return count < 1;
+  return recentSuccess < 1;
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────
 
 export async function POST() {
+  console.log("[wow/update] POST invoked");
   const { SISU_RAIDCAL_CLIENT_ID, SISU_RAIDCAL_CLIENT_SECRET } = process.env;
   if (!SISU_RAIDCAL_CLIENT_ID || !SISU_RAIDCAL_CLIENT_SECRET) {
+    console.log("[wow/update] Blizzard credentials not configured — skipping");
     return NextResponse.json(
       { message: "Blizzard credentials not configured — skipping update" },
       { status: 200 }
     );
   }
 
+  console.log("[wow/update] Checking staleness...");
   if (!(await isUpdateNeeded())) {
+    console.log("[wow/update] Data is up to date — skipping");
     return NextResponse.json({ message: "WoW data is up to date" });
   }
 
-  let success = false;
+  console.log("[wow/update] Update needed, fetching Blizzard token...");
   try {
     const token = await getBlizzardToken();
+    console.log("[wow/update] Token acquired, syncing entities...");
 
     await Promise.all(
       ENTITY_SYNC_DEFS.map(async (def) => {
+        console.log(`[wow/update] Syncing ${def.indexPath}...`);
         const headers = makeHeaders(token, def.namespace);
         const index = await fetchJson<WowIndexResponse<WowNamedRef>>(
           `${BASE_URL}${def.indexPath}`,
           headers
         );
         const entries = index[def.indexKey] ?? [];
-        for (let i = 0; i < entries.length; i++) {
-          await def.upsert(token, headers, entries[i], i);
+        console.log(`[wow/update] ${def.indexPath}: ${entries.length} entries`);
+        for (const entry of entries) {
+          await def.upsert(token, headers, entry);
         }
+        console.log(`[wow/update] ${def.indexPath}: done`);
       })
     );
 
-    success = true;
     await prisma.wowMeta.create({ data: { success: true } });
+    console.log("[wow/update] Sync complete ✔");
     return NextResponse.json({ message: "WoW data updated successfully" });
   } catch (error) {
-    console.error("WoW update failed:", error);
+    console.error("[wow/update] Failed:", error);
     await prisma.wowMeta.create({ data: { success: false } });
     return NextResponse.json(
       { error: "WoW data update failed" },
       { status: 500 }
     );
-  } finally {
-    if (!success) {
-      // already recorded above, this block intentionally empty
-    }
   }
 }
