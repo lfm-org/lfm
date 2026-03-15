@@ -1,7 +1,7 @@
 services:
-  frontend:
+  app:
     build:
-      context: ./frontend
+      context: ./app
     depends_on:
       database:
         condition: service_healthy
@@ -16,8 +16,6 @@ services:
       BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI:-http://localhost:8080/api/battlenet/callback}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       BATTLE_NET_COOKIE_SECURE: ${BATTLE_NET_COOKIE_SECURE:-false}
-      BLIZZARD_USERNAME: ""
-      BLIZZARD_PASSWORD: ""
   database:
     image: postgres:17-alpine
     env_file:

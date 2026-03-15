@@ -1,12 +1,12 @@
 services:
-  frontend:
+  app:
     build:
       target: dev
     command: sh -c "npx prisma generate && npx prisma db push --accept-data-loss && npm run dev"
     ports:
       - "3001:3001"
     volumes:
-      - ./frontend:/usr/src/app
+      - ./app:/usr/src/app
       - /usr/src/app/node_modules
       - /usr/src/app/.next
     environment:
@@ -18,5 +18,3 @@ services:
       APP_BASE_URL: http://localhost:3001
       BATTLE_NET_COOKIE_SECURE: "false"
       HMAC_SECRET: ${HMAC_SECRET}
-      BLIZZARD_USERNAME: ""
-      BLIZZARD_PASSWORD: ""

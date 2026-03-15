@@ -17,7 +17,7 @@ services:
 
   frontend-test:
     build:
-      context: ./frontend
+      context: ./app
       target: dev
     command: >
       sh -c "npx prisma generate &&
@@ -25,7 +25,7 @@ services:
              npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts &&
              npm run dev"
     volumes:
-      - ./frontend:/usr/src/app
+      - ./app:/usr/src/app
       - /usr/src/app/node_modules
       - /usr/src/app/.next
     environment:
@@ -60,7 +60,7 @@ services:
       dockerfile: playwright/Dockerfile
     command: npx playwright test
     volumes:
-      - ./frontend:/e2e
+      - ./app:/e2e
       - /e2e/node_modules
     environment:
       PLAYWRIGHT_BASE_URL: http://frontend-test:3001

@@ -1,8 +1,8 @@
 # Repository Guidelines
 
-All application code lives under `frontend/`. See [frontend/CLAUDE.md](frontend/CLAUDE.md) for frontend-specific guidance (commands, architecture, testing, gotchas).
+All application code lives under `app/`. See [app/CLAUDE.md](app/CLAUDE.md) for app-specific guidance (commands, architecture, testing, gotchas).
 
-Root `docker-compose.yml` has 2 services: `frontend` (Next.js) + `database` (PostgreSQL).
+Root `docker-compose.yml` has 2 services: `app` (Next.js) + `database` (PostgreSQL).
 
 ## Mandatory Git Workflow
 
@@ -20,8 +20,8 @@ Root `docker-compose.yml` has 2 services: `frontend` (Next.js) + `database` (Pos
 
 Do not commit populated `.env` files or real Blizzard or database credentials. Use the checked-in `example.env` files as templates; keep local overrides out of version control.
 
-**Required environment variables** (see `example.env` and `frontend/example.env` for full list):
-- `DATABASE_URL` — PostgreSQL connection string (frontend only)
+**Required environment variables** (see `example.env` and `app/example.env` for full list):
+- `DATABASE_URL` — PostgreSQL connection string (app only)
 - `SISU_RAIDCAL_CLIENT_ID` / `SISU_RAIDCAL_CLIENT_SECRET` — Blizzard OAuth app credentials
 - `BATTLE_NET_REGION` — e.g. `eu`
 - `BATTLE_NET_REDIRECT_URI` / `APP_BASE_URL` — public URLs (no trailing slash; never hardcode localhost in production paths)

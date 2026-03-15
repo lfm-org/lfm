@@ -3,7 +3,7 @@
 ## Project Structure
 
 ```
-frontend/
+app/
   app/
     api/          ← Next.js Route Handlers (battlenet, raids, health, wow/update)
     layout.tsx    ← ThemeRegistry, NavBar, global CSS
@@ -26,15 +26,15 @@ frontend/
 
 ## Commands
 
-Set up env files: `cp example.env .env` and `cp frontend/example.env frontend/.env.local`.
+Set up env files: `cp example.env .env` and `cp app/example.env app/.env.local`.
 
 - `docker compose up --build`: runs Next.js + PostgreSQL. `docker-compose.override.yml` enables hot-reload dev (port 3001).
-- `cd frontend && npm install && npm run dev`: dev server on port 3001.
-- `cd frontend && npm run build`: builds with `prisma generate && next build`.
-- `cd frontend && npm run lint`: runs ESLint.
-- `cd frontend && npm test`: runs Jest / Testing Library.
-- `cd frontend && npm test -- --watch`: watch mode.
-- `cd frontend && npx prisma migrate dev`: applies pending migrations (requires `DATABASE_URL`).
+- `cd app && npm install && npm run dev`: dev server on port 3001.
+- `cd app && npm run build`: builds with `prisma generate && next build`.
+- `cd app && npm run lint`: runs ESLint.
+- `cd app && npm test`: runs Jest / Testing Library.
+- `cd app && npm test -- --watch`: watch mode.
+- `cd app && npx prisma migrate dev`: applies pending migrations (requires `DATABASE_URL`).
 - `npx playwright test`: E2E tests (requires app running; see `playwright/`).
 
 ## Coding Style
