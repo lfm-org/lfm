@@ -28,6 +28,26 @@ Do not commit populated `.env` files or real Blizzard or database credentials. U
 - `BATTLE_NET_COOKIE_SECURE` — `true` in production, `false` in local dev
 - `HMAC_SECRET` — 64 random hex chars; generate with `openssl rand -hex 32`
 
+## Tool Configuration
+
+When configuring any tool (linters, bundlers, test runners, package managers, etc.) prefer configuration methods in this order:
+
+1. **Config file** — use the tool's dedicated config file (`eslint.config.js`, `tsconfig.json`, `jest.config.ts`, `.npmrc`, etc.) where supported. Config files are version-controlled, discoverable, and IDE-aware.
+2. **CLI argument** — use flags when the option isn't supported in a config file, or for one-off overrides (e.g. `--cache-dir`).
+3. **Environment variable** — use env vars only when config files and CLI arguments are unavailable for the option.
+
+### Sandbox cache root
+
+Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g. `~/.npm`, `~/.cache`, `~/.config`) are blocked. Use `.cache/` (project-local, git-ignored) as the cache root for any tool that cannot use its default location:
+
+| Tool | Config file approach (preferred) |
+|------|----------------------------------|
+| npm | `cache=.cache/npm` in `app/.npmrc` |
+| Playwright | `PLAYWRIGHT_BROWSERS_PATH=.cache/ms-playwright` (env var, no config file support) |
+| ESLint | `cacheLocation: ".cache/eslint"` in `eslint.config.js` |
+
+`.cache/` is git-ignored (contents only; `.cache/.gitkeep` is tracked so the directory exists in fresh checkouts).
+
 ## Documentation Separation
 
 `CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, and architectural decisions. Do not mix in user-facing content — that belongs in `README.md` or `docs/user/`.

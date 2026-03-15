@@ -58,3 +58,7 @@ node_modules/
 
 # Git worktrees
 .worktrees/
+
+# Local tool cache (sandbox-safe cache root — see CLAUDE.md)
+.cache/*
+!.cache/.gitkeep
