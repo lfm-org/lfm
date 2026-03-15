@@ -6,5 +6,7 @@ node_modules
 .env*
 coverage
 tsconfig.tsbuildinfo
+.cache/
+e2e/test-results/
 **/*.test.ts
 **/*.test.tsx

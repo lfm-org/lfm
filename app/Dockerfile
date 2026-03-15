@@ -5,8 +5,7 @@ RUN npm ci
 
 FROM node:24.14.0-alpine AS dev
 WORKDIR /usr/src/app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY --from=deps /usr/src/app/node_modules ./node_modules
 EXPOSE 3001
 
 FROM node:24.14.0-alpine AS builder

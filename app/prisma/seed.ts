@@ -9,71 +9,73 @@ const client = new PrismaClient({
 });
 
 async function main(): Promise<void> {
-  // Upsert the stub WowInstance required as a non-nullable FK on Raid
-  await client.wowInstance.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      name: "Test Instance",
-      type: "RAID",
-      minLevel: 1,
-      expansionId: 1,
-      modes: ["Normal"],
-    },
-  });
-
-  // Upsert the test raider (also created by the callback stub at runtime,
-  // but seeded here so cookie-seeded tests have a valid identity)
-  const raider = await client.raider.upsert({
-    where: { battleNetId: "test-bnet-id-hashed" },
-    update: {},
-    create: {
-      battleNetId: "test-bnet-id-hashed",
-      guildName: null,
-    },
-  });
-
-  // Delete in FK-safe order: raidCharacters → raids
-  await client.raidCharacter.deleteMany({});
-  await client.raid.deleteMany({});
-
-  const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const sixDays = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
-
-  await client.raid.createMany({
-    data: [
-      {
-        description: "Alpha Raid",
-        mode: "Normal",
-        visibility: "PUBLIC",
-        startTime: sevenDays,
-        signupCloseTime: sixDays,
-        instanceId: 1,
-        creatorId: raider.id,
-        creatorGuild: null,
+  await client.$transaction(async (tx) => {
+    // Upsert the stub WowInstance required as a non-nullable FK on Raid
+    await tx.wowInstance.upsert({
+      where: { id: 1 },
+      update: {},
+      create: {
+        id: 1,
+        name: "Test Instance",
+        type: "RAID",
+        minLevel: 1,
+        expansionId: 1,
+        modes: ["Normal"],
       },
-      {
-        description: "Beta Raid",
-        mode: "Heroic",
-        visibility: "PUBLIC",
-        startTime: sevenDays,
-        signupCloseTime: sixDays,
-        instanceId: 1,
-        creatorId: raider.id,
-        creatorGuild: null,
+    });
+
+    // Upsert the test raider (also created by the callback stub at runtime,
+    // but seeded here so cookie-seeded tests have a valid identity)
+    const raider = await tx.raider.upsert({
+      where: { battleNetId: "test-bnet-id-hashed" },
+      update: {},
+      create: {
+        battleNetId: "test-bnet-id-hashed",
+        guildName: null,
       },
-      {
-        description: "Gamma Raid",
-        mode: "Mythic",
-        visibility: "GUILD",
-        startTime: sevenDays,
-        signupCloseTime: sixDays,
-        instanceId: 1,
-        creatorId: raider.id,
-        creatorGuild: "TestUser#1234",
-      },
-    ],
+    });
+
+    // Delete in FK-safe order: raidCharacters → raids
+    await tx.raidCharacter.deleteMany({});
+    await tx.raid.deleteMany({});
+
+    const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const sixDays = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+
+    await tx.raid.createMany({
+      data: [
+        {
+          description: "Alpha Raid",
+          mode: "Normal",
+          visibility: "PUBLIC",
+          startTime: sevenDays,
+          signupCloseTime: sixDays,
+          instanceId: 1,
+          creatorId: raider.id,
+          creatorGuild: null,
+        },
+        {
+          description: "Beta Raid",
+          mode: "Heroic",
+          visibility: "PUBLIC",
+          startTime: sevenDays,
+          signupCloseTime: sixDays,
+          instanceId: 1,
+          creatorId: raider.id,
+          creatorGuild: null,
+        },
+        {
+          description: "Gamma Raid",
+          mode: "Mythic",
+          visibility: "GUILD",
+          startTime: sevenDays,
+          signupCloseTime: sixDays,
+          instanceId: 1,
+          creatorId: raider.id,
+          creatorGuild: "TestUser#1234",
+        },
+      ],
+    });
   });
 
   console.log("Seed complete: 1 WowInstance, 1 Raider, 3 Raids");

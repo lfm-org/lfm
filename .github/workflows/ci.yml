@@ -16,6 +16,10 @@ jobs:
           node-version: "24.14.0"
           cache: "npm"
           cache-dependency-path: app/package-lock.json
+      - uses: actions/cache@v5
+        with:
+          path: app/.cache/eslint
+          key: eslint-${{ runner.os }}-${{ hashFiles('app/package-lock.json', 'app/eslint.config.mjs') }}
       - run: npm ci
       - run: npm run lint
 
