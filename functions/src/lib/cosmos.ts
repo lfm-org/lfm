@@ -7,8 +7,8 @@ function getClient(): CosmosClient {
   if (!_client) {
     const endpoint = process.env.COSMOS_ENDPOINT;
     if (!endpoint) throw new Error("COSMOS_ENDPOINT environment variable is not set");
-    // @azure/cosmos v4+: use `credential`; v3: use `aadCredentials`
-    _client = new CosmosClient({ endpoint, credential: new DefaultAzureCredential() });
+    // @azure/cosmos v4: use `aadCredentials` (TokenCredential)
+    _client = new CosmosClient({ endpoint, aadCredentials: new DefaultAzureCredential() });
   }
   return _client;
 }
