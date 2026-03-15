@@ -26,12 +26,10 @@ async function main(): Promise<void> {
   // Upsert the test raider (also created by the callback stub at runtime,
   // but seeded here so cookie-seeded tests have a valid identity)
   const raider = await client.raider.upsert({
-    where: { battleNetId: "test-bnet-id" },
-    update: { name: "TestUser#1234", battleTag: "TestUser#1234" },
+    where: { battleNetId: "test-bnet-id-hashed" },
+    update: {},
     create: {
-      battleNetId: "test-bnet-id",
-      battleTag: "TestUser#1234",
-      name: "TestUser#1234",
+      battleNetId: "test-bnet-id-hashed",
       guildName: null,
     },
   });
