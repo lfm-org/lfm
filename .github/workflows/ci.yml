@@ -24,6 +24,14 @@ jobs:
     defaults:
       run:
         working-directory: app
+    env:
+      SISU_RAIDCAL_CLIENT_ID: ci-test-id
+      SISU_RAIDCAL_CLIENT_SECRET: ci-test-secret
+      BATTLE_NET_REGION: eu
+      BATTLE_NET_REDIRECT_URI: http://localhost:3001/api/battlenet/callback
+      APP_BASE_URL: http://localhost:3001
+      BATTLE_NET_COOKIE_SECURE: "false"
+      HMAC_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
