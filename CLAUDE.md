@@ -48,6 +48,18 @@ Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g.
 
 `.cache/` is git-ignored (contents only; `.cache/.gitkeep` is tracked so the directory exists in fresh checkouts).
 
+### JSON processing
+
+Use `jq` for any JSON processing in shell, not Python. Python one-liners for JSON are verbose, often require multiple iterations to produce the expected output, and are harder to read at a glance. `jq` is purpose-built, composable, and produces correct results first try.
+
+```bash
+# Good
+jq '.raids[] | select(.visibility == "PUBLIC") | .id' raids.json
+
+# Avoid
+python3 -c "import json,sys; data=json.load(open('raids.json')); print([r['id'] for r in data['raids'] if r['visibility']=='PUBLIC'])"
+```
+
 ## Documentation Separation
 
 `CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, and architectural decisions. Do not mix in user-facing content — that belongs in `README.md` or `docs/user/`.
