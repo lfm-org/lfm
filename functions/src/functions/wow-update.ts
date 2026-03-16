@@ -137,11 +137,46 @@ async function fetchRaces(token: string): Promise<unknown[]> {
   return data.races;
 }
 
+interface BlizzardInstanceIndex {
+  id: number;
+  name: { en_US: string };
+}
+
+interface BlizzardInstanceDetail {
+  id: number;
+  name: string;
+  category: { type: string };
+  expansion: { id: number };
+  minimum_level: number;
+  modes?: Array<{ mode: { name: string } }>;
+}
+
 async function fetchInstances(token: string): Promise<unknown[]> {
-  const response = await fetch(`${blizzardApiBase()}/data/wow/journal-instance/index?namespace=static-${process.env.BATTLE_NET_REGION || "eu"}`, {
+  const region = process.env.BATTLE_NET_REGION || "eu";
+  const ns = `static-${region}`;
+  const response = await fetch(`${blizzardApiBase()}/data/wow/journal-instance/index?namespace=${ns}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error(`fetchInstances failed: ${response.status}`);
-  const data = await response.json() as { instances: unknown[] };
-  return data.instances;
+  const data = await response.json() as { instances: BlizzardInstanceIndex[] };
+
+  const enriched: unknown[] = [];
+  for (const inst of data.instances) {
+    const detail = await fetch(`${blizzardApiBase()}/data/wow/journal-instance/${inst.id}?namespace=${ns}&locale=en_US`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!detail.ok) continue;
+    const d = await detail.json() as BlizzardInstanceDetail;
+    enriched.push({
+      id: d.id,
+      name: d.name,
+      type: d.category.type,
+      minLevel: d.minimum_level,
+      expansionId: d.expansion.id,
+      modes: (d.modes ?? []).map((m) => m.mode.name),
+    });
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+
+  return enriched;
 }
