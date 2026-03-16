@@ -4,23 +4,14 @@ param location string
 @description('Function App name')
 param functionAppName string
 
-@description('Storage account resource ID (for Functions runtime storage)')
-param storageAccountId string
-
 @description('Storage account name')
 param storageAccountName string
 
 @description('Cosmos DB account endpoint')
 param cosmosAccountEndpoint string
 
-@description('Cosmos DB account resource ID')
-param cosmosAccountId string
-
 @description('Key Vault name')
 param keyVaultName string
-
-@description('Key Vault resource ID')
-param keyVaultId string
 
 var appInsightsName = '${functionAppName}-insights'
 
@@ -66,7 +57,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: appInsights.properties.InstrumentationKey }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
-        { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.core.windows.net' }
+        { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}' }
         { name: 'APP_BASE_URL', value: 'https://raidcal.dinosauruskeksi.com' }
         { name: 'COOKIE_DOMAIN', value: '.dinosauruskeksi.com' }
         { name: 'BATTLE_NET_REGION', value: 'eu' }

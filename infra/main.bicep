@@ -29,12 +29,9 @@ module functions 'modules/functions.bicep' = {
     location: location
     functionAppName: functionAppName
     storageAccountName: storageAccountName
-    storageAccountId: storage.outputs.storageAccountId
     cosmosAccountEndpoint: cosmos.outputs.endpoint
-    cosmosAccountId: cosmos.outputs.accountId
     cosmosAccountName: cosmosAccountName
     keyVaultName: keyVaultName
-    keyVaultId: keyVault.outputs.keyVaultId
   }
 }
 
