@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
+import { AuthProvider } from "./lib/AuthContext";
 import ThemeRegistry from "./components/ThemeRegistry";
 import App from "./App";
 import "./styles/globals.css";
@@ -9,7 +10,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ThemeRegistry>
       <BrowserRouter>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeRegistry>
   </React.StrictMode>

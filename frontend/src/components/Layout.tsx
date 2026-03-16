@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
-import { checkAuth } from "../lib/auth";
+import { useAuth } from "../lib/AuthContext";
 import api from "../lib/api";
 
 interface CharacterInfo {
@@ -19,22 +19,23 @@ interface Props {
 }
 
 export default function Layout({ children }: Props) {
+  const { user } = useAuth();
   const [character, setCharacter] = useState<CharacterData | null>(null);
 
   useEffect(() => {
-    checkAuth().then(user => {
-      if (user?.selectedCharacterId) {
-        api.get<{ characters: CharacterInfo[]; selectedCharacterId: string }>("/raider/characters")
-          .then(res => {
-            const selected = res.data.characters.find(
-              (c: CharacterInfo) => c.id === res.data.selectedCharacterId
-            );
-            if (selected) setCharacter({ name: selected.name, portraitUrl: selected.portraitUrl });
-          })
-          .catch(() => {});
-      }
-    });
-  }, []);
+    if (user?.selectedCharacterId) {
+      api.get<{ characters: CharacterInfo[]; selectedCharacterId: string }>("/raider/characters")
+        .then(res => {
+          const selected = res.data.characters.find(
+            (c: CharacterInfo) => c.id === res.data.selectedCharacterId
+          );
+          if (selected) setCharacter({ name: selected.name, portraitUrl: selected.portraitUrl });
+        })
+        .catch(() => {});
+    } else {
+      setCharacter(null);
+    }
+  }, [user?.selectedCharacterId]);
 
   return (
     <>

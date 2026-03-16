@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Typography, Button } from "@mui/material";
 import api from "../lib/api";
+import { useAuth } from "../lib/AuthContext";
 
 interface AccountCharacter {
   name: string;
@@ -28,6 +29,7 @@ export default function CharactersPage() {
   const [characters, setCharacters] = useState<AccountCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { refresh } = useAuth();
 
   useEffect(() => {
     api.get<ProfileData>("/battlenet/characters").then(res => {
@@ -46,7 +48,8 @@ export default function CharactersPage() {
       realm: char.realm.slug,
       name: char.name,
     });
-    window.location.href = "/raids";
+    await refresh();
+    navigate("/raids");
   };
 
   if (loading) return <Typography style={{ padding: "2rem" }}>Loading characters...</Typography>;
