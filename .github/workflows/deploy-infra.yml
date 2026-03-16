@@ -26,3 +26,4 @@ jobs:
           resourceGroupName: sisu-raidcal
           template: infra/main.bicep
           parameters: infra/parameters.prod.json
+          failOnStdErr: false
