@@ -9,11 +9,15 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   const querySpec = identity.guildName
     ? {
-        query: `SELECT * FROM c WHERE c.visibility = 'PUBLIC' OR (c.visibility = 'GUILD' AND c.creatorGuild = @guild) ORDER BY c.startTime ASC`,
-        parameters: [{ name: "@guild", value: identity.guildName }],
+        query: `SELECT * FROM c WHERE c.visibility = 'PUBLIC' OR (c.visibility = 'GUILD' AND c.creatorGuild = @guild) OR c.creatorBattleNetId = @battleNetId ORDER BY c.startTime ASC`,
+        parameters: [
+          { name: "@guild", value: identity.guildName },
+          { name: "@battleNetId", value: identity.battleNetId },
+        ],
       }
     : {
-        query: `SELECT * FROM c WHERE c.visibility = 'PUBLIC' ORDER BY c.startTime ASC`,
+        query: `SELECT * FROM c WHERE c.visibility = 'PUBLIC' OR c.creatorBattleNetId = @battleNetId ORDER BY c.startTime ASC`,
+        parameters: [{ name: "@battleNetId", value: identity.battleNetId }],
       };
 
   const { resources } = await getRaidsContainer().items.query(querySpec).fetchAll();
