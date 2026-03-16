@@ -15,6 +15,8 @@ interface CreateRaidBody {
   instanceName: string;
 }
 
+const VALID_VISIBILITY: RaidVisibility[] = ["PUBLIC", "GUILD"];
+
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
@@ -22,6 +24,9 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const body = (await request.json()) as CreateRaidBody;
   if (!body.startTime || !body.instanceId || !body.visibility) {
     return errorResponse(400, "Missing required fields");
+  }
+  if (!VALID_VISIBILITY.includes(body.visibility)) {
+    return errorResponse(400, "Invalid visibility value");
   }
 
   const raid: RaidDocument = {

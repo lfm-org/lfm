@@ -2,7 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { RaidDocument } from "../types/index.js";
+import type { RaidDocument, RaidVisibility } from "../types/index.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -18,6 +18,12 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   }
 
   const body = (await request.json()) as Partial<RaidDocument>;
+  if (body.visibility !== undefined) {
+    const VALID_VISIBILITY: RaidVisibility[] = ["PUBLIC", "GUILD"];
+    if (!VALID_VISIBILITY.includes(body.visibility)) {
+      return errorResponse(400, "Invalid visibility value");
+    }
+  }
   const updated: RaidDocument = {
     ...existing,
     startTime: body.startTime ?? existing.startTime,

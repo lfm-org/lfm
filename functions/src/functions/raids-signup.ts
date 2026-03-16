@@ -7,6 +7,7 @@ import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus, WowClass, WowRace } from "../types/index.js";
 
 const MAX_OCC_RETRIES = 3;
+const VALID_ATTENDANCE: AttendanceStatus[] = ["NO", "IF_ROOM", "YES"];
 
 interface SignupBody {
   characterId: string;
@@ -23,6 +24,9 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const body = (await request.json()) as SignupBody;
   if (!body.characterId || !body.desiredAttendance) {
     return errorResponse(400, "Missing required fields");
+  }
+  if (!VALID_ATTENDANCE.includes(body.desiredAttendance)) {
+    return errorResponse(400, "Invalid desiredAttendance value");
   }
 
   const { resource: raider } = await getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>();
