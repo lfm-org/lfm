@@ -72,7 +72,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     try {
       const { resource } = await getRaidsContainer().item(raidId, raidId).replace(
         { ...raid, raidCharacters: updatedCharacters },
-        { ifMatch: etag }
+        { accessCondition: { type: "IfMatch", condition: etag } }
       );
       return jsonResponse(resource);
     } catch (error: unknown) {
