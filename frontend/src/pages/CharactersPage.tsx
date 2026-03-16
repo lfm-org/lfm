@@ -5,10 +5,15 @@ import api from "../lib/api";
 
 interface AccountCharacter {
   name: string;
-  realm: { slug: string; name: string };
+  realm: { slug: string; name: string | Record<string, string> };
   level: number;
   playable_class: { name: string };
   playable_race: { name: string };
+}
+
+function realmDisplayName(name: string | Record<string, string>): string {
+  if (typeof name === "string") return name;
+  return name.en_GB ?? name.en_US ?? Object.values(name)[0] ?? "";
 }
 
 interface WowAccount {
@@ -60,7 +65,7 @@ export default function CharactersPage() {
             style={{ display: "flex", flexDirection: "column", padding: "1rem", minWidth: "120px" }}
           >
             <Typography variant="body1" component="span">{char.name}</Typography>
-            <Typography variant="caption">{char.realm.name}</Typography>
+            <Typography variant="caption">{realmDisplayName(char.realm.name)}</Typography>
             <Typography variant="caption">Level {char.level}</Typography>
           </Button>
         ))}
