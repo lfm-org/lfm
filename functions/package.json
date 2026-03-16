@@ -7,8 +7,8 @@
   "scripts": {
     "build": "tsc",
     "start": "func start",
-    "test": "TMPDIR=/tmp/claude-1000 vitest run",
-    "test:watch": "TMPDIR=/tmp/claude-1000 vitest"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@azure/cosmos": "4.9.1",
