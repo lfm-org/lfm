@@ -4,7 +4,6 @@ Project structure has migrated to Azure:
 - `frontend/` — Vite-based React SPA (deploying to Static Web Apps)
 - `functions/` — Azure Functions backend (Node.js runtime)
 - `infra/` — Infrastructure as Code (Bicep templates)
-- `app/` — Legacy Next.js application (kept for reference during transition)
 
 For migration details, see `docs/superpowers/plans/`.
 
@@ -24,8 +23,7 @@ For migration details, see `docs/superpowers/plans/`.
 
 Do not commit populated `.env` files or real Blizzard or database credentials. Use the checked-in `example.env` files as templates; keep local overrides out of version control.
 
-**Required environment variables** (see `example.env` and `app/example.env` for full list):
-- `DATABASE_URL` — PostgreSQL connection string (app only)
+**Required environment variables** (see `example.env` for full list):
 - `SISU_RAIDCAL_CLIENT_ID` / `SISU_RAIDCAL_CLIENT_SECRET` — Blizzard OAuth app credentials
 - `BATTLE_NET_REGION` — e.g. `eu`
 - `BATTLE_NET_REDIRECT_URI` / `APP_BASE_URL` — public URLs (no trailing slash; never hardcode localhost in production paths)
@@ -46,8 +44,7 @@ Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g.
 
 | Tool | Config file approach (preferred) |
 |------|----------------------------------|
-| npm | `cache=.cache/npm` in `app/.npmrc` |
-| Playwright | `PLAYWRIGHT_BROWSERS_PATH=.cache/ms-playwright` (env var, no config file support) |
+| npm | `cache=.cache/npm` in `frontend/.npmrc` |
 | ESLint | `cacheLocation: ".cache/eslint"` in `eslint.config.js` |
 
 `.cache/` is git-ignored (contents only; `.cache/.gitkeep` is tracked so the directory exists in fresh checkouts).
