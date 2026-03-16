@@ -17,9 +17,8 @@ export default function AuthGuard({ children }: Props) {
         window.location.href = getLoginUrl(location.pathname);
       } else {
         setUser(u);
-        setLoading(false);
       }
-    });
+    }).finally(() => setLoading(false));
   }, [location.pathname]);
 
   if (loading) return null;

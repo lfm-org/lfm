@@ -52,7 +52,9 @@ export default function RaidsPage() {
   const [raids, setRaids] = useState<Raid[]>([]);
 
   useEffect(() => {
-    api.get<Raid[]>("/raids").then(res => setRaids(res.data));
+    api.get<Raid[]>("/raids")
+      .then(res => setRaids(res.data))
+      .catch(() => {});
   }, []);
 
   const table = useReactTable({

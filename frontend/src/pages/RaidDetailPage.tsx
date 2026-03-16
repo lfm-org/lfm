@@ -66,7 +66,9 @@ export default function RaidDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    api.get<Raid>(`/raids/${id}`).then(res => setRaid(res.data));
+    api.get<Raid>(`/raids/${id}`)
+      .then(res => setRaid(res.data))
+      .catch(() => {});
   }, [id]);
 
   const table = useReactTable({
