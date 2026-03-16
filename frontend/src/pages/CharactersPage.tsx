@@ -46,7 +46,7 @@ export default function CharactersPage() {
       realm: char.realm.slug,
       name: char.name,
     });
-    navigate("/raids");
+    window.location.href = "/raids";
   };
 
   if (loading) return <Typography style={{ padding: "2rem" }}>Loading characters...</Typography>;

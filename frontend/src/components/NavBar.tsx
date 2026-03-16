@@ -19,7 +19,7 @@ export default function NavBar({ character = null }: NavBarProps) {
   return (
     <AppBar position="static" color="inherit">
       <Toolbar variant="dense">
-        <Logo image="/favicon.ico" title="PUG ME!" />
+        <Logo image="/logo.svg" title="PUG ME!" />
         <Button
           component={RouterLink}
           to="/raids"
