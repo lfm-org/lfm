@@ -29,7 +29,7 @@ export default function CharactersPage() {
   const [characters, setCharacters] = useState<AccountCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { refresh } = useAuth();
+  const { onCharacterSelected } = useAuth();
 
   useEffect(() => {
     api.get<ProfileData>("/battlenet/characters").then(res => {
@@ -43,12 +43,12 @@ export default function CharactersPage() {
 
   const selectCharacter = async (char: AccountCharacter) => {
     const region = import.meta.env.VITE_BATTLE_NET_REGION || "eu";
-    await api.post("/raider/character", {
+    const res = await api.post<{ selectedCharacterId: string }>("/raider/character", {
       region,
       realm: char.realm.slug,
       name: char.name,
     });
-    await refresh();
+    onCharacterSelected(res.data.selectedCharacterId);
     navigate("/raids");
   };
 

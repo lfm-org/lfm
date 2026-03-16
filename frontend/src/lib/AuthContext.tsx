@@ -4,30 +4,29 @@ import { checkAuth, type AuthUser } from "./auth";
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  refresh: () => Promise<void>;
+  onCharacterSelected: (selectedCharacterId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
-  refresh: async () => {},
+  onCharacterSelected: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
-    const u = await checkAuth();
-    setUser(u);
+  const onCharacterSelected = (selectedCharacterId: string) => {
+    setUser(u => u ? { ...u, selectedCharacterId } : u);
   };
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    checkAuth().then(setUser).finally(() => setLoading(false));
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refresh }}>
+    <AuthContext.Provider value={{ user, loading, onCharacterSelected }}>
       {children}
     </AuthContext.Provider>
   );
