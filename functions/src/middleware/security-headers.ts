@@ -1,10 +1,14 @@
 import { HttpResponseInit } from "@azure/functions";
 
+const APP_ORIGIN = process.env.APP_BASE_URL || "http://localhost:5173";
+
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Access-Control-Allow-Origin": APP_ORIGIN,
+  "Access-Control-Allow-Credentials": "true",
 };
 
 export function withSecurityHeaders(response: HttpResponseInit): HttpResponseInit {
