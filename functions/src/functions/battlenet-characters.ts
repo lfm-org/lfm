@@ -1,23 +1,36 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuthWithToken } from "../lib/auth.js";
+import { battlenet } from "../lib/battlenet.js";
+import { getRaidersContainer } from "../lib/cosmos.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import type { RaiderDocument } from "../types/index.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
-  const region = process.env.BATTLE_NET_REGION || "eu";
-  const profileUrl = `https://${region}.api.blizzard.com/profile/user/wow?namespace=profile-${region}`;
-  const response = await fetch(profileUrl, {
-    headers: { Authorization: `Bearer ${auth.accessToken}` },
-  });
+  const container = getRaidersContainer();
+  const { resource: raider } = await container
+    .item(auth.identity.battleNetId, auth.identity.battleNetId)
+    .read<RaiderDocument>();
+  if (!raider) return errorResponse(404, "Raider not found");
 
-  if (!response.ok) {
-    return errorResponse(response.status, "Failed to fetch WoW characters from Blizzard");
+  if (raider.accountCharacters) {
+    return jsonResponse(raider.accountCharacters);
   }
 
-  const data = await response.json();
-  return jsonResponse(data);
+  try {
+    const accountCharacters = await battlenet.fetchAccountCharacters(auth.accessToken);
+    const now = new Date().toISOString();
+    await container.item(raider.id, raider.battleNetId).replace<RaiderDocument>({
+      ...raider,
+      accountCharacters,
+      accountCharactersFetchedAt: now,
+    });
+    return jsonResponse(accountCharacters);
+  } catch {
+    return errorResponse(502, "Failed to fetch characters from Blizzard");
+  }
 }
 
 app.http("battlenet-characters", {
