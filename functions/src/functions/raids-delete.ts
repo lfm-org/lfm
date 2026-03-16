@@ -11,14 +11,19 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const id = request.params.id;
   if (!id) return errorResponse(400, "Missing raid ID");
 
-  const { resource: existing } = await getRaidsContainer().item(id, id).read<RaidDocument>();
-  if (!existing) return errorResponse(404, "Raid not found");
-  if (existing.creatorBattleNetId !== identity.battleNetId) {
-    return errorResponse(403, "Only the raid creator can delete this raid");
-  }
+  try {
+    const { resource: existing } = await getRaidsContainer().item(id, id).read<RaidDocument>();
+    if (!existing) return errorResponse(404, "Raid not found");
+    if (existing.creatorBattleNetId !== identity.battleNetId) {
+      return errorResponse(403, "Only the raid creator can delete this raid");
+    }
 
-  await getRaidsContainer().item(id, id).delete();
-  return jsonResponse({ deleted: true });
+    await getRaidsContainer().item(id, id).delete();
+    return jsonResponse({ deleted: true });
+  } catch (error: unknown) {
+    if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");
+    throw error;
+  }
 }
 
 app.http("raids-delete", {

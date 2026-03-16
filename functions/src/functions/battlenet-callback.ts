@@ -5,6 +5,7 @@ import { redirectResponse } from "../middleware/security-headers.js";
 import type { LoginResponse } from "../types/index.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
+const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const code = request.query.get("code") ?? undefined;
@@ -34,7 +35,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
         domain: COOKIE_DOMAIN,
         path: "/",
         sameSite: "Lax",
-        secure: true,
+        secure: secureCookie,
         httpOnly: true,
         maxAge: tokenPayload.expiresIn,
       },
