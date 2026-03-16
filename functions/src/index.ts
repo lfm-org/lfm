@@ -15,3 +15,4 @@ import "./functions/raider-character.js";
 import "./functions/battlenet-characters.js";
 import "./functions/battlenet-characters-refresh.js";
 import "./functions/wow-update.js";
+import "./functions/instances-list.js";

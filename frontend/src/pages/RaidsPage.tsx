@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import {
+  Box, Typography, Button,
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Link as MuiLink, Paper,
 } from "@mui/material";
@@ -43,12 +45,13 @@ const columns = [
     header: "Start Time",
   }),
   columnHelper.accessor(
-    (row) => DateUtils.FormatDateWithPassed(row.signupCloseTime),
+    (row) => row.signupCloseTime ? DateUtils.FormatDateWithPassed(row.signupCloseTime) : "—",
     { id: "signupCloseTime", header: "Signup Closes" }
   ),
 ];
 
 export default function RaidsPage() {
+  const navigate = useNavigate();
   const [raids, setRaids] = useState<Raid[]>([]);
 
   useEffect(() => {
@@ -65,6 +68,10 @@ export default function RaidsPage() {
 
   return (
     <div className="RaidsPage">
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h5">Raids</Typography>
+        <Button variant="contained" onClick={() => navigate("/raids/new")}>Create Raid</Button>
+      </Box>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
