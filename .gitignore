@@ -62,3 +62,10 @@ node_modules/
 # Local tool cache (sandbox-safe cache root — see CLAUDE.md)
 .cache/*
 !.cache/.gitkeep
+
+# Azure Functions build output and local settings
+functions/local.settings.json
+functions/dist/
+
+# Vite build output (frontend)
+frontend/dist/
