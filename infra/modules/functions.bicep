@@ -106,5 +106,24 @@ resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssi
   }
 }
 
+// Custom domain: managed cert + SNI binding (requires CNAME to resolve first)
+resource managedCert 'Microsoft.Web/certificates@2023-12-01' = {
+  name: 'raidcal-api.dinosauruskeksi.com'
+  location: location
+  properties: {
+    canonicalName: 'raidcal-api.dinosauruskeksi.com'
+    serverFarmId: hostingPlan.id
+  }
+}
+
+resource customHostnameBinding 'Microsoft.Web/sites/hostNameBindings@2023-12-01' = {
+  parent: functionApp
+  name: 'raidcal-api.dinosauruskeksi.com'
+  properties: {
+    sslState: 'SniEnabled'
+    thumbprint: managedCert.properties.thumbprint
+  }
+}
+
 output functionAppHostname string = functionApp.properties.defaultHostName
 output functionAppPrincipalId string = functionApp.identity.principalId
