@@ -1,4 +1,12 @@
 // Raider document (Cosmos container: raiders, partition key: /battleNetId)
+export interface AccountCharacter {
+  name: string;
+  realm: string;       // realm slug
+  realmName: string;   // display name, resolved at fetch time
+  level: number;
+  region: string;
+}
+
 export interface Character {
   id: string;
   region: string;
@@ -8,6 +16,7 @@ export interface Character {
   classId: number;
   raceId: number;
   portraitUrl: string;
+  fetchedAt?: string;
 }
 
 export interface RaiderDocument {
@@ -17,6 +26,9 @@ export interface RaiderDocument {
   selectedCharacterId: string | null;
   createdAt: string;
   characters: Character[];
+  accountCharacters?: AccountCharacter[];
+  accountCharactersFetchedAt?: string;
+  accountCharactersRefreshedAt?: string;
 }
 
 // Raid document (Cosmos container: raids, partition key: /id)
