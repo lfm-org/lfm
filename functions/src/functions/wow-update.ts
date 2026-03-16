@@ -145,9 +145,9 @@ interface BlizzardInstanceIndex {
 interface BlizzardInstanceDetail {
   id: number;
   name: string;
-  category: { type: string };
-  expansion: { id: number };
-  minimum_level: number;
+  category?: { type: string };
+  expansion?: { id: number };
+  minimum_level?: number;
   modes?: Array<{ mode: { name: string } }>;
 }
 
@@ -170,9 +170,9 @@ async function fetchInstances(token: string): Promise<unknown[]> {
     enriched.push({
       id: d.id,
       name: d.name,
-      type: d.category.type,
-      minLevel: d.minimum_level,
-      expansionId: d.expansion.id,
+      type: d.category?.type ?? "UNKNOWN",
+      minLevel: d.minimum_level ?? 0,
+      expansionId: d.expansion?.id ?? 0,
       modes: (d.modes ?? []).map((m) => m.mode.name),
     });
     await new Promise(resolve => setTimeout(resolve, 20));
