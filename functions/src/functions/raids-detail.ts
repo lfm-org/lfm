@@ -15,7 +15,9 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     const { resource } = await getRaidsContainer().item(id, id).read<RaidDocument>();
     if (!resource) return errorResponse(404, "Raid not found");
 
-    if (resource.visibility === "GUILD" && resource.creatorGuild !== identity.guildName) {
+    const isCreator = resource.creatorBattleNetId === identity.battleNetId;
+    const isGuildMember = identity.guildName && resource.creatorGuild === identity.guildName;
+    if (resource.visibility === "GUILD" && !isCreator && !isGuildMember) {
       return errorResponse(404, "Raid not found");
     }
 
