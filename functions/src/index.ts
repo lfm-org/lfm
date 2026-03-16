@@ -13,4 +13,5 @@ import "./functions/raids-delete.js";
 import "./functions/raids-signup.js";
 import "./functions/raider-character.js";
 import "./functions/battlenet-characters.js";
+import "./functions/battlenet-characters-refresh.js";
 import "./functions/wow-update.js";
