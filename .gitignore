@@ -69,3 +69,4 @@ functions/dist/
 
 # Vite build output (frontend)
 frontend/dist/
+.mcp.json
