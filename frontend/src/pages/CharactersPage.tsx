@@ -6,23 +6,10 @@ import { useAuth } from "../lib/AuthContext";
 
 interface AccountCharacter {
   name: string;
-  realm: { slug: string; name: string | Record<string, string> };
+  realm: string;
+  realmName: string;
   level: number;
-  playable_class: { name: string };
-  playable_race: { name: string };
-}
-
-function realmDisplayName(name: string | Record<string, string>): string {
-  if (typeof name === "string") return name;
-  return name.en_GB ?? name.en_US ?? Object.values(name)[0] ?? "";
-}
-
-interface WowAccount {
-  characters: AccountCharacter[];
-}
-
-interface ProfileData {
-  wow_accounts: WowAccount[];
+  region: string;
 }
 
 export default function CharactersPage() {
@@ -32,20 +19,17 @@ export default function CharactersPage() {
   const { onCharacterSelected } = useAuth();
 
   useEffect(() => {
-    api.get<ProfileData>("/battlenet/characters").then(res => {
-      const allChars = res.data.wow_accounts?.flatMap(a => a.characters) ?? [];
-      // Sort by level descending
-      allChars.sort((a, b) => b.level - a.level);
-      setCharacters(allChars);
+    api.get<AccountCharacter[]>("/battlenet/characters").then(res => {
+      const sorted = [...res.data].sort((a, b) => b.level - a.level);
+      setCharacters(sorted);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
   const selectCharacter = async (char: AccountCharacter) => {
-    const region = import.meta.env.VITE_BATTLE_NET_REGION || "eu";
     const res = await api.post<{ selectedCharacterId: string }>("/raider/character", {
-      region,
-      realm: char.realm.slug,
+      region: char.region,
+      realm: char.realm,
       name: char.name,
     });
     onCharacterSelected(res.data.selectedCharacterId);
@@ -62,13 +46,13 @@ export default function CharactersPage() {
       <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
         {characters.map((char) => (
           <Button
-            key={`${char.realm.slug}-${char.name}`}
+            key={`${char.realm}-${char.name}`}
             variant="outlined"
             onClick={() => selectCharacter(char)}
             style={{ display: "flex", flexDirection: "column", padding: "1rem", minWidth: "120px" }}
           >
             <Typography variant="body1" component="span">{char.name}</Typography>
-            <Typography variant="caption">{realmDisplayName(char.realm.name)}</Typography>
+            <Typography variant="caption">{char.realmName}</Typography>
             <Typography variant="caption">Level {char.level}</Typography>
           </Button>
         ))}
