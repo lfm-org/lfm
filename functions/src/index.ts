@@ -1,0 +1,15 @@
+// Barrel file — imports all function registrations so the v4 runtime discovers them
+import "./functions/health.js";
+import "./functions/me.js";
+import "./functions/battlenet-login.js";
+import "./functions/battlenet-callback.js";
+import "./functions/battlenet-logout.js";
+import "./functions/raids-list.js";
+import "./functions/raids-detail.js";
+import "./functions/raids-create.js";
+import "./functions/raids-update.js";
+import "./functions/raids-delete.js";
+import "./functions/raids-signup.js";
+import "./functions/raider-character.js";
+import "./functions/battlenet-characters.js";
+import "./functions/wow-update.js";

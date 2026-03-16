@@ -1,8 +1,12 @@
 # Repository Guidelines
 
-All application code lives under `app/`. See [app/CLAUDE.md](app/CLAUDE.md) for app-specific guidance (commands, architecture, testing, gotchas).
+Project structure has migrated to Azure:
+- `frontend/` — Vite-based React SPA (deploying to Static Web Apps)
+- `functions/` — Azure Functions backend (Node.js runtime)
+- `infra/` — Infrastructure as Code (Bicep templates)
+- `app/` — Legacy Next.js application (kept for reference during transition)
 
-Root `docker-compose.yml` has 2 services: `app` (Next.js) + `database` (PostgreSQL).
+For migration details, see `docs/superpowers/plans/`.
 
 ## Mandatory Git Workflow
 

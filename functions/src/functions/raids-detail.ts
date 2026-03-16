@@ -1,0 +1,34 @@
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { requireAuth } from "../lib/auth.js";
+import { getRaidsContainer } from "../lib/cosmos.js";
+import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import type { RaidDocument } from "../types/index.js";
+
+async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const identity = await requireAuth(request);
+  if (!identity) return errorResponse(401, "Unauthorized");
+
+  const id = request.params.id;
+  if (!id) return errorResponse(400, "Missing raid ID");
+
+  try {
+    const { resource } = await getRaidsContainer().item(id, id).read<RaidDocument>();
+    if (!resource) return errorResponse(404, "Raid not found");
+
+    if (resource.visibility === "GUILD" && resource.creatorGuild !== identity.guildName) {
+      return errorResponse(404, "Raid not found");
+    }
+
+    return jsonResponse(resource);
+  } catch (error: unknown) {
+    if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");
+    throw error;
+  }
+}
+
+app.http("raids-detail", {
+  methods: ["GET"],
+  route: "raids/{id}",
+  authLevel: "anonymous",
+  handler,
+});
