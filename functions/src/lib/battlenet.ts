@@ -1,6 +1,6 @@
 import { signState, verifyState, hashBattleNetId } from "./crypto.js";
 import { getRaidersContainer } from "./cosmos.js";
-import type { BattleNetIdentity, RaiderDocument, LoginResponse } from "../types/index.js";
+import type { BattleNetIdentity, RaiderDocument, LoginResponse, AccountCharacter } from "../types/index.js";
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
 
@@ -155,44 +155,42 @@ export class BattlenetService {
 
   public async fetchAccountCharacters(
     accessToken: string
-  ): Promise<Array<{ name: string; realm: string; realmName: string; level: number; region: string }>> {
+  ): Promise<AccountCharacter[]> {
     if (process.env.TEST_MODE === "true") {
       return [
         { name: "TestChar", realm: "test-realm", realmName: "Test Realm", level: 80, region: this.region },
       ];
     }
-    try {
-      const url = new URL(`https://${API_HOSTS[this.region]}/profile/user/wow`);
-      url.searchParams.set("namespace", this.profileNamespace);
-      const response = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) return [];
-      const data = await response.json() as {
-        wow_accounts?: Array<{
-          characters?: Array<{
-            name: string;
-            realm: { slug: string; name: string | Record<string, string> };
-            level: number;
-          }>;
-        }>;
-      };
-      return (data.wow_accounts ?? []).flatMap((account) =>
-        (account.characters ?? []).map((c) => ({
-          name: c.name,
-          realm: c.realm.slug,
-          realmName: typeof c.realm.name === "string"
-            ? c.realm.name
-            : (c.realm.name as Record<string, string>).en_US
-              ?? (c.realm.name as Record<string, string>).en_GB
-              ?? c.realm.slug,
-          level: c.level,
-          region: this.region,
-        }))
-      );
-    } catch {
-      return [];
+    const url = new URL(`https://${API_HOSTS[this.region]}/profile/user/wow`);
+    url.searchParams.set("namespace", this.profileNamespace);
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error(`fetchAccountCharacters failed: ${response.status}`);
     }
+    const data = await response.json() as {
+      wow_accounts?: Array<{
+        characters?: Array<{
+          name: string;
+          realm: { slug: string; name: string | Record<string, string> };
+          level: number;
+        }>;
+      }>;
+    };
+    return (data.wow_accounts ?? []).flatMap((account) =>
+      (account.characters ?? []).map((c) => ({
+        name: c.name,
+        realm: c.realm.slug,
+        realmName: typeof c.realm.name === "string"
+          ? c.realm.name
+          : (c.realm.name as Record<string, string>).en_US
+            ?? (c.realm.name as Record<string, string>).en_GB
+            ?? c.realm.slug,
+        level: c.level,
+        region: this.region,
+      }))
+    );
   }
 
   public async resolveIdentity(
