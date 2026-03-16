@@ -2,7 +2,8 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { requireAuth, requireAuthWithToken } from "../lib/auth.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { RaiderDocument } from "../types/index.js";
+import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
+import type { RaiderDocument, Character } from "../types/index.js";
 
 // POST /api/raider/character — add/upsert a character and set as selected
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -15,46 +16,58 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   }
 
   const container = getRaidersContainer();
-  const { resource: raider } = await container.item(auth.identity.battleNetId, auth.identity.battleNetId).read<RaiderDocument>();
+  const { resource: raider } = await container
+    .item(auth.identity.battleNetId, auth.identity.battleNetId)
+    .read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
 
-  const namespace = `profile-${body.region}`;
   const charName = body.name.toLowerCase();
-  const apiBase = `https://${body.region}.api.blizzard.com/profile/wow/character/${body.realm}/${charName}`;
-  const authHeaders = { Authorization: `Bearer ${auth.accessToken}` };
-
-  const profileRes = await fetch(`${apiBase}?namespace=${namespace}`, { headers: authHeaders });
-  if (!profileRes.ok) return errorResponse(404, "Character not found on Blizzard API");
-  const profile = await profileRes.json() as {
-    level: number;
-    character_class: { id: number };
-    race: { id: number };
-  };
-
-  let portraitUrl = "";
-  try {
-    const mediaRes = await fetch(`${apiBase}/character-media?namespace=${namespace}`, { headers: authHeaders });
-    if (mediaRes.ok) {
-      const data = await mediaRes.json() as { assets?: Array<{ key: string; value: string }> };
-      portraitUrl = data.assets?.find(a => a.key === "avatar")?.value ?? "";
-    }
-  } catch {
-    // Proceed with empty portrait
-  }
-
   const characterId = `${body.region}-${body.realm}-${charName}`;
   const existingIdx = raider.characters.findIndex(c => c.id === characterId);
-  const character = {
-    id: characterId,
-    region: body.region,
-    realm: body.realm,
-    name: body.name,
-    level: profile.level,
-    classId: profile.character_class.id,
-    raceId: profile.race.id,
-    portraitUrl,
-  };
+  const existing = existingIdx >= 0 ? raider.characters[existingIdx] : undefined;
 
+  let character: Character;
+
+  if (existing && isFresh(existing.fetchedAt, CHARACTER_PROFILE_TTL_MS)) {
+    character = existing;
+  } else {
+    const namespace = `profile-${body.region}`;
+    const apiBase = `https://${body.region}.api.blizzard.com/profile/wow/character/${body.realm}/${charName}`;
+    const authHeaders = { Authorization: `Bearer ${auth.accessToken}` };
+
+    const profileRes = await fetch(`${apiBase}?namespace=${namespace}`, { headers: authHeaders });
+    if (!profileRes.ok) return errorResponse(404, "Character not found on Blizzard API");
+    const profile = await profileRes.json() as {
+      level: number;
+      character_class: { id: number };
+      race: { id: number };
+    };
+
+    let portraitUrl = "";
+    try {
+      const mediaRes = await fetch(`${apiBase}/character-media?namespace=${namespace}`, { headers: authHeaders });
+      if (mediaRes.ok) {
+        const data = await mediaRes.json() as { assets?: Array<{ key: string; value: string }> };
+        portraitUrl = data.assets?.find(a => a.key === "avatar")?.value ?? "";
+      }
+    } catch {
+      // Proceed with empty portrait
+    }
+
+    character = {
+      id: characterId,
+      region: body.region,
+      realm: body.realm,
+      name: body.name,
+      level: profile.level,
+      classId: profile.character_class.id,
+      raceId: profile.race.id,
+      portraitUrl,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  // Always update characters array and selectedCharacterId, even on cache hit
   if (existingIdx >= 0) {
     raider.characters[existingIdx] = character;
   } else {
