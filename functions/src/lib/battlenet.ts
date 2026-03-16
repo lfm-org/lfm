@@ -331,13 +331,8 @@ export class BattlenetService {
       if (!response.ok) return undefined;
       const data = await response.json();
       if (!data) return undefined;
-      if (Array.isArray(data) && data.length > 0) return data[0]?.name;
       if (Array.isArray(data?.guilds) && data.guilds.length > 0)
-        return data.guilds[0]?.name;
-      if (Array.isArray(data?.guildInfo) && data.guildInfo.length > 0)
-        return data.guildInfo[0]?.name;
-      if (typeof data?.guild?.name === "string") return data.guild.name;
-      if (typeof data.name === "string") return data.name;
+        return data.guilds[0]?.guild?.name ?? data.guilds[0]?.name;
       return undefined;
     } catch {
       return undefined;
