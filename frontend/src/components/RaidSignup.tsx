@@ -104,7 +104,7 @@ export default function RaidSignup({ raid, onRaidUpdate }: RaidSignupProps) {
     } else {
       setMode("form");
     }
-  }, [existingSignup?.id]);
+  }, [existingSignup]);
 
   // Default character selection when characters load
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function RaidSignup({ raid, onRaidUpdate }: RaidSignupProps) {
         setCharacterId(selectedCharacterId || characters[0].id);
       }
     }
-  }, [characters, selectedCharacterId]);
+  }, [characters, selectedCharacterId, existingSignup]);
 
   // Auth guard — after all hooks
   if (!user) return null;
