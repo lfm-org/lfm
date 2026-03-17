@@ -14,11 +14,14 @@ import "./RaidDetailPage.css";
 
 interface RaidCharacter {
   id: string;
+  characterId: string;
   characterName: string;
   characterRealm: string;
   characterLevel: number;
   characterClassName: string;
   characterRaceName: string;
+  raiderBattleNetId: string;
+  desiredAttendance: string;
   reviewedAttendance: string;
 }
 
