@@ -10,6 +10,7 @@ import {
 import { useParams } from "react-router";
 import api from "../lib/api";
 import { DateUtils } from "../util/DateUtil";
+import RaidSignup from "../components/RaidSignup";
 import "./RaidDetailPage.css";
 
 interface RaidCharacter {
@@ -83,6 +84,7 @@ export default function RaidDetailPage() {
   return (
     <div className="RaidPage">
       <InstanceInfo raid={raid} />
+      {raid && <RaidSignup raid={raid} onRaidUpdate={setRaid} />}
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
