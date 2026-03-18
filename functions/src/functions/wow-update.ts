@@ -27,6 +27,13 @@ const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
     fetch: fetchRaces,
   },
   {
+    name: "specializations",
+    maxAgeMs: 30 * 24 * 60 * 60 * 1000,
+    dataBlob: "specializations.json",
+    metaBlob: "specializations-meta.json",
+    fetch: fetchSpecializations,
+  },
+  {
     name: "instances",
     maxAgeMs: 7 * 24 * 60 * 60 * 1000,
     dataBlob: "instances.json",
@@ -137,6 +144,29 @@ async function fetchRaces(token: string): Promise<unknown[]> {
   if (!response.ok) throw new Error(`fetchRaces failed: ${response.status}`);
   const data = await response.json() as { races: unknown[] };
   return data.races;
+}
+
+async function fetchSpecializations(token: string): Promise<unknown[]> {
+  const region = process.env.BATTLE_NET_REGION || "eu";
+  const response = await fetch(
+    `${blizzardApiBase()}/data/wow/playable-specialization/index?namespace=static-${region}&locale=en_US`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) throw new Error(`fetchSpecializations failed: ${response.status}`);
+  const data = await response.json() as {
+    character_specializations: Array<{
+      id: number;
+      name: string;
+      playable_class: { id: number; name: string };
+      role: { type: "DAMAGE" | "HEALER" | "TANK" };
+    }>;
+  };
+  return data.character_specializations.map(s => ({
+    id: s.id,
+    name: s.name,
+    classId: s.playable_class.id,
+    role: s.role.type === "DAMAGE" ? "DPS" : s.role.type,
+  }));
 }
 
 interface BlizzardInstanceIndex {

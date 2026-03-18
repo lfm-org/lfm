@@ -104,6 +104,13 @@ export interface WowInstance {
   modes: string[];
 }
 
+export interface WowSpecialization {
+  id: number;
+  name: string;
+  classId: number;
+  role: "TANK" | "HEALER" | "DPS";
+}
+
 // Auth identity (returned by requireAuth)
 export interface BattleNetIdentity {
   battleNetId: string;
