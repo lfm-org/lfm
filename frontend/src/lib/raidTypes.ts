@@ -1,3 +1,5 @@
+import type { AttendanceStatus } from "./attendanceConfig";
+
 export type { AttendanceStatus } from "./attendanceConfig";
 export type RaidRole = "TANK" | "HEALER" | "DPS";
 
