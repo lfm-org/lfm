@@ -65,7 +65,7 @@ export interface RaidDocument {
   startTime: string;
   signupCloseTime: string;
   description: string;
-  mode: string;
+  modeKey: string;
   visibility: RaidVisibility;
   creatorGuild: string;
   creatorGuildId: number | null;
@@ -95,13 +95,21 @@ export interface WowRace {
   name: string;
 }
 
+export interface WowInstanceMode {
+  type: string;
+  name: string;
+  players: number;
+  isTracked: boolean;
+  modeKey: string;
+}
+
 export interface WowInstance {
   id: number;
   name: string;
   type: string;
   minLevel: number;
   expansionId: number;
-  modes: string[];
+  modes: WowInstanceMode[];
 }
 
 export interface WowSpecialization {

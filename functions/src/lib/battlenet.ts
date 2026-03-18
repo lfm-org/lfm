@@ -1,5 +1,6 @@
 import { signState, verifyState, hashBattleNetId } from "./crypto.js";
 import { getRaidersContainer } from "./cosmos.js";
+import { getTestModeAccountCharacters, getTestModeIdentity } from "./test-mode.js";
 import type { BattleNetIdentity, RaiderDocument, LoginResponse, AccountCharacter } from "../types/index.js";
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
@@ -156,11 +157,9 @@ export class BattlenetService {
   public async fetchAccountCharacters(
     accessToken: string
   ): Promise<AccountCharacter[]> {
-    if (process.env.TEST_MODE === "true") {
-      return [
-        { name: "TestChar", realm: "test-realm", realmName: "Test Realm", level: 80, region: this.region },
-      ];
-    }
+    const testCharacters = getTestModeAccountCharacters(accessToken, this.region);
+    if (testCharacters) return testCharacters;
+
     const url = new URL(`https://${API_HOSTS[this.region]}/profile/user/wow`);
     url.searchParams.set("namespace", this.profileNamespace);
     const response = await fetch(url.toString(), {
@@ -196,13 +195,9 @@ export class BattlenetService {
   public async resolveIdentity(
     accessToken: string
   ): Promise<BattleNetIdentity | null> {
-    if (process.env.TEST_MODE === "true" && accessToken === "test_battlenet_token") {
-      return {
-        battleNetId: "test-bnet-id-hashed",
-        guildName: null,
-        guildId: null,
-      };
-    }
+    const testIdentity = getTestModeIdentity(accessToken);
+    if (testIdentity) return testIdentity;
+
     const cached = this.identityCache.get(accessToken);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.identity;

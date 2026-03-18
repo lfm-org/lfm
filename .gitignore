@@ -69,5 +69,7 @@ functions/dist/
 
 # Vite build output (frontend)
 frontend/dist/
+.tmp/
+frontend/e2e/test-results/
 .mcp.json
 .worktrees/

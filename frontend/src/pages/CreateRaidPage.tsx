@@ -6,15 +6,7 @@ import {
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import api from "../lib/api";
-
-interface WowInstance {
-  id: number;
-  name: string;
-  type: string;
-  minLevel: number;
-  expansionId: number;
-  modes: string[];
-}
+import { formatInstanceModeLabel, type WowInstance } from "../lib/wowInstances";
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();
@@ -28,7 +20,7 @@ export default function CreateRaidPage() {
   const [startTime, setStartTime] = useState("");
   const [signupCloseTime, setSignupCloseTime] = useState("");
   const [description, setDescription] = useState("");
-  const [modes, setModes] = useState<string[]>([]);
+  const [selectedModeKey, setSelectedModeKey] = useState("");
   const [visibility, setVisibility] = useState<"GUILD" | "PUBLIC">("GUILD");
 
   useEffect(() => {
@@ -51,12 +43,12 @@ export default function CreateRaidPage() {
 
   const handleInstanceChange = (newId: number) => {
     setInstanceId(newId);
-    setModes([]);
+    setSelectedModeKey("");
   };
 
   const handleSubmit = async () => {
-    if (!instanceId || !selectedInstance || !startTime || modes.length === 0) {
-      setError("Instance, start time, and at least one mode are required");
+    if (!instanceId || !selectedInstance || !startTime || !selectedModeKey) {
+      setError("Instance, start time, and mode are required");
       return;
     }
 
@@ -70,7 +62,7 @@ export default function CreateRaidPage() {
         startTime,
         ...(signupCloseTime ? { signupCloseTime } : {}),
         description,
-        mode: modes.join(", "),
+        modeKey: selectedModeKey,
         visibility,
       });
       navigate(`/raids/${res.data.id}`);
@@ -101,27 +93,20 @@ export default function CreateRaidPage() {
         </Select>
       </FormControl>
 
-      {availableModes.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" sx={{ mb: 1 }}>Mode</Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            {availableModes.map((mode) => (
-              <Button
-                key={mode}
-                variant={modes.includes(mode) ? "contained" : "outlined"}
-                onClick={() => {
-                  const next = modes.includes(mode)
-                    ? modes.filter((m) => m !== mode)
-                    : [...modes, mode];
-                  if (next.length > 0) setModes(next);
-                }}
-              >
-                {mode}
-              </Button>
-            ))}
-          </Box>
-        </Box>
-      )}
+      <FormControl fullWidth sx={{ mb: 2 }} disabled={availableModes.length === 0}>
+        <InputLabel>Mode</InputLabel>
+        <Select
+          value={selectedModeKey}
+          label="Mode"
+          onChange={(e) => setSelectedModeKey(e.target.value)}
+        >
+          {availableModes.map((mode) => (
+            <MenuItem key={mode.modeKey} value={mode.modeKey}>
+              {formatInstanceModeLabel(mode)}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <TextField
         label="Start Time"

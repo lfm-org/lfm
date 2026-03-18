@@ -28,6 +28,7 @@ export async function readBlob<T>(blobName: string): Promise<T | null> {
 
 export async function writeBlob(blobName: string, data: unknown): Promise<void> {
   const container = getWowContainer();
+  await container.createIfNotExists();
   const blockBlob = container.getBlockBlobClient(blobName);
   const content = JSON.stringify(data, null, 2);
   await blockBlob.upload(content, Buffer.byteLength(content), {

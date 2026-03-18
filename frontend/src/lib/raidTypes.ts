@@ -26,7 +26,7 @@ export interface Raid {
   startTime: string;
   signupCloseTime: string;
   description: string;
-  mode: string;
+  modeKey: string;
   visibility: "PUBLIC" | "GUILD";
   instanceId: number;
   instanceName: string;

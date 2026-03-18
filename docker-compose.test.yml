@@ -1,0 +1,46 @@
+services:
+  cosmosdb:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    ports:
+      - "8081:8081"
+      - "1234:1234"
+    environment:
+      PROTOCOL: http
+      GATEWAY_PUBLIC_ENDPOINT: cosmosdb
+      KEY_FILE: /run/cosmos.key
+    volumes:
+      - ./.tmp/e2e/cosmos.key:/run/cosmos.key:ro
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./.tmp/e2e/azurite:/data
+
+  functions:
+    build:
+      context: ./functions
+      dockerfile: Dockerfile.e2e
+    depends_on:
+      - cosmosdb
+      - azurite
+    environment:
+      TEST_MODE: "true"
+      COSMOS_ENDPOINT: ${COSMOS_ENDPOINT}
+      COSMOS_KEY: ${COSMOS_KEY}
+      COSMOS_DATABASE: ${COSMOS_DATABASE}
+      AzureWebJobsStorage: ${AzureWebJobsStorage}
+      BLOB_STORAGE_URL: ${BLOB_STORAGE_URL}
+      APP_BASE_URL: ${APP_BASE_URL}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      BATTLE_NET_COOKIE_SECURE: ${BATTLE_NET_COOKIE_SECURE}
+      BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI}
+      BATTLE_NET_REGION: ${BATTLE_NET_REGION}
+      SISU_RAIDCAL_CLIENT_ID: ${SISU_RAIDCAL_CLIENT_ID}
+      SISU_RAIDCAL_CLIENT_SECRET: ${SISU_RAIDCAL_CLIENT_SECRET}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
+      HMAC_SECRET: ${HMAC_SECRET}
+    ports:
+      - "7071:80"

@@ -1,0 +1,46 @@
+[
+  {
+    "id": 63,
+    "name": "Deadmines",
+    "type": "DUNGEON",
+    "minLevel": 35,
+    "expansionId": 68,
+    "modes": [
+      { "type": "NORMAL", "name": "Normal", "players": 5, "isTracked": true, "modeKey": "NORMAL:5" },
+      { "type": "HEROIC", "name": "Heroic", "players": 5, "isTracked": true, "modeKey": "HEROIC:5" }
+    ]
+  },
+  {
+    "id": 249,
+    "name": "Onyxia's Lair",
+    "type": "RAID",
+    "minLevel": 80,
+    "expansionId": 3,
+    "modes": [
+      { "type": "NORMAL", "name": "Normal", "players": 25, "isTracked": true, "modeKey": "NORMAL:25" }
+    ]
+  },
+  {
+    "id": 631,
+    "name": "Icecrown Citadel",
+    "type": "RAID",
+    "minLevel": 80,
+    "expansionId": 3,
+    "modes": [
+      { "type": "NORMAL", "name": "Normal", "players": 10, "isTracked": true, "modeKey": "NORMAL:10" },
+      { "type": "NORMAL", "name": "Normal", "players": 25, "isTracked": true, "modeKey": "NORMAL:25" },
+      { "type": "HEROIC", "name": "Heroic", "players": 10, "isTracked": true, "modeKey": "HEROIC:10" },
+      { "type": "HEROIC", "name": "Heroic", "players": 25, "isTracked": true, "modeKey": "HEROIC:25" }
+    ]
+  },
+  {
+    "id": 741,
+    "name": "Molten Core",
+    "type": "RAID",
+    "minLevel": 60,
+    "expansionId": 68,
+    "modes": [
+      { "type": "NORMAL", "name": "Normal", "players": 40, "isTracked": true, "modeKey": "NORMAL:40" }
+    ]
+  }
+]

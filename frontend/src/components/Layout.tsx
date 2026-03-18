@@ -40,7 +40,7 @@ export default function Layout({ children }: Props) {
   return (
     <>
       <NavBar character={character} />
-      {children}
+      <main>{children}</main>
     </>
   );
 }

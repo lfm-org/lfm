@@ -1,9 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { WOW_SPEC_ROLES, resolveSpecRole } from "./wowSpecRoles.js";
 
+const EXPECTED_SPEC_IDS = [
+  62, 63, 64,
+  65, 66, 70,
+  71, 72, 73,
+  102, 103, 104, 105,
+  250, 251, 252,
+  253, 254, 255,
+  256, 257, 258,
+  259, 260, 261,
+  262, 263, 264,
+  265, 266, 267,
+  268, 269, 270,
+  577, 581,
+  1467, 1468, 1473,
+];
+
 describe("WOW_SPEC_ROLES", () => {
-  it("covers all 40 known specs", () => {
-    expect(Object.keys(WOW_SPEC_ROLES).length).toBe(40);
+  it("covers all 39 known specs", () => {
+    expect(Object.keys(WOW_SPEC_ROLES).map(Number).sort((a, b) => a - b)).toEqual(EXPECTED_SPEC_IDS);
   });
 
   it("has at least one TANK spec", () => {

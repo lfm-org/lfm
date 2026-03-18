@@ -1,0 +1,6 @@
+node_modules
+dist
+.cache
+src/**/*.test.ts
+vitest.config.ts
+*.log

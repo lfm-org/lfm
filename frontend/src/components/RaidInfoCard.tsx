@@ -4,9 +4,10 @@ import type { Raid } from "../lib/raidTypes";
 
 interface RaidInfoCardProps {
   raid: Raid;
+  modeLabel: string;
 }
 
-export default function RaidInfoCard({ raid }: RaidInfoCardProps) {
+export default function RaidInfoCard({ raid, modeLabel }: RaidInfoCardProps) {
   const isClosed = new Date(raid.signupCloseTime) < new Date();
 
   return (
@@ -21,10 +22,10 @@ export default function RaidInfoCard({ raid }: RaidInfoCardProps) {
       }}
     >
       <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-        <Typography variant="h6" fontWeight={700}>
+        <Typography component="h1" variant="h6" fontWeight={700}>
           {raid.instanceName}
         </Typography>
-        <Chip label={raid.mode} size="small" variant="outlined" />
+        <Chip label={modeLabel} size="small" variant="outlined" />
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: "italic" }}>
         &ldquo;{raid.description}&rdquo;

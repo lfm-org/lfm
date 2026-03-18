@@ -1,9 +1,13 @@
 import { HttpRequest } from "@azure/functions";
 import { decryptToken } from "./crypto.js";
+import { getTestModeAccessTokenFromCookieHeader, getTestModeIdentity } from "./test-mode.js";
 import type { BattleNetIdentity } from "../types/index.js";
 
 export async function requireAuth(request: HttpRequest): Promise<BattleNetIdentity | null> {
   const cookieHeader = request.headers.get("cookie") ?? "";
+  const testAuth = resolveLocalTestModeAuth(cookieHeader);
+  if (testAuth) return testAuth.identity;
+
   const match = cookieHeader.match(/(?:^|;\s*)battlenet_token=([^;]*)/);
   if (!match) return null;
 
@@ -22,8 +26,24 @@ export interface AuthWithToken {
   accessToken: string;
 }
 
+export function resolveLocalTestModeAuth(
+  cookieHeader: string,
+  env: Record<string, string | undefined> = process.env
+): AuthWithToken | null {
+  const accessToken = getTestModeAccessTokenFromCookieHeader(cookieHeader, env);
+  if (!accessToken) return null;
+
+  const identity = getTestModeIdentity(accessToken, env);
+  if (!identity) return null;
+
+  return { identity, accessToken };
+}
+
 export async function requireAuthWithToken(request: HttpRequest): Promise<AuthWithToken | null> {
   const cookieHeader = request.headers.get("cookie") ?? "";
+  const testAuth = resolveLocalTestModeAuth(cookieHeader);
+  if (testAuth) return testAuth;
+
   const match = cookieHeader.match(/(?:^|;\s*)battlenet_token=([^;]*)/);
   if (!match) return null;
 

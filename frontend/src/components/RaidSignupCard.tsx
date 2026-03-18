@@ -29,6 +29,11 @@ interface RaidSignupCardProps {
   onRaidUpdate: (raid: Raid) => void;
 }
 
+const CHARACTER_LABEL_ID = "raid-signup-character-label";
+const CHARACTER_SELECT_ID = "raid-signup-character";
+const SPEC_LABEL_ID = "raid-signup-spec-label";
+const SPEC_SELECT_ID = "raid-signup-spec";
+
 export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardProps) {
   const { user } = useAuth();
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -51,6 +56,10 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
 
   const selectedCharacter = characters.find(c => c.id === characterId);
   const availableSpecs = selectedCharacter?.specializations ?? [];
+  const signupRegionProps = {
+    component: "section" as const,
+    "aria-label": "Your Signup",
+  };
 
   // Fetch characters on mount
   useEffect(() => {
@@ -90,7 +99,10 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
 
   if (loadingChars) {
     return (
-      <Box sx={{ p: 2, mb: 2, display: "flex", alignItems: "center", gap: 1, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+      <Box
+        {...signupRegionProps}
+        sx={{ p: 2, mb: 2, display: "flex", alignItems: "center", gap: 1, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider" }}
+      >
         <CircularProgress size={20} />
         <Typography variant="body2">Loading characters...</Typography>
       </Box>
@@ -99,7 +111,10 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
 
   if (characters.length === 0) {
     return (
-      <Box sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+      <Box
+        {...signupRegionProps}
+        sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider" }}
+      >
         <Typography variant="body2">
           <Link to="/characters">Add a character</Link> before signing up.
         </Typography>
@@ -109,7 +124,10 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
 
   if (isClosed) {
     return (
-      <Box sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "error.main" }}>
+      <Box
+        {...signupRegionProps}
+        sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "error.main" }}
+      >
         <Typography variant="body2" color="error">Signups are closed.</Typography>
       </Box>
     );
@@ -172,7 +190,7 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
   if (mode === "view" && existingSignup) {
     const cfg = getAttendanceConfig(existingSignup.desiredAttendance);
     return (
-      <Box sx={cardSx}>
+      <Box {...signupRegionProps} sx={cardSx}>
         {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           <Typography variant="body2">
@@ -196,12 +214,18 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
 
   // Form (new signup or editing)
   return (
-    <Box sx={cardSx}>
+    <Box {...signupRegionProps} sx={cardSx}>
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Character</InputLabel>
-          <Select value={characterId} label="Character" onChange={e => handleCharacterChange(e.target.value)}>
+          <InputLabel id={CHARACTER_LABEL_ID}>Character</InputLabel>
+          <Select
+            id={CHARACTER_SELECT_ID}
+            labelId={CHARACTER_LABEL_ID}
+            value={characterId}
+            label="Character"
+            onChange={e => handleCharacterChange(e.target.value)}
+          >
             {characters.map(c => (
               <MenuItem key={c.id} value={c.id}>{c.name} — {c.realm}</MenuItem>
             ))}
@@ -209,8 +233,14 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 140 }} disabled={availableSpecs.length === 0}>
-          <InputLabel>Spec</InputLabel>
-          <Select value={specId ?? ""} label="Spec" onChange={e => setSpecId(Number(e.target.value))}>
+          <InputLabel id={SPEC_LABEL_ID}>Spec</InputLabel>
+          <Select
+            id={SPEC_SELECT_ID}
+            labelId={SPEC_LABEL_ID}
+            value={specId ?? ""}
+            label="Spec"
+            onChange={e => setSpecId(Number(e.target.value))}
+          >
             {availableSpecs.length === 0
               ? <MenuItem value="" disabled>Unknown spec</MenuItem>
               : availableSpecs.map(s => (
@@ -223,6 +253,7 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
         <ToggleButtonGroup
           exclusive
           size="small"
+          aria-label="Attendance"
           value={attendance}
           onChange={(_, v: AttendanceStatus | null) => { if (v) setAttendance(v); }}
           sx={{ flexWrap: "wrap" }}

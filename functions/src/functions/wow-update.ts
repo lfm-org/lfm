@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext, Timer } from "@azure/functions";
 import { readBlob, writeBlob } from "../lib/blob.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { EntitySyncMeta } from "../types/index.js";
+import type { EntitySyncMeta, WowInstance, WowInstanceMode } from "../types/index.js";
 
 interface EntitySyncDef {
   name: string;
@@ -180,7 +180,46 @@ interface BlizzardInstanceDetail {
   category?: { type: string };
   expansion?: { id: number };
   minimum_level?: number;
-  modes?: Array<{ mode: { name: string } }>;
+  modes?: BlizzardInstanceModeDetail[];
+}
+
+interface BlizzardInstanceModeDetail {
+  mode: {
+    type: string;
+    name: string;
+  };
+  players?: number;
+  is_tracked?: boolean;
+}
+
+function toModeKey(mode: Pick<WowInstanceMode, "type" | "players">): string {
+  return `${mode.type}:${mode.players}`;
+}
+
+function toWowInstanceMode(mode: BlizzardInstanceModeDetail): WowInstanceMode {
+  const players = mode.players ?? 0;
+
+  return {
+    type: mode.mode.type,
+    name: mode.mode.name,
+    players,
+    isTracked: mode.is_tracked ?? false,
+    modeKey: toModeKey({
+      type: mode.mode.type,
+      players,
+    }),
+  };
+}
+
+export function toWowInstance(detail: BlizzardInstanceDetail): WowInstance {
+  return {
+    id: detail.id,
+    name: detail.name,
+    type: detail.category?.type ?? "UNKNOWN",
+    minLevel: detail.minimum_level ?? 0,
+    expansionId: detail.expansion?.id ?? 0,
+    modes: (detail.modes ?? []).map(toWowInstanceMode),
+  };
 }
 
 async function fetchInstances(token: string): Promise<unknown[]> {
@@ -199,14 +238,7 @@ async function fetchInstances(token: string): Promise<unknown[]> {
     });
     if (!detail.ok) continue;
     const d = await detail.json() as BlizzardInstanceDetail;
-    enriched.push({
-      id: d.id,
-      name: d.name,
-      type: d.category?.type ?? "UNKNOWN",
-      minLevel: d.minimum_level ?? 0,
-      expansionId: d.expansion?.id ?? 0,
-      modes: (d.modes ?? []).map((m) => m.mode.name),
-    });
+    enriched.push(toWowInstance(d));
     await new Promise(resolve => setTimeout(resolve, 20));
   }
 
