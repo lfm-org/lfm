@@ -23,6 +23,7 @@ export interface RaiderDocument {
   id: string;
   battleNetId: string;
   guildName: string | null;
+  guildId: number | null;
   selectedCharacterId: string | null;
   createdAt: string;
   characters: Character[];
@@ -58,6 +59,7 @@ export interface RaidDocument {
   mode: string;
   visibility: RaidVisibility;
   creatorGuild: string;
+  creatorGuildId: number | null;
   instanceId: number;
   instanceName: string;
   creatorBattleNetId: string;
@@ -97,6 +99,7 @@ export interface WowInstance {
 export interface BattleNetIdentity {
   battleNetId: string;
   guildName: string | null;
+  guildId: number | null;
 }
 
 // Encrypted cookie payload

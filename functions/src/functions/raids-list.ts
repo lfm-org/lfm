@@ -7,11 +7,11 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
 
-  const querySpec = identity.guildName
+  const querySpec = identity.guildId != null
     ? {
-        query: `SELECT * FROM c WHERE c.visibility = 'PUBLIC' OR (c.visibility = 'GUILD' AND c.creatorGuild = @guild) OR c.creatorBattleNetId = @battleNetId ORDER BY c.startTime ASC`,
+        query: `SELECT * FROM c WHERE c.visibility = 'PUBLIC' OR c.creatorBattleNetId = @battleNetId OR (c.visibility = 'GUILD' AND c.creatorGuildId = @guildId) ORDER BY c.startTime ASC`,
         parameters: [
-          { name: "@guild", value: identity.guildName },
+          { name: "@guildId", value: identity.guildId },
           { name: "@battleNetId", value: identity.battleNetId },
         ],
       }

@@ -200,6 +200,7 @@ export class BattlenetService {
       return {
         battleNetId: "test-bnet-id-hashed",
         guildName: null,
+        guildId: null,
       };
     }
     const cached = this.identityCache.get(accessToken);
@@ -224,7 +225,7 @@ export class BattlenetService {
       console.warn("Battle.net authenticateWithToken: fetchUserProfile returned null");
       return null;
     }
-    const guildName = await this.fetchGuildName(accessToken);
+    const guild = await this.fetchGuild(accessToken);
     const battleNetId = hashBattleNetId(profile.id);
 
     const container = getRaidersContainer();
@@ -236,7 +237,8 @@ export class BattlenetService {
       const newDoc: RaiderDocument = {
         id: battleNetId,
         battleNetId,
-        guildName: guildName ?? null,
+        guildName: guild?.name ?? null,
+        guildId: guild?.id ?? null,
         selectedCharacterId: null,
         createdAt: now,
         characters: [],
@@ -247,7 +249,7 @@ export class BattlenetService {
     } else {
       const updated: RaiderDocument = {
         ...existing,
-        ...(guildName ? { guildName } : {}),
+        ...(guild ? { guildName: guild.name, guildId: guild.id } : {}),
       };
       const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>(updated);
       if (!resource) return null;
@@ -255,7 +257,7 @@ export class BattlenetService {
     }
 
     return {
-      identity: { battleNetId, guildName: raider.guildName },
+      identity: { battleNetId, guildName: raider.guildName, guildId: raider.guildId ?? null },
       selectedCharacterId: raider.selectedCharacterId,
     };
   }
@@ -317,9 +319,9 @@ export class BattlenetService {
     }
   }
 
-  private async fetchGuildName(
+  private async fetchGuild(
     accessToken: string
-  ): Promise<string | undefined> {
+  ): Promise<{ name: string; id: number } | undefined> {
     try {
       const url = new URL(
         `https://${API_HOSTS[this.region]}/profile/user/wow/guilds`
@@ -329,11 +331,13 @@ export class BattlenetService {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!response.ok) return undefined;
-      const data = await response.json();
-      if (!data) return undefined;
-      if (Array.isArray(data?.guilds) && data.guilds.length > 0)
-        return data.guilds[0]?.guild?.name ?? data.guilds[0]?.name;
-      return undefined;
+      const data = await response.json() as {
+        guilds?: Array<{ guild?: { id?: number; name?: string } }>;
+      };
+      if (!Array.isArray(data?.guilds) || data.guilds.length === 0) return undefined;
+      const g = data.guilds[0]?.guild;
+      if (!g?.id || !g?.name) return undefined;
+      return { id: g.id, name: g.name };
     } catch {
       return undefined;
     }

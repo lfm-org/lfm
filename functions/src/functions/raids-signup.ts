@@ -35,10 +35,16 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const character = raider.characters.find(c => c.id === body.characterId);
   if (!character) return errorResponse(400, "Character not found on your profile");
 
-  const [classes, races] = await Promise.all([
-    readBlob<WowClass[]>("classes.json"),
-    readBlob<WowRace[]>("races.json"),
-  ]);
+  let classes: WowClass[] | null = null;
+  let races: WowRace[] | null = null;
+  try {
+    [classes, races] = await Promise.all([
+      readBlob<WowClass[]>("classes.json"),
+      readBlob<WowRace[]>("races.json"),
+    ]);
+  } catch {
+    // Non-fatal: proceed with empty display names
+  }
   const className = classes?.find(c => c.id === character.classId)?.name || "";
   const raceName = races?.find(r => r.id === character.raceId)?.name || "";
 
@@ -46,7 +52,9 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     const { resource: raid, etag } = await getRaidsContainer().item(raidId, raidId).read<RaidDocument>();
     if (!raid || !etag) return errorResponse(404, "Raid not found");
 
-    if (raid.visibility === "GUILD" && raid.creatorGuild !== identity.guildName) {
+    const isCreator = raid.creatorBattleNetId === identity.battleNetId;
+    const isGuildMember = identity.guildId != null && raid.creatorGuildId === identity.guildId;
+    if (raid.visibility === "GUILD" && !isCreator && !isGuildMember) {
       return errorResponse(404, "Raid not found");
     }
 

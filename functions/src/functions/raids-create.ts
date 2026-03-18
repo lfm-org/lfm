@@ -37,6 +37,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     mode: body.mode || "",
     visibility: body.visibility,
     creatorGuild: identity.guildName || "",
+    creatorGuildId: identity.guildId ?? null,
     instanceId: body.instanceId,
     instanceName: body.instanceName || "",
     creatorBattleNetId: identity.battleNetId,
