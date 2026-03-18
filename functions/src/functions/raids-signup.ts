@@ -7,7 +7,7 @@ import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus, WowClass, WowRace } from "../types/index.js";
 
 const MAX_OCC_RETRIES = 3;
-const VALID_ATTENDANCE: AttendanceStatus[] = ["NO", "IF_ROOM", "YES"];
+export const VALID_ATTENDANCE: AttendanceStatus[] = ["IN", "OUT", "BENCH", "LATE", "AWAY"];
 
 // Battle.net static data APIs return names as localized objects when locale is omitted.
 // This extracts the English string from either format.
@@ -23,6 +23,7 @@ function toNameString(name: unknown): string {
 interface SignupBody {
   characterId: string;
   desiredAttendance: AttendanceStatus;
+  specId: number | null;
 }
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -45,6 +46,20 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   const character = raider.characters.find(c => c.id === body.characterId);
   if (!character) return errorResponse(400, "Character not found on your profile");
+
+  // Resolve spec info
+  let specId: number | null = body.specId ?? null;
+  let specName: string | null = null;
+  let role: "TANK" | "HEALER" | "DPS" | null = null;
+
+  if (specId !== null) {
+    const specEntry = character.specializations?.find(s => s.id === specId);
+    if (!specEntry) {
+      return errorResponse(400, "Invalid specId: not found on character");
+    }
+    specName = specEntry.name;
+    role = specEntry.role;
+  }
 
   let classes: WowClass[] | null = null;
   let races: WowRace[] | null = null;
@@ -82,7 +97,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       characterRaceName: raceName,
       raiderBattleNetId: identity.battleNetId,
       desiredAttendance: body.desiredAttendance,
-      reviewedAttendance: existingIndex >= 0 ? raid.raidCharacters[existingIndex].reviewedAttendance : "YES",
+      reviewedAttendance: existingIndex >= 0 ? raid.raidCharacters[existingIndex].reviewedAttendance : "IN",
+      specId,
+      specName,
+      role,
     };
 
     const updatedCharacters = [...raid.raidCharacters];
