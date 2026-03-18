@@ -1,116 +1,61 @@
 import { useEffect, useState } from "react";
-import {
-  Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Typography,
-} from "@mui/material";
-import {
-  useReactTable, getCoreRowModel,
-  createColumnHelper, flexRender,
-} from "@tanstack/react-table";
 import { useParams } from "react-router";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import api from "../lib/api";
-import { DateUtils } from "../util/DateUtil";
-import RaidSignup from "../components/RaidSignup";
-import "./RaidDetailPage.css";
+import RaidInfoCard from "../components/RaidInfoCard";
+import RaidSignupCard from "../components/RaidSignupCard";
+import RosterSection from "../components/RosterSection";
+import type { Raid, RaidRole } from "../lib/raidTypes";
 
-interface RaidCharacter {
-  id: string;
-  characterId: string;
-  characterName: string;
-  characterRealm: string;
-  characterLevel: number;
-  characterClassName: string;
-  characterRaceName: string;
-  raiderBattleNetId: string;
-  desiredAttendance: string;
-  reviewedAttendance: string;
-}
-
-interface Raid {
-  id: string;
-  startTime: string;
-  description: string;
-  mode: string;
-  instanceName: string;
-  raidCharacters: RaidCharacter[];
-}
-
-const columnHelper = createColumnHelper<RaidCharacter>();
-
-const columns = [
-  columnHelper.accessor("characterName", { header: "Name" }),
-  columnHelper.accessor("characterLevel", { header: "Level" }),
-  columnHelper.accessor("characterRaceName", { header: "Race" }),
-  columnHelper.accessor("characterClassName", { header: "Class" }),
-  columnHelper.accessor("characterRealm", { header: "Realm" }),
-  columnHelper.accessor(
-    (row) => row.reviewedAttendance
-      .replace("_", " ")
-      .split(" ")
-      .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
-      .join(" "),
-    { id: "attendance", header: "Attendance" }
-  ),
-];
-
-function InstanceInfo({ raid }: { raid: Raid | null }) {
-  if (!raid) return null;
-  return (
-    <div>
-      <h3>{raid.instanceName} ({raid.mode})</h3>
-      <h4>&quot;{raid.description}&quot;</h4>
-      <p>{DateUtils.FormatDateWithPassed(raid.startTime)}</p>
-    </div>
-  );
-}
+const ROLES: RaidRole[] = ["TANK", "HEALER", "DPS"];
 
 export default function RaidDetailPage() {
-  const [raid, setRaid] = useState<Raid | null>(null);
   const { id } = useParams<{ id: string }>();
+  const [raid, setRaid] = useState<Raid | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    setLoading(true);
     api.get<Raid>(`/raids/${id}`)
       .then(res => setRaid(res.data))
-      .catch(() => {});
+      .catch(() => setError("Failed to load raid"))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const table = useReactTable({
-    data: raid?.raidCharacters ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !raid) {
+    return <Typography color="error" sx={{ m: 2 }}>{error ?? "Raid not found"}</Typography>;
+  }
 
   return (
-    <div className="RaidPage">
-      <InstanceInfo raid={raid} />
-      {raid && <RaidSignup raid={raid} onRaidUpdate={setRaid} />}
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableCell key={header.id}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableHead>
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} component="th" scope="row">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </div>
+    <Box sx={{ maxWidth: 1100, mx: "auto", px: 2, py: 2 }}>
+      <RaidInfoCard raid={raid} />
+      <RaidSignupCard raid={raid} onRaidUpdate={setRaid} />
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+          gap: 2,
+        }}
+      >
+        {ROLES.map(role => (
+          <RosterSection
+            key={role}
+            role={role}
+            signups={raid.raidCharacters.filter(rc => (rc.role ?? "DPS") === role)}
+          />
+        ))}
+      </Box>
+    </Box>
   );
 }
