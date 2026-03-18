@@ -17,6 +17,12 @@ export interface Character {
   raceId: number;
   portraitUrl: string;
   fetchedAt?: string;
+  specializations?: Array<{
+    id: number;
+    name: string;
+    role: "TANK" | "HEALER" | "DPS";
+  }>;
+  activeSpecId?: number | null;
 }
 
 export interface RaiderDocument {
@@ -33,7 +39,7 @@ export interface RaiderDocument {
 }
 
 // Raid document (Cosmos container: raids, partition key: /id)
-export type AttendanceStatus = "NO" | "IF_ROOM" | "YES";
+export type AttendanceStatus = "IN" | "OUT" | "BENCH" | "LATE" | "AWAY";
 export type RaidVisibility = "PUBLIC" | "GUILD";
 
 export interface RaidCharacter {
@@ -49,6 +55,9 @@ export interface RaidCharacter {
   raiderBattleNetId: string;
   desiredAttendance: AttendanceStatus;
   reviewedAttendance: AttendanceStatus;
+  specId: number | null;
+  specName: string | null;
+  role: "TANK" | "HEALER" | "DPS" | null;
 }
 
 export interface RaidDocument {
