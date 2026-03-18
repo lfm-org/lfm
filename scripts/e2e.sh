@@ -7,6 +7,7 @@ FRONTEND_DIR="$ROOT_DIR/frontend"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.test.yml"
 TMP_DIR="$ROOT_DIR/.tmp/e2e"
 PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$ROOT_DIR/.cache/ms-playwright}"
+E2E_KEEP_DOCKER="${E2E_KEEP_DOCKER:-0}"
 
 FUNCTIONS_PORT="${FUNCTIONS_PORT:-7071}"
 FRONTEND_PORT="${FRONTEND_PORT:-4173}"
@@ -22,6 +23,18 @@ HMAC_SECRET="${HMAC_SECRET:-0123456789abcdef0123456789abcdef0123456789abcdef0123
 
 mkdir -p "$TMP_DIR" "$TMP_DIR/azurite"
 printf '%s' "$COSMOS_KEY" > "$COSMOS_KEY_FILE"
+
+cleanup() {
+  local exit_code=$?
+
+  if [[ "$E2E_KEEP_DOCKER" != "1" ]]; then
+    docker compose -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
+  fi
+
+  return "$exit_code"
+}
+
+trap cleanup EXIT
 
 wait_for_port() {
   local host="$1"
