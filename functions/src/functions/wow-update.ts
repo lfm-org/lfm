@@ -120,7 +120,8 @@ async function fetchBlizzardToken(): Promise<string> {
 }
 
 async function fetchClasses(token: string): Promise<unknown[]> {
-  const response = await fetch(`${blizzardApiBase()}/data/wow/playable-class/index?namespace=static-${process.env.BATTLE_NET_REGION || "eu"}`, {
+  const region = process.env.BATTLE_NET_REGION || "eu";
+  const response = await fetch(`${blizzardApiBase()}/data/wow/playable-class/index?namespace=static-${region}&locale=en_US`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error(`fetchClasses failed: ${response.status}`);
@@ -129,7 +130,8 @@ async function fetchClasses(token: string): Promise<unknown[]> {
 }
 
 async function fetchRaces(token: string): Promise<unknown[]> {
-  const response = await fetch(`${blizzardApiBase()}/data/wow/playable-race/index?namespace=static-${process.env.BATTLE_NET_REGION || "eu"}`, {
+  const region = process.env.BATTLE_NET_REGION || "eu";
+  const response = await fetch(`${blizzardApiBase()}/data/wow/playable-race/index?namespace=static-${region}&locale=en_US`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error(`fetchRaces failed: ${response.status}`);

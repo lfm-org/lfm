@@ -9,6 +9,17 @@ import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus, Wow
 const MAX_OCC_RETRIES = 3;
 const VALID_ATTENDANCE: AttendanceStatus[] = ["NO", "IF_ROOM", "YES"];
 
+// Battle.net static data APIs return names as localized objects when locale is omitted.
+// This extracts the English string from either format.
+function toNameString(name: unknown): string {
+  if (typeof name === "string") return name;
+  if (name && typeof name === "object") {
+    const loc = name as Record<string, string>;
+    return loc.en_US ?? loc.en_GB ?? Object.values(loc)[0] ?? "";
+  }
+  return "";
+}
+
 interface SignupBody {
   characterId: string;
   desiredAttendance: AttendanceStatus;
@@ -45,8 +56,8 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   } catch {
     // Non-fatal: proceed with empty display names
   }
-  const className = classes?.find(c => c.id === character.classId)?.name || "";
-  const raceName = races?.find(r => r.id === character.raceId)?.name || "";
+  const className = toNameString(classes?.find(c => c.id === character.classId)?.name);
+  const raceName = toNameString(races?.find(r => r.id === character.raceId)?.name);
 
   for (let attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
     const { resource: raid, etag } = await getRaidsContainer().item(raidId, raidId).read<RaidDocument>();

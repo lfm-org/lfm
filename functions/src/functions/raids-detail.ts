@@ -4,6 +4,15 @@ import { getRaidsContainer } from "../lib/cosmos.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument } from "../types/index.js";
 
+function toNameString(name: unknown): string {
+  if (typeof name === "string") return name;
+  if (name && typeof name === "object") {
+    const loc = name as Record<string, string>;
+    return loc.en_US ?? loc.en_GB ?? Object.values(loc)[0] ?? "";
+  }
+  return "";
+}
+
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
@@ -21,7 +30,17 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       return errorResponse(404, "Raid not found");
     }
 
-    return jsonResponse(resource);
+    // Sanitize: older signups may have stored localized name objects instead of strings
+    // (Battle.net static API returns localised objects when locale param is omitted).
+    const sanitized = {
+      ...resource,
+      raidCharacters: resource.raidCharacters.map(rc => ({
+        ...rc,
+        characterClassName: toNameString(rc.characterClassName),
+        characterRaceName: toNameString(rc.characterRaceName),
+      })),
+    };
+    return jsonResponse(sanitized);
   } catch (error: unknown) {
     if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");
     throw error;
