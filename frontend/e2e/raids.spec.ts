@@ -1,29 +1,44 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures/auth";
-
-test("authenticated raids list shows named guild-visible content and hides outsider-only raids", async ({ page }) => {
+test("authenticated raids page shows five full raid cards with pagination", async ({ page }) => {
   await page.goto("/raids");
 
   await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Icecrown Citadel" }).first()).toBeVisible();
+  await expect(page.getByText("Closed heroic cleanup")).toBeVisible();
+  await expect(page.getByText("Closed progression lockout")).toBeVisible();
+  await expect(page.getByText("Public dungeon warmup")).toBeVisible();
   await expect(page.getByText("Heroic farm night")).toBeVisible();
-  await expect(page.getByText("Guild retro forty-player night")).toBeVisible();
+  await expect(page.getByText("Dragon reset clear")).toBeVisible();
   await expect(page.getByText("Rival guild only raid")).toHaveCount(0);
-  await expect
-    .poll(async () => page.getByRole("row").count())
-    .toBeGreaterThanOrEqual(30);
+  await expect(page.getByTestId("raid-card")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: "2" })).toBeVisible();
+  await page.getByRole("button", { name: "2" }).click();
+  await expect(page.getByText("Guild ten-player alt run")).toBeVisible();
+  await expect(page.getByText("Guild retro forty-player night")).toBeVisible();
+  await expect(page.getByText("Closed heroic cleanup")).toHaveCount(0);
 });
 
-test("raid detail renders the dense curated roster scenario", async ({ page }) => {
-  await page.goto("/raids/raid-guild-dense-molten-core");
+test("raids page focuses the requested raid query on the correct page", async ({ page }) => {
+  await page.goto("/raids?raid=raid-guild-dense-molten-core");
 
-  await expect(page.getByText("Molten Core")).toBeVisible();
   await expect(page.getByText("Guild retro forty-player night")).toBeVisible();
-  await expect(page.getByText("Normal (40 players)")).toBeVisible();
-  await expect(page.getByText(/^Tanks \(\d+\)$/)).toBeVisible();
-  await expect(page.getByText(/^Healers \(\d+\)$/)).toBeVisible();
-  await expect(page.getByText(/^DPS \(\d+\)$/)).toBeVisible();
-  await expect(
-    page.getByRole("paragraph").filter({ hasText: /^Aelrin$/ })
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
+});
+
+test("mobile raids page keeps cards compact until expanded", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/raids");
+
+  const heroicFarmCard = page.getByTestId("raid-card").filter({ hasText: "Heroic farm night" });
+  const dragonResetCard = page.getByTestId("raid-card").filter({ hasText: "Dragon reset clear" });
+
+  await expect(heroicFarmCard.getByRole("button", { name: "Show details" })).toBeVisible();
+  await expect(heroicFarmCard.getByRole("region", { name: "Your Signup" })).toHaveCount(0);
+
+  await heroicFarmCard.getByRole("button", { name: "Show details" }).click();
+  await dragonResetCard.getByRole("button", { name: "Show details" }).click();
+
+  await expect(heroicFarmCard.getByRole("region", { name: "Your Signup" })).toBeVisible();
+  await expect(dragonResetCard.getByRole("region", { name: "Your Signup" })).toBeVisible();
+  await expect(heroicFarmCard.getByRole("button", { name: "Hide details" })).toBeVisible();
 });

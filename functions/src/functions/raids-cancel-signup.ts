@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { sanitizeRaidDocumentForResponse } from "../lib/raidResponseSanitizer.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument } from "../types/index.js";
 
@@ -33,7 +34,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
         { ...raid, raidCharacters: updatedCharacters },
         { accessCondition: { type: "IfMatch", condition: etag } }
       );
-      return jsonResponse(resource);
+      return jsonResponse(sanitizeRaidDocumentForResponse(resource));
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 412) {
         context.log(`OCC conflict on raid ${raidId} cancel-signup, attempt ${attempt + 1}`);

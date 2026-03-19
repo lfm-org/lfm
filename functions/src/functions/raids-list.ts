@@ -1,7 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { sanitizeRaidDocumentForResponse } from "../lib/raidResponseSanitizer.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import type { RaidDocument } from "../types/index.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -20,8 +22,8 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
         parameters: [{ name: "@battleNetId", value: identity.battleNetId }],
       };
 
-  const { resources } = await getRaidsContainer().items.query(querySpec).fetchAll();
-  return jsonResponse(resources);
+  const { resources } = await getRaidsContainer().items.query<RaidDocument>(querySpec).fetchAll();
+  return jsonResponse(resources.map(sanitizeRaidDocumentForResponse));
 }
 
 app.http("raids-list", {

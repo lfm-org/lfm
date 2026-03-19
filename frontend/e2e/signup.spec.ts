@@ -1,9 +1,12 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures/auth";
 
-test("authenticated raider can create, update, and cancel a signup across curated raids", async ({ page }) => {
-  await page.goto("/raids/raid-public-signup-target-icc25");
-  const signupRegion = page.getByRole("region", { name: "Your Signup" });
+test("authenticated raider can create, update, and cancel a signup from the combined raids page", async ({ page }) => {
+  await page.goto("/raids?raid=raid-public-signup-target-icc25");
+  const signupRegion = page
+    .getByTestId("raid-card")
+    .filter({ hasText: "Heroic farm night" })
+    .getByRole("region", { name: "Your Signup" });
 
   await expect(signupRegion.getByRole("button", { name: "Sign Up" })).toBeVisible();
   await signupRegion.getByLabel("Attendance").getByRole("button", { name: "Late" }).click();
@@ -13,8 +16,11 @@ test("authenticated raider can create, update, and cancel a signup across curate
   await expect(signupRegion.getByText("Late")).toBeVisible();
   await expect(signupRegion.getByRole("button", { name: "Change" })).toBeVisible();
 
-  await page.goto("/raids/raid-public-existing-signup-onyxia25");
-  const existingSignupRegion = page.getByRole("region", { name: "Your Signup" });
+  await page.goto("/raids?raid=raid-public-existing-signup-onyxia25");
+  const existingSignupRegion = page
+    .getByTestId("raid-card")
+    .filter({ hasText: "Dragon reset clear" })
+    .getByRole("region", { name: "Your Signup" });
 
   await expect(existingSignupRegion.getByText("Aelrin")).toBeVisible();
   await existingSignupRegion.getByRole("button", { name: "Change" }).click();

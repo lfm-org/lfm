@@ -65,7 +65,7 @@ export default function CreateRaidPage() {
         modeKey: selectedModeKey,
         visibility,
       });
-      navigate(`/raids/${res.data.id}`);
+      navigate(`/raids?raid=${encodeURIComponent(res.data.id)}`);
     } catch {
       setError("Failed to create raid");
       setSubmitting(false);

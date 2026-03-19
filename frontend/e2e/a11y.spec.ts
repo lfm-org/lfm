@@ -39,9 +39,12 @@ authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ pag
   await expectNoSeriousA11yViolations(page);
 });
 
-authenticatedTest("raid detail is keyboard reachable and axe-clean", async ({ page }) => {
-  await page.goto("/raids/raid-public-signup-target-icc25");
-  const signupRegion = page.getByRole("region", { name: "Your Signup" });
+authenticatedTest("combined raid card detail is keyboard reachable and axe-clean", async ({ page }) => {
+  await page.goto("/raids?raid=raid-public-signup-target-icc25");
+  const signupRegion = page
+    .getByTestId("raid-card")
+    .filter({ hasText: "Heroic farm night" })
+    .getByRole("region", { name: "Your Signup" });
   const signupAction = signupRegion.getByRole("button", { name: /Sign Up|Change/ });
 
   await expect(signupRegion).toBeVisible();

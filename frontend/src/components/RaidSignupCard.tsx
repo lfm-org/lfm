@@ -10,23 +10,23 @@ import api from "../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
 import type { Raid, RaidSignup } from "../lib/raidTypes";
 
-interface Character {
+export interface RaidSignupCharacter {
   id: string;
   name: string;
   realm: string;
   classId: number;
+  portraitUrl?: string;
   specializations?: Array<{ id: number; name: string; role: string }>;
   activeSpecId?: number | null;
-}
-
-interface CharactersResponse {
-  characters: Character[];
-  selectedCharacterId: string | null;
 }
 
 interface RaidSignupCardProps {
   raid: Raid;
   onRaidUpdate: (raid: Raid) => void;
+  characters: RaidSignupCharacter[];
+  selectedCharacterId: string | null;
+  loadingChars: boolean;
+  charactersError: string | null;
 }
 
 const CHARACTER_LABEL_ID = "raid-signup-character-label";
@@ -34,12 +34,15 @@ const CHARACTER_SELECT_ID = "raid-signup-character";
 const SPEC_LABEL_ID = "raid-signup-spec-label";
 const SPEC_SELECT_ID = "raid-signup-spec";
 
-export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardProps) {
+export default function RaidSignupCard({
+  raid,
+  onRaidUpdate,
+  characters,
+  selectedCharacterId,
+  loadingChars,
+  charactersError,
+}: RaidSignupCardProps) {
   const { user } = useAuth();
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [loadingChars, setLoadingChars] = useState(true);
-
   const [characterId, setCharacterId] = useState("");
   const [specId, setSpecId] = useState<number | null>(null);
   const [attendance, setAttendance] = useState<AttendanceStatus>("IN");
@@ -60,17 +63,6 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
     component: "section" as const,
     "aria-label": "Your Signup",
   };
-
-  // Fetch characters on mount
-  useEffect(() => {
-    api.get<CharactersResponse>("/raider/characters")
-      .then(res => {
-        setCharacters(res.data.characters);
-        setSelectedCharacterId(res.data.selectedCharacterId);
-      })
-      .catch(() => setError("Failed to load characters"))
-      .finally(() => setLoadingChars(false));
-  }, []);
 
   // Set mode based on existing signup
   useEffect(() => {
@@ -105,6 +97,17 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
       >
         <CircularProgress size={20} />
         <Typography variant="body2">Loading characters...</Typography>
+      </Box>
+    );
+  }
+
+  if (charactersError && characters.length === 0) {
+    return (
+      <Box
+        {...signupRegionProps}
+        sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "error.main" }}
+      >
+        <Alert severity="error">{charactersError}</Alert>
       </Box>
     );
   }
@@ -215,6 +218,7 @@ export default function RaidSignupCard({ raid, onRaidUpdate }: RaidSignupCardPro
   // Form (new signup or editing)
   return (
     <Box {...signupRegionProps} sx={cardSx}>
+      {charactersError && <Alert severity="error" sx={{ mb: 1 }}>{charactersError}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
         <FormControl size="small" sx={{ minWidth: 160 }}>

@@ -3,22 +3,12 @@ import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer, getRaidersContainer } from "../lib/cosmos.js";
 import { readBlob } from "../lib/blob.js";
+import { normalizeNameString, sanitizeRaidDocumentForResponse } from "../lib/raidResponseSanitizer.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus, WowClass, WowRace } from "../types/index.js";
 
 const MAX_OCC_RETRIES = 3;
 export const VALID_ATTENDANCE: AttendanceStatus[] = ["IN", "OUT", "BENCH", "LATE", "AWAY"];
-
-// Battle.net static data APIs return names as localized objects when locale is omitted.
-// This extracts the English string from either format.
-function toNameString(name: unknown): string {
-  if (typeof name === "string") return name;
-  if (name && typeof name === "object") {
-    const loc = name as Record<string, string>;
-    return loc.en_US ?? loc.en_GB ?? Object.values(loc)[0] ?? "";
-  }
-  return "";
-}
 
 interface SignupBody {
   characterId: string;
@@ -71,8 +61,8 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   } catch {
     // Non-fatal: proceed with empty display names
   }
-  const className = toNameString(classes?.find(c => c.id === character.classId)?.name);
-  const raceName = toNameString(races?.find(r => r.id === character.raceId)?.name);
+  const className = normalizeNameString(classes?.find(c => c.id === character.classId)?.name);
+  const raceName = normalizeNameString(races?.find(r => r.id === character.raceId)?.name);
 
   for (let attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
     const { resource: raid, etag } = await getRaidsContainer().item(raidId, raidId).read<RaidDocument>();
@@ -115,7 +105,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
         { ...raid, raidCharacters: updatedCharacters },
         { accessCondition: { type: "IfMatch", condition: etag } }
       );
-      return jsonResponse(resource);
+      return jsonResponse(sanitizeRaidDocumentForResponse(resource));
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 412) {
         context.log(`OCC conflict on raid ${raidId}, attempt ${attempt + 1}`);
