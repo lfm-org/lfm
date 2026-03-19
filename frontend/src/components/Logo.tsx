@@ -1,6 +1,7 @@
 import React from "react";
 import "./Logo.css";
 import { Typography, Link } from "@mui/material";
+import { Link as RouterLink } from "react-router";
 
 export interface ILogoProps {
   image: string;
@@ -43,7 +44,7 @@ export class Logo extends React.Component<ILogoProps, ILogoState> {
   public render() {
     return (
       <div className="Logo">
-        <Link href="/">
+        <Link component={RouterLink} to="/" underline="none" color="inherit">
           <img
             src={this.props.image}
             alt={this.props.alt}

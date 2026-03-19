@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from "react-router";
+import { Routes, Route } from "react-router";
 import Layout from "./components/Layout";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import LoginFailedPage from "./pages/LoginFailedPage";
 import LoginSuccessPage from "./pages/LoginSuccessPage";
@@ -13,7 +14,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/raids" replace />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/login/failed" element={<LoginFailedPage />} />
         <Route path="/login/success" element={<LoginSuccessPage />} />

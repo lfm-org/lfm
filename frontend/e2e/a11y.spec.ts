@@ -40,10 +40,12 @@ authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ pag
 });
 
 authenticatedTest("raid detail is keyboard reachable and axe-clean", async ({ page }) => {
-  await page.goto("/raids/raid-public-empty-deadmines");
-  const signupButton = page.getByRole("button", { name: "Sign Up" });
+  await page.goto("/raids/raid-public-signup-target-icc25");
+  const signupRegion = page.getByRole("region", { name: "Your Signup" });
+  const signupAction = signupRegion.getByRole("button", { name: /Sign Up|Change/ });
 
-  await expect(signupButton).toBeVisible();
-  await tabUntilFocused(page, signupButton, 12);
+  await expect(signupRegion).toBeVisible();
+  await expect(signupAction).toBeVisible();
+  await tabUntilFocused(page, signupAction, 12);
   await expectNoSeriousA11yViolations(page);
 });

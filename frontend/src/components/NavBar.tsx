@@ -14,7 +14,10 @@ interface NavBarProps {
 
 export default function NavBar({ character = null }: NavBarProps) {
   const location = useLocation();
-  const loginHref = `/login?redirect=${encodeURIComponent(location.pathname)}`;
+  const redirectPath = location.pathname === "/" || location.pathname.startsWith("/login")
+    ? "/raids"
+    : `${location.pathname}${location.search}`;
+  const loginHref = `/login?redirect=${encodeURIComponent(redirectPath)}`;
 
   return (
     <AppBar position="static" color="inherit">
