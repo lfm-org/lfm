@@ -44,7 +44,7 @@ authenticatedTest("combined raid card detail is keyboard reachable and axe-clean
   const signupRegion = page
     .getByTestId("raid-card")
     .filter({ hasText: "Heroic farm night" })
-    .getByRole("region", { name: "Your Signup" });
+    .getByRole("region", { name: "Your Signup for Heroic farm night" });
   const signupAction = signupRegion.getByRole("button", { name: /Sign Up|Change/ });
 
   await expect(signupRegion).toBeVisible();

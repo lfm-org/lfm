@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TEST_MODE_IDENTITY } from "../lib/test-mode.js";
+import { TEST_MODE_IDENTITY, TEST_MODE_NEEDS_CHARACTER_IDENTITY } from "../lib/test-mode.js";
 import { assertLocalSeedEnvironment, buildReferenceDataWrites, buildSeedData } from "./e2e-test-data.js";
 import type { WowClass, WowInstance, WowRace, WowSpecialization } from "../types/index.js";
 
@@ -202,6 +202,17 @@ describe("buildSeedData", () => {
     });
     expect(testRaider?.selectedCharacterId).toBeTruthy();
     expect(testRaider?.characters.length).toBeGreaterThanOrEqual(2);
+
+    const needsCharacterRaider = seed.raiders.find(
+      (raider) => raider.battleNetId === TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId
+    );
+    expect(needsCharacterRaider).toMatchObject({
+      battleNetId: TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
+      guildId: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildId,
+      guildName: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildName,
+      selectedCharacterId: null,
+    });
+    expect(needsCharacterRaider?.characters.length).toBeGreaterThanOrEqual(2);
 
     expect(seed.raids.some((raid) => raid.id === "raid-public-signup-target-icc25")).toBe(true);
     expect(seed.raids.some((raid) => raid.id === "raid-public-existing-signup-onyxia25")).toBe(true);

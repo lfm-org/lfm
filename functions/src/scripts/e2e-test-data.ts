@@ -2,7 +2,11 @@ import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { TEST_MODE_IDENTITY, isLocalTestMode } from "../lib/test-mode.js";
+import {
+  TEST_MODE_IDENTITY,
+  TEST_MODE_NEEDS_CHARACTER_IDENTITY,
+  isLocalTestMode,
+} from "../lib/test-mode.js";
 import type {
   Character,
   EntitySyncMeta,
@@ -366,6 +370,19 @@ function buildRaiderSeeds(region: string, createdAt: string): { guild: RaiderSee
     ),
     primary: testCharacters[0],
   });
+  guild.push({
+    document: {
+      ...createRaiderDocument(
+        TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
+        TEST_GUILD_NAME,
+        TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildId ?? 12345,
+        testCharacters,
+        createdAt
+      ),
+      selectedCharacterId: null,
+    },
+    primary: testCharacters[0],
+  });
 
   for (let index = 0; index < 31; index++) {
     const template = CHARACTER_TEMPLATES[index % CHARACTER_TEMPLATES.length];
@@ -647,6 +664,10 @@ export function buildSeedData({ now, region, instances, raidDefinitions }: SeedO
   const outsiderPool = raiders.outsider;
 
   const definitions = raidDefinitions ?? createRaidDefinitions();
+  const localTestBattleNetIds = new Set([
+    TEST_MODE_IDENTITY.battleNetId,
+    TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
+  ]);
   const raids = definitions.map((definition) => {
     const sourcePool = definition.pool === "guild" ? guildPool : outsiderPool;
     const { players } = requireMode(instances, definition.instanceId, definition.modeKey);
@@ -657,7 +678,9 @@ export function buildSeedData({ now, region, instances, raidDefinitions }: SeedO
 
     const signups: RaidCharacter[] = [];
     const requestedCount = Math.min(definition.signupCount, players);
-    const availablePool = sourcePool.filter((raider) => raider.document.battleNetId !== TEST_MODE_IDENTITY.battleNetId);
+    const availablePool = sourcePool.filter(
+      (raider) => !localTestBattleNetIds.has(raider.document.battleNetId)
+    );
     const availableSignups = availablePool.length + (definition.includeTestRaider && definition.pool === "guild" ? 1 : 0);
     if (requestedCount > availableSignups) {
       throw new Error(`Not enough ${definition.pool} raiders to seed ${requestedCount} signups for ${definition.id}`);

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   TEST_MODE_ACCESS_TOKEN,
+  TEST_MODE_CALLBACK_CODE,
   TEST_MODE_IDENTITY,
+  TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN,
+  TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE,
+  TEST_MODE_NEEDS_CHARACTER_IDENTITY,
+  getTestModeAccessTokenForCallbackCode,
   getTestModeAccessTokenFromCookieHeader,
   getTestModeAccountCharacters,
   getTestModeIdentity,
@@ -42,6 +47,13 @@ describe("getTestModeAccessTokenFromCookieHeader", () => {
     expect(
       getTestModeAccessTokenFromCookieHeader("battlenet_token=wrong", enabledEnv)
     ).toBeNull();
+
+    expect(
+      getTestModeAccessTokenFromCookieHeader(
+        `battlenet_token=${TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN}`,
+        enabledEnv
+      )
+    ).toBe(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN);
   });
 });
 
@@ -53,6 +65,21 @@ describe("getTestModeIdentity", () => {
       COSMOS_ENDPOINT: "https://localhost:8081",
     })).toBeNull();
     expect(getTestModeIdentity("wrong-token", enabledEnv)).toBeNull();
+    expect(
+      getTestModeIdentity(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN, enabledEnv)
+    ).toEqual(TEST_MODE_NEEDS_CHARACTER_IDENTITY);
+  });
+});
+
+describe("getTestModeAccessTokenForCallbackCode", () => {
+  it("maps deterministic local callback codes to the matching test access token", () => {
+    expect(getTestModeAccessTokenForCallbackCode(TEST_MODE_CALLBACK_CODE, enabledEnv)).toBe(
+      TEST_MODE_ACCESS_TOKEN
+    );
+    expect(
+      getTestModeAccessTokenForCallbackCode(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE, enabledEnv)
+    ).toBe(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN);
+    expect(getTestModeAccessTokenForCallbackCode("wrong-code", enabledEnv)).toBeNull();
   });
 });
 

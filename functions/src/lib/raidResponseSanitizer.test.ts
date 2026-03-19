@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeRaidDocumentForResponse } from "./raidResponseSanitizer.js";
+import {
+  sanitizeOptionalRaidDocumentForResponse,
+  sanitizeRaidDocumentForResponse,
+} from "./raidResponseSanitizer.js";
 import type { RaidDocument } from "../types/index.js";
 
 function buildRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
@@ -40,6 +43,10 @@ function buildRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
 }
 
 describe("sanitizeRaidDocumentForResponse", () => {
+  it("returns null when a replace operation yields no raid resource", () => {
+    expect(sanitizeOptionalRaidDocumentForResponse(undefined)).toBeNull();
+  });
+
   it("normalizes localized raid signup names into strings", () => {
     const sanitized = sanitizeRaidDocumentForResponse(buildRaid());
 

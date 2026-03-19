@@ -3,7 +3,10 @@ import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer, getRaidersContainer } from "../lib/cosmos.js";
 import { readBlob } from "../lib/blob.js";
-import { normalizeNameString, sanitizeRaidDocumentForResponse } from "../lib/raidResponseSanitizer.js";
+import {
+  normalizeNameString,
+  sanitizeOptionalRaidDocumentForResponse,
+} from "../lib/raidResponseSanitizer.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus, WowClass, WowRace } from "../types/index.js";
 
@@ -101,11 +104,13 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     }
 
     try {
-      const { resource } = await getRaidsContainer().item(raidId, raidId).replace(
+      const { resource } = await getRaidsContainer().item(raidId, raidId).replace<RaidDocument>(
         { ...raid, raidCharacters: updatedCharacters },
         { accessCondition: { type: "IfMatch", condition: etag } }
       );
-      return jsonResponse(sanitizeRaidDocumentForResponse(resource));
+      const sanitizedRaid = sanitizeOptionalRaidDocumentForResponse(resource);
+      if (!sanitizedRaid) return errorResponse(500, "Failed to update raid");
+      return jsonResponse(sanitizedRaid);
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 412) {
         context.log(`OCC conflict on raid ${raidId}, attempt ${attempt + 1}`);

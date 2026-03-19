@@ -45,7 +45,7 @@ export default function RaidListCard({
   return (
     <Box
       component="section"
-      aria-label={raid.instanceName}
+      aria-label={`${raid.instanceName}: ${raid.description}`}
       id={`raid-card-${raid.id}`}
       data-testid="raid-card"
       sx={{ display: "grid", gap: 2 }}

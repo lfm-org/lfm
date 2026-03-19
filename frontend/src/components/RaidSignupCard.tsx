@@ -61,7 +61,7 @@ export default function RaidSignupCard({
   const availableSpecs = selectedCharacter?.specializations ?? [];
   const signupRegionProps = {
     component: "section" as const,
-    "aria-label": "Your Signup",
+    "aria-label": `Your Signup for ${raid.description}`,
   };
 
   // Set mode based on existing signup

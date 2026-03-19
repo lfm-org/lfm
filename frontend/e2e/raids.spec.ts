@@ -33,12 +33,12 @@ test("mobile raids page keeps cards compact until expanded", async ({ page }) =>
   const dragonResetCard = page.getByTestId("raid-card").filter({ hasText: "Dragon reset clear" });
 
   await expect(heroicFarmCard.getByRole("button", { name: "Show details" })).toBeVisible();
-  await expect(heroicFarmCard.getByRole("region", { name: "Your Signup" })).toHaveCount(0);
+  await expect(heroicFarmCard.getByRole("region", { name: "Your Signup for Heroic farm night" })).toHaveCount(0);
 
   await heroicFarmCard.getByRole("button", { name: "Show details" }).click();
   await dragonResetCard.getByRole("button", { name: "Show details" }).click();
 
-  await expect(heroicFarmCard.getByRole("region", { name: "Your Signup" })).toBeVisible();
-  await expect(dragonResetCard.getByRole("region", { name: "Your Signup" })).toBeVisible();
+  await expect(heroicFarmCard.getByRole("region", { name: "Your Signup for Heroic farm night" })).toBeVisible();
+  await expect(dragonResetCard.getByRole("region", { name: "Your Signup for Dragon reset clear" })).toBeVisible();
   await expect(heroicFarmCard.getByRole("button", { name: "Hide details" })).toBeVisible();
 });

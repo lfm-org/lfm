@@ -23,3 +23,7 @@ export function sanitizeRaidDocumentForResponse(raid: RaidDocument): RaidDocumen
     raidCharacters: raid.raidCharacters.map(sanitizeRaidCharacterForResponse),
   };
 }
+
+export function sanitizeOptionalRaidDocumentForResponse(raid?: RaidDocument): RaidDocument | null {
+  return raid ? sanitizeRaidDocumentForResponse(raid) : null;
+}

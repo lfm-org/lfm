@@ -1,6 +1,11 @@
 import { signState, verifyState, hashBattleNetId } from "./crypto.js";
 import { getRaidersContainer } from "./cosmos.js";
-import { getTestModeAccountCharacters, getTestModeIdentity } from "./test-mode.js";
+import {
+  getTestModeAccessTokenForCallbackCode,
+  getTestModeAccountCharacters,
+  getTestModeCallbackCodeForScenario,
+  getTestModeIdentity,
+} from "./test-mode.js";
 import type { BattleNetIdentity, RaiderDocument, LoginResponse, AccountCharacter } from "../types/index.js";
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
@@ -99,13 +104,21 @@ export class BattlenetService {
     this.profileNamespace = PROFILE_NAMESPACES[this.region];
   }
 
-  public buildAuthorizationUrl(redirect?: string): string {
+  public buildAuthorizationUrl(redirect?: string, testAuthScenario?: string): string {
+    const normalizedRedirect = normalizeRedirectPath(redirect);
+    const state = this.encodeState({ redirect: normalizedRedirect });
+    const testModeCallbackCode = getTestModeCallbackCodeForScenario(testAuthScenario);
+    if (testModeCallbackCode) {
+      const url = new URL(this.redirectUri);
+      url.searchParams.set("code", testModeCallbackCode);
+      url.searchParams.set("state", state);
+      return url.toString();
+    }
+
     if (!this.clientId || !this.redirectUri) {
       console.warn("Battle.net OAuth is not configured");
       return this.buildFrontendFailureUrl();
     }
-    const normalizedRedirect = normalizeRedirectPath(redirect);
-    const state = this.encodeState({ redirect: normalizedRedirect });
     const url = new URL(this.authorizeUrl);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("client_id", this.clientId);
@@ -125,7 +138,14 @@ export class BattlenetService {
     }
     const parsedState = this.decodeState(state);
     const redirect = normalizeRedirectPath(parsedState?.redirect);
-    const token = await this.exchangeCodeForToken(code);
+    const testModeAccessToken = getTestModeAccessTokenForCallbackCode(code);
+    const token = testModeAccessToken
+      ? {
+          access_token: testModeAccessToken,
+          token_type: "bearer",
+          expires_in: 86400,
+        }
+      : await this.exchangeCodeForToken(code);
     if (!token) {
       console.warn("Battle.net handleCallback: token exchange returned null");
       return null;
@@ -215,6 +235,50 @@ export class BattlenetService {
   private async authenticateWithToken(
     accessToken: string
   ): Promise<AuthenticationResult | null> {
+    const testIdentity = getTestModeIdentity(accessToken);
+    if (testIdentity) {
+      const container = getRaidersContainer();
+      const { resource: existing } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).read<RaiderDocument>();
+
+      let raider: RaiderDocument;
+      if (!existing) {
+        const now = new Date().toISOString();
+        const newDoc: RaiderDocument = {
+          id: testIdentity.battleNetId,
+          battleNetId: testIdentity.battleNetId,
+          guildName: testIdentity.guildName,
+          guildId: testIdentity.guildId,
+          selectedCharacterId: null,
+          createdAt: now,
+          characters: [],
+          accountCharacters: getTestModeAccountCharacters(accessToken, this.region) ?? undefined,
+          accountCharactersFetchedAt: now,
+          accountCharactersRefreshedAt: now,
+        };
+        const { resource } = await container.items.create<RaiderDocument>(newDoc);
+        if (!resource) return null;
+        raider = resource;
+      } else {
+        const updated: RaiderDocument = {
+          ...existing,
+          guildName: testIdentity.guildName,
+          guildId: testIdentity.guildId,
+        };
+        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>(updated);
+        if (!resource) return null;
+        raider = resource;
+      }
+
+      return {
+        identity: {
+          battleNetId: testIdentity.battleNetId,
+          guildName: raider.guildName,
+          guildId: raider.guildId ?? null,
+        },
+        selectedCharacterId: raider.selectedCharacterId,
+      };
+    }
+
     const profile = await this.fetchUserProfile(accessToken);
     if (!profile) {
       console.warn("Battle.net authenticateWithToken: fetchUserProfile returned null");

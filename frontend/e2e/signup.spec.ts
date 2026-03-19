@@ -6,7 +6,7 @@ test("authenticated raider can create, update, and cancel a signup from the comb
   const signupRegion = page
     .getByTestId("raid-card")
     .filter({ hasText: "Heroic farm night" })
-    .getByRole("region", { name: "Your Signup" });
+    .getByRole("region", { name: "Your Signup for Heroic farm night" });
 
   await expect(signupRegion.getByRole("button", { name: "Sign Up" })).toBeVisible();
   await signupRegion.getByLabel("Attendance").getByRole("button", { name: "Late" }).click();
@@ -20,7 +20,7 @@ test("authenticated raider can create, update, and cancel a signup from the comb
   const existingSignupRegion = page
     .getByTestId("raid-card")
     .filter({ hasText: "Dragon reset clear" })
-    .getByRole("region", { name: "Your Signup" });
+    .getByRole("region", { name: "Your Signup for Dragon reset clear" });
 
   await expect(existingSignupRegion.getByText("Aelrin")).toBeVisible();
   await existingSignupRegion.getByRole("button", { name: "Change" }).click();

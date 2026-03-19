@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
-import { sanitizeRaidDocumentForResponse } from "../lib/raidResponseSanitizer.js";
+import { sanitizeOptionalRaidDocumentForResponse } from "../lib/raidResponseSanitizer.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument } from "../types/index.js";
 
@@ -30,11 +30,13 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     const updatedCharacters = raid.raidCharacters.filter((_, i) => i !== existingIndex);
 
     try {
-      const { resource } = await getRaidsContainer().item(raidId, raidId).replace(
+      const { resource } = await getRaidsContainer().item(raidId, raidId).replace<RaidDocument>(
         { ...raid, raidCharacters: updatedCharacters },
         { accessCondition: { type: "IfMatch", condition: etag } }
       );
-      return jsonResponse(sanitizeRaidDocumentForResponse(resource));
+      const sanitizedRaid = sanitizeOptionalRaidDocumentForResponse(resource);
+      if (!sanitizedRaid) return errorResponse(500, "Failed to update raid");
+      return jsonResponse(sanitizedRaid);
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 412) {
         context.log(`OCC conflict on raid ${raidId} cancel-signup, attempt ${attempt + 1}`);

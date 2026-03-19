@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BattlenetService } from "./battlenet.js";
-import { TEST_MODE_IDENTITY } from "./test-mode.js";
+import {
+  TEST_MODE_CALLBACK_CODE,
+  TEST_MODE_IDENTITY,
+  TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE,
+  TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN,
+  TEST_MODE_NEEDS_CHARACTER_IDENTITY,
+} from "./test-mode.js";
 
 const originalEnv = { ...process.env };
 const originalFetch = global.fetch;
@@ -12,6 +18,48 @@ afterEach(() => {
 });
 
 describe("BattlenetService local test mode", () => {
+  it("buildAuthorizationUrl short-circuits to the local callback in test mode", () => {
+    process.env.TEST_MODE = "true";
+    process.env.COSMOS_ENDPOINT = "http://localhost:8081";
+    process.env.BATTLE_NET_REDIRECT_URI = "http://127.0.0.1:7071/api/battlenet/callback";
+    process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    const service = new BattlenetService();
+    const url = new URL(service.buildAuthorizationUrl("/raids/new", "needs-character"));
+
+    expect(`${url.origin}${url.pathname}`).toBe("http://127.0.0.1:7071/api/battlenet/callback");
+    expect(url.searchParams.get("code")).toBe(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE);
+    expect(url.searchParams.get("state")).toBeTruthy();
+  });
+
+  it("handleCallback maps deterministic local callback codes without external fetches", async () => {
+    process.env.TEST_MODE = "true";
+    process.env.COSMOS_ENDPOINT = "http://localhost:8081";
+
+    const fetchSpy = vi.fn(() => {
+      throw new Error("fetch should not be called");
+    });
+    global.fetch = fetchSpy as typeof fetch;
+
+    const service = new BattlenetService();
+    const authenticateSpy = vi
+      .spyOn(service as unknown as { authenticateWithToken: (token: string) => Promise<unknown> }, "authenticateWithToken")
+      .mockResolvedValue({
+        identity: TEST_MODE_NEEDS_CHARACTER_IDENTITY,
+        selectedCharacterId: null,
+      });
+
+    await expect(service.handleCallback(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE)).resolves.toEqual({
+      accessToken: TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN,
+      expiresIn: 86400,
+      redirect: "/",
+      guildName: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildName,
+      selectedCharacterId: null,
+    });
+    expect(authenticateSpy).toHaveBeenCalledWith(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("resolveIdentity short-circuits to the canonical identity without calling fetch", async () => {
     process.env.TEST_MODE = "true";
     process.env.COSMOS_ENDPOINT = "http://localhost:8081";

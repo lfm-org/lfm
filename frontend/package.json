@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:e2e": "vite --host 127.0.0.1 --port 4173",
+    "dev:e2e": "FRONTEND_PORT=${FRONTEND_PORT:-4173} vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "e2e": "playwright test",

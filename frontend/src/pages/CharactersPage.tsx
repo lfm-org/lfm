@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Typography, Button } from "@mui/material";
 import api from "../lib/api";
 import { useAuth } from "../lib/AuthContext";
@@ -16,7 +16,12 @@ export default function CharactersPage() {
   const [characters, setCharacters] = useState<AccountCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { onCharacterSelected } = useAuth();
+  const redirectPath = (() => {
+    const requested = searchParams.get("redirect");
+    return requested && requested.startsWith("/") ? requested : "/raids";
+  })();
 
   useEffect(() => {
     api.get<AccountCharacter[]>("/battlenet/characters").then(res => {
@@ -33,7 +38,7 @@ export default function CharactersPage() {
       name: char.name,
     });
     onCharacterSelected(res.data.selectedCharacterId);
-    navigate("/raids");
+    navigate(redirectPath);
   };
 
   if (loading) return <Typography style={{ padding: "2rem" }}>Loading characters...</Typography>;

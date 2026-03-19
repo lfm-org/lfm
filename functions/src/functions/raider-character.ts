@@ -4,8 +4,18 @@ import { requireAuth, requireAuthWithToken } from "../lib/auth.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
 import { readBlob } from "../lib/blob.js";
+import { getTestModeIdentity } from "../lib/test-mode.js";
 import { resolveSpecRole } from "../lib/wowSpecRoles.js";
 import type { RaiderDocument, Character, WowSpecialization } from "../types/index.js";
+
+export function canReuseCachedCharacter(
+  existing: Character | undefined,
+  accessToken: string,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  if (!existing?.specializations) return false;
+  return isFresh(existing.fetchedAt, CHARACTER_PROFILE_TTL_MS) || Boolean(getTestModeIdentity(accessToken, env));
+}
 
 async function fetchCharacterSpecs(
   region: string,
@@ -68,8 +78,8 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   let character: Character;
 
-  if (existing && isFresh(existing.fetchedAt, CHARACTER_PROFILE_TTL_MS) && existing.specializations) {
-    character = existing;
+  if (canReuseCachedCharacter(existing, auth.accessToken)) {
+    character = existing as Character;
   } else {
     const namespace = `profile-${body.region}`;
     const apiBase = `https://${body.region}.api.blizzard.com/profile/wow/character/${body.realm}/${charName}`;
