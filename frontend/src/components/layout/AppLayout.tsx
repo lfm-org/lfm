@@ -1,8 +1,8 @@
 import { Box } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
-import { useAuth } from "../lib/AuthContext";
-import api from "../lib/api";
+import { useAuth } from "../../features/auth/lib/AuthContext";
+import api from "../../lib/api";
 
 interface CharacterInfo {
   id: string;

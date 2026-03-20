@@ -1,7 +1,7 @@
 import { AppBar, Box, Button, Toolbar } from "@mui/material";
 import { Link as RouterLink, useLocation } from "react-router";
-import { getLogoutUrl } from "../lib/auth";
-import { Logo } from "./Logo";
+import { getLogoutUrl } from "../../lib/auth";
+import { Logo } from "../Logo";
 
 interface NavBarCharacter {
   name: string;
