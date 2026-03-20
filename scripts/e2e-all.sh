@@ -13,4 +13,3 @@ RUNNER="$ROOT_DIR/scripts/e2e.sh"
 "$RUNNER" raids-error raids-error.spec.ts
 "$RUNNER" characters-empty characters-empty.spec.ts
 "$RUNNER" instances-missing create-raid-instances-missing.spec.ts
-"$RUNNER" instances-legacy-modes create-raid-legacy-modes.spec.ts

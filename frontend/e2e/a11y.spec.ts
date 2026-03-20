@@ -40,11 +40,11 @@ authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ pag
 });
 
 authenticatedTest("combined raid card detail is keyboard reachable and axe-clean", async ({ page }) => {
-  await page.goto("/raids?raid=raid-guild-sparse-icc10");
+  await page.goto("/raids?raid=raid-public-signup-target-icc25");
   const signupRegion = page
     .getByTestId("raid-card")
-    .filter({ hasText: "Guild ten-player alt run" })
-    .getByRole("region", { name: "Your Signup for Guild ten-player alt run" });
+    .filter({ hasText: "Heroic farm night" })
+    .getByRole("region", { name: "Your Signup for Heroic farm night" });
   const signupAction = signupRegion.getByRole("button", { name: /Sign Up|Change/ });
 
   await expect(signupRegion).toBeVisible();
