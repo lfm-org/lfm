@@ -4,7 +4,6 @@ test("root route renders a restrained public landing page", async ({ page }) => 
   await page.goto("/");
 
   const main = page.getByRole("main");
-  const banner = page.getByRole("banner");
 
   await expect(page).toHaveURL(/\/$/);
   await expect(main.getByText("SISU RAIDCAL")).toBeVisible();
@@ -12,9 +11,9 @@ test("root route renders a restrained public landing page", async ({ page }) => 
   await expect(
     main.getByText("Create raids, collect signups, and check roster coverage before invite time.")
   ).toBeVisible();
-  await expect(banner.getByRole("link", { name: "Login" })).toBeVisible();
-  await expect(main.getByText("Sign In To Plan Raids")).toHaveCount(0);
-  await expect(main.getByText("Battle.net Login")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Login" })).toBeVisible();
+  await expect(main.getByRole("link", { name: "Sign In To Plan Raids" })).toHaveCount(0);
+  await expect(main.getByRole("link", { name: "Battle.net Login" })).toHaveCount(0);
   await expect(main.getByText("Shared schedule")).toBeVisible();
   await expect(main.getByText("Keep upcoming raids and signups in one place.")).toBeVisible();
   await expect(main.getByText("Role coverage")).toBeVisible();
