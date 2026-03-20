@@ -65,7 +65,7 @@ export default function RaidListCard({
             <Typography variant="caption" color="text.secondary">
               {raid.raidCharacters.length} signups · Tanks {roleCounts.TANK} · Healers {roleCounts.HEALER} · DPS {roleCounts.DPS}
             </Typography>
-            <Button size="small" variant="outlined" onClick={onToggle}>
+            <Button size="small" variant="outlined" onClick={onToggle} sx={{ minHeight: 44 }}>
               {showDetails ? "Hide details" : "Show details"}
             </Button>
           </Box>
