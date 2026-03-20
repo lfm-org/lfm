@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router";
-import { Typography } from "@mui/material";
-import "./LoginPage.css";
+import { Box, Typography } from "@mui/material";
+import SurfaceCard from "../components/SurfaceCard";
 
 export default function LoginSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -13,8 +13,10 @@ export default function LoginSuccessPage() {
   }, [navigate, searchParams]);
 
   return (
-    <div className="LoginPage">
-      <Typography>Signing you in...</Typography>
-    </div>
+    <Box sx={{ minHeight: "100%", display: "grid", placeItems: "center", px: 2, py: 4 }}>
+      <SurfaceCard sx={{ width: "min(100%, 420px)", textAlign: "center" }}>
+        <Typography>Signing you in...</Typography>
+      </SurfaceCard>
+    </Box>
   );
 }
