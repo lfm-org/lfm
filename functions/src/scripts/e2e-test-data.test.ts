@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { TEST_MODE_IDENTITY, TEST_MODE_NEEDS_CHARACTER_IDENTITY } from "../lib/test-mode.js";
-import { assertLocalSeedEnvironment, buildReferenceDataWrites, buildSeedData } from "./e2e-test-data.js";
+import {
+  assertLocalSeedEnvironment,
+  buildReferenceDataWrites,
+  buildSeedData,
+  resolveE2eScenario,
+} from "./e2e-test-data.js";
 import type { WowClass, WowInstance, WowRace, WowSpecialization } from "../types/index.js";
 
 const classes: WowClass[] = [
@@ -93,6 +98,32 @@ describe("buildReferenceDataWrites", () => {
       lastFailureTime: null,
       lastFailureReason: null,
     });
+  });
+
+  it("omits instance blobs for the instances-missing harness scenario", () => {
+    const writes = buildReferenceDataWrites(
+      { classes, races, specializations, instances },
+      "2026-03-18T12:00:00.000Z",
+      resolveE2eScenario("instances-missing")
+    );
+
+    expect(writes.map((write) => write.blobName)).not.toContain("instances.json");
+    expect(writes.map((write) => write.blobName)).not.toContain("instances-meta.json");
+  });
+});
+
+describe("resolveE2eScenario", () => {
+  it("normalizes unknown and missing values to the default harness scenario", () => {
+    expect(resolveE2eScenario(undefined)).toBe("default");
+    expect(resolveE2eScenario(null)).toBe("default");
+    expect(resolveE2eScenario("unknown")).toBe("default");
+  });
+
+  it("accepts the named harness scenarios", () => {
+    expect(resolveE2eScenario("raids-empty")).toBe("raids-empty");
+    expect(resolveE2eScenario("raids-error")).toBe("raids-error");
+    expect(resolveE2eScenario("characters-empty")).toBe("characters-empty");
+    expect(resolveE2eScenario("instances-missing")).toBe("instances-missing");
   });
 });
 
@@ -255,5 +286,30 @@ describe("buildSeedData", () => {
       "IN",
       "BENCH",
     ]);
+  });
+
+  it("builds an empty raids dataset for the raids-empty scenario", () => {
+    const seed = buildSeedData({
+      now: "2026-03-18T12:00:00.000Z",
+      region: "eu",
+      instances,
+      scenario: "raids-empty",
+    });
+
+    expect(seed.raiders.length).toBeGreaterThan(0);
+    expect(seed.raids).toEqual([]);
+  });
+
+  it("removes cached account characters for the characters-empty scenario", () => {
+    const seed = buildSeedData({
+      now: "2026-03-18T12:00:00.000Z",
+      region: "eu",
+      instances,
+      scenario: "characters-empty",
+    });
+
+    const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
+    expect(testRaider?.accountCharacters).toEqual([]);
+    expect(testRaider?.selectedCharacterId).toBeNull();
   });
 });

@@ -41,3 +41,11 @@ test("logout clears the session and protects raids again", async ({ page }) => {
   await expect(page).toHaveURL(/\/login\?redirect=%2Fraids$/);
   await expect(page.getByRole("heading", { name: "Sign in with Battle.net" })).toBeVisible();
 });
+
+test("callback failure routes the user to the login failed page", async ({ page }) => {
+  await page.goto("/api/battlenet/callback", { waitUntil: "domcontentloaded" });
+
+  await expect(page).toHaveURL(/\/login\/failed$/);
+  await expect(page.getByRole("heading", { name: "Sign in failed" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Retry login" })).toBeVisible();
+});

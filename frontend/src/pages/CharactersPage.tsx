@@ -48,6 +48,11 @@ export default function CharactersPage() {
       <Typography variant="h5" gutterBottom>
         Select your character
       </Typography>
+      {characters.length === 0 && (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          No Battle.net characters found.
+        </Typography>
+      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
         {characters.map((char) => (
           <Button

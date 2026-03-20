@@ -36,7 +36,26 @@ export interface SeedDataBundle {
   raids: RaidDocument[];
 }
 
+export type E2eScenario =
+  | "default"
+  | "raids-empty"
+  | "raids-error"
+  | "characters-empty"
+  | "instances-missing";
+
 export const DEFAULT_TEST_DATA_TIMESTAMP = "2026-03-18T12:00:00.000Z";
+
+export function resolveE2eScenario(value?: string | null): E2eScenario {
+  switch (value) {
+    case "raids-empty":
+    case "raids-error":
+    case "characters-empty":
+    case "instances-missing":
+      return value;
+    default:
+      return "default";
+  }
+}
 
 export function assertLocalSeedEnvironment(env: Record<string, string | undefined> = process.env): void {
   if (!isLocalTestMode(env)) {
@@ -49,6 +68,7 @@ interface SeedOptions {
   region: string;
   instances: WowInstance[];
   raidDefinitions?: RaidSeedDefinition[];
+  scenario?: E2eScenario;
 }
 
 interface CharacterTemplate {
@@ -280,17 +300,28 @@ export async function loadReferenceDataBundle(snapshotDir = resolveSnapshotDir()
   return { classes, races, specializations, instances };
 }
 
-export function buildReferenceDataWrites(bundle: ReferenceDataBundle, timestamp: string): BlobWrite[] {
-  return [
+export function buildReferenceDataWrites(
+  bundle: ReferenceDataBundle,
+  timestamp: string,
+  scenario: E2eScenario = "default"
+): BlobWrite[] {
+  const writes: BlobWrite[] = [
     { blobName: "classes.json", data: bundle.classes },
     { blobName: "classes-meta.json", data: createMeta(timestamp) },
     { blobName: "races.json", data: bundle.races },
     { blobName: "races-meta.json", data: createMeta(timestamp) },
     { blobName: "specializations.json", data: bundle.specializations },
     { blobName: "specializations-meta.json", data: createMeta(timestamp) },
-    { blobName: "instances.json", data: bundle.instances },
-    { blobName: "instances-meta.json", data: createMeta(timestamp) },
   ];
+
+  if (scenario !== "instances-missing") {
+    writes.push(
+      { blobName: "instances.json", data: bundle.instances },
+      { blobName: "instances-meta.json", data: createMeta(timestamp) }
+    );
+  }
+
+  return writes;
 }
 
 function buildCharacterId(region: string, realm: string, name: string): string {
@@ -656,19 +687,38 @@ function selectRaiders(pool: RaiderSeed[], count: number, offset = 0): RaiderSee
   return ordered.slice(0, Math.min(count, pool.length));
 }
 
-export function buildSeedData({ now, region, instances, raidDefinitions }: SeedOptions): SeedDataBundle {
+export function buildSeedData({
+  now,
+  region,
+  instances,
+  raidDefinitions,
+  scenario = "default",
+}: SeedOptions): SeedDataBundle {
   const seedTime = new Date(now);
   const createdAt = new Date(seedTime.getTime() - 72 * 60 * 60 * 1000).toISOString();
   const raiders = buildRaiderSeeds(region, createdAt);
   const guildPool = raiders.guild;
   const outsiderPool = raiders.outsider;
 
+  if (scenario === "characters-empty") {
+    guildPool[0] = {
+      ...guildPool[0],
+      document: {
+        ...guildPool[0].document,
+        selectedCharacterId: null,
+        accountCharacters: [],
+        accountCharactersFetchedAt: createdAt,
+        accountCharactersRefreshedAt: createdAt,
+      },
+    };
+  }
+
   const definitions = raidDefinitions ?? createRaidDefinitions();
   const localTestBattleNetIds = new Set([
     TEST_MODE_IDENTITY.battleNetId,
     TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
   ]);
-  const raids = definitions.map((definition) => {
+  const raids = scenario === "raids-empty" ? [] : definitions.map((definition) => {
     const sourcePool = definition.pool === "guild" ? guildPool : outsiderPool;
     const { players } = requireMode(instances, definition.instanceId, definition.modeKey);
     const creator = sourcePool.find((raider) => raider.document.battleNetId === definition.creatorBattleNetId);

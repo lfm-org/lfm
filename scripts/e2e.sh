@@ -20,6 +20,7 @@ AZURE_BLOB_ENDPOINT_INTERNAL="${AZURE_BLOB_ENDPOINT_INTERNAL:-http://azurite:100
 AZURE_WEBJOBS_STORAGE_INTERNAL="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=${AZURITE_ACCOUNT_KEY};BlobEndpoint=${AZURE_BLOB_ENDPOINT_INTERNAL};"
 TOKEN_ENCRYPTION_KEY="${TOKEN_ENCRYPTION_KEY:-00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff}"
 HMAC_SECRET="${HMAC_SECRET:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}"
+E2E_SCENARIO="${E2E_SCENARIO:-default}"
 
 mkdir -p "$TMP_DIR" "$TMP_DIR/azurite"
 printf '%s' "$COSMOS_KEY" > "$COSMOS_KEY_FILE"
@@ -35,6 +36,15 @@ cleanup() {
 }
 
 trap cleanup EXIT
+
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    default|raids-empty|raids-error|characters-empty|instances-missing)
+      E2E_SCENARIO="$1"
+      shift
+      ;;
+  esac
+fi
 
 wait_for_port() {
   local host="$1"
@@ -102,13 +112,19 @@ export SISU_RAIDCAL_CLIENT_ID=""
 export SISU_RAIDCAL_CLIENT_SECRET=""
 export TOKEN_ENCRYPTION_KEY
 export HMAC_SECRET
+export E2E_SCENARIO
+
+find "$TMP_DIR/azurite" -mindepth 1 -delete 2>/dev/null || true
 
 docker compose -f "$COMPOSE_FILE" up -d cosmosdb azurite
 wait_for_port 127.0.0.1 8081 120
 wait_for_port 127.0.0.1 10000 120
 
 docker compose -f "$COMPOSE_FILE" build functions
-docker compose -f "$COMPOSE_FILE" run --rm --entrypoint node functions dist/src/scripts/load-test-reference-data.js
+run_with_retry \
+  "load test reference data" \
+  12 \
+  docker compose -f "$COMPOSE_FILE" run --rm --entrypoint node functions dist/src/scripts/load-test-reference-data.js
 run_with_retry \
   "seed test data" \
   12 \

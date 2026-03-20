@@ -5,6 +5,7 @@ import {
   assertLocalSeedEnvironment,
   buildReferenceDataWrites,
   loadReferenceDataBundle,
+  resolveE2eScenario,
   resolveSnapshotDir,
 } from "./e2e-test-data.js";
 
@@ -21,9 +22,11 @@ export async function loadTestReferenceData() {
 
   const snapshotDir = resolveSnapshotDir();
   const bundle = await loadReferenceDataBundle(snapshotDir);
+  const scenario = resolveE2eScenario(process.env.E2E_SCENARIO);
   const writes = buildReferenceDataWrites(
     bundle,
-    process.env.TEST_REFERENCE_TIMESTAMP || DEFAULT_TEST_DATA_TIMESTAMP
+    process.env.TEST_REFERENCE_TIMESTAMP || DEFAULT_TEST_DATA_TIMESTAMP,
+    scenario
   );
 
   for (const write of writes) {

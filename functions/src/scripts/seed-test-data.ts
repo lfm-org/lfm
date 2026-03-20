@@ -6,7 +6,9 @@ import {
   DEFAULT_TEST_DATA_TIMESTAMP,
   buildSeedData,
   loadReferenceDataBundle,
+  resolveE2eScenario,
   resolveSnapshotDir,
+  type E2eScenario,
 } from "./e2e-test-data.js";
 import type { RaiderDocument, RaidDocument } from "../types/index.js";
 
@@ -27,6 +29,12 @@ export const RAIDS_CONTAINER_DEFINITION = {
     kind: PartitionKeyKind.Hash,
   },
 };
+
+export function getRaidsContainerDefinitionForScenario(
+  scenario: E2eScenario
+): typeof RAIDS_CONTAINER_DEFINITION | null {
+  return scenario === "raids-error" ? null : RAIDS_CONTAINER_DEFINITION;
+}
 
 async function resetContainer<T extends { id: string }>(
   container: Container,
@@ -50,22 +58,27 @@ async function main() {
   const snapshotDir = resolveSnapshotDir();
   const bundle = await loadReferenceDataBundle(snapshotDir);
   const seedTimestamp = process.env.TEST_DATA_BASE_TIME || DEFAULT_TEST_DATA_TIMESTAMP;
+  const scenario = resolveE2eScenario(process.env.E2E_SCENARIO);
   const seed = buildSeedData({
     now: seedTimestamp,
     region: process.env.BATTLE_NET_REGION || "eu",
     instances: bundle.instances,
+    scenario,
   });
 
   const client = new CosmosClient(createCosmosClientOptions());
   const { database } = await client.databases.createIfNotExists({ id: DB_NAME });
   const { container: raidersContainer } = await database.containers.createIfNotExists(RAIDERS_CONTAINER_DEFINITION);
-  const { container: raidsContainer } = await database.containers.createIfNotExists(RAIDS_CONTAINER_DEFINITION);
 
   await resetContainer<RaiderDocument>(raidersContainer, (raider) => raider.battleNetId);
-  await resetContainer<RaidDocument>(raidsContainer, (raid) => raid.id);
-
   await upsertAll(raidersContainer, seed.raiders);
-  await upsertAll(raidsContainer, seed.raids);
+
+  const raidsContainerDefinition = getRaidsContainerDefinitionForScenario(scenario);
+  if (raidsContainerDefinition) {
+    const { container: raidsContainer } = await database.containers.createIfNotExists(raidsContainerDefinition);
+    await resetContainer<RaidDocument>(raidsContainer, (raid) => raid.id);
+    await upsertAll(raidsContainer, seed.raids);
+  }
 
   console.log(`Seeded ${seed.raiders.length} raiders and ${seed.raids.length} raids from ${snapshotDir}`);
 }
