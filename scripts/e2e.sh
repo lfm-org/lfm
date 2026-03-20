@@ -39,7 +39,7 @@ trap cleanup EXIT
 
 if [[ $# -gt 0 ]]; then
   case "$1" in
-    default|raids-empty|raids-error|characters-empty|instances-missing)
+    default|raids-empty|raids-error|characters-empty|instances-missing|instances-legacy-modes)
       E2E_SCENARIO="$1"
       shift
       ;;

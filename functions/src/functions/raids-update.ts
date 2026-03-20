@@ -2,6 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuth } from "../lib/auth.js";
 import { readBlob } from "../lib/blob.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { normalizeWowInstances } from "../lib/wowInstances.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
 
@@ -96,8 +97,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
     }
 
-    const instances = await readBlob<WowInstance[]>("instances.json");
-    if (!instances) return errorResponse(503, "Instance data not available");
+    const rawInstances = await readBlob<unknown>("instances.json");
+    if (!rawInstances) return errorResponse(503, "Instance data not available");
+
+    const instances = normalizeWowInstances(rawInstances);
 
     let updated: RaidDocument;
     try {

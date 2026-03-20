@@ -2,11 +2,11 @@ import { expect } from "@playwright/test";
 import { test } from "./fixtures/auth";
 
 test("authenticated raider can create, update, and cancel a signup from the combined raids page", async ({ page }) => {
-  await page.goto("/raids?raid=raid-public-signup-target-icc25");
+  await page.goto("/raids?raid=raid-public-generated-02");
   const signupRegion = page
     .getByTestId("raid-card")
-    .filter({ hasText: "Heroic farm night" })
-    .getByRole("region", { name: "Your Signup for Heroic farm night" });
+    .filter({ hasText: "Public roster check 2" })
+    .getByRole("region", { name: "Your Signup for Public roster check 2" });
 
   await expect(signupRegion.getByRole("button", { name: "Sign Up" })).toBeVisible();
   await signupRegion.getByLabel("Attendance").getByRole("button", { name: "Late" }).click();
@@ -16,11 +16,11 @@ test("authenticated raider can create, update, and cancel a signup from the comb
   await expect(signupRegion.getByText("Late")).toBeVisible();
   await expect(signupRegion.getByRole("button", { name: "Change" })).toBeVisible();
 
-  await page.goto("/raids?raid=raid-public-existing-signup-onyxia25");
+  await page.goto("/raids?raid=raid-guild-sparse-icc10");
   const existingSignupRegion = page
     .getByTestId("raid-card")
-    .filter({ hasText: "Dragon reset clear" })
-    .getByRole("region", { name: "Your Signup for Dragon reset clear" });
+    .filter({ hasText: "Guild ten-player alt run" })
+    .getByRole("region", { name: "Your Signup for Guild ten-player alt run" });
 
   await expect(existingSignupRegion.getByText("Aelrin")).toBeVisible();
   await existingSignupRegion.getByRole("button", { name: "Change" }).click();

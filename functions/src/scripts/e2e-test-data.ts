@@ -41,7 +41,8 @@ export type E2eScenario =
   | "raids-empty"
   | "raids-error"
   | "characters-empty"
-  | "instances-missing";
+  | "instances-missing"
+  | "instances-legacy-modes";
 
 export const DEFAULT_TEST_DATA_TIMESTAMP = "2026-03-18T12:00:00.000Z";
 
@@ -51,6 +52,7 @@ export function resolveE2eScenario(value?: string | null): E2eScenario {
     case "raids-error":
     case "characters-empty":
     case "instances-missing":
+    case "instances-legacy-modes":
       return value;
     default:
       return "default";
@@ -315,13 +317,34 @@ export function buildReferenceDataWrites(
   ];
 
   if (scenario !== "instances-missing") {
+    const instancesData =
+      scenario === "instances-legacy-modes" ? buildLegacyInstanceData(bundle.instances) : bundle.instances;
+
     writes.push(
-      { blobName: "instances.json", data: bundle.instances },
+      { blobName: "instances.json", data: instancesData },
       { blobName: "instances-meta.json", data: createMeta(timestamp) }
     );
   }
 
   return writes;
+}
+
+function buildLegacyInstanceData(instances: WowInstance[]): unknown[] {
+  return instances.map((instance) => ({
+    id: instance.id,
+    name: instance.name,
+    type: instance.type,
+    minLevel: instance.minLevel,
+    expansionId: instance.expansionId,
+    modes: instance.modes.map((mode) => ({
+      mode: {
+        type: mode.type,
+        name: mode.name,
+      },
+      players: mode.players,
+      is_tracked: mode.isTracked,
+    })),
+  }));
 }
 
 function buildCharacterId(region: string, realm: string, name: string): string {

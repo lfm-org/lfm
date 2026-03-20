@@ -110,6 +110,29 @@ describe("buildReferenceDataWrites", () => {
     expect(writes.map((write) => write.blobName)).not.toContain("instances.json");
     expect(writes.map((write) => write.blobName)).not.toContain("instances-meta.json");
   });
+
+  it("can seed legacy nested mode data for compatibility E2E coverage", () => {
+    const writes = buildReferenceDataWrites(
+      { classes, races, specializations, instances },
+      "2026-03-18T12:00:00.000Z",
+      resolveE2eScenario("instances-legacy-modes")
+    );
+
+    const seededInstances = writes.find((write) => write.blobName === "instances.json")?.data as Array<{
+      id: number;
+      modes: Array<Record<string, unknown>>;
+    }>;
+
+    expect(seededInstances[0]?.id).toBe(63);
+    expect(seededInstances[0]?.modes[0]).toMatchObject({
+      mode: {
+        type: "NORMAL",
+        name: "Normal",
+      },
+      players: 5,
+      is_tracked: true,
+    });
+  });
 });
 
 describe("resolveE2eScenario", () => {
@@ -124,6 +147,7 @@ describe("resolveE2eScenario", () => {
     expect(resolveE2eScenario("raids-error")).toBe("raids-error");
     expect(resolveE2eScenario("characters-empty")).toBe("characters-empty");
     expect(resolveE2eScenario("instances-missing")).toBe("instances-missing");
+    expect(resolveE2eScenario("instances-legacy-modes")).toBe("instances-legacy-modes");
   });
 });
 
