@@ -40,8 +40,40 @@ export default function AppLayout({ children }: Props) {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <Box
+        component="a"
+        href="#main-content"
+        sx={{
+          position: "absolute",
+          left: "-9999px",
+          top: "auto",
+          width: "1px",
+          height: "1px",
+          overflow: "hidden",
+          "&:focus": {
+            position: "fixed",
+            top: 8,
+            left: 8,
+            width: "auto",
+            height: "auto",
+            overflow: "visible",
+            zIndex: 9999,
+            bgcolor: "background.paper",
+            color: "primary.main",
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            textDecoration: "none",
+            fontWeight: 600,
+            fontSize: "0.875rem",
+            boxShadow: 3,
+          },
+        }}
+      >
+        Skip to main content
+      </Box>
       <NavBar character={character} />
-      <Box component="main" sx={{ flex: 1 }}>
+      <Box component="main" id="main-content" sx={{ flex: 1 }}>
         {children}
       </Box>
     </Box>
