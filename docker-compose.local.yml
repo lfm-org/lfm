@@ -2,22 +2,22 @@ services:
   cosmosdb:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
     ports:
-      - "${COSMOS_PORT:-8082}:8081"
-      - "${COSMOS_EXPLORER_PORT:-1235}:1234"
+      - "${COSMOS_PORT:-8081}:8081"
+      - "${COSMOS_EXPLORER_PORT:-1234}:1234"
     environment:
       PROTOCOL: http
       GATEWAY_PUBLIC_ENDPOINT: cosmosdb
       KEY_FILE: /run/cosmos.key
     volumes:
-      - ${COSMOS_KEY_FILE:-./.tmp/e2e/cosmos.key}:/run/cosmos.key:ro
+      - ${COSMOS_KEY_FILE:-./.tmp/dev/cosmos.key}:/run/cosmos.key:ro
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
     ports:
-      - "${AZURITE_BLOB_PORT:-10001}:10000"
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
     volumes:
-      - ${AZURITE_DATA_DIR:-./.tmp/e2e/azurite}:/data
+      - ${AZURITE_DATA_DIR:-./.tmp/dev/azurite}:/data
 
   functions:
     build:
@@ -27,7 +27,7 @@ services:
       - cosmosdb
       - azurite
     environment:
-      TEST_MODE: "true"
+      TEST_MODE: ${TEST_MODE:-false}
       COSMOS_ENDPOINT: ${COSMOS_ENDPOINT}
       COSMOS_KEY: ${COSMOS_KEY}
       COSMOS_DATABASE: ${COSMOS_DATABASE}
@@ -42,6 +42,5 @@ services:
       SISU_RAIDCAL_CLIENT_SECRET: ${SISU_RAIDCAL_CLIENT_SECRET}
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
       HMAC_SECRET: ${HMAC_SECRET}
-      E2E_SCENARIO: ${E2E_SCENARIO}
     ports:
-      - "${FUNCTIONS_PORT:-7072}:80"
+      - "${FUNCTIONS_PORT:-7071}:80"
