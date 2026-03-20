@@ -17,6 +17,11 @@ Run commands from the relevant package directory:
 ## Coding Style & Naming Conventions
 Use TypeScript with 2-space indentation, double quotes, and semicolons to match the existing code. Prefer `PascalCase` for React components and page files (`RaidDetailPage.tsx`), and `camelCase` for utilities and config modules (`attendanceConfig.ts`). Keep function handlers focused and register any new backend entry point in `functions/src/index.ts` so the runtime discovers it. No dedicated formatter or linter is configured; use `tsc --noEmit` and existing file style as the baseline.
 
+## Frontend Styling Guidelines
+The frontend uses React with MUI. Prefer MUI `sx` for local one-off component styling, `frontend/src/theme.ts` or reusable components for repeated visuals, and raw React `style` only for truly dynamic runtime values or inline CSS variables. Keep global shell or document-level rules in CSS files instead of forcing everything into `sx`.
+
+When reviewing hardcoded styles, fix the highest-value inconsistency first: raw `style` on MUI components, then repeated card or surface shells, then recurring colors, spacing, or radii that belong in the theme. Treat semantic game-data colors such as `frontend/src/lib/wowClassColors.ts` and `frontend/src/lib/attendanceConfig.ts` as data, not theme tokens, unless the task explicitly asks for a design change.
+
 ## Testing Guidelines
 Backend tests use Vitest and live beside the code as `*.test.ts`, for example `functions/src/lib/cache.test.ts`. Add or update tests when changing shared backend logic or request validation. Frontend currently has no automated test suite, so at minimum verify affected flows manually and ensure `npm run build` succeeds.
 
