@@ -12,8 +12,11 @@ describe("createReferenceSyncPlan", () => {
           { key: { href: "https://example.test/class/2" }, id: 2, name: "Paladin" },
         ],
       },
-      getDetailIds: (response) => response.classes.map((entry) => entry.id),
-      getDetailPath: (id) => `/data/wow/playable-class/${id}`,
+      getDetails: (response) =>
+        response.classes.map((entry) => ({
+          id: entry.id,
+          href: entry.key.href,
+        })),
     });
 
     expect(plan.indexBlobName).toBe("reference/playable-class/index.json");
@@ -23,12 +26,43 @@ describe("createReferenceSyncPlan", () => {
       {
         id: 1,
         blobName: "reference/playable-class/1.json",
-        path: "/data/wow/playable-class/1",
+        href: "https://example.test/class/1",
       },
       {
         id: 2,
         blobName: "reference/playable-class/2.json",
-        path: "/data/wow/playable-class/2",
+        href: "https://example.test/class/2",
+      },
+    ]);
+  });
+
+  it("preserves Blizzard-provided versioned specialization hrefs", () => {
+    const plan = createReferenceSyncPlan({
+      entity: "playable-specialization",
+      indexResponse: {
+        _links: { self: { href: "https://eu.api.blizzard.com/data/wow/playable-specialization/index?namespace=static-eu" } },
+        character_specializations: [
+          {
+            key: {
+              href: "https://eu.api.blizzard.com/data/wow/playable-specialization/62?namespace=static-11.2.0_62213-eu",
+            },
+            id: 62,
+            name: "Arcane",
+          },
+        ],
+      },
+      getDetails: (response) =>
+        response.character_specializations.map((entry) => ({
+          id: entry.id,
+          href: entry.key.href,
+        })),
+    });
+
+    expect(plan.details).toEqual([
+      {
+        id: 62,
+        blobName: "reference/playable-specialization/62.json",
+        href: "https://eu.api.blizzard.com/data/wow/playable-specialization/62?namespace=static-11.2.0_62213-eu",
       },
     ]);
   });

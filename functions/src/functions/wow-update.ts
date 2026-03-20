@@ -17,8 +17,10 @@ interface ReferenceSyncDef<TIndexResponse> {
   entity: string;
   maxAgeMs: number;
   fetchIndex: (token: string) => Promise<TIndexResponse>;
-  getDetailIds: (response: TIndexResponse) => number[];
-  getDetailPath: (id: number) => string;
+  getDetails: (response: TIndexResponse) => Array<{
+    id: number;
+    href: string;
+  }>;
 }
 
 const ENTITY_SYNC_DEFS: Array<
@@ -34,32 +36,44 @@ const ENTITY_SYNC_DEFS: Array<
     entity: "playable-class",
     maxAgeMs: 30 * 24 * 60 * 60 * 1000,
     fetchIndex: fetchClasses,
-    getDetailIds: (response) => (response as BlizzardPlayableClassIndexResponse).classes.map((entry) => entry.id),
-    getDetailPath: (id) => `/data/wow/playable-class/${id}`,
+    getDetails: (response) =>
+      (response as BlizzardPlayableClassIndexResponse).classes.map((entry) => ({
+        id: entry.id,
+        href: entry.key.href,
+      })),
   },
   {
     name: "races",
     entity: "playable-race",
     maxAgeMs: 30 * 24 * 60 * 60 * 1000,
     fetchIndex: fetchRaces,
-    getDetailIds: (response) => (response as BlizzardPlayableRaceIndexResponse).races.map((entry) => entry.id),
-    getDetailPath: (id) => `/data/wow/playable-race/${id}`,
+    getDetails: (response) =>
+      (response as BlizzardPlayableRaceIndexResponse).races.map((entry) => ({
+        id: entry.id,
+        href: entry.key.href,
+      })),
   },
   {
     name: "specializations",
     entity: "playable-specialization",
     maxAgeMs: 30 * 24 * 60 * 60 * 1000,
     fetchIndex: fetchSpecializations,
-    getDetailIds: (response) => (response as BlizzardPlayableSpecializationIndexResponse).character_specializations.map((entry) => entry.id),
-    getDetailPath: (id) => `/data/wow/playable-specialization/${id}`,
+    getDetails: (response) =>
+      (response as BlizzardPlayableSpecializationIndexResponse).character_specializations.map((entry) => ({
+        id: entry.id,
+        href: entry.key.href,
+      })),
   },
   {
     name: "instances",
     entity: "journal-instance",
     maxAgeMs: 7 * 24 * 60 * 60 * 1000,
     fetchIndex: fetchInstances,
-    getDetailIds: (response) => (response as BlizzardJournalInstanceIndexResponse).instances.map((entry) => entry.id),
-    getDetailPath: (id) => `/data/wow/journal-instance/${id}`,
+    getDetails: (response) =>
+      (response as BlizzardJournalInstanceIndexResponse).instances.map((entry) => ({
+        id: entry.id,
+        href: entry.key.href,
+      })),
   },
 ];
 
@@ -84,13 +98,12 @@ export async function syncEntities(context: InvocationContext): Promise<{ result
       const plan = createReferenceSyncPlan({
         entity: def.entity,
         indexResponse,
-        getDetailIds: def.getDetailIds,
-        getDetailPath: def.getDetailPath,
+        getDetails: def.getDetails,
       });
 
       await writeBlob(plan.indexBlobName, indexResponse);
       for (const detail of plan.details) {
-        const response = await fetchStaticJson(detail.path, token);
+        const response = await fetchStaticJson(detail.href, token);
         await writeBlob(detail.blobName, response);
         await sleep(BLIZZARD_REQUEST_DELAY_MS);
       }
@@ -148,8 +161,10 @@ function staticNamespace(): string {
   return `static-${region}`;
 }
 
-function staticUrl(path: string): string {
-  const url = new URL(`${blizzardApiBase()}${path}`);
+function staticUrl(pathOrHref: string): string {
+  if (pathOrHref.startsWith("https://")) return pathOrHref;
+
+  const url = new URL(`${blizzardApiBase()}${pathOrHref}`);
   url.searchParams.set("namespace", staticNamespace());
   url.searchParams.set("locale", "en_US");
   return url.toString();
@@ -173,28 +188,28 @@ async function fetchBlizzardToken(): Promise<string> {
   return data.access_token;
 }
 
-async function fetchStaticJson<T>(path: string, token: string): Promise<T> {
-  const response = await fetch(staticUrl(path), {
+async function fetchStaticJson(pathOrHref: string, token: string): Promise<unknown> {
+  const response = await fetch(staticUrl(pathOrHref), {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error(`fetchStaticJson failed for ${path}: ${response.status}`);
-  return response.json() as Promise<T>;
+  if (!response.ok) throw new Error(`fetchStaticJson failed for ${pathOrHref}: ${response.status}`);
+  return response.json() as Promise<unknown>;
 }
 
 async function fetchClasses(token: string): Promise<BlizzardPlayableClassIndexResponse> {
-  return fetchStaticJson<BlizzardPlayableClassIndexResponse>("/data/wow/playable-class/index", token);
+  return fetchStaticJson("/data/wow/playable-class/index", token) as Promise<BlizzardPlayableClassIndexResponse>;
 }
 
 async function fetchRaces(token: string): Promise<BlizzardPlayableRaceIndexResponse> {
-  return fetchStaticJson<BlizzardPlayableRaceIndexResponse>("/data/wow/playable-race/index", token);
+  return fetchStaticJson("/data/wow/playable-race/index", token) as Promise<BlizzardPlayableRaceIndexResponse>;
 }
 
 async function fetchSpecializations(token: string): Promise<BlizzardPlayableSpecializationIndexResponse> {
-  return fetchStaticJson<BlizzardPlayableSpecializationIndexResponse>("/data/wow/playable-specialization/index", token);
+  return fetchStaticJson("/data/wow/playable-specialization/index", token) as Promise<BlizzardPlayableSpecializationIndexResponse>;
 }
 
 async function fetchInstances(token: string): Promise<BlizzardJournalInstanceIndexResponse> {
-  return fetchStaticJson<BlizzardJournalInstanceIndexResponse>("/data/wow/journal-instance/index", token);
+  return fetchStaticJson("/data/wow/journal-instance/index", token) as Promise<BlizzardJournalInstanceIndexResponse>;
 }
 
 function sleep(ms: number): Promise<void> {
