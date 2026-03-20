@@ -46,7 +46,7 @@ export default function CharacterCard({
       <Chip
         label={attendance.label}
         size="small"
-        sx={{ ...attendance.chipSx, fontWeight: 600, fontSize: "0.7rem" }}
+        sx={attendance.chipSx}
       />
     </Box>
   );
