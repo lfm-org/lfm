@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import api from "../../../lib/api";
-import { useAuth } from "../../auth/lib/AuthContext";
+import { useAuth } from "../../auth";
 
 interface AccountCharacter {
   name: string;

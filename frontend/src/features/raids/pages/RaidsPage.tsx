@@ -12,7 +12,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import api from "../../../lib/api";
 import type { Raid } from "../lib/raidTypes";
 import { resolveInstanceModeLabel, type WowInstance } from "../../../lib/wow/instances";
-import { useAuth } from "../../auth/lib/AuthContext";
+import { useAuth } from "../../auth";
 import RaidListCard from "../components/RaidListCard";
 import type { RaidSignupCharacter } from "../components/RaidSignupCard";
 

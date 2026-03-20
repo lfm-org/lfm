@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import CharacterCard from "../../characters/components/CharacterCard";
+import { CharacterCard } from "../../characters";
 import type { RaidRole, RaidSignup } from "../lib/raidTypes";
 
 const ROLE_LABEL: Record<RaidRole, string> = {

@@ -5,7 +5,7 @@ import {
   ToggleButtonGroup, Typography,
 } from "@mui/material";
 import { Link } from "react-router";
-import { useAuth } from "../../auth/lib/AuthContext";
+import { useAuth } from "../../auth";
 import api from "../../../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
 import type { Raid } from "../lib/raidTypes";

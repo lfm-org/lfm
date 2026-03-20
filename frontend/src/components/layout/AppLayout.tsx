@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
-import { useAuth } from "../../features/auth/lib/AuthContext";
+import { useAuth } from "../../features/auth";
 import api from "../../lib/api";
 
 interface CharacterInfo {
@@ -19,7 +19,7 @@ interface Props {
   children: ReactNode;
 }
 
-export default function Layout({ children }: Props) {
+export default function AppLayout({ children }: Props) {
   const { user } = useAuth();
   const [character, setCharacter] = useState<CharacterData | null>(null);
 
