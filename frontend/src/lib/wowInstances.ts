@@ -7,6 +7,21 @@ export interface WowInstanceMode {
   is_tracked?: boolean;
 }
 
+interface LegacyWowInstanceMode {
+  mode?: {
+    type?: string;
+    name?: string;
+  };
+  type?: string;
+  name?: string;
+  players?: number;
+  isTracked?: boolean;
+  is_tracked?: boolean;
+  modeKey?: string;
+}
+
+type WowInstanceModeLike = LegacyWowInstanceMode;
+
 export interface WowInstance {
   id: number;
   name: string;
@@ -16,13 +31,34 @@ export interface WowInstance {
   modes: WowInstanceMode[];
 }
 
-export function toModeKey(mode: Pick<WowInstanceMode, "mode" | "players">): string {
-  return `${mode.mode.type}:${mode.players ?? 0}`;
+function getModeType(mode: WowInstanceModeLike): string {
+  return mode.mode?.type ?? mode.type ?? mode.modeKey?.split(":")[0] ?? "UNKNOWN";
 }
 
-export function formatInstanceModeLabel(mode: Pick<WowInstanceMode, "mode" | "players">): string {
+function getModeName(mode: WowInstanceModeLike): string {
+  return mode.mode?.name ?? mode.name ?? getModeType(mode);
+}
+
+function normalizeMode(mode: WowInstanceModeLike): WowInstanceMode {
+  return {
+    mode: {
+      type: getModeType(mode),
+      name: getModeName(mode),
+    },
+    ...(mode.players !== undefined ? { players: mode.players } : {}),
+    ...((mode.is_tracked ?? mode.isTracked) !== undefined
+      ? { is_tracked: mode.is_tracked ?? mode.isTracked }
+      : {}),
+  };
+}
+
+export function toModeKey(mode: WowInstanceModeLike): string {
+  return mode.modeKey ?? `${getModeType(mode)}:${mode.players ?? 0}`;
+}
+
+export function formatInstanceModeLabel(mode: WowInstanceModeLike): string {
   const players = mode.players ?? 0;
-  return `${mode.mode.name} (${players} ${players === 1 ? "player" : "players"})`;
+  return `${getModeName(mode)} (${players} ${players === 1 ? "player" : "players"})`;
 }
 
 export function findInstanceMode(
@@ -30,9 +66,11 @@ export function findInstanceMode(
   instanceId: number,
   modeKey: string
 ): WowInstanceMode | undefined {
-  return instances
+  const mode = instances
     .find((instance) => instance.id === instanceId)
-    ?.modes.find((mode) => toModeKey(mode) === modeKey);
+    ?.modes.find((entry) => toModeKey(entry) === modeKey);
+
+  return mode ? normalizeMode(mode) : undefined;
 }
 
 export function resolveInstanceModeLabel(

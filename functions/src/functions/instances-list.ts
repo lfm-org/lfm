@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { readBlob } from "../lib/blob.js";
+import { normalizeWowInstances } from "../lib/wow-instance-modes.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { WowInstance } from "../types/index.js";
 
@@ -11,7 +12,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const instances = await readBlob<WowInstance[]>("instances.json");
   if (!instances) return errorResponse(503, "Instance data not available");
 
-  return jsonResponse(instances);
+  return jsonResponse(normalizeWowInstances(instances));
 }
 
 app.http("instances-list", {
