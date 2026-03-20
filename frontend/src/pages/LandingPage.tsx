@@ -1,18 +1,17 @@
-import { Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
-import { Link as RouterLink } from "react-router";
+import { Box, Container, Paper, Stack, Typography } from "@mui/material";
 
 const valueProps = [
   {
-    title: "Plan raids without message archaeology",
-    body: "Keep one schedule, one signup surface, and one answer for who is actually coming.",
+    title: "Shared schedule",
+    body: "Keep upcoming raids and signups in one place.",
   },
   {
-    title: "See roster health fast",
-    body: "Get role splits and signup status without bouncing between Discord threads and spreadsheets.",
+    title: "Role coverage",
+    body: "See tank, healer, and DPS coverage at a glance.",
   },
   {
-    title: "Keep Battle.net identity in the loop",
-    body: "Sign in once, pick a character, and keep raid updates tied to the player profile you use in-game.",
+    title: "Battle.net sign-in",
+    body: "Players sign in with Battle.net and use their saved characters.",
   },
 ];
 
@@ -21,7 +20,7 @@ export default function LandingPage() {
     <Box
       sx={{
         px: 2,
-        py: { xs: 4, md: 8 },
+        py: { xs: 3, md: 5 },
       }}
     >
       <Container maxWidth="lg">
@@ -31,15 +30,12 @@ export default function LandingPage() {
             overflow: "hidden",
             borderRadius: 4,
             border: "1px solid rgba(255, 255, 255, 0.08)",
-            backgroundImage: `
-              radial-gradient(circle at top right, rgba(144, 202, 249, 0.18), transparent 32%),
-              linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02))
-            `,
+            backgroundColor: "rgba(255, 255, 255, 0.03)",
           }}
         >
-          <Box sx={{ p: { xs: 4, md: 6 } }}>
-            <Stack spacing={4}>
-              <Stack spacing={2} sx={{ maxWidth: 720 }}>
+          <Box sx={{ p: { xs: 3, md: 4 } }}>
+            <Stack spacing={3}>
+              <Stack spacing={1.5} sx={{ maxWidth: 680 }}>
                 <Typography
                   variant="overline"
                   sx={{ letterSpacing: "0.2em", color: "text.secondary" }}
@@ -47,39 +43,19 @@ export default function LandingPage() {
                   SISU RAIDCAL
                 </Typography>
                 <Typography
-                  variant="h2"
+                  variant="h3"
                   component="h1"
                   sx={{
-                    fontSize: { xs: "2.4rem", md: "4rem" },
-                    lineHeight: 1.05,
-                    fontWeight: 700,
+                    fontSize: { xs: "2rem", md: "2.75rem" },
+                    lineHeight: 1.15,
+                    fontWeight: 600,
                   }}
                 >
-                  Keep Raid Planning Out Of Discord Scrollback
+                  Plan raids in one place
                 </Typography>
-                <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 640 }}>
-                  Sisu Raidcal gives your group one place to publish raids, collect signups,
-                  and see whether the roster is actually raid-ready before invite time.
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640 }}>
+                  Create raids, collect signups, and check roster coverage before invite time.
                 </Typography>
-              </Stack>
-
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <Button
-                  component={RouterLink}
-                  to="/login?redirect=%2Fraids"
-                  variant="contained"
-                  size="large"
-                >
-                  Sign In To Plan Raids
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/login"
-                  variant="text"
-                  size="large"
-                >
-                  Battle.net Login
-                </Button>
               </Stack>
 
               <Box
@@ -97,8 +73,8 @@ export default function LandingPage() {
                       p: 3,
                       height: "100%",
                       borderRadius: 3,
-                      backgroundColor: "rgba(255, 255, 255, 0.03)",
-                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      backgroundColor: "rgba(255, 255, 255, 0.025)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
                     }}
                   >
                     <Stack spacing={1.5}>
