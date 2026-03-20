@@ -49,6 +49,29 @@ Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g.
 
 `.cache/` is git-ignored (contents only; `.cache/.gitkeep` is tracked so the directory exists in fresh checkouts).
 
+### Running tools in subdirectories
+
+Prefer `--prefix` / `-C` flags over `cd dir &&` to run tools in subdirectories. This avoids `cd` side-effects and is more sandbox-friendly:
+
+```bash
+# Good
+git -C /absolute/path/to/repo status
+npm --prefix frontend install
+npx --prefix frontend tsc --noEmit
+
+# Avoid
+cd frontend && npm install
+cd frontend && npx tsc --noEmit
+```
+
+### Script exit codes
+
+When checking a command's exit code in Bash, use the format `echo "EXIT:$?"` (uppercase, colon, no spaces). One consistent format keeps the sandbox allow-list clean:
+
+```bash
+npm --prefix frontend run build 2>&1; echo "EXIT:$?"
+```
+
 ### JSON processing
 
 Use `jq` for any JSON processing in shell, not Python. Python one-liners for JSON are verbose, often require multiple iterations to produce the expected output, and are harder to read at a glance. `jq` is purpose-built, composable, and produces correct results first try.
