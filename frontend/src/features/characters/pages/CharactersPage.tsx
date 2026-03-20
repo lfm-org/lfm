@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
+import PageContainer from "../../../components/layout/PageContainer";
+import { layout } from "../../../theme";
 
 interface AccountCharacter {
   name: string;
@@ -43,15 +45,15 @@ export default function CharactersPage() {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 960, mx: "auto", px: 2, py: 4 }}>
+      <PageContainer>
         <Typography>Loading characters...</Typography>
-      </Box>
+      </PageContainer>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 960, mx: "auto", px: 2, py: 4 }}>
-      <Stack spacing={3}>
+    <PageContainer>
+      <Stack spacing={layout.pageGap}>
         <Box>
           <Typography component="h1" variant="h5" gutterBottom>
             Select your character
@@ -66,7 +68,7 @@ export default function CharactersPage() {
         <Box
           sx={{
             display: "grid",
-            gap: 2,
+            gap: layout.pageGap,
             gridTemplateColumns: {
               xs: "1fr",
               sm: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -97,6 +99,6 @@ export default function CharactersPage() {
           ))}
         </Box>
       </Stack>
-    </Box>
+    </PageContainer>
   );
 }

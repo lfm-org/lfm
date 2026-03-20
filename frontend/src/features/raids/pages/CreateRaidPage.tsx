@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import api from "../../../lib/api";
 import { formatInstanceModeLabel, toModeKey, type WowInstance } from "../../../lib/wow/instances";
+import PageContainer from "../../../components/layout/PageContainer";
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();
@@ -75,8 +76,8 @@ export default function CreateRaidPage() {
   if (loading) return <Typography sx={{ p: 4 }}>Loading...</Typography>;
 
   return (
-    <Box sx={{ p: 4, maxWidth: 600 }}>
-      <Typography variant="h5" gutterBottom>Create Raid</Typography>
+    <PageContainer maxWidth={600}>
+      <Typography variant="h5" component="h1" gutterBottom>Create Raid</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -164,6 +165,6 @@ export default function CreateRaidPage() {
           Cancel
         </Button>
       </Box>
-    </Box>
+    </PageContainer>
   );
 }

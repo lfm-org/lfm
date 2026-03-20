@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router";
+import PageContainer from "../../../components/layout/PageContainer";
 import api from "../../../lib/api";
 import type { Raid } from "../lib/raidTypes";
 import { resolveInstanceModeLabel, type WowInstance } from "../../../lib/wow/instances";
@@ -182,7 +183,7 @@ export default function RaidsPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1100, mx: "auto", px: 2, py: 2 }}>
+    <PageContainer>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
         <Typography component="h1" variant="h5">Raids</Typography>
         <Button variant="contained" onClick={() => navigate("/raids/new")}>Create Raid</Button>
@@ -260,6 +261,6 @@ export default function RaidsPage() {
           </Button>
         </Box>
       )}
-    </Box>
+    </PageContainer>
   );
 }
