@@ -18,7 +18,7 @@ export default function RosterSection({ role, signups }: RosterSectionProps) {
     <Box>
       <Typography
         component="h2"
-        variant="subtitle2"
+        variant="h6"
         fontWeight={700}
         sx={{ mb: 1, textTransform: "uppercase", letterSpacing: "0.05em", color: "text.secondary" }}
       >
