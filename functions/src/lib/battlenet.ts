@@ -1,12 +1,20 @@
 import { signState, verifyState, hashBattleNetId } from "./crypto.js";
 import { getRaidersContainer } from "./cosmos.js";
+import { toBattleNetIdentity } from "./blizzard-adapters.js";
 import {
+  getTestModeAccountGuildsSummary,
+  getTestModeAccountProfileSummary,
   getTestModeAccessTokenForCallbackCode,
-  getTestModeAccountCharacters,
   getTestModeCallbackCodeForScenario,
   getTestModeIdentity,
+  getTestModeUserInfo,
 } from "./test-mode.js";
-import type { BattleNetIdentity, RaiderDocument, LoginResponse, AccountCharacter } from "../types/index.js";
+import type {
+  BlizzardAccountGuildsSummary,
+  BlizzardAccountProfileSummary,
+  BlizzardUserInfo,
+} from "../types/blizzard.js";
+import type { BattleNetIdentity, RaiderDocument, LoginResponse } from "../types/index.js";
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
 
@@ -20,11 +28,6 @@ interface BattleNetTokenResponse {
   expires_in: number;
   refresh_token?: string;
   scope?: string;
-}
-
-interface BattleNetUserInfo {
-  id: number;
-  battletag: string;
 }
 
 interface AuthenticationResult {
@@ -174,11 +177,11 @@ export class BattlenetService {
     return `${this.appBaseUrl}/login/failed`;
   }
 
-  public async fetchAccountCharacters(
+  public async fetchAccountProfileSummary(
     accessToken: string
-  ): Promise<AccountCharacter[]> {
-    const testCharacters = getTestModeAccountCharacters(accessToken, this.region);
-    if (testCharacters) return testCharacters;
+  ): Promise<BlizzardAccountProfileSummary> {
+    const testSummary = getTestModeAccountProfileSummary(accessToken);
+    if (testSummary) return testSummary;
 
     const url = new URL(`https://${API_HOSTS[this.region]}/profile/user/wow`);
     url.searchParams.set("namespace", this.profileNamespace);
@@ -186,30 +189,9 @@ export class BattlenetService {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!response.ok) {
-      throw new Error(`fetchAccountCharacters failed: ${response.status}`);
+      throw new Error(`fetchAccountProfileSummary failed: ${response.status}`);
     }
-    const data = await response.json() as {
-      wow_accounts?: Array<{
-        characters?: Array<{
-          name: string;
-          realm: { slug: string; name: string | Record<string, string> };
-          level: number;
-        }>;
-      }>;
-    };
-    return (data.wow_accounts ?? []).flatMap((account) =>
-      (account.characters ?? []).map((c) => ({
-        name: c.name,
-        realm: c.realm.slug,
-        realmName: typeof c.realm.name === "string"
-          ? c.realm.name
-          : (c.realm.name as Record<string, string>).en_US
-            ?? (c.realm.name as Record<string, string>).en_GB
-            ?? c.realm.slug,
-        level: c.level,
-        region: this.region,
-      }))
-    );
+    return response.json() as Promise<BlizzardAccountProfileSummary>;
   }
 
   public async resolveIdentity(
@@ -237,6 +219,8 @@ export class BattlenetService {
   ): Promise<AuthenticationResult | null> {
     const testIdentity = getTestModeIdentity(accessToken);
     if (testIdentity) {
+      const userInfo = getTestModeUserInfo(accessToken);
+      const accountGuildsSummary = getTestModeAccountGuildsSummary(accessToken) ?? undefined;
       const container = getRaidersContainer();
       const { resource: existing } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).read<RaiderDocument>();
 
@@ -246,14 +230,11 @@ export class BattlenetService {
         const newDoc: RaiderDocument = {
           id: testIdentity.battleNetId,
           battleNetId: testIdentity.battleNetId,
-          guildName: testIdentity.guildName,
-          guildId: testIdentity.guildId,
           selectedCharacterId: null,
           createdAt: now,
           characters: [],
-          accountCharacters: getTestModeAccountCharacters(accessToken, this.region) ?? undefined,
-          accountCharactersFetchedAt: now,
-          accountCharactersRefreshedAt: now,
+          ...(userInfo ? { userInfo } : {}),
+          ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
         };
         const { resource } = await container.items.create<RaiderDocument>(newDoc);
         if (!resource) return null;
@@ -261,8 +242,8 @@ export class BattlenetService {
       } else {
         const updated: RaiderDocument = {
           ...existing,
-          guildName: testIdentity.guildName,
-          guildId: testIdentity.guildId,
+          ...(userInfo ? { userInfo } : {}),
+          ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
         };
         const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>(updated);
         if (!resource) return null;
@@ -270,22 +251,18 @@ export class BattlenetService {
       }
 
       return {
-        identity: {
-          battleNetId: testIdentity.battleNetId,
-          guildName: raider.guildName,
-          guildId: raider.guildId ?? null,
-        },
+        identity: toBattleNetIdentity(testIdentity.battleNetId, raider.accountGuildsSummary),
         selectedCharacterId: raider.selectedCharacterId,
       };
     }
 
-    const profile = await this.fetchUserProfile(accessToken);
-    if (!profile) {
+    const userInfo = await this.fetchUserProfile(accessToken);
+    if (!userInfo) {
       console.warn("Battle.net authenticateWithToken: fetchUserProfile returned null");
       return null;
     }
-    const guild = await this.fetchGuild(accessToken);
-    const battleNetId = hashBattleNetId(profile.id);
+    const accountGuildsSummary = await this.fetchAccountGuildsSummary(accessToken);
+    const battleNetId = hashBattleNetId(userInfo.id);
 
     const container = getRaidersContainer();
     const { resource: existing } = await container.item(battleNetId, battleNetId).read<RaiderDocument>();
@@ -296,11 +273,11 @@ export class BattlenetService {
       const newDoc: RaiderDocument = {
         id: battleNetId,
         battleNetId,
-        guildName: guild?.name ?? null,
-        guildId: guild?.id ?? null,
         selectedCharacterId: null,
         createdAt: now,
         characters: [],
+        userInfo,
+        ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
       };
       const { resource } = await container.items.create<RaiderDocument>(newDoc);
       if (!resource) return null;
@@ -308,7 +285,8 @@ export class BattlenetService {
     } else {
       const updated: RaiderDocument = {
         ...existing,
-        ...(guild ? { guildName: guild.name, guildId: guild.id } : {}),
+        userInfo,
+        ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
       };
       const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>(updated);
       if (!resource) return null;
@@ -316,7 +294,7 @@ export class BattlenetService {
     }
 
     return {
-      identity: { battleNetId, guildName: raider.guildName, guildId: raider.guildId ?? null },
+      identity: toBattleNetIdentity(battleNetId, raider.accountGuildsSummary),
       selectedCharacterId: raider.selectedCharacterId,
     };
   }
@@ -361,7 +339,7 @@ export class BattlenetService {
 
   private async fetchUserProfile(
     accessToken: string
-  ): Promise<BattleNetUserInfo | null> {
+  ): Promise<BlizzardUserInfo | null> {
     try {
       const response = await fetch(this.userInfoUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -371,16 +349,19 @@ export class BattlenetService {
         console.warn(`Battle.net fetchUserProfile failed: ${response.status} ${text}`);
         return null;
       }
-      return response.json() as Promise<BattleNetUserInfo>;
+      return response.json() as Promise<BlizzardUserInfo>;
     } catch (error) {
       console.warn(`Battle.net fetchUserProfile error: ${error}`);
       return null;
     }
   }
 
-  private async fetchGuild(
+  private async fetchAccountGuildsSummary(
     accessToken: string
-  ): Promise<{ name: string; id: number } | undefined> {
+  ): Promise<BlizzardAccountGuildsSummary | undefined> {
+    const testSummary = getTestModeAccountGuildsSummary(accessToken);
+    if (testSummary) return testSummary;
+
     try {
       const url = new URL(
         `https://${API_HOSTS[this.region]}/profile/user/wow/guilds`
@@ -390,13 +371,7 @@ export class BattlenetService {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!response.ok) return undefined;
-      const data = await response.json() as {
-        guilds?: Array<{ guild?: { id?: number; name?: string } }>;
-      };
-      if (!Array.isArray(data?.guilds) || data.guilds.length === 0) return undefined;
-      const g = data.guilds[0]?.guild;
-      if (!g?.id || !g?.name) return undefined;
-      return { id: g.id, name: g.name };
+      return response.json() as Promise<BlizzardAccountGuildsSummary>;
     } catch {
       return undefined;
     }

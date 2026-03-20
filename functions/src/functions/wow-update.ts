@@ -1,54 +1,77 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext, Timer } from "@azure/functions";
 import { readBlob, writeBlob } from "../lib/blob.js";
-import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { EntitySyncMeta, WowInstance, WowInstanceMode } from "../types/index.js";
+import { createReferenceSyncPlan } from "../lib/reference-sync.js";
+import { jsonResponse } from "../middleware/security-headers.js";
+import type {
+  BlizzardJournalInstanceIndexResponse,
+  BlizzardPlayableClassIndexResponse,
+  BlizzardPlayableRaceIndexResponse,
+  BlizzardPlayableSpecializationIndexResponse,
+} from "../types/blizzard.js";
+import type { EntitySyncMeta } from "../types/index.js";
 
-interface EntitySyncDef {
+const BLIZZARD_REQUEST_DELAY_MS = 100;
+
+interface ReferenceSyncDef<TIndexResponse> {
   name: string;
+  entity: string;
   maxAgeMs: number;
-  dataBlob: string;
-  metaBlob: string;
-  fetch: (token: string) => Promise<unknown[]>;
+  fetchIndex: (token: string) => Promise<TIndexResponse>;
+  getDetailIds: (response: TIndexResponse) => number[];
+  getDetailPath: (id: number) => string;
 }
 
-const ENTITY_SYNC_DEFS: EntitySyncDef[] = [
+const ENTITY_SYNC_DEFS: Array<
+  ReferenceSyncDef<
+    | BlizzardPlayableClassIndexResponse
+    | BlizzardPlayableRaceIndexResponse
+    | BlizzardPlayableSpecializationIndexResponse
+    | BlizzardJournalInstanceIndexResponse
+  >
+> = [
   {
     name: "classes",
+    entity: "playable-class",
     maxAgeMs: 30 * 24 * 60 * 60 * 1000,
-    dataBlob: "classes.json",
-    metaBlob: "classes-meta.json",
-    fetch: fetchClasses,
+    fetchIndex: fetchClasses,
+    getDetailIds: (response) => (response as BlizzardPlayableClassIndexResponse).classes.map((entry) => entry.id),
+    getDetailPath: (id) => `/data/wow/playable-class/${id}`,
   },
   {
     name: "races",
+    entity: "playable-race",
     maxAgeMs: 30 * 24 * 60 * 60 * 1000,
-    dataBlob: "races.json",
-    metaBlob: "races-meta.json",
-    fetch: fetchRaces,
+    fetchIndex: fetchRaces,
+    getDetailIds: (response) => (response as BlizzardPlayableRaceIndexResponse).races.map((entry) => entry.id),
+    getDetailPath: (id) => `/data/wow/playable-race/${id}`,
   },
   {
     name: "specializations",
+    entity: "playable-specialization",
     maxAgeMs: 30 * 24 * 60 * 60 * 1000,
-    dataBlob: "specializations.json",
-    metaBlob: "specializations-meta.json",
-    fetch: fetchSpecializations,
+    fetchIndex: fetchSpecializations,
+    getDetailIds: (response) => (response as BlizzardPlayableSpecializationIndexResponse).character_specializations.map((entry) => entry.id),
+    getDetailPath: (id) => `/data/wow/playable-specialization/${id}`,
   },
   {
     name: "instances",
+    entity: "journal-instance",
     maxAgeMs: 7 * 24 * 60 * 60 * 1000,
-    dataBlob: "instances.json",
-    metaBlob: "instances-meta.json",
-    fetch: fetchInstances,
+    fetchIndex: fetchInstances,
+    getDetailIds: (response) => (response as BlizzardJournalInstanceIndexResponse).instances.map((entry) => entry.id),
+    getDetailPath: (id) => `/data/wow/journal-instance/${id}`,
   },
 ];
 
-async function syncEntities(context: InvocationContext): Promise<{ results: Array<{ name: string; status: string }> }> {
+export async function syncEntities(context: InvocationContext): Promise<{ results: Array<{ name: string; status: string }> }> {
   const token = await fetchBlizzardToken();
   const results: Array<{ name: string; status: string }> = [];
 
   for (const def of ENTITY_SYNC_DEFS) {
+    const metaBlob = `reference/${def.entity}/meta.json`;
+
     try {
-      const meta = await readBlob<EntitySyncMeta>(def.metaBlob);
+      const meta = await readBlob<EntitySyncMeta>(metaBlob);
       if (meta?.lastSuccessTime) {
         const age = Date.now() - new Date(meta.lastSuccessTime).getTime();
         if (age < def.maxAgeMs) {
@@ -57,25 +80,37 @@ async function syncEntities(context: InvocationContext): Promise<{ results: Arra
         }
       }
 
-      const data = await def.fetch(token);
-      await writeBlob(def.dataBlob, data);
-      await writeBlob(def.metaBlob, {
+      const indexResponse = await def.fetchIndex(token);
+      const plan = createReferenceSyncPlan({
+        entity: def.entity,
+        indexResponse,
+        getDetailIds: def.getDetailIds,
+        getDetailPath: def.getDetailPath,
+      });
+
+      await writeBlob(plan.indexBlobName, indexResponse);
+      for (const detail of plan.details) {
+        const response = await fetchStaticJson(detail.path, token);
+        await writeBlob(detail.blobName, response);
+        await sleep(BLIZZARD_REQUEST_DELAY_MS);
+      }
+
+      await writeBlob(plan.metaBlobName, {
         lastSuccessTime: new Date().toISOString(),
         lastFailureTime: meta?.lastFailureTime ?? null,
         lastFailureReason: meta?.lastFailureReason ?? null,
       } satisfies EntitySyncMeta);
 
-      results.push({ name: def.name, status: `synced (${data.length} items)` });
-      await new Promise(resolve => setTimeout(resolve, 20));
+      results.push({ name: def.name, status: `synced (${plan.documentCount} docs)` });
     } catch (error: unknown) {
       const reason = error instanceof Error ? error.message : String(error);
       context.log(`Failed to sync ${def.name}: ${reason}`);
-      const existingMeta = await readBlob<EntitySyncMeta>(def.metaBlob);
-      await writeBlob(def.metaBlob, {
+      const existingMeta = await readBlob<EntitySyncMeta>(metaBlob);
+      await writeBlob(metaBlob, {
         lastSuccessTime: existingMeta?.lastSuccessTime ?? null,
         lastFailureTime: new Date().toISOString(),
         lastFailureReason: reason,
-      });
+      } satisfies EntitySyncMeta);
       results.push({ name: def.name, status: `failed: ${reason}` });
     }
   }
@@ -108,6 +143,18 @@ function blizzardApiBase(): string {
   return `https://${process.env.BATTLE_NET_REGION || "eu"}.api.blizzard.com`;
 }
 
+function staticNamespace(): string {
+  const region = process.env.BATTLE_NET_REGION || "eu";
+  return `static-${region}`;
+}
+
+function staticUrl(path: string): string {
+  const url = new URL(`${blizzardApiBase()}${path}`);
+  url.searchParams.set("namespace", staticNamespace());
+  url.searchParams.set("locale", "en_US");
+  return url.toString();
+}
+
 async function fetchBlizzardToken(): Promise<string> {
   const clientId = process.env.SISU_RAIDCAL_CLIENT_ID!;
   const clientSecret = process.env.SISU_RAIDCAL_CLIENT_SECRET!;
@@ -126,104 +173,30 @@ async function fetchBlizzardToken(): Promise<string> {
   return data.access_token;
 }
 
-async function fetchClasses(token: string): Promise<unknown[]> {
-  const region = process.env.BATTLE_NET_REGION || "eu";
-  const response = await fetch(`${blizzardApiBase()}/data/wow/playable-class/index?namespace=static-${region}&locale=en_US`, {
+async function fetchStaticJson<T>(path: string, token: string): Promise<T> {
+  const response = await fetch(staticUrl(path), {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error(`fetchClasses failed: ${response.status}`);
-  const data = await response.json() as { classes: unknown[] };
-  return data.classes;
+  if (!response.ok) throw new Error(`fetchStaticJson failed for ${path}: ${response.status}`);
+  return response.json() as Promise<T>;
 }
 
-async function fetchRaces(token: string): Promise<unknown[]> {
-  const region = process.env.BATTLE_NET_REGION || "eu";
-  const response = await fetch(`${blizzardApiBase()}/data/wow/playable-race/index?namespace=static-${region}&locale=en_US`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error(`fetchRaces failed: ${response.status}`);
-  const data = await response.json() as { races: unknown[] };
-  return data.races;
+async function fetchClasses(token: string): Promise<BlizzardPlayableClassIndexResponse> {
+  return fetchStaticJson<BlizzardPlayableClassIndexResponse>("/data/wow/playable-class/index", token);
 }
 
-async function fetchSpecializations(token: string): Promise<unknown[]> {
-  const region = process.env.BATTLE_NET_REGION || "eu";
-  const response = await fetch(
-    `${blizzardApiBase()}/data/wow/playable-specialization/index?namespace=static-${region}&locale=en_US`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!response.ok) throw new Error(`fetchSpecializations failed: ${response.status}`);
-  const data = await response.json() as {
-    character_specializations: Array<{
-      id: number;
-      name: string;
-      playable_class: { id: number; name: string };
-      role: { type: "DAMAGE" | "HEALER" | "TANK" };
-    }>;
-  };
-  return data.character_specializations.map(s => ({
-    id: s.id,
-    name: s.name,
-    classId: s.playable_class.id,
-    role: s.role.type === "DAMAGE" ? "DPS" : s.role.type,
-  }));
+async function fetchRaces(token: string): Promise<BlizzardPlayableRaceIndexResponse> {
+  return fetchStaticJson<BlizzardPlayableRaceIndexResponse>("/data/wow/playable-race/index", token);
 }
 
-interface BlizzardInstanceIndex {
-  id: number;
-  name: { en_US: string };
+async function fetchSpecializations(token: string): Promise<BlizzardPlayableSpecializationIndexResponse> {
+  return fetchStaticJson<BlizzardPlayableSpecializationIndexResponse>("/data/wow/playable-specialization/index", token);
 }
 
-interface BlizzardInstanceDetail {
-  id: number;
-  name: string;
-  category?: { type: string };
-  expansion?: { id: number };
-  minimum_level?: number;
-  modes?: WowInstanceMode[];
+async function fetchInstances(token: string): Promise<BlizzardJournalInstanceIndexResponse> {
+  return fetchStaticJson<BlizzardJournalInstanceIndexResponse>("/data/wow/journal-instance/index", token);
 }
 
-function toWowInstanceMode(mode: WowInstanceMode): WowInstanceMode {
-  return {
-    mode: {
-      type: mode.mode.type,
-      name: mode.mode.name,
-    },
-    ...(mode.players !== undefined ? { players: mode.players } : {}),
-    ...(mode.is_tracked !== undefined ? { is_tracked: mode.is_tracked } : {}),
-  };
-}
-
-export function toWowInstance(detail: BlizzardInstanceDetail): WowInstance {
-  return {
-    id: detail.id,
-    name: detail.name,
-    type: detail.category?.type ?? "UNKNOWN",
-    minLevel: detail.minimum_level ?? 0,
-    expansionId: detail.expansion?.id ?? 0,
-    modes: (detail.modes ?? []).map(toWowInstanceMode),
-  };
-}
-
-async function fetchInstances(token: string): Promise<unknown[]> {
-  const region = process.env.BATTLE_NET_REGION || "eu";
-  const ns = `static-${region}`;
-  const response = await fetch(`${blizzardApiBase()}/data/wow/journal-instance/index?namespace=${ns}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error(`fetchInstances failed: ${response.status}`);
-  const data = await response.json() as { instances: BlizzardInstanceIndex[] };
-
-  const enriched: unknown[] = [];
-  for (const inst of data.instances) {
-    const detail = await fetch(`${blizzardApiBase()}/data/wow/journal-instance/${inst.id}?namespace=${ns}&locale=en_US`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!detail.ok) continue;
-    const d = await detail.json() as BlizzardInstanceDetail;
-    enriched.push(toWowInstance(d));
-    await new Promise(resolve => setTimeout(resolve, 20));
-  }
-
-  return enriched;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

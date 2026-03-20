@@ -1,3 +1,12 @@
+import type {
+  BlizzardAccountGuildsSummary,
+  BlizzardAccountProfileSummary,
+  BlizzardCharacterMediaSummary,
+  BlizzardCharacterProfileSummary,
+  BlizzardCharacterSpecializationsSummary,
+  BlizzardUserInfo,
+} from "./blizzard.js";
+
 // Raider document (Cosmos container: raiders, partition key: /battleNetId)
 export interface AccountCharacter {
   name: string;
@@ -25,17 +34,28 @@ export interface Character {
   activeSpecId?: number | null;
 }
 
+export interface StoredSelectedCharacter {
+  id: string;
+  region: string;
+  realm: string;
+  name: string;
+  fetchedAt?: string;
+  profileSummary: BlizzardCharacterProfileSummary;
+  mediaSummary?: BlizzardCharacterMediaSummary | null;
+  specializationsSummary?: BlizzardCharacterSpecializationsSummary | null;
+}
+
 export interface RaiderDocument {
   id: string;
   battleNetId: string;
-  guildName: string | null;
-  guildId: number | null;
   selectedCharacterId: string | null;
   createdAt: string;
-  characters: Character[];
-  accountCharacters?: AccountCharacter[];
-  accountCharactersFetchedAt?: string;
-  accountCharactersRefreshedAt?: string;
+  userInfo?: BlizzardUserInfo;
+  accountProfileSummary?: BlizzardAccountProfileSummary;
+  accountProfileFetchedAt?: string;
+  accountProfileRefreshedAt?: string;
+  accountGuildsSummary?: BlizzardAccountGuildsSummary;
+  characters: StoredSelectedCharacter[];
 }
 
 // Raid document (Cosmos container: raids, partition key: /id)

@@ -2,13 +2,14 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer, getRaidersContainer } from "../lib/cosmos.js";
-import { readBlob } from "../lib/blob.js";
+import { toSelectedCharacterView } from "../lib/blizzard-adapters.js";
+import { readWowClasses, readWowRaces, readWowSpecializationMap } from "../lib/reference-data.js";
 import {
   normalizeNameString,
   sanitizeOptionalRaidDocumentForResponse,
 } from "../lib/raidResponseSanitizer.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus, WowClass, WowRace } from "../types/index.js";
+import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus } from "../types/index.js";
 
 const MAX_OCC_RETRIES = 3;
 export const VALID_ATTENDANCE: AttendanceStatus[] = ["IN", "OUT", "BENCH", "LATE", "AWAY"];
@@ -37,8 +38,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const { resource: raider } = await getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
 
-  const character = raider.characters.find(c => c.id === body.characterId);
-  if (!character) return errorResponse(400, "Character not found on your profile");
+  const staticSpecs = await readWowSpecializationMap();
+  const storedCharacter = raider.characters.find(c => c.id === body.characterId);
+  if (!storedCharacter) return errorResponse(400, "Character not found on your profile");
+  const character = toSelectedCharacterView(storedCharacter, staticSpecs);
 
   // Resolve spec info
   let specId: number | null = body.specId ?? null;
@@ -54,12 +57,12 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     role = specEntry.role;
   }
 
-  let classes: WowClass[] | null = null;
-  let races: WowRace[] | null = null;
+  let classes = null;
+  let races = null;
   try {
     [classes, races] = await Promise.all([
-      readBlob<WowClass[]>("classes.json"),
-      readBlob<WowRace[]>("races.json"),
+      readWowClasses(),
+      readWowRaces(),
     ]);
   } catch {
     // Non-fatal: proceed with empty display names

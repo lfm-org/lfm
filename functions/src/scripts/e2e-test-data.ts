@@ -272,6 +272,16 @@ function createMeta(timestamp: string): EntitySyncMeta {
   };
 }
 
+function createIndexLinks(entity: string) {
+  return {
+    self: { href: `https://example.test/data/wow/${entity}/index` },
+  };
+}
+
+function toReferenceRoleType(role: WowSpecialization["role"]): "DAMAGE" | "HEALER" | "TANK" {
+  return role === "DPS" ? "DAMAGE" : role;
+}
+
 function getSnapshotCandidates(): string[] {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   return [
@@ -306,19 +316,102 @@ export function buildReferenceDataWrites(
   timestamp: string,
   scenario: E2eScenario = "default"
 ): BlobWrite[] {
+  const classesById = new Map(bundle.classes.map((entry) => [entry.id, entry]));
+
   const writes: BlobWrite[] = [
-    { blobName: "classes.json", data: bundle.classes },
-    { blobName: "classes-meta.json", data: createMeta(timestamp) },
-    { blobName: "races.json", data: bundle.races },
-    { blobName: "races-meta.json", data: createMeta(timestamp) },
-    { blobName: "specializations.json", data: bundle.specializations },
-    { blobName: "specializations-meta.json", data: createMeta(timestamp) },
+    {
+      blobName: "reference/playable-class/index.json",
+      data: {
+        _links: createIndexLinks("playable-class"),
+        classes: bundle.classes.map((entry) => ({
+          key: { href: `https://example.test/data/wow/playable-class/${entry.id}` },
+          id: entry.id,
+          name: entry.name,
+        })),
+      },
+    },
+    { blobName: "reference/playable-class/meta.json", data: createMeta(timestamp) },
+    ...bundle.classes.map((entry) => ({
+      blobName: `reference/playable-class/${entry.id}.json`,
+      data: {
+        id: entry.id,
+        name: entry.name,
+      },
+    })),
+    {
+      blobName: "reference/playable-race/index.json",
+      data: {
+        _links: createIndexLinks("playable-race"),
+        races: bundle.races.map((entry) => ({
+          key: { href: `https://example.test/data/wow/playable-race/${entry.id}` },
+          id: entry.id,
+          name: entry.name,
+        })),
+      },
+    },
+    { blobName: "reference/playable-race/meta.json", data: createMeta(timestamp) },
+    ...bundle.races.map((entry) => ({
+      blobName: `reference/playable-race/${entry.id}.json`,
+      data: {
+        id: entry.id,
+        name: entry.name,
+        faction: { type: entry.faction, name: entry.faction },
+      },
+    })),
+    {
+      blobName: "reference/playable-specialization/index.json",
+      data: {
+        _links: createIndexLinks("playable-specialization"),
+        character_specializations: bundle.specializations.map((entry) => ({
+          key: { href: `https://example.test/data/wow/playable-specialization/${entry.id}` },
+          id: entry.id,
+          name: entry.name,
+        })),
+      },
+    },
+    { blobName: "reference/playable-specialization/meta.json", data: createMeta(timestamp) },
+    ...bundle.specializations.map((entry) => ({
+      blobName: `reference/playable-specialization/${entry.id}.json`,
+      data: {
+        id: entry.id,
+        name: entry.name,
+        playable_class: {
+          id: entry.classId,
+          name: classesById.get(entry.classId)?.name ?? "",
+        },
+        role: {
+          type: toReferenceRoleType(entry.role),
+          name: entry.role,
+        },
+      },
+    })),
   ];
 
   if (scenario !== "instances-missing") {
     writes.push(
-      { blobName: "instances.json", data: bundle.instances },
-      { blobName: "instances-meta.json", data: createMeta(timestamp) }
+      {
+        blobName: "reference/journal-instance/index.json",
+        data: {
+          _links: createIndexLinks("journal-instance"),
+          instances: bundle.instances.map((entry) => ({
+            key: { href: `https://example.test/data/wow/journal-instance/${entry.id}` },
+            id: entry.id,
+            name: { en_US: entry.name },
+          })),
+        },
+      },
+      { blobName: "reference/journal-instance/meta.json", data: createMeta(timestamp) },
+      ...bundle.instances.map((entry) => ({
+        blobName: `reference/journal-instance/${entry.id}.json`,
+        data: {
+          id: entry.id,
+          name: entry.name,
+          category: { type: entry.type },
+          expansion: { id: entry.expansionId, name: "" },
+          minimum_level: entry.minLevel,
+          modes: entry.modes,
+        },
+      }))
     );
   }
 
@@ -351,6 +444,87 @@ function createSeedCharacter(name: string, template: CharacterTemplate, region: 
   };
 }
 
+function toStoredSelectedCharacter(character: Character) {
+  return {
+    id: character.id,
+    region: character.region,
+    realm: character.realm,
+    name: character.name,
+    fetchedAt: character.fetchedAt,
+    profileSummary: {
+      name: character.name,
+      level: character.level,
+      realm: {
+        slug: character.realm,
+        name: { en_US: TEST_REALM_NAME },
+      },
+      character_class: {
+        id: character.classId,
+        name: "",
+      },
+      race: {
+        id: character.raceId,
+        name: "",
+      },
+    },
+    mediaSummary: {
+      assets: [{ key: "avatar", value: character.portraitUrl }],
+    },
+    specializationsSummary: {
+      specializations: (character.specializations ?? []).map((spec) => ({
+        specialization: { id: spec.id, name: spec.name },
+      })),
+      ...(character.activeSpecId != null
+        ? {
+            active_specialization: {
+              id: character.activeSpecId,
+              name: character.specializations?.find((spec) => spec.id === character.activeSpecId)?.name ?? "",
+            },
+          }
+        : {}),
+    },
+  };
+}
+
+function toAccountProfileSummary(characters: Character[]) {
+  return {
+    wow_accounts: [
+      {
+        id: 1,
+        characters: characters.map((character, index) => ({
+          id: index + 1,
+          name: character.name,
+          level: character.level,
+          realm: {
+            id: 1305,
+            slug: character.realm,
+            name: { en_US: TEST_REALM_NAME },
+          },
+          playable_class: { id: character.classId, name: "" },
+          playable_race: { id: character.raceId, name: "" },
+          faction: { type: "ALLIANCE", name: "Alliance" },
+          gender: { type: "UNKNOWN", name: "Unknown" },
+          protected_character: { href: `https://example.test/profile/wow/character/${character.realm}/${character.name.toLowerCase()}` },
+        })),
+      },
+    ],
+  };
+}
+
+function toAccountGuildsSummary(guildName: string, guildId: number) {
+  return {
+    guilds: [{ guild: { id: guildId, name: guildName } }],
+  };
+}
+
+function getDocumentGuild(document: RaiderDocument): { id: number | null; name: string | null } {
+  const guild = document.accountGuildsSummary?.guilds?.[0]?.guild;
+  return {
+    id: guild?.id ?? null,
+    name: guild?.name ?? null,
+  };
+}
+
 function createRaiderDocument(
   battleNetId: string,
   guildName: string,
@@ -361,20 +535,13 @@ function createRaiderDocument(
   return {
     id: battleNetId,
     battleNetId,
-    guildName,
-    guildId,
     selectedCharacterId: characters[0]?.character.id ?? null,
     createdAt,
-    characters: characters.map((entry) => entry.character),
-    accountCharacters: characters.map((entry) => ({
-      name: entry.character.name,
-      realm: entry.character.realm,
-      realmName: TEST_REALM_NAME,
-      level: entry.character.level,
-      region: entry.character.region,
-    })),
-    accountCharactersFetchedAt: createdAt,
-    accountCharactersRefreshedAt: createdAt,
+    characters: characters.map((entry) => toStoredSelectedCharacter(entry.character)),
+    accountProfileSummary: toAccountProfileSummary(characters.map((entry) => entry.character)),
+    accountProfileFetchedAt: createdAt,
+    accountProfileRefreshedAt: createdAt,
+    accountGuildsSummary: toAccountGuildsSummary(guildName, guildId),
   };
 }
 
@@ -505,8 +672,8 @@ function buildRaidDocument(
     description: definition.description,
     modeKey: definition.modeKey,
     visibility: definition.visibility,
-    creatorGuild: creator.document.guildName ?? "",
-    creatorGuildId: creator.document.guildId ?? null,
+    creatorGuild: getDocumentGuild(creator.document).name ?? "",
+    creatorGuildId: getDocumentGuild(creator.document).id,
     instanceId: instance.id,
     instanceName: instance.name,
     creatorBattleNetId: creator.document.battleNetId,
@@ -707,9 +874,9 @@ export function buildSeedData({
       document: {
         ...guildPool[0].document,
         selectedCharacterId: null,
-        accountCharacters: [],
-        accountCharactersFetchedAt: createdAt,
-        accountCharactersRefreshedAt: createdAt,
+        accountProfileSummary: { wow_accounts: [{ id: 1, characters: [] }] },
+        accountProfileFetchedAt: createdAt,
+        accountProfileRefreshedAt: createdAt,
       },
     };
   }

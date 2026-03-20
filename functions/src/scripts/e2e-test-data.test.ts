@@ -89,17 +89,17 @@ describe("buildReferenceDataWrites", () => {
       "2026-03-18T12:00:00.000Z"
     );
 
-    expect(writes.map((write) => write.blobName).sort()).toEqual([
-      "classes-meta.json",
-      "classes.json",
-      "instances-meta.json",
-      "instances.json",
-      "races-meta.json",
-      "races.json",
-      "specializations-meta.json",
-      "specializations.json",
-    ]);
-    expect(writes.find((write) => write.blobName === "instances-meta.json")?.data).toEqual({
+    const blobNames = writes.map((write) => write.blobName);
+    expect(blobNames).toContain("reference/playable-class/index.json");
+    expect(blobNames).toContain("reference/playable-class/meta.json");
+    expect(blobNames).toContain("reference/playable-class/1.json");
+    expect(blobNames).toContain("reference/playable-race/index.json");
+    expect(blobNames).toContain("reference/playable-race/1.json");
+    expect(blobNames).toContain("reference/playable-specialization/index.json");
+    expect(blobNames).toContain("reference/playable-specialization/73.json");
+    expect(blobNames).toContain("reference/journal-instance/index.json");
+    expect(blobNames).toContain("reference/journal-instance/63.json");
+    expect(writes.find((write) => write.blobName === "reference/journal-instance/meta.json")?.data).toEqual({
       lastSuccessTime: "2026-03-18T12:00:00.000Z",
       lastFailureTime: null,
       lastFailureReason: null,
@@ -113,8 +113,8 @@ describe("buildReferenceDataWrites", () => {
       resolveE2eScenario("instances-missing")
     );
 
-    expect(writes.map((write) => write.blobName)).not.toContain("instances.json");
-    expect(writes.map((write) => write.blobName)).not.toContain("instances-meta.json");
+    expect(writes.map((write) => write.blobName)).not.toContain("reference/journal-instance/index.json");
+    expect(writes.map((write) => write.blobName)).not.toContain("reference/journal-instance/meta.json");
   });
 });
 
@@ -234,8 +234,9 @@ describe("buildSeedData", () => {
     const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
     expect(testRaider).toMatchObject({
       battleNetId: TEST_MODE_IDENTITY.battleNetId,
-      guildId: TEST_MODE_IDENTITY.guildId,
-      guildName: TEST_MODE_IDENTITY.guildName,
+      accountGuildsSummary: {
+        guilds: [{ guild: { id: TEST_MODE_IDENTITY.guildId, name: TEST_MODE_IDENTITY.guildName } }],
+      },
     });
     expect(testRaider?.selectedCharacterId).toBeTruthy();
     expect(testRaider?.characters.length).toBeGreaterThanOrEqual(2);
@@ -245,8 +246,9 @@ describe("buildSeedData", () => {
     );
     expect(needsCharacterRaider).toMatchObject({
       battleNetId: TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
-      guildId: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildId,
-      guildName: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildName,
+      accountGuildsSummary: {
+        guilds: [{ guild: { id: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildId, name: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildName } }],
+      },
       selectedCharacterId: null,
     });
     expect(needsCharacterRaider?.characters.length).toBeGreaterThanOrEqual(2);
@@ -315,7 +317,7 @@ describe("buildSeedData", () => {
     });
 
     const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
-    expect(testRaider?.accountCharacters).toEqual([]);
+    expect(testRaider?.accountProfileSummary?.wow_accounts?.[0]?.characters).toEqual([]);
     expect(testRaider?.selectedCharacterId).toBeNull();
   });
 });

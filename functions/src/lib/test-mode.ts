@@ -1,4 +1,10 @@
-import type { AccountCharacter, BattleNetIdentity } from "../types/index.js";
+import { toAccountCharacterViews } from "./blizzard-adapters.js";
+import type { BattleNetIdentity } from "../types/index.js";
+import type {
+  BlizzardAccountGuildsSummary,
+  BlizzardAccountProfileSummary,
+  BlizzardUserInfo,
+} from "../types/blizzard.js";
 
 type EnvLike = Record<string, string | undefined>;
 export type TestModeAuthScenario = "default" | "needs-character";
@@ -101,15 +107,85 @@ export function getTestModeIdentity(accessToken: string, env: EnvLike = process.
   return getTestModeFixtureByAccessToken(accessToken)?.identity ?? null;
 }
 
+export function getTestModeUserInfo(
+  accessToken: string,
+  env: EnvLike = process.env
+): BlizzardUserInfo | null {
+  const identity = getTestModeIdentity(accessToken, env);
+  if (!identity) return null;
+
+  return {
+    id: identity.battleNetId === TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId ? 2 : 1,
+    battletag: "Test#1234",
+  };
+}
+
+export function getTestModeAccountGuildsSummary(
+  accessToken: string,
+  env: EnvLike = process.env
+): BlizzardAccountGuildsSummary | null {
+  const identity = getTestModeIdentity(accessToken, env);
+  if (!identity) return null;
+
+  return {
+    guilds: identity.guildId && identity.guildName
+      ? [{ guild: { id: identity.guildId, name: identity.guildName } }]
+      : [],
+  };
+}
+
+export function getTestModeAccountProfileSummary(
+  accessToken: string,
+  env: EnvLike = process.env
+): BlizzardAccountProfileSummary | null {
+  if (!getTestModeIdentity(accessToken, env)) return null;
+
+  return {
+    wow_accounts: [
+      {
+        id: 1,
+        characters: [
+          {
+            id: 101,
+            name: "Aelrin",
+            level: 80,
+            realm: {
+              id: 1305,
+              slug: "test-realm",
+              name: { en_US: "Test Realm" },
+            },
+            playable_class: { id: 2, name: "Paladin" },
+            playable_race: { id: 11, name: "Draenei" },
+            faction: { type: "ALLIANCE", name: "Alliance" },
+            gender: { type: "FEMALE", name: "Female" },
+            protected_character: { href: "https://example.test/profile/wow/character/test-realm/aelrin" },
+          },
+          {
+            id: 102,
+            name: "Brakka",
+            level: 80,
+            realm: {
+              id: 1305,
+              slug: "test-realm",
+              name: { en_US: "Test Realm" },
+            },
+            playable_class: { id: 1, name: "Warrior" },
+            playable_race: { id: 2, name: "Orc" },
+            faction: { type: "HORDE", name: "Horde" },
+            gender: { type: "MALE", name: "Male" },
+            protected_character: { href: "https://example.test/profile/wow/character/test-realm/brakka" },
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export function getTestModeAccountCharacters(
   accessToken: string,
   region: string,
   env: EnvLike = process.env
-): AccountCharacter[] | null {
-  if (!getTestModeIdentity(accessToken, env)) return null;
-
-  return [
-    { name: "Aelrin", realm: "test-realm", realmName: "Test Realm", level: 80, region },
-    { name: "Brakka", realm: "test-realm", realmName: "Test Realm", level: 80, region },
-  ];
+) {
+  const summary = getTestModeAccountProfileSummary(accessToken, env);
+  return summary ? toAccountCharacterViews(summary, region) : null;
 }

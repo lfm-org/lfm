@@ -1,0 +1,203 @@
+import { describe, expect, it } from "vitest";
+import {
+  toAccountCharacterViews,
+  toBattleNetIdentity,
+  toSelectedCharacterView,
+  toWowClassViews,
+  toWowInstanceViews,
+  toWowRaceViews,
+  toWowSpecializationViews,
+} from "./blizzard-adapters.js";
+
+describe("blizzard-adapters", () => {
+  it("adapts raw reference documents into app view models", () => {
+    const classIndex = {
+      _links: { self: { href: "https://example.test/class/index" } },
+      classes: [
+        { key: { href: "https://example.test/class/1" }, id: 1, name: "Warrior" },
+        { key: { href: "https://example.test/class/2" }, id: 2, name: "Paladin" },
+      ],
+    };
+    const classDetails = new Map([
+      [1, { id: 1, name: "Warrior" }],
+      [2, { id: 2, name: "Paladin" }],
+    ]);
+
+    const raceIndex = {
+      _links: { self: { href: "https://example.test/race/index" } },
+      races: [
+        { key: { href: "https://example.test/race/1" }, id: 1, name: "Human" },
+        { key: { href: "https://example.test/race/2" }, id: 2, name: "Orc" },
+      ],
+    };
+    const raceDetails = new Map([
+      [1, { id: 1, name: "Human", faction: { type: "ALLIANCE", name: "Alliance" } }],
+      [2, { id: 2, name: "Orc", faction: { type: "HORDE", name: "Horde" } }],
+    ]);
+
+    const specializationIndex = {
+      _links: { self: { href: "https://example.test/spec/index" } },
+      character_specializations: [
+        { key: { href: "https://example.test/spec/65" }, id: 65, name: "Holy" },
+        { key: { href: "https://example.test/spec/66" }, id: 66, name: "Protection" },
+      ],
+    };
+    const specializationDetails = new Map([
+      [65, { id: 65, name: "Holy", playable_class: { id: 2, name: "Paladin" }, role: { type: "HEALER", name: "Healer" } }],
+      [66, { id: 66, name: "Protection", playable_class: { id: 2, name: "Paladin" }, role: { type: "TANK", name: "Tank" } }],
+    ]);
+
+    const instanceIndex = {
+      _links: { self: { href: "https://example.test/instance/index" } },
+      instances: [
+        { key: { href: "https://example.test/instance/63" }, id: 63, name: { en_US: "Deadmines" } },
+      ],
+    };
+    const instanceDetails = new Map([
+      [
+        63,
+        {
+          id: 63,
+          name: "Deadmines",
+          category: { type: "DUNGEON" },
+          expansion: { id: 1, name: "Classic" },
+          minimum_level: 10,
+          modes: [
+            {
+              mode: { type: "NORMAL", name: "Normal" },
+              players: 5,
+              is_tracked: true,
+            },
+          ],
+        },
+      ],
+    ]);
+
+    expect(toWowClassViews(classIndex, classDetails)).toEqual([
+      { id: 1, name: "Warrior" },
+      { id: 2, name: "Paladin" },
+    ]);
+
+    expect(toWowRaceViews(raceIndex, raceDetails)).toEqual([
+      { id: 1, faction: "ALLIANCE", name: "Human" },
+      { id: 2, faction: "HORDE", name: "Orc" },
+    ]);
+
+    expect(toWowSpecializationViews(specializationIndex, specializationDetails)).toEqual([
+      { id: 65, name: "Holy", classId: 2, role: "HEALER" },
+      { id: 66, name: "Protection", classId: 2, role: "TANK" },
+    ]);
+
+    expect(toWowInstanceViews(instanceIndex, instanceDetails)).toEqual([
+      {
+        id: 63,
+        name: "Deadmines",
+        type: "DUNGEON",
+        minLevel: 10,
+        expansionId: 1,
+        modes: [
+          {
+            mode: { type: "NORMAL", name: "Normal" },
+            players: 5,
+            is_tracked: true,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("adapts raw account and selected-character documents into app views", () => {
+    const accountProfileSummary = {
+      wow_accounts: [
+        {
+          id: 1,
+          characters: [
+            {
+              id: 101,
+              name: "Aelrin",
+              level: 80,
+              realm: { id: 1305, slug: "test-realm", name: { en_US: "Test Realm" } },
+              playable_class: { id: 2, name: "Paladin" },
+              playable_race: { id: 11, name: "Draenei" },
+              faction: { type: "ALLIANCE", name: "Alliance" },
+              gender: { type: "FEMALE", name: "Female" },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(toAccountCharacterViews(accountProfileSummary, "eu")).toEqual([
+      {
+        name: "Aelrin",
+        realm: "test-realm",
+        realmName: "Test Realm",
+        level: 80,
+        region: "eu",
+      },
+    ]);
+
+    const guildSummary = {
+      guilds: [
+        {
+          guild: { id: 12345, name: "Test Guild" },
+        },
+      ],
+    };
+
+    expect(toBattleNetIdentity("battle-net-id", guildSummary)).toEqual({
+      battleNetId: "battle-net-id",
+      guildId: 12345,
+      guildName: "Test Guild",
+    });
+
+    const storedCharacter = {
+      id: "eu-test-realm-aelrin",
+      region: "eu",
+      realm: "test-realm",
+      name: "Aelrin",
+      fetchedAt: "2026-03-20T10:00:00.000Z",
+      profileSummary: {
+        name: "Aelrin",
+        level: 80,
+        realm: { id: 1305, slug: "test-realm", name: { en_US: "Test Realm" } },
+        character_class: { id: 2, name: "Paladin" },
+        race: { id: 11, name: "Draenei" },
+      },
+      mediaSummary: {
+        assets: [
+          { key: "avatar", value: "https://example.test/aelrin-avatar.jpg", file_data_id: 123 },
+        ],
+      },
+      specializationsSummary: {
+        specializations: [
+          { specialization: { id: 65, name: "Holy" } },
+          { specialization: { id: 66, name: "Protection" } },
+        ],
+        active_specialization: { id: 65, name: "Holy" },
+      },
+    };
+
+    const staticSpecs = new Map([
+      [65, { id: 65, name: "Holy", classId: 2, role: "HEALER" as const }],
+      [66, { id: 66, name: "Protection", classId: 2, role: "TANK" as const }],
+    ]);
+
+    expect(toSelectedCharacterView(storedCharacter, staticSpecs)).toEqual({
+      id: "eu-test-realm-aelrin",
+      region: "eu",
+      realm: "test-realm",
+      name: "Aelrin",
+      level: 80,
+      classId: 2,
+      raceId: 11,
+      portraitUrl: "https://example.test/aelrin-avatar.jpg",
+      fetchedAt: "2026-03-20T10:00:00.000Z",
+      specializations: [
+        { id: 65, name: "Holy", role: "HEALER" },
+        { id: 66, name: "Protection", role: "TANK" },
+      ],
+      activeSpecId: 65,
+    });
+  });
+});

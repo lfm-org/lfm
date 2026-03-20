@@ -74,7 +74,7 @@ describe("BattlenetService local test mode", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("fetchAccountCharacters short-circuits to deterministic data without calling fetch", async () => {
+  it("fetchAccountProfileSummary short-circuits to deterministic raw account data without calling fetch", async () => {
     process.env.TEST_MODE = "true";
     process.env.COSMOS_ENDPOINT = "http://localhost:8081";
     process.env.BATTLE_NET_REGION = "eu";
@@ -85,22 +85,45 @@ describe("BattlenetService local test mode", () => {
     global.fetch = fetchSpy as typeof fetch;
 
     const service = new BattlenetService();
-    await expect(service.fetchAccountCharacters("test_battlenet_token")).resolves.toEqual([
-      {
-        name: "Aelrin",
-        realm: "test-realm",
-        realmName: "Test Realm",
-        level: 80,
-        region: "eu",
-      },
-      {
-        name: "Brakka",
-        realm: "test-realm",
-        realmName: "Test Realm",
-        level: 80,
-        region: "eu",
-      },
-    ]);
+    await expect(service.fetchAccountProfileSummary("test_battlenet_token")).resolves.toEqual({
+      wow_accounts: [
+        {
+          id: 1,
+          characters: [
+            {
+              id: 101,
+              name: "Aelrin",
+              level: 80,
+              realm: {
+                id: 1305,
+                slug: "test-realm",
+                name: { en_US: "Test Realm" },
+              },
+              playable_class: { id: 2, name: "Paladin" },
+              playable_race: { id: 11, name: "Draenei" },
+              faction: { type: "ALLIANCE", name: "Alliance" },
+              gender: { type: "FEMALE", name: "Female" },
+              protected_character: { href: "https://example.test/profile/wow/character/test-realm/aelrin" },
+            },
+            {
+              id: 102,
+              name: "Brakka",
+              level: 80,
+              realm: {
+                id: 1305,
+                slug: "test-realm",
+                name: { en_US: "Test Realm" },
+              },
+              playable_class: { id: 1, name: "Warrior" },
+              playable_race: { id: 2, name: "Orc" },
+              faction: { type: "HORDE", name: "Horde" },
+              gender: { type: "MALE", name: "Male" },
+              protected_character: { href: "https://example.test/profile/wow/character/test-realm/brakka" },
+            },
+          ],
+        },
+      ],
+    });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

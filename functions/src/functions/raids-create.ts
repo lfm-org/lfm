@@ -1,8 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
-import { readBlob } from "../lib/blob.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { BattleNetIdentity, RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
@@ -105,7 +105,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
   }
 
-  const instances = await readBlob<WowInstance[]>("instances.json");
+  const instances = await readWowInstances();
   if (!instances) return errorResponse(503, "Instance data not available");
 
   try {

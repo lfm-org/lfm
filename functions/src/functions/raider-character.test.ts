@@ -1,24 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { canReuseCachedCharacter } from "./raider-character.js";
 import { TEST_MODE_ACCESS_TOKEN } from "../lib/test-mode.js";
-import type { Character } from "../types/index.js";
+import type { StoredSelectedCharacter } from "../types/index.js";
 
-function buildCharacter(fetchedAt: string): Character {
+function buildCharacter(fetchedAt: string): StoredSelectedCharacter {
   return {
     id: "eu-test-realm-aelrin",
     region: "eu",
     realm: "test-realm",
     name: "Aelrin",
-    level: 80,
-    classId: 2,
-    raceId: 11,
-    portraitUrl: "https://example.test/aelrin.jpg",
     fetchedAt,
-    specializations: [
-      { id: 65, name: "Holy", role: "HEALER" },
-      { id: 66, name: "Protection", role: "TANK" },
-    ],
-    activeSpecId: 65,
+    profileSummary: {
+      name: "Aelrin",
+      level: 80,
+      realm: { slug: "test-realm", name: { en_US: "Test Realm" } },
+      character_class: { id: 2, name: "Paladin" },
+      race: { id: 11, name: "Draenei" },
+    },
+    mediaSummary: {
+      assets: [{ key: "avatar", value: "https://example.test/aelrin.jpg" }],
+    },
+    specializationsSummary: {
+      specializations: [
+        { specialization: { id: 65, name: "Holy" } },
+        { specialization: { id: 66, name: "Protection" } },
+      ],
+      active_specialization: { id: 65, name: "Holy" },
+    },
   };
 }
 
