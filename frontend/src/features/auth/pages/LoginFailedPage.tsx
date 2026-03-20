@@ -1,6 +1,6 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router";
-import SurfaceCard from "../components/SurfaceCard";
+import SurfaceCard from "../../../components/SurfaceCard";
 
 export default function LoginFailedPage() {
   return (

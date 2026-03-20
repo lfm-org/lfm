@@ -1,7 +1,7 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useSearchParams } from "react-router";
-import { getLoginUrl } from "../lib/auth";
-import SurfaceCard from "../components/SurfaceCard";
+import { getLoginUrl } from "../../../lib/auth";
+import SurfaceCard from "../../../components/SurfaceCard";
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { checkAuth, type AuthUser } from "./auth";
+import { checkAuth, type AuthUser } from "../../../lib/auth";
 
 interface AuthContextValue {
   user: AuthUser | null;

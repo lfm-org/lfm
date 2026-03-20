@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router";
 import { Box, Typography } from "@mui/material";
-import SurfaceCard from "../components/SurfaceCard";
+import SurfaceCard from "../../../components/SurfaceCard";
 
 export default function LoginSuccessPage() {
   const [searchParams] = useSearchParams();
