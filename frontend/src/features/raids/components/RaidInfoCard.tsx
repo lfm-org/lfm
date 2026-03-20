@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Box, Chip, Typography } from "@mui/material";
-import { DateUtils } from "../util/DateUtil";
+import { DateUtils } from "../../../util/dateUtil";
 import type { Raid } from "../lib/raidTypes";
-import SurfaceCard from "./SurfaceCard";
+import SurfaceCard from "../../../components/SurfaceCard";
 
 interface RaidInfoCardProps {
   raid: Raid;

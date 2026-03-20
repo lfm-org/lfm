@@ -5,8 +5,8 @@ import {
   FormControl, InputLabel, Select, MenuItem,
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
-import api from "../lib/api";
-import { formatInstanceModeLabel, toModeKey, type WowInstance } from "../lib/wowInstances";
+import api from "../../../lib/api";
+import { formatInstanceModeLabel, toModeKey, type WowInstance } from "../../../lib/wow/instances";
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();

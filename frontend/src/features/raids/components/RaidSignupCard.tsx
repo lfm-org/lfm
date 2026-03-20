@@ -5,11 +5,11 @@ import {
   ToggleButtonGroup, Typography,
 } from "@mui/material";
 import { Link } from "react-router";
-import { useAuth } from "../lib/AuthContext";
-import api from "../lib/api";
+import { useAuth } from "../../auth/lib/AuthContext";
+import api from "../../../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
 import type { Raid } from "../lib/raidTypes";
-import SurfaceCard from "./SurfaceCard";
+import SurfaceCard from "../../../components/SurfaceCard";
 
 export interface RaidSignupCharacter {
   id: string;
