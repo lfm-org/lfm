@@ -88,7 +88,7 @@ export interface BlizzardJournalInstanceIndexResponse {
 export interface BlizzardJournalInstanceMode {
   mode: {
     type: string;
-    name: string;
+    name: string | BlizzardLocalizedString;
   };
   players?: number;
   is_tracked?: boolean;
@@ -97,7 +97,7 @@ export interface BlizzardJournalInstanceMode {
 
 export interface BlizzardJournalInstanceResponse {
   id: number;
-  name: string;
+  name: string | BlizzardLocalizedString;
   category?: {
     type: string;
   };

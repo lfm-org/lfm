@@ -82,14 +82,14 @@ export function toWowInstanceViews(
     return detail
       ? [{
           id: detail.id,
-          name: detail.name,
+          name: localizeName(detail.name) || localizeName(entry.name),
           type: detail.category?.type ?? "UNKNOWN",
           minLevel: detail.minimum_level ?? 0,
           expansionId: detail.expansion?.id ?? 0,
           modes: detail.modes?.map((mode) => ({
             mode: {
               type: mode.mode.type,
-              name: mode.mode.name,
+              name: localizeName(mode.mode.name) || mode.mode.type,
             },
             ...(mode.players !== undefined ? { players: mode.players } : {}),
             ...(mode.is_tracked !== undefined ? { is_tracked: mode.is_tracked } : {}),

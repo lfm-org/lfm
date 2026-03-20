@@ -200,4 +200,55 @@ describe("blizzard-adapters", () => {
       activeSpecId: 65,
     });
   });
+
+  it("normalizes localized instance names into plain strings", () => {
+    const instanceIndex = {
+      _links: { self: { href: "https://example.test/instance/index" } },
+      instances: [
+        { key: { href: "https://example.test/instance/2522" }, id: 2522, name: { en_US: "Liberation of Undermine" } },
+      ],
+    };
+    const instanceDetails = new Map([
+      [
+        2522,
+        {
+          id: 2522,
+          name: { en_US: "Liberation of Undermine", fr_FR: "Libération de Terremine" },
+          category: { type: "RAID" },
+          expansion: { id: 10, name: "The War Within" },
+          minimum_level: 80,
+          modes: [
+            {
+              mode: {
+                type: "NORMAL",
+                name: { en_US: "Normal", de_DE: "Normal" },
+              },
+              players: 30,
+              is_tracked: true,
+            },
+          ],
+        },
+      ],
+    ]);
+
+    expect(toWowInstanceViews(instanceIndex, instanceDetails)).toEqual([
+      {
+        id: 2522,
+        name: "Liberation of Undermine",
+        type: "RAID",
+        minLevel: 80,
+        expansionId: 10,
+        modes: [
+          {
+            mode: {
+              type: "NORMAL",
+              name: "Normal",
+            },
+            players: 30,
+            is_tracked: true,
+          },
+        ],
+      },
+    ]);
+  });
 });
