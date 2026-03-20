@@ -65,8 +65,8 @@ Copy `example.env` and `frontend/example.env` before running locally. Do not com
 
 ## Structure
 
-- `frontend/src/components`: shared UI
-- `frontend/src/pages`: route pages
+- `frontend/src/features`: feature modules (`auth`, `characters`, `raids`)
+- `frontend/src/components`: shared UI components
 - `frontend/src/lib`: shared frontend logic
 - `functions/src/functions`: Azure Function handlers
 - `functions/src/lib`: shared backend helpers
