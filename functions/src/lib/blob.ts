@@ -36,6 +36,12 @@ export async function writeBlob(blobName: string, data: unknown): Promise<void> 
   });
 }
 
+export async function resetWowContainer(): Promise<void> {
+  const container = getWowContainer();
+  await container.deleteIfExists();
+  _wowContainer = null;
+}
+
 export function getPublicBlobUrl(blobName: string): string {
   return `${blobUrl()}/wow/${blobName}`;
 }
