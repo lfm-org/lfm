@@ -8,7 +8,8 @@ import { Link } from "react-router";
 import { useAuth } from "../lib/AuthContext";
 import api from "../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
-import type { Raid, RaidSignup } from "../lib/raidTypes";
+import type { Raid } from "../lib/raidTypes";
+import SurfaceCard from "./SurfaceCard";
 
 export interface RaidSignupCharacter {
   id: string;
@@ -91,48 +92,50 @@ export default function RaidSignupCard({
 
   if (loadingChars) {
     return (
-      <Box
+      <SurfaceCard
         {...signupRegionProps}
-        sx={{ p: 2, mb: 2, display: "flex", alignItems: "center", gap: 1, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider" }}
+        sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
       >
         <CircularProgress size={20} />
         <Typography variant="body2">Loading characters...</Typography>
-      </Box>
+      </SurfaceCard>
     );
   }
 
   if (charactersError && characters.length === 0) {
     return (
-      <Box
+      <SurfaceCard
         {...signupRegionProps}
-        sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "error.main" }}
+        tone="error"
+        sx={{ mb: 2 }}
       >
         <Alert severity="error">{charactersError}</Alert>
-      </Box>
+      </SurfaceCard>
     );
   }
 
   if (characters.length === 0) {
     return (
-      <Box
+      <SurfaceCard
         {...signupRegionProps}
-        sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider" }}
+        sx={{ mb: 2 }}
       >
         <Typography variant="body2">
           <Link to="/characters">Add a character</Link> before signing up.
         </Typography>
-      </Box>
+      </SurfaceCard>
     );
   }
 
   if (isClosed) {
     return (
-      <Box
+      <SurfaceCard
         {...signupRegionProps}
-        sx={{ p: 2, mb: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "error.main" }}
+        tone="error"
+        sx={{ mb: 2 }}
       >
         <Typography variant="body2" color="error">Signups are closed.</Typography>
-      </Box>
+      </SurfaceCard>
     );
   }
 
@@ -184,16 +187,13 @@ export default function RaidSignupCard({
     }
   };
 
-  const cardSx = {
-    p: 2, mb: 2, bgcolor: "background.paper",
-    borderRadius: 2, border: "1px solid", borderColor: "divider",
-  };
+  const cardSx = { mb: 2 };
 
   // Read-only view
   if (mode === "view" && existingSignup) {
     const cfg = getAttendanceConfig(existingSignup.desiredAttendance);
     return (
-      <Box {...signupRegionProps} sx={cardSx}>
+      <SurfaceCard {...signupRegionProps} sx={cardSx}>
         {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           <Typography variant="body2">
@@ -211,13 +211,13 @@ export default function RaidSignupCard({
             Cancel Signup
           </Button>
         </Box>
-      </Box>
+      </SurfaceCard>
     );
   }
 
   // Form (new signup or editing)
   return (
-    <Box {...signupRegionProps} sx={cardSx}>
+    <SurfaceCard {...signupRegionProps} sx={cardSx}>
       {charactersError && <Alert severity="error" sx={{ mb: 1 }}>{charactersError}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
@@ -288,6 +288,6 @@ export default function RaidSignupCard({
           )}
         </Box>
       </Box>
-    </Box>
+    </SurfaceCard>
   );
 }

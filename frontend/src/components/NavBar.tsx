@@ -1,4 +1,4 @@
-import { AppBar, Button, Toolbar } from "@mui/material";
+import { AppBar, Box, Button, Toolbar } from "@mui/material";
 import { Link as RouterLink, useLocation } from "react-router";
 import { getLogoutUrl } from "../lib/auth";
 import { Logo } from "./Logo";
@@ -28,19 +28,24 @@ export default function NavBar({ character = null }: NavBarProps) {
           to="/raids"
           color="inherit"
           size="small"
-          style={{ marginLeft: "16px" }}
+          sx={{ ml: 2 }}
         >
           Raids
         </Button>
         {character ? (
           <>
             {character.portraitUrl && (
-              <img
+              <Box
+                component="img"
                 src={character.portraitUrl}
                 alt={character.name}
-                width={32}
-                height={32}
-                style={{ borderRadius: "50%", marginLeft: "8px" }}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  ml: 1,
+                  flexShrink: 0,
+                }}
               />
             )}
             <Button
@@ -48,7 +53,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               to="/characters"
               color="inherit"
               size="small"
-              style={{ marginLeft: "4px" }}
+              sx={{ ml: 0.5 }}
             >
               {character.name}
             </Button>
@@ -57,7 +62,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               href={getLogoutUrl()}
               color="inherit"
               size="small"
-              style={{ marginLeft: "4px" }}
+              sx={{ ml: 0.5 }}
             >
               Logout
             </Button>
@@ -68,7 +73,7 @@ export default function NavBar({ character = null }: NavBarProps) {
             to={loginHref}
             color="inherit"
             size="small"
-            style={{ marginLeft: "8px" }}
+            sx={{ ml: 1 }}
           >
             Login
           </Button>

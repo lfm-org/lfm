@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
 import { useAuth } from "../lib/AuthContext";
@@ -38,9 +39,11 @@ export default function Layout({ children }: Props) {
   }, [user?.selectedCharacterId]);
 
   return (
-    <>
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <NavBar character={character} />
-      <main>{children}</main>
-    </>
+      <Box component="main" sx={{ flex: 1 }}>
+        {children}
+      </Box>
+    </Box>
   );
 }

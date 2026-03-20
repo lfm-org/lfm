@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Typography, Button } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import api from "../lib/api";
 import { useAuth } from "../lib/AuthContext";
 
@@ -41,32 +41,62 @@ export default function CharactersPage() {
     navigate(redirectPath);
   };
 
-  if (loading) return <Typography style={{ padding: "2rem" }}>Loading characters...</Typography>;
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: 960, mx: "auto", px: 2, py: 4 }}>
+        <Typography>Loading characters...</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <Typography variant="h5" gutterBottom>
-        Select your character
-      </Typography>
-      {characters.length === 0 && (
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          No Battle.net characters found.
-        </Typography>
-      )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
-        {characters.map((char) => (
-          <Button
-            key={`${char.realm}-${char.name}`}
-            variant="outlined"
-            onClick={() => selectCharacter(char)}
-            style={{ display: "flex", flexDirection: "column", padding: "1rem", minWidth: "120px" }}
-          >
-            <Typography variant="body1" component="span">{char.name}</Typography>
-            <Typography variant="caption">{char.realmName}</Typography>
-            <Typography variant="caption">Level {char.level}</Typography>
-          </Button>
-        ))}
-      </div>
-    </div>
+    <Box sx={{ maxWidth: 960, mx: "auto", px: 2, py: 4 }}>
+      <Stack spacing={3}>
+        <Box>
+          <Typography component="h1" variant="h5" gutterBottom>
+            Select your character
+          </Typography>
+          {characters.length === 0 && (
+            <Typography color="text.secondary">
+              No Battle.net characters found.
+            </Typography>
+          )}
+        </Box>
+
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(auto-fit, minmax(180px, 1fr))",
+            },
+          }}
+        >
+          {characters.map((char) => (
+            <Button
+              key={`${char.realm}-${char.name}`}
+              variant="outlined"
+              onClick={() => selectCharacter(char)}
+              sx={{
+                p: 2,
+                minHeight: 120,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "flex-start",
+                gap: 0.5,
+                textAlign: "left",
+                bgcolor: "background.paper",
+              }}
+            >
+              <Typography variant="body1" component="span">{char.name}</Typography>
+              <Typography variant="caption" color="text.secondary">{char.realmName}</Typography>
+              <Typography variant="caption" color="text.secondary">Level {char.level}</Typography>
+            </Button>
+          ))}
+        </Box>
+      </Stack>
+    </Box>
   );
 }

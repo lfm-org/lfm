@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Box, Chip, Typography } from "@mui/material";
 import { DateUtils } from "../util/DateUtil";
 import type { Raid } from "../lib/raidTypes";
+import SurfaceCard from "./SurfaceCard";
 
 interface RaidInfoCardProps {
   raid: Raid;
@@ -13,16 +14,7 @@ export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCard
   const isClosed = new Date(raid.signupCloseTime) < new Date();
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        mb: 2,
-        bgcolor: "background.paper",
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: "divider",
-      }}
-    >
+    <SurfaceCard sx={{ mb: 2 }}>
       <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
         <Typography component="h2" variant="h6" fontWeight={700}>
           {raid.instanceName}
@@ -39,6 +31,6 @@ export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCard
         Signups {isClosed ? "closed" : "close"}: {DateUtils.FormatDate(raid.signupCloseTime)}
       </Typography>
       {children}
-    </Box>
+    </SurfaceCard>
   );
 }
