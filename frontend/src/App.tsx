@@ -1,17 +1,12 @@
 import { Routes, Route } from "react-router";
-import Layout from "./components/Layout";
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/LoginPage";
-import LoginFailedPage from "./pages/LoginFailedPage";
-import LoginSuccessPage from "./pages/LoginSuccessPage";
-import CharactersPage from "./pages/CharactersPage";
-import RaidsPage from "./pages/RaidsPage";
-import CreateRaidPage from "./pages/CreateRaidPage";
-import AuthGuard from "./components/AuthGuard";
+import AppLayout from "./components/layout/AppLayout";
+import { AuthGuard, LandingPage, LoginPage, LoginFailedPage, LoginSuccessPage } from "./features/auth";
+import { CharactersPage } from "./features/characters";
+import { RaidsPage, CreateRaidPage } from "./features/raids";
 
 export default function App() {
   return (
-    <Layout>
+    <AppLayout>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -21,6 +16,6 @@ export default function App() {
         <Route path="/raids" element={<AuthGuard><RaidsPage /></AuthGuard>} />
         <Route path="/raids/new" element={<AuthGuard><CreateRaidPage /></AuthGuard>} />
       </Routes>
-    </Layout>
+    </AppLayout>
   );
 }

@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
-import { AuthProvider } from "./lib/AuthContext";
+import { AuthProvider } from "./features/auth";
 import ThemeRegistry from "./components/ThemeRegistry";
 import App from "./App";
 import "./styles/globals.css";
