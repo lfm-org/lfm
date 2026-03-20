@@ -6,7 +6,7 @@ test("root route renders a restrained public landing page", async ({ page }) => 
   const main = page.getByRole("main");
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(main.getByText("SISU RAIDCAL")).toBeVisible();
+  await expect(main.getByText("SISU RAIDCAL", { exact: true })).toBeVisible();
   await expect(main.getByRole("heading", { name: "Plan raids in one place" })).toBeVisible();
   await expect(
     main.getByText("Create raids, collect signups, and check roster coverage before invite time.")
