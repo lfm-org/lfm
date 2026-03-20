@@ -6,7 +6,12 @@ import {
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import api from "../../../lib/api";
-import { formatInstanceModeLabel, toModeKey, type WowInstance } from "../../../lib/wow/instances";
+import {
+  formatInstanceModeLabel,
+  normalizeWowInstances,
+  toModeKey,
+  type WowInstance,
+} from "../../../lib/wow/instances";
 import PageContainer from "../../../components/layout/PageContainer";
 
 export default function CreateRaidPage() {
@@ -26,7 +31,7 @@ export default function CreateRaidPage() {
 
   useEffect(() => {
     api.get<WowInstance[]>("/instances")
-      .then((res) => setInstances(res.data))
+      .then((res) => setInstances(normalizeWowInstances(res.data)))
       .catch(() => setError("Failed to load instances"))
       .finally(() => setLoading(false));
   }, []);

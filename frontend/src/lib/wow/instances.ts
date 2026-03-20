@@ -1,3 +1,5 @@
+import { normalizeLocalizedString } from "../localizedStrings";
+
 export interface WowInstanceMode {
   mode: {
     type: string;
@@ -20,9 +22,32 @@ export function toModeKey(mode: WowInstanceMode): string {
   return `${mode.mode.type}:${mode.players ?? 0}`;
 }
 
+export function normalizeWowInstanceMode(mode: WowInstanceMode): WowInstanceMode {
+  return {
+    ...mode,
+    mode: {
+      ...mode.mode,
+      name: normalizeLocalizedString(mode.mode.name) || mode.mode.type,
+    },
+  };
+}
+
+export function normalizeWowInstance(instance: WowInstance): WowInstance {
+  return {
+    ...instance,
+    name: normalizeLocalizedString(instance.name),
+    modes: instance.modes.map(normalizeWowInstanceMode),
+  };
+}
+
+export function normalizeWowInstances(instances: WowInstance[]): WowInstance[] {
+  return instances.map(normalizeWowInstance);
+}
+
 export function formatInstanceModeLabel(mode: WowInstanceMode): string {
   const players = mode.players ?? 0;
-  return `${mode.mode.name} (${players} ${players === 1 ? "player" : "players"})`;
+  const modeName = normalizeLocalizedString(mode.mode.name) || mode.mode.type;
+  return `${modeName} (${players} ${players === 1 ? "player" : "players"})`;
 }
 
 export function findInstanceMode(
@@ -34,7 +59,7 @@ export function findInstanceMode(
     .find((instance) => instance.id === instanceId)
     ?.modes.find((entry) => toModeKey(entry) === modeKey);
 
-  return mode;
+  return mode ? normalizeWowInstanceMode(mode) : undefined;
 }
 
 export function resolveInstanceModeLabel(

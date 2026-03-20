@@ -11,11 +11,14 @@ import {
 import { useNavigate, useSearchParams } from "react-router";
 import PageContainer from "../../../components/layout/PageContainer";
 import api from "../../../lib/api";
-import type { Raid } from "../lib/raidTypes";
-import { resolveInstanceModeLabel, type WowInstance } from "../../../lib/wow/instances";
+import { normalizeRaid, type Raid } from "../lib/raidTypes";
+import { normalizeWowInstances, resolveInstanceModeLabel, type WowInstance } from "../../../lib/wow/instances";
 import { useAuth } from "../../auth";
 import RaidListCard from "../components/RaidListCard";
-import type { RaidSignupCharacter } from "../components/RaidSignupCard";
+import {
+  normalizeRaidSignupCharacter,
+  type RaidSignupCharacter,
+} from "../lib/raidSignupCharacters";
 
 const PAGE_SIZE = 5;
 
@@ -64,14 +67,14 @@ export default function RaidsPage() {
         if (!active) return;
 
         if (raidResult.status === "fulfilled") {
-          setRaids(raidResult.value.data);
+          setRaids(raidResult.value.data.map(normalizeRaid));
         } else {
           setRaids([]);
           setError("Failed to load raids");
         }
 
         if (instanceResult.status === "fulfilled") {
-          setInstances(instanceResult.value.data);
+          setInstances(normalizeWowInstances(instanceResult.value.data));
         } else {
           setInstances([]);
         }
@@ -103,7 +106,7 @@ export default function RaidsPage() {
     api.get<CharactersResponse>("/raider/characters")
       .then((response) => {
         if (!active) return;
-        setCharacters(response.data.characters);
+        setCharacters(response.data.characters.map(normalizeRaidSignupCharacter));
         setSelectedCharacterId(response.data.selectedCharacterId);
       })
       .catch(() => {
@@ -160,7 +163,7 @@ export default function RaidsPage() {
 
   const handleRaidUpdate = (updatedRaid: Raid) => {
     setRaids((current) => current.map((raid) => (
-      raid.id === updatedRaid.id ? updatedRaid : raid
+      raid.id === updatedRaid.id ? normalizeRaid(updatedRaid) : raid
     )));
   };
 

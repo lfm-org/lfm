@@ -1,4 +1,5 @@
 import type { AttendanceStatus } from "./attendanceConfig";
+import { normalizeLocalizedString } from "../../../lib/localizedStrings";
 
 export type { AttendanceStatus } from "./attendanceConfig";
 export type RaidRole = "TANK" | "HEALER" | "DPS";
@@ -34,4 +35,23 @@ export interface Raid {
   creatorGuild: string;
   createdAt: string;
   raidCharacters: RaidSignup[];
+}
+
+export function normalizeRaidSignup(signup: RaidSignup): RaidSignup {
+  return {
+    ...signup,
+    characterName: normalizeLocalizedString(signup.characterName),
+    characterRealm: normalizeLocalizedString(signup.characterRealm),
+    characterClassName: normalizeLocalizedString(signup.characterClassName),
+    characterRaceName: normalizeLocalizedString(signup.characterRaceName),
+    specName: signup.specName === null ? null : normalizeLocalizedString(signup.specName),
+  };
+}
+
+export function normalizeRaid(raid: Raid): Raid {
+  return {
+    ...raid,
+    instanceName: normalizeLocalizedString(raid.instanceName),
+    raidCharacters: raid.raidCharacters.map(normalizeRaidSignup),
+  };
 }

@@ -9,17 +9,10 @@ import { useAuth } from "../../auth";
 import api from "../../../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
 import type { Raid } from "../lib/raidTypes";
+import type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
 import SurfaceCard from "../../../components/SurfaceCard";
 
-export interface RaidSignupCharacter {
-  id: string;
-  name: string;
-  realm: string;
-  classId: number;
-  portraitUrl?: string;
-  specializations?: Array<{ id: number; name: string; role: string }>;
-  activeSpecId?: number | null;
-}
+export type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
 
 interface RaidSignupCardProps {
   raid: Raid;
