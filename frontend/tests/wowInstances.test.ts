@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatInstanceModeLabel, resolveInstanceModeLabel, toModeKey, type WowInstance } from "../src/lib/wowInstances.ts";
+import {
+  formatInstanceModeLabel,
+  resolveInstanceModeLabel,
+  toModeKey,
+  type WowInstance,
+} from "../src/lib/wowInstances.ts";
 
-test("wow instance helpers support legacy flattened modes", () => {
+test("wow instance helpers use nested mode objects", () => {
   const instances = [
     {
       id: 63,
@@ -12,15 +17,16 @@ test("wow instance helpers support legacy flattened modes", () => {
       expansionId: 68,
       modes: [
         {
-          type: "NORMAL",
-          name: "Normal",
+          mode: {
+            type: "NORMAL",
+            name: "Normal",
+          },
           players: 5,
-          isTracked: true,
-          modeKey: "NORMAL:5",
+          is_tracked: true,
         },
       ],
-    },
-  ] as unknown as WowInstance[];
+    } satisfies WowInstance,
+  ];
 
   assert.equal(toModeKey(instances[0].modes[0]), "NORMAL:5");
   assert.equal(formatInstanceModeLabel(instances[0].modes[0]), "Normal (5 players)");
