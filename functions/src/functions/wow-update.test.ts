@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toWowInstance } from "./wow-update.js";
 
 describe("toWowInstance", () => {
-  it("enriches Blizzard instance modes with tracked metadata and modeKey", () => {
+  it("preserves the Blizzard instance mode shape", () => {
     const instance = toWowInstance({
       id: 631,
       name: "Icecrown Citadel",
@@ -37,18 +37,20 @@ describe("toWowInstance", () => {
       expansionId: 3,
       modes: [
         {
-          type: "NORMAL",
-          name: "Normal",
+          mode: {
+            type: "NORMAL",
+            name: "Normal",
+          },
           players: 10,
-          isTracked: true,
-          modeKey: "NORMAL:10",
+          is_tracked: true,
         },
         {
-          type: "HEROIC",
-          name: "Heroic",
+          mode: {
+            type: "HEROIC",
+            name: "Heroic",
+          },
           players: 25,
-          isTracked: false,
-          modeKey: "HEROIC:25",
+          is_tracked: false,
         },
       ],
     });

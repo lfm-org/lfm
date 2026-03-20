@@ -96,11 +96,12 @@ export interface WowRace {
 }
 
 export interface WowInstanceMode {
-  type: string;
-  name: string;
-  players: number;
-  isTracked: boolean;
-  modeKey: string;
+  mode: {
+    type: string;
+    name: string;
+  };
+  players?: number;
+  is_tracked?: boolean;
 }
 
 export interface WowInstance {

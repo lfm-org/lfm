@@ -34,18 +34,20 @@ const instances: WowInstance[] = [
     expansionId: 3,
     modes: [
       {
-        type: "NORMAL",
-        name: "Normal",
+        mode: {
+          type: "NORMAL",
+          name: "Normal",
+        },
         players: 10,
-        isTracked: true,
-        modeKey: "NORMAL:10",
+        is_tracked: true,
       },
       {
-        type: "HEROIC",
-        name: "Heroic",
+        mode: {
+          type: "HEROIC",
+          name: "Heroic",
+        },
         players: 25,
-        isTracked: true,
-        modeKey: "HEROIC:25",
+        is_tracked: true,
       },
     ],
   },
@@ -57,11 +59,12 @@ const instances: WowInstance[] = [
     expansionId: 3,
     modes: [
       {
-        type: "NORMAL",
-        name: "Normal",
+        mode: {
+          type: "NORMAL",
+          name: "Normal",
+        },
         players: 25,
-        isTracked: true,
-        modeKey: "NORMAL:25",
+        is_tracked: true,
       },
     ],
   },

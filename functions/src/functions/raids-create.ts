@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
 import { readBlob } from "../lib/blob.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { BattleNetIdentity, RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
 
@@ -60,7 +61,7 @@ export function parseCreateRaidBody(body: unknown): CreateRaidBody {
 
 export function validateCreateRaidBody(body: CreateRaidBody, instances: WowInstance[]): CreateRaidBody {
   const instance = findInstance(instances, body.instanceId);
-  if (!instance || !instance.modes.some(mode => mode.modeKey === body.modeKey)) {
+  if (!instance || !hasModeKey(instance, body.modeKey)) {
     throw new Error("Invalid modeKey for instance");
   }
 

@@ -7,6 +7,7 @@ import {
   TEST_MODE_NEEDS_CHARACTER_IDENTITY,
   isLocalTestMode,
 } from "../lib/test-mode.js";
+import { findModeByKey, getModePlayers } from "../lib/wow-instance-modes.js";
 import type {
   Character,
   EntitySyncMeta,
@@ -456,12 +457,12 @@ function requireMode(instances: WowInstance[], instanceId: number, modeKey: stri
     throw new Error(`Missing instance ${instanceId} in reference data`);
   }
 
-  const mode = instance.modes.find((entry) => entry.modeKey === modeKey);
+  const mode = findModeByKey(instance, modeKey);
   if (!mode) {
     throw new Error(`Missing mode ${modeKey} for instance ${instance.name}`);
   }
 
-  return { instance, players: mode.players };
+  return { instance, players: getModePlayers(mode) };
 }
 
 function buildRaidSignup(raidId: string, raider: RaiderSeed, index: number): RaidCharacter {

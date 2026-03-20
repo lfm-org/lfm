@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getModePlayers as getInstanceModePlayers, toModeKey } from "../lib/wow-instance-modes.js";
 import { TEST_MODE_IDENTITY, TEST_MODE_NEEDS_CHARACTER_IDENTITY } from "../lib/test-mode.js";
 import {
   assertLocalSeedEnvironment,
@@ -31,8 +32,8 @@ const instances: WowInstance[] = [
     minLevel: 35,
     expansionId: 68,
     modes: [
-      { type: "NORMAL", name: "Normal", players: 5, isTracked: true, modeKey: "NORMAL:5" },
-      { type: "HEROIC", name: "Heroic", players: 5, isTracked: true, modeKey: "HEROIC:5" },
+      { mode: { type: "NORMAL", name: "Normal" }, players: 5, is_tracked: true },
+      { mode: { type: "HEROIC", name: "Heroic" }, players: 5, is_tracked: true },
     ],
   },
   {
@@ -42,10 +43,10 @@ const instances: WowInstance[] = [
     minLevel: 80,
     expansionId: 3,
     modes: [
-      { type: "NORMAL", name: "Normal", players: 10, isTracked: true, modeKey: "NORMAL:10" },
-      { type: "NORMAL", name: "Normal", players: 25, isTracked: true, modeKey: "NORMAL:25" },
-      { type: "HEROIC", name: "Heroic", players: 10, isTracked: true, modeKey: "HEROIC:10" },
-      { type: "HEROIC", name: "Heroic", players: 25, isTracked: true, modeKey: "HEROIC:25" },
+      { mode: { type: "NORMAL", name: "Normal" }, players: 10, is_tracked: true },
+      { mode: { type: "NORMAL", name: "Normal" }, players: 25, is_tracked: true },
+      { mode: { type: "HEROIC", name: "Heroic" }, players: 10, is_tracked: true },
+      { mode: { type: "HEROIC", name: "Heroic" }, players: 25, is_tracked: true },
     ],
   },
   {
@@ -55,7 +56,7 @@ const instances: WowInstance[] = [
     minLevel: 80,
     expansionId: 3,
     modes: [
-      { type: "NORMAL", name: "Normal", players: 25, isTracked: true, modeKey: "NORMAL:25" },
+      { mode: { type: "NORMAL", name: "Normal" }, players: 25, is_tracked: true },
     ],
   },
   {
@@ -65,15 +66,20 @@ const instances: WowInstance[] = [
     minLevel: 60,
     expansionId: 68,
     modes: [
-      { type: "NORMAL", name: "Normal", players: 40, isTracked: true, modeKey: "NORMAL:40" },
+      { mode: { type: "NORMAL", name: "Normal" }, players: 40, is_tracked: true },
     ],
   },
 ];
 
-function getModePlayers(raid: { instanceId: number; modeKey: string }): number {
+function getRaidModePlayers(raid: { instanceId: number; modeKey: string }): number {
   const instance = instances.find((entry) => entry.id === raid.instanceId);
   if (!instance) return 0;
-  return instance.modes.find((mode) => mode.modeKey === raid.modeKey)?.players ?? 0;
+  return getModePlayersFromInstance(instance, raid.modeKey);
+}
+
+function getModePlayersFromInstance(instance: WowInstance, modeKey: string): number {
+  const mode = instance.modes.find((entry) => toModeKey(entry) === modeKey);
+  return mode ? getInstanceModePlayers(mode) : 0;
 }
 
 describe("buildReferenceDataWrites", () => {
@@ -254,13 +260,13 @@ describe("buildSeedData", () => {
         instances.some(
           (instance) =>
             instance.id === raid.instanceId &&
-            instance.modes.some((mode) => mode.modeKey === raid.modeKey)
+            instance.modes.some((mode) => toModeKey(mode) === raid.modeKey)
         )
       )
     ).toBe(true);
 
     expect(
-      seed.raids.every((raid) => raid.raidCharacters.length <= getModePlayers(raid))
+      seed.raids.every((raid) => raid.raidCharacters.length <= getRaidModePlayers(raid))
     ).toBe(true);
     expect(
       seed.raids.every(

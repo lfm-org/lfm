@@ -6,7 +6,7 @@ import {
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import api from "../lib/api";
-import { formatInstanceModeLabel, type WowInstance } from "../lib/wowInstances";
+import { formatInstanceModeLabel, toModeKey, type WowInstance } from "../lib/wowInstances";
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ export default function CreateRaidPage() {
           onChange={(e) => setSelectedModeKey(e.target.value)}
         >
           {availableModes.map((mode) => (
-            <MenuItem key={mode.modeKey} value={mode.modeKey}>
+            <MenuItem key={toModeKey(mode)} value={toModeKey(mode)}>
               {formatInstanceModeLabel(mode)}
             </MenuItem>
           ))}

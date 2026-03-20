@@ -2,6 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuth } from "../lib/auth.js";
 import { readBlob } from "../lib/blob.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
 
@@ -54,7 +55,7 @@ export function applyRaidUpdate(existing: RaidDocument, body: UpdateRaidBody, in
   const instance = findInstance(instances, instanceId);
   const modeKey = body.modeKey ?? existing.modeKey;
 
-  if (!instance || typeof modeKey !== "string" || !instance.modes.some(mode => mode.modeKey === modeKey)) {
+  if (!instance || typeof modeKey !== "string" || !hasModeKey(instance, modeKey)) {
     throw new Error("Invalid modeKey for instance");
   }
 

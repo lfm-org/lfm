@@ -180,34 +180,17 @@ interface BlizzardInstanceDetail {
   category?: { type: string };
   expansion?: { id: number };
   minimum_level?: number;
-  modes?: BlizzardInstanceModeDetail[];
+  modes?: WowInstanceMode[];
 }
 
-interface BlizzardInstanceModeDetail {
-  mode: {
-    type: string;
-    name: string;
-  };
-  players?: number;
-  is_tracked?: boolean;
-}
-
-function toModeKey(mode: Pick<WowInstanceMode, "type" | "players">): string {
-  return `${mode.type}:${mode.players}`;
-}
-
-function toWowInstanceMode(mode: BlizzardInstanceModeDetail): WowInstanceMode {
-  const players = mode.players ?? 0;
-
+function toWowInstanceMode(mode: WowInstanceMode): WowInstanceMode {
   return {
-    type: mode.mode.type,
-    name: mode.mode.name,
-    players,
-    isTracked: mode.is_tracked ?? false,
-    modeKey: toModeKey({
+    mode: {
       type: mode.mode.type,
-      players,
-    }),
+      name: mode.mode.name,
+    },
+    ...(mode.players !== undefined ? { players: mode.players } : {}),
+    ...(mode.is_tracked !== undefined ? { is_tracked: mode.is_tracked } : {}),
   };
 }
 

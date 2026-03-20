@@ -1,9 +1,10 @@
 export interface WowInstanceMode {
-  type: string;
-  name: string;
-  players: number;
-  isTracked: boolean;
-  modeKey: string;
+  mode: {
+    type: string;
+    name: string;
+  };
+  players?: number;
+  is_tracked?: boolean;
 }
 
 export interface WowInstance {
@@ -15,8 +16,13 @@ export interface WowInstance {
   modes: WowInstanceMode[];
 }
 
-export function formatInstanceModeLabel(mode: Pick<WowInstanceMode, "name" | "players">): string {
-  return `${mode.name} (${mode.players} ${mode.players === 1 ? "player" : "players"})`;
+export function toModeKey(mode: Pick<WowInstanceMode, "mode" | "players">): string {
+  return `${mode.mode.type}:${mode.players ?? 0}`;
+}
+
+export function formatInstanceModeLabel(mode: Pick<WowInstanceMode, "mode" | "players">): string {
+  const players = mode.players ?? 0;
+  return `${mode.mode.name} (${players} ${players === 1 ? "player" : "players"})`;
 }
 
 export function findInstanceMode(
@@ -26,7 +32,7 @@ export function findInstanceMode(
 ): WowInstanceMode | undefined {
   return instances
     .find((instance) => instance.id === instanceId)
-    ?.modes.find((mode) => mode.modeKey === modeKey);
+    ?.modes.find((mode) => toModeKey(mode) === modeKey);
 }
 
 export function resolveInstanceModeLabel(
