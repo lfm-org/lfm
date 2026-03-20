@@ -11,6 +11,8 @@ interface RaidRosterGridProps {
 export default function RaidRosterGrid({ signups }: RaidRosterGridProps) {
   return (
     <Box
+      role="region"
+      aria-label="Raid roster"
       sx={{
         display: "grid",
         gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
