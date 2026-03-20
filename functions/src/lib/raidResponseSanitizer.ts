@@ -20,6 +20,7 @@ export function sanitizeRaidCharacterForResponse(character: RaidCharacter): Raid
 export function sanitizeRaidDocumentForResponse(raid: RaidDocument): RaidDocument {
   return {
     ...raid,
+    instanceName: normalizeNameString(raid.instanceName),
     raidCharacters: raid.raidCharacters.map(sanitizeRaidCharacterForResponse),
   };
 }

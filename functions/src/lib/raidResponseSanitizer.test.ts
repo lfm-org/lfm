@@ -54,6 +54,19 @@ describe("sanitizeRaidDocumentForResponse", () => {
     expect(sanitized.raidCharacters[0]?.characterRaceName).toBe("Human");
   });
 
+  it("normalizes a localized raid instance name into a string", () => {
+    const sanitized = sanitizeRaidDocumentForResponse(
+      buildRaid({
+        instanceName: {
+          en_US: "Icecrown Citadel",
+          es_ES: "Ciudadela de la Corona de Hielo",
+        } as unknown as string,
+      })
+    );
+
+    expect(sanitized.instanceName).toBe("Icecrown Citadel");
+  });
+
   it("preserves string values and falls back to the first localized value when needed", () => {
     const sanitized = sanitizeRaidDocumentForResponse(
       buildRaid({
