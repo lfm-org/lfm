@@ -48,7 +48,7 @@ export default function RaidListCard({
       aria-label={`${raid.instanceName}: ${raid.description}`}
       id={`raid-card-${raid.id}`}
       data-testid="raid-card"
-      sx={{ display: "grid", gap: 2 }}
+      sx={{ display: "grid", gap: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}
     >
       <RaidInfoCard raid={raid} modeLabel={modeLabel}>
         {isMobile && (
