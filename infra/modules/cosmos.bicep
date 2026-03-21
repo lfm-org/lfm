@@ -59,5 +59,16 @@ resource raidsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/cont
   }
 }
 
+resource migrationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: database
+  name: 'migrations'
+  properties: {
+    resource: {
+      id: 'migrations'
+      partitionKey: { paths: ['/id'], kind: 'Hash' }
+    }
+  }
+}
+
 output endpoint string = cosmosAccount.properties.documentEndpoint
 output accountId string = cosmosAccount.id
