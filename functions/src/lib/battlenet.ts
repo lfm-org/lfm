@@ -2,7 +2,6 @@ import { signState, verifyState, hashBattleNetId } from "./crypto.js";
 import { getRaidersContainer } from "./cosmos.js";
 import { toBattleNetIdentity } from "./blizzard-adapters.js";
 import {
-  getTestModeAccountGuildsSummary,
   getTestModeAccountProfileSummary,
   getTestModeAccessTokenForCallbackCode,
   getTestModeCallbackCodeForScenario,
@@ -10,7 +9,6 @@ import {
   getTestModeUserInfo,
 } from "./test-mode.js";
 import type {
-  BlizzardAccountGuildsSummary,
   BlizzardAccountProfileSummary,
   BlizzardUserInfo,
 } from "../types/blizzard.js";
@@ -220,7 +218,6 @@ export class BattlenetService {
     const testIdentity = getTestModeIdentity(accessToken);
     if (testIdentity) {
       const userInfo = getTestModeUserInfo(accessToken);
-      const accountGuildsSummary = getTestModeAccountGuildsSummary(accessToken) ?? undefined;
       const container = getRaidersContainer();
       const { resource: existing } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).read<RaiderDocument>();
 
@@ -234,7 +231,6 @@ export class BattlenetService {
           createdAt: now,
           characters: [],
           ...(userInfo ? { userInfo } : {}),
-          ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
         };
         const { resource } = await container.items.create<RaiderDocument>(newDoc);
         if (!resource) return null;
@@ -243,15 +239,15 @@ export class BattlenetService {
         const updated: RaiderDocument = {
           ...existing,
           ...(userInfo ? { userInfo } : {}),
-          ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
         };
         const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>(updated);
         if (!resource) return null;
         raider = resource;
       }
 
+      const selectedCharacter = raider.characters.find(c => c.id === raider.selectedCharacterId) ?? null;
       return {
-        identity: toBattleNetIdentity(testIdentity.battleNetId, raider.accountGuildsSummary),
+        identity: toBattleNetIdentity(testIdentity.battleNetId, selectedCharacter),
         selectedCharacterId: raider.selectedCharacterId,
       };
     }
@@ -261,7 +257,6 @@ export class BattlenetService {
       console.warn("Battle.net authenticateWithToken: fetchUserProfile returned null");
       return null;
     }
-    const accountGuildsSummary = await this.fetchAccountGuildsSummary(accessToken);
     const battleNetId = hashBattleNetId(userInfo.id);
 
     const container = getRaidersContainer();
@@ -277,7 +272,6 @@ export class BattlenetService {
         createdAt: now,
         characters: [],
         userInfo,
-        ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
       };
       const { resource } = await container.items.create<RaiderDocument>(newDoc);
       if (!resource) return null;
@@ -286,15 +280,15 @@ export class BattlenetService {
       const updated: RaiderDocument = {
         ...existing,
         userInfo,
-        ...(accountGuildsSummary ? { accountGuildsSummary } : {}),
       };
       const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>(updated);
       if (!resource) return null;
       raider = resource;
     }
 
+    const selectedCharacter = raider.characters.find(c => c.id === raider.selectedCharacterId) ?? null;
     return {
-      identity: toBattleNetIdentity(battleNetId, raider.accountGuildsSummary),
+      identity: toBattleNetIdentity(battleNetId, selectedCharacter),
       selectedCharacterId: raider.selectedCharacterId,
     };
   }
@@ -353,27 +347,6 @@ export class BattlenetService {
     } catch (error) {
       console.warn(`Battle.net fetchUserProfile error: ${error}`);
       return null;
-    }
-  }
-
-  private async fetchAccountGuildsSummary(
-    accessToken: string
-  ): Promise<BlizzardAccountGuildsSummary | undefined> {
-    const testSummary = getTestModeAccountGuildsSummary(accessToken);
-    if (testSummary) return testSummary;
-
-    try {
-      const url = new URL(
-        `https://${API_HOSTS[this.region]}/profile/user/wow/guilds`
-      );
-      url.searchParams.set("namespace", this.profileNamespace);
-      const response = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) return undefined;
-      return response.json() as Promise<BlizzardAccountGuildsSummary>;
-    } catch {
-      return undefined;
     }
   }
 

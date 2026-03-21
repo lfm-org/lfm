@@ -103,6 +103,7 @@ describe("BattlenetService local test mode", () => {
               playable_race: { id: 11, name: "Draenei" },
               faction: { type: "ALLIANCE", name: "Alliance" },
               gender: { type: "FEMALE", name: "Female" },
+              guild: { id: 12345, name: "Test Guild" },
               protected_character: { href: "https://example.test/profile/wow/character/test-realm/aelrin" },
             },
             {
@@ -118,6 +119,7 @@ describe("BattlenetService local test mode", () => {
               playable_race: { id: 2, name: "Orc" },
               faction: { type: "HORDE", name: "Horde" },
               gender: { type: "MALE", name: "Male" },
+              guild: { id: 12345, name: "Test Guild" },
               protected_character: { href: "https://example.test/profile/wow/character/test-realm/brakka" },
             },
           ],

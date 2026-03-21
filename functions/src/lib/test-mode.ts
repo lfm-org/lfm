@@ -1,7 +1,6 @@
 import { toAccountCharacterViews } from "./blizzard-adapters.js";
 import type { BattleNetIdentity } from "../types/index.js";
 import type {
-  BlizzardAccountGuildsSummary,
   BlizzardAccountProfileSummary,
   BlizzardUserInfo,
 } from "../types/blizzard.js";
@@ -120,20 +119,6 @@ export function getTestModeUserInfo(
   };
 }
 
-export function getTestModeAccountGuildsSummary(
-  accessToken: string,
-  env: EnvLike = process.env
-): BlizzardAccountGuildsSummary | null {
-  const identity = getTestModeIdentity(accessToken, env);
-  if (!identity) return null;
-
-  return {
-    guilds: identity.guildId && identity.guildName
-      ? [{ guild: { id: identity.guildId, name: identity.guildName } }]
-      : [],
-  };
-}
-
 export function getTestModeAccountProfileSummary(
   accessToken: string,
   env: EnvLike = process.env
@@ -158,6 +143,7 @@ export function getTestModeAccountProfileSummary(
             playable_race: { id: 11, name: "Draenei" },
             faction: { type: "ALLIANCE", name: "Alliance" },
             gender: { type: "FEMALE", name: "Female" },
+            guild: { id: 12345, name: "Test Guild" },
             protected_character: { href: "https://example.test/profile/wow/character/test-realm/aelrin" },
           },
           {
@@ -173,6 +159,7 @@ export function getTestModeAccountProfileSummary(
             playable_race: { id: 2, name: "Orc" },
             faction: { type: "HORDE", name: "Horde" },
             gender: { type: "MALE", name: "Male" },
+            guild: { id: 12345, name: "Test Guild" },
             protected_character: { href: "https://example.test/profile/wow/character/test-realm/brakka" },
           },
         ],

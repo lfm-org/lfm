@@ -125,6 +125,7 @@ export interface BlizzardAccountCharacterSummary {
     type: string;
     name: string;
   };
+  guild?: { id: number; name?: string };
   protected_character?: BlizzardLink;
 }
 
