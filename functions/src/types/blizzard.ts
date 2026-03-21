@@ -161,6 +161,7 @@ export interface BlizzardCharacterProfileSummary {
   };
   character_class: BlizzardNamedReference;
   race: BlizzardNamedReference;
+  guild?: { id: number; name?: string };
 }
 
 export interface BlizzardCharacterMediaSummary {
