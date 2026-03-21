@@ -8,6 +8,7 @@ import {
   toWowRaceViews,
   toWowSpecializationViews,
 } from "./blizzard-adapters.js";
+import type { StoredSelectedCharacter } from "../types/index.js";
 
 describe("blizzard-adapters", () => {
   it("adapts raw reference documents into app view models", () => {
@@ -137,20 +138,6 @@ describe("blizzard-adapters", () => {
       },
     ]);
 
-    const guildSummary = {
-      guilds: [
-        {
-          guild: { id: 12345, name: "Test Guild" },
-        },
-      ],
-    };
-
-    expect(toBattleNetIdentity("battle-net-id", guildSummary)).toEqual({
-      battleNetId: "battle-net-id",
-      guildId: 12345,
-      guildName: "Test Guild",
-    });
-
     const storedCharacter = {
       id: "eu-test-realm-aelrin",
       region: "eu",
@@ -250,5 +237,60 @@ describe("blizzard-adapters", () => {
         ],
       },
     ]);
+  });
+});
+
+describe("toBattleNetIdentity", () => {
+  it("returns guild from selected character profileSummary", () => {
+    const character = {
+      id: "eu-test-realm-aelrin",
+      region: "eu",
+      realm: "test-realm",
+      name: "Aelrin",
+      profileSummary: {
+        name: "Aelrin",
+        level: 80,
+        realm: { slug: "test-realm", name: "Test Realm" },
+        character_class: { id: 2, name: "Paladin" },
+        race: { id: 11, name: "Draenei" },
+        guild: { id: 12345, name: "Test Guild" },
+      },
+    } as StoredSelectedCharacter;
+
+    expect(toBattleNetIdentity("battle-net-id", character)).toEqual({
+      battleNetId: "battle-net-id",
+      guildId: 12345,
+      guildName: "Test Guild",
+    });
+  });
+
+  it("returns null guild when character has no guild", () => {
+    const character = {
+      id: "eu-test-realm-aelrin",
+      region: "eu",
+      realm: "test-realm",
+      name: "Aelrin",
+      profileSummary: {
+        name: "Aelrin",
+        level: 80,
+        realm: { slug: "test-realm", name: "Test Realm" },
+        character_class: { id: 2, name: "Paladin" },
+        race: { id: 11, name: "Draenei" },
+      },
+    } as StoredSelectedCharacter;
+
+    expect(toBattleNetIdentity("battle-net-id", character)).toEqual({
+      battleNetId: "battle-net-id",
+      guildId: null,
+      guildName: null,
+    });
+  });
+
+  it("returns null guild when no character is selected", () => {
+    expect(toBattleNetIdentity("battle-net-id", null)).toEqual({
+      battleNetId: "battle-net-id",
+      guildId: null,
+      guildName: null,
+    });
   });
 });

@@ -1,6 +1,5 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
 import type {
-  BlizzardAccountGuildsSummary,
   BlizzardAccountProfileSummary,
   BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
@@ -116,9 +115,9 @@ export function toAccountCharacterViews(
 
 export function toBattleNetIdentity(
   battleNetId: string,
-  guildSummary?: BlizzardAccountGuildsSummary | null
+  selectedCharacter?: StoredSelectedCharacter | null,
 ): BattleNetIdentity {
-  const guild = guildSummary?.guilds?.[0]?.guild;
+  const guild = selectedCharacter?.profileSummary?.guild;
   return {
     battleNetId,
     guildId: guild?.id ?? null,
