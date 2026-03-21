@@ -39,7 +39,8 @@ export class CosmosMigrationsStorage implements UmzugStorage {
   }
 
   private async writeDocument(doc: MigrationsDocument): Promise<void> {
-    const options = doc._etag ? { accessCondition: { type: "IfMatch", condition: doc._etag } } : {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const options: any = doc._etag ? { ifMatchEtag: doc._etag } : {};
     await this.container.items.upsert(doc, options);
   }
 }
