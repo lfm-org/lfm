@@ -234,9 +234,10 @@ describe("buildSeedData", () => {
     const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
     expect(testRaider).toMatchObject({
       battleNetId: TEST_MODE_IDENTITY.battleNetId,
-      accountGuildsSummary: {
-        guilds: [{ guild: { id: TEST_MODE_IDENTITY.guildId, name: TEST_MODE_IDENTITY.guildName } }],
-      },
+    });
+    expect(testRaider?.characters[0]?.profileSummary?.guild).toEqual({
+      id: TEST_MODE_IDENTITY.guildId,
+      name: TEST_MODE_IDENTITY.guildName,
     });
     expect(testRaider?.selectedCharacterId).toBeTruthy();
     expect(testRaider?.characters.length).toBeGreaterThanOrEqual(2);
@@ -246,10 +247,11 @@ describe("buildSeedData", () => {
     );
     expect(needsCharacterRaider).toMatchObject({
       battleNetId: TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
-      accountGuildsSummary: {
-        guilds: [{ guild: { id: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildId, name: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildName } }],
-      },
       selectedCharacterId: null,
+    });
+    expect(needsCharacterRaider?.characters[0]?.profileSummary?.guild).toEqual({
+      id: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildId,
+      name: TEST_MODE_NEEDS_CHARACTER_IDENTITY.guildName,
     });
     expect(needsCharacterRaider?.characters.length).toBeGreaterThanOrEqual(2);
 

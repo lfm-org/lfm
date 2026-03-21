@@ -444,7 +444,7 @@ function createSeedCharacter(name: string, template: CharacterTemplate, region: 
   };
 }
 
-function toStoredSelectedCharacter(character: Character) {
+function toStoredSelectedCharacter(character: Character, guild?: { id: number; name: string }) {
   return {
     id: character.id,
     region: character.region,
@@ -466,6 +466,7 @@ function toStoredSelectedCharacter(character: Character) {
         id: character.raceId,
         name: "",
       },
+      ...(guild ? { guild: { id: guild.id, name: guild.name } } : {}),
     },
     mediaSummary: {
       assets: [{ key: "avatar", value: character.portraitUrl }],
@@ -511,14 +512,9 @@ function toAccountProfileSummary(characters: Character[]) {
   };
 }
 
-function toAccountGuildsSummary(guildName: string, guildId: number) {
-  return {
-    guilds: [{ guild: { id: guildId, name: guildName } }],
-  };
-}
-
 function getDocumentGuild(document: RaiderDocument): { id: number | null; name: string | null } {
-  const guild = document.accountGuildsSummary?.guilds?.[0]?.guild;
+  const selectedChar = document.characters.find(c => c.id === document.selectedCharacterId);
+  const guild = selectedChar?.profileSummary?.guild as { id?: number; name?: string } | undefined;
   return {
     id: guild?.id ?? null,
     name: guild?.name ?? null,
@@ -532,16 +528,17 @@ function createRaiderDocument(
   characters: SeedCharacterMeta[],
   createdAt: string
 ): RaiderDocument {
+  const guild = { id: guildId, name: guildName };
   return {
     id: battleNetId,
     battleNetId,
     selectedCharacterId: characters[0]?.character.id ?? null,
     createdAt,
-    characters: characters.map((entry) => toStoredSelectedCharacter(entry.character)),
+    characters: characters.map((entry) => toStoredSelectedCharacter(entry.character, guild)),
     accountProfileSummary: toAccountProfileSummary(characters.map((entry) => entry.character)),
     accountProfileFetchedAt: createdAt,
     accountProfileRefreshedAt: createdAt,
-    accountGuildsSummary: toAccountGuildsSummary(guildName, guildId),
+    // accountGuildsSummary intentionally omitted — guild comes from character profile
   };
 }
 
