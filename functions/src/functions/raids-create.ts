@@ -114,6 +114,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
   }
 
+  if (body.visibility === "GUILD" && !identity.guildId) {
+    return errorResponse(400, "A guild raid requires an active character in a guild");
+  }
+
   const raid = buildRaidDocument(body, identity, randomUUID(), new Date().toISOString());
 
   const { resource } = await getRaidsContainer().items.create(raid);
