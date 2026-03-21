@@ -60,7 +60,9 @@ async function main() {
       },
     })),
     context: client,
-    storage: new CosmosMigrationsStorage(container),
+    storage: DRY_RUN
+      ? { logMigration: async () => {}, unlogMigration: async () => {}, executed: async () => [] }
+      : new CosmosMigrationsStorage(container),
     logger: console,
   });
 
