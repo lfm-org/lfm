@@ -1,6 +1,6 @@
-# sisu-raidcal
+# LFM
 
-Sisu Raid Calendar has three parts:
+LFM has three parts:
 
 - `frontend/`: a Vite + React single-page app
 - `functions/`: an Azure Functions backend

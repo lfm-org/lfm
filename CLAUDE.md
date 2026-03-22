@@ -24,7 +24,7 @@ For migration details, see `docs/superpowers/plans/`.
 Do not commit populated `.env` files or real Blizzard or database credentials. Use the checked-in `example.env` files as templates; keep local overrides out of version control.
 
 **Required environment variables** (see `example.env` for full list):
-- `SISU_RAIDCAL_CLIENT_ID` / `SISU_RAIDCAL_CLIENT_SECRET` — Blizzard OAuth app credentials
+- `LFM_CLIENT_ID` / `LFM_CLIENT_SECRET` — Blizzard OAuth app credentials
 - `BATTLE_NET_REGION` — e.g. `eu`
 - `BATTLE_NET_REDIRECT_URI` / `APP_BASE_URL` — public URLs (no trailing slash; never hardcode localhost in production paths)
 - `BATTLE_NET_COOKIE_SECURE` — `true` in production, `false` in local dev
