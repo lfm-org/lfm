@@ -13,6 +13,9 @@ param cosmosAccountEndpoint string
 @description('Key Vault name')
 param keyVaultName string
 
+@description('Log Analytics workspace resource ID for diagnostic settings')
+param logAnalyticsWorkspaceId string
+
 var appInsightsName = '${functionAppName}-insights'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
@@ -141,6 +144,29 @@ resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+resource ftpCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  parent: functionApp
+  name: 'ftp'
+  properties: { allow: false }
+}
+
+resource scmCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  parent: functionApp
+  name: 'scm'
+  properties: { allow: false }
+}
+
+resource functionDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'function-diagnostics'
+  scope: functionApp
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { category: 'FunctionAppLogs', enabled: true }
+    ]
   }
 }
 

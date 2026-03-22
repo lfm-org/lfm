@@ -4,6 +4,9 @@ param location string
 @description('Cosmos DB account name')
 param accountName string
 
+@description('Log Analytics workspace resource ID for diagnostic settings')
+param logAnalyticsWorkspaceId string
+
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: accountName
   location: location
@@ -14,6 +17,8 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     locations: [{ locationName: location, failoverPriority: 0 }]
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
     capabilities: []
+    disableLocalAuth: true
+    disableKeyBasedMetadataWriteAccess: true
   }
 }
 
@@ -67,6 +72,18 @@ resource migrationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases
       id: 'migrations'
       partitionKey: { paths: ['/id'], kind: 'Hash' }
     }
+  }
+}
+
+resource cosmosDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'cosmos-diagnostics'
+  scope: cosmosAccount
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { category: 'DataPlaneRequests', enabled: true }
+      { category: 'ControlPlaneRequests', enabled: true }
+    ]
   }
 }
 

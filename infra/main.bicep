@@ -7,20 +7,38 @@ param storageAccountName string
 param functionAppName string
 param swaName string
 param keyVaultName string
+param logAnalyticsWorkspaceName string
+
+module logAnalytics 'modules/loganalytics.bicep' = {
+  name: 'loganalytics'
+  params: { location: location, workspaceName: logAnalyticsWorkspaceName }
+}
 
 module keyVault 'modules/keyvault.bicep' = {
   name: 'keyvault'
-  params: { location: location, keyVaultName: keyVaultName }
+  params: {
+    location: location
+    keyVaultName: keyVaultName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+  }
 }
 
 module cosmos 'modules/cosmos.bicep' = {
   name: 'cosmos'
-  params: { location: location, accountName: cosmosAccountName }
+  params: {
+    location: location
+    accountName: cosmosAccountName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+  }
 }
 
 module storage 'modules/storage.bicep' = {
   name: 'storage'
-  params: { location: location, storageAccountName: storageAccountName }
+  params: {
+    location: location
+    storageAccountName: storageAccountName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+  }
 }
 
 module functions 'modules/functions.bicep' = {
@@ -32,6 +50,7 @@ module functions 'modules/functions.bicep' = {
     cosmosAccountEndpoint: cosmos.outputs.endpoint
     cosmosAccountName: cosmosAccountName
     keyVaultName: keyVaultName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
   }
 }
 

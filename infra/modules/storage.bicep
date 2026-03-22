@@ -4,15 +4,24 @@ param location string
 @description('Storage account name')
 param storageAccountName string
 
+@description('Log Analytics workspace resource ID for diagnostic settings')
+param logAnalyticsWorkspaceId string
+
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
   location: location
   sku: { name: 'Standard_LRS' }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: true
+    allowBlobPublicAccess: false
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    networkAcls: {
+      defaultAction: 'Deny'
+      bypass: 'AzureServices'
+      ipRules: []
+      virtualNetworkRules: []
+    }
   }
 }
 
@@ -25,7 +34,18 @@ resource wowContainer 'Microsoft.Storage/storageAccounts/blobServices/containers
   parent: blobServices
   name: 'wow'
   properties: {
-    publicAccess: 'Blob'
+    publicAccess: 'None'
+  }
+}
+
+resource blobDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'blob-diagnostics'
+  scope: blobServices
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { category: 'StorageBlobLogs', enabled: true }
+    ]
   }
 }
 
