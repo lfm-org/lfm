@@ -43,6 +43,12 @@ export async function up(client: CosmosClient): Promise<void> {
   let skipped = 0;
 
   for (const raid of raids) {
+    if (typeof raid.startTime !== "string" || !raid.startTime) {
+      console.warn(`[20260322-raids-utc] SKIP raid ${raid.id} — startTime is missing or non-string`);
+      skipped++;
+      continue;
+    }
+
     if (alreadyUtc(raid.startTime)) {
       skipped++;
       continue;

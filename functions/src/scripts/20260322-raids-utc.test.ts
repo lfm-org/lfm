@@ -112,4 +112,18 @@ describe("20260322-raids-utc migration", () => {
 
     expect(replacedDocs[0].signupCloseTime).toBe("");
   });
+
+  it("skips raids with missing or non-string startTime", async () => {
+    const { client, replace } = makeCosmosClient([
+      {
+        id: "raid-7",
+        startTime: null,
+        signupCloseTime: "",
+      },
+    ]);
+
+    await up(client as never);
+
+    expect(replace).not.toHaveBeenCalled();
+  });
 });
