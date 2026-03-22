@@ -16,12 +16,14 @@
     "@azure/functions": "4.11.2",
     "@azure/identity": "4.13.0",
     "@azure/storage-blob": "12.31.0",
+    "luxon": "3.6.1",
     "umzug": "^3.8.2"
   },
   "overrides": {
     "ajv": ">=8.18.0"
   },
   "devDependencies": {
+    "@types/luxon": "3.4.2",
     "@types/node": "25.5.0",
     "tsx": "^4.21.0",
     "typescript": "5.9.3",
