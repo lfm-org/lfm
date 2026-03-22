@@ -35,7 +35,7 @@ export default function LandingPage() {
                 variant="overline"
                 sx={{ letterSpacing: "0.2em", color: "text.secondary" }}
               >
-                SISU RAIDCAL
+                🌀 LFM
               </Typography>
               <Typography
                 variant="h3"
