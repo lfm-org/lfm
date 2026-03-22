@@ -238,21 +238,22 @@ export class BattlenetService {
       const container = getRaidersContainer();
       const { resource: existing } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).read<RaiderDocument>();
 
+      const now = new Date().toISOString();
       let raider: RaiderDocument;
       if (!existing) {
-        const now = new Date().toISOString();
         const newDoc: RaiderDocument = {
           id: testIdentity.battleNetId,
           battleNetId: testIdentity.battleNetId,
           selectedCharacterId: null,
           createdAt: now,
+          lastSeenAt: now,
           characters: [],
         };
         const { resource } = await container.items.create<RaiderDocument>(newDoc);
         if (!resource) return null;
         raider = resource;
       } else {
-        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>(existing);
+        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>({ ...existing, lastSeenAt: now });
         if (!resource) return null;
         raider = resource;
       }
@@ -274,21 +275,22 @@ export class BattlenetService {
     const container = getRaidersContainer();
     const { resource: existing } = await container.item(battleNetId, battleNetId).read<RaiderDocument>();
 
+    const now = new Date().toISOString();
     let raider: RaiderDocument;
     if (!existing) {
-      const now = new Date().toISOString();
       const newDoc: RaiderDocument = {
         id: battleNetId,
         battleNetId,
         selectedCharacterId: null,
         createdAt: now,
+        lastSeenAt: now,
         characters: [],
       };
       const { resource } = await container.items.create<RaiderDocument>(newDoc);
       if (!resource) return null;
       raider = resource;
     } else {
-      const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>(existing);
+      const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>({ ...existing, lastSeenAt: now });
       if (!resource) return null;
       raider = resource;
     }

@@ -72,6 +72,7 @@ export function applyRaidUpdate(existing: RaidDocument, body: UpdateRaidBody, in
     instanceName: instance.name,
     creatorBattleNetId: existing.creatorBattleNetId,
     createdAt: existing.createdAt,
+    ttl: existing.ttl ?? 86400,
     raidCharacters: existing.raidCharacters ?? [],
   };
 }

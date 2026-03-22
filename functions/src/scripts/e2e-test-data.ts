@@ -534,6 +534,7 @@ function createRaiderDocument(
     battleNetId,
     selectedCharacterId: characters[0]?.character.id ?? null,
     createdAt,
+    lastSeenAt: createdAt,
     characters: characters.map((entry) => toStoredSelectedCharacter(entry.character, guild)),
     accountProfileSummary: toAccountProfileSummary(characters.map((entry) => entry.character)),
     accountProfileFetchedAt: createdAt,
@@ -662,9 +663,13 @@ function buildRaidDocument(
   instances: WowInstance[]
 ): RaidDocument {
   const { instance } = requireMode(instances, definition.instanceId, definition.modeKey);
+  const startTime = new Date(now.getTime() + definition.startHoursFromNow * 60 * 60 * 1000);
+  const createdAt = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+  const expiryMs = startTime.getTime() + 7 * 24 * 3600 * 1000;
+  const ttl = Math.max(86400, Math.floor((expiryMs - createdAt.getTime()) / 1000));
   return {
     id: definition.id,
-    startTime: new Date(now.getTime() + definition.startHoursFromNow * 60 * 60 * 1000).toISOString(),
+    startTime: startTime.toISOString(),
     signupCloseTime: new Date(now.getTime() + definition.signupCloseHoursFromNow * 60 * 60 * 1000).toISOString(),
     description: definition.description,
     modeKey: definition.modeKey,
@@ -674,7 +679,8 @@ function buildRaidDocument(
     instanceId: instance.id,
     instanceName: instance.name,
     creatorBattleNetId: creator.document.battleNetId,
-    createdAt: new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(),
+    createdAt: createdAt.toISOString(),
+    ttl,
     raidCharacters: signups,
   };
 }

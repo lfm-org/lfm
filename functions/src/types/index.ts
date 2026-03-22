@@ -54,6 +54,8 @@ export interface RaiderDocument {
   battleNetId: string;
   selectedCharacterId: string | null;
   createdAt: string;
+  lastSeenAt: string;
+  ttl?: number;
   accountProfileSummary?: BlizzardAccountProfileSummary;
   accountProfileFetchedAt?: string;
   accountProfileRefreshedAt?: string;
@@ -105,6 +107,7 @@ export interface RaidDocument {
   instanceName: string;
   creatorBattleNetId: string;
   createdAt: string;
+  ttl: number;
   raidCharacters: RaidCharacter[];
 }
 

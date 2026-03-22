@@ -136,6 +136,71 @@ describe("BattlenetService local test mode", () => {
 });
 
 describe("BattlenetService raider document privacy", () => {
+  it("sets lastSeenAt on a new raider document", async () => {
+    process.env.BATTLE_NET_REGION = "eu";
+    process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    delete process.env.TEST_MODE;
+    delete process.env.COSMOS_ENDPOINT;
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 11111, battletag: "UserA#0001" }),
+    }) as typeof fetch;
+
+    let capturedDoc: Record<string, unknown> | undefined;
+    vi.mocked(getRaidersContainer).mockReturnValue({
+      item: () => ({ read: () => Promise.resolve({ resource: undefined }) }),
+      items: {
+        create: vi.fn().mockImplementation(async (doc: Record<string, unknown>) => {
+          capturedDoc = doc;
+          return { resource: doc };
+        }),
+      },
+    } as ReturnType<typeof getRaidersContainer>);
+
+    const before = new Date().toISOString();
+    const service = new BattlenetService();
+    await service.resolveIdentity("access_token_a");
+    const after = new Date().toISOString();
+
+    expect(capturedDoc).toBeDefined();
+    expect(typeof capturedDoc!.lastSeenAt).toBe("string");
+    expect(capturedDoc!.lastSeenAt! >= before).toBe(true);
+    expect(capturedDoc!.lastSeenAt! <= after).toBe(true);
+  });
+
+  it("updates lastSeenAt on subsequent logins for existing raider", async () => {
+    process.env.BATTLE_NET_REGION = "eu";
+    process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    delete process.env.TEST_MODE;
+    delete process.env.COSMOS_ENDPOINT;
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 22222, battletag: "UserB#0002" }),
+    }) as typeof fetch;
+
+    const existingDoc = { id: "existing-hash", battleNetId: "existing-hash", selectedCharacterId: null, createdAt: "2026-01-01T00:00:00.000Z", characters: [], lastSeenAt: "2026-01-01T00:00:00.000Z" };
+    let replacedDoc: Record<string, unknown> | undefined;
+    vi.mocked(getRaidersContainer).mockReturnValue({
+      item: () => ({
+        read: () => Promise.resolve({ resource: existingDoc }),
+        replace: vi.fn().mockImplementation(async (doc: Record<string, unknown>) => {
+          replacedDoc = doc;
+          return { resource: doc };
+        }),
+      }),
+      items: { create: vi.fn() },
+    } as ReturnType<typeof getRaidersContainer>);
+
+    const service = new BattlenetService();
+    await service.resolveIdentity("access_token_b");
+
+    expect(replacedDoc).toBeDefined();
+    expect(typeof replacedDoc!.lastSeenAt).toBe("string");
+    expect(replacedDoc!.lastSeenAt).not.toBe("2026-01-01T00:00:00.000Z");
+  });
+
   it("does not store userInfo in a new raider document", async () => {
     process.env.BATTLE_NET_REGION = "eu";
     process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";

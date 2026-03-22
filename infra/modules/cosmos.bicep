@@ -38,6 +38,9 @@ resource raidersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
     resource: {
       id: 'raiders'
       partitionKey: { paths: ['/battleNetId'], kind: 'Hash' }
+      // 90-day TTL: documents are updated on every login (updating _ts),
+      // so inactive accounts expire 90 days after their last login.
+      defaultTtl: 7776000 // 90 days in seconds
     }
   }
 }
@@ -49,6 +52,9 @@ resource raidsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/cont
     resource: {
       id: 'raids'
       partitionKey: { paths: ['/id'], kind: 'Hash' }
+      // TTL=-1: enable TTL support but rely on per-document ttl field.
+      // Each raid document sets its own ttl = seconds until startTime + 7 days.
+      defaultTtl: -1
       indexingPolicy: {
         automatic: true
         indexingMode: 'consistent'

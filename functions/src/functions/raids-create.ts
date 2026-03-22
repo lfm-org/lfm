@@ -71,12 +71,18 @@ export function validateCreateRaidBody(body: CreateRaidBody, instances: WowInsta
   };
 }
 
+const RAID_TTL_AFTER_START_MS = 7 * 24 * 3600 * 1000;
+const MIN_TTL_SECONDS = 86400; // 1 day minimum
+
 export function buildRaidDocument(
   body: CreateRaidBody,
   identity: BattleNetIdentity,
   id: string,
   createdAt: string
 ): RaidDocument {
+  const expiryMs = new Date(body.startTime).getTime() + RAID_TTL_AFTER_START_MS;
+  const ttl = Math.max(MIN_TTL_SECONDS, Math.floor((expiryMs - new Date(createdAt).getTime()) / 1000));
+
   return {
     id,
     startTime: body.startTime,
@@ -90,6 +96,7 @@ export function buildRaidDocument(
     instanceName: body.instanceName ?? "",
     creatorBattleNetId: identity.battleNetId,
     createdAt,
+    ttl,
     raidCharacters: [],
   };
 }
