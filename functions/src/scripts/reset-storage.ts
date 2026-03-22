@@ -6,7 +6,7 @@ import { createCosmosClientOptions } from "../lib/cosmos.js";
 export const WOW_BLOB_CONTAINER_NAME = "wow";
 export const RESET_CONTAINER_IDS = ["raiders", "raids"] as const;
 
-const DB_NAME = process.env.COSMOS_DATABASE ?? "sisu-raidcal";
+const DB_NAME = process.env.COSMOS_DATABASE ?? "lfm";
 
 interface RaiderResetDocument {
   id: string;

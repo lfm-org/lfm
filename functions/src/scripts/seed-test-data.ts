@@ -12,7 +12,7 @@ import {
 } from "./e2e-test-data.js";
 import type { RaiderDocument, RaidDocument } from "../types/index.js";
 
-const DB_NAME = process.env.COSMOS_DATABASE ?? "sisu-raidcal";
+const DB_NAME = process.env.COSMOS_DATABASE ?? "lfm";
 
 export const RAIDERS_CONTAINER_DEFINITION = {
   id: "raiders",

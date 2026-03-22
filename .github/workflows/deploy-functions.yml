@@ -46,7 +46,7 @@ jobs:
 
       - name: Verify deployment health
         run: |
-          url="https://raidcal-api.dinosauruskeksi.com/api/health"
+          url="https://lfm-api.dinosauruskeksi.com/api/health"
           for i in $(seq 1 12); do
             status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
             if [ "$status" = "200" ]; then
