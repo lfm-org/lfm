@@ -5,6 +5,8 @@ import {
   FormControl, InputLabel, Select, MenuItem,
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
+import DOMPurify from "dompurify";
+import { DateTime } from "luxon";
 import api from "../../../lib/api";
 import {
   formatInstanceModeLabel,
@@ -13,6 +15,44 @@ import {
   type WowInstance,
 } from "../../../lib/wow/instances";
 import PageContainer from "../../../components/layout/PageContainer";
+import DateTimeInput from "../../../components/DateTimeInput";
+
+type FormField = "instance" | "mode" | "startTime" | "signupCloseTime" | "description";
+
+function validate(fields: {
+  instanceId: number | "";
+  selectedModeKey: string;
+  startTime: DateTime | null;
+  signupCloseTime: DateTime | null;
+  description: string;
+}): Partial<Record<FormField, string>> {
+  const errors: Partial<Record<FormField, string>> = {};
+
+  if (!fields.instanceId) errors.instance = "Instance is required";
+  if (!fields.selectedModeKey) errors.mode = "Mode is required";
+
+  if (!fields.startTime || !fields.startTime.isValid) {
+    errors.startTime = "Start time is required";
+  } else if (fields.startTime <= DateTime.now()) {
+    errors.startTime = "Start time must be in the future";
+  }
+
+  if (fields.signupCloseTime?.isValid) {
+    if (fields.signupCloseTime <= DateTime.now()) {
+      errors.signupCloseTime = "Signup close time must be in the future";
+    } else if (fields.startTime?.isValid && fields.signupCloseTime >= fields.startTime) {
+      errors.signupCloseTime = "Signup close time must be before start time";
+    }
+  }
+
+  if (fields.description.trim().length > 500) {
+    errors.description = "Description must be 500 characters or fewer";
+  }
+
+  return errors;
+}
+
+const MAX_DESCRIPTION = 500;
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();
@@ -23,11 +63,12 @@ export default function CreateRaidPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [instanceId, setInstanceId] = useState<number | "">("");
-  const [startTime, setStartTime] = useState("");
-  const [signupCloseTime, setSignupCloseTime] = useState("");
+  const [startTime, setStartTime] = useState<DateTime | null>(null);
+  const [signupCloseTime, setSignupCloseTime] = useState<DateTime | null>(null);
   const [description, setDescription] = useState("");
   const [selectedModeKey, setSelectedModeKey] = useState("");
   const [visibility, setVisibility] = useState<"GUILD" | "PUBLIC">("GUILD");
+  const [errors, setErrors] = useState<Partial<Record<FormField, string>>>({});
 
   useEffect(() => {
     api.get<WowInstance[]>("/instances")
@@ -50,13 +91,45 @@ export default function CreateRaidPage() {
   const handleInstanceChange = (newId: number) => {
     setInstanceId(newId);
     setSelectedModeKey("");
+    if (errors.instance) setErrors((e) => ({ ...e, instance: undefined }));
+  };
+
+  const handleModeChange = (newKey: string) => {
+    setSelectedModeKey(newKey);
+    if (errors.mode) setErrors((e) => ({ ...e, mode: undefined }));
+  };
+
+  const handleStartTimeChange = (value: DateTime | null) => {
+    setStartTime(value);
+    // Re-validate both startTime and signupCloseTime — the cross-field rule references both
+    const fieldErrors = validate({ instanceId, selectedModeKey, startTime: value, signupCloseTime, description });
+    setErrors((e) => ({ ...e, startTime: fieldErrors.startTime, signupCloseTime: fieldErrors.signupCloseTime }));
+  };
+
+  const handleSignupCloseTimeChange = (value: DateTime | null) => {
+    setSignupCloseTime(value);
+    const fieldErrors = validate({ instanceId, selectedModeKey, startTime, signupCloseTime: value, description });
+    setErrors((e) => ({ ...e, signupCloseTime: fieldErrors.signupCloseTime }));
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value);
+    if (value.trim().length <= MAX_DESCRIPTION) {
+      setErrors((e) => ({ ...e, description: undefined }));
+    }
   };
 
   const handleSubmit = async () => {
-    if (!instanceId || !selectedInstance || !startTime || !selectedModeKey) {
-      setError("Instance, start time, and mode are required");
+    const fieldErrors = validate({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
       return;
     }
+
+    const sanitizedDescription = DOMPurify.sanitize(description.trim(), {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+    });
 
     setSubmitting(true);
     setError(null);
@@ -64,10 +137,10 @@ export default function CreateRaidPage() {
     try {
       const res = await api.post<{ id: string }>("/raids", {
         instanceId,
-        instanceName: selectedInstance.name,
-        startTime,
-        ...(signupCloseTime ? { signupCloseTime } : {}),
-        description,
+        instanceName: selectedInstance!.name,
+        startTime: startTime!.toUTC().toISO(),
+        ...(signupCloseTime?.isValid ? { signupCloseTime: signupCloseTime.toUTC().toISO() } : {}),
+        description: sanitizedDescription,
         modeKey: selectedModeKey,
         visibility,
       });
@@ -80,13 +153,15 @@ export default function CreateRaidPage() {
 
   if (loading) return <Typography sx={{ p: 4 }}>Loading...</Typography>;
 
+  const descriptionCount = description.trim().length;
+
   return (
     <PageContainer maxWidth={600}>
       <Typography variant="h5" component="h1" gutterBottom>Create Raid</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
+      <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.instance}>
         <InputLabel>Instance</InputLabel>
         <Select
           value={instanceId}
@@ -97,14 +172,19 @@ export default function CreateRaidPage() {
             <MenuItem key={inst.id} value={inst.id}>{inst.name}</MenuItem>
           ))}
         </Select>
+        {errors.instance && (
+          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+            {errors.instance}
+          </Typography>
+        )}
       </FormControl>
 
-      <FormControl fullWidth sx={{ mb: 2 }} disabled={availableModes.length === 0}>
+      <FormControl fullWidth sx={{ mb: 2 }} disabled={availableModes.length === 0} error={!!errors.mode}>
         <InputLabel>Mode</InputLabel>
         <Select
           value={selectedModeKey}
           label="Mode"
-          onChange={(e) => setSelectedModeKey(e.target.value)}
+          onChange={(e) => handleModeChange(e.target.value)}
         >
           {availableModes.map((mode) => (
             <MenuItem key={toModeKey(mode)} value={toModeKey(mode)}>
@@ -112,26 +192,29 @@ export default function CreateRaidPage() {
             </MenuItem>
           ))}
         </Select>
+        {errors.mode && (
+          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+            {errors.mode}
+          </Typography>
+        )}
       </FormControl>
 
-      <TextField
+      <DateTimeInput
         label="Start Time"
-        type="datetime-local"
-        fullWidth
-        sx={{ mb: 2 }}
-        slotProps={{ inputLabel: { shrink: true } }}
         value={startTime}
-        onChange={(e) => setStartTime(e.target.value)}
+        onChange={handleStartTimeChange}
+        error={errors.startTime}
+        required
+        disablePast
       />
 
-      <TextField
+      <DateTimeInput
         label="Signup Close Time"
-        type="datetime-local"
-        fullWidth
-        sx={{ mb: 2 }}
-        slotProps={{ inputLabel: { shrink: true } }}
         value={signupCloseTime}
-        onChange={(e) => setSignupCloseTime(e.target.value)}
+        onChange={handleSignupCloseTimeChange}
+        error={errors.signupCloseTime}
+        disablePast
+        maxDateTime={startTime?.isValid ? startTime : undefined}
       />
 
       <TextField
@@ -141,7 +224,18 @@ export default function CreateRaidPage() {
         fullWidth
         sx={{ mb: 2 }}
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e) => handleDescriptionChange(e.target.value)}
+        onBlur={() => {
+          const fieldErrors = validate({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
+          setErrors((e) => ({ ...e, description: fieldErrors.description }));
+        }}
+        error={!!errors.description}
+        helperText={
+          errors.description
+            ? errors.description
+            : `${descriptionCount}/${MAX_DESCRIPTION}`
+        }
+        slotProps={{ htmlInput: { maxLength: MAX_DESCRIPTION + 100 } }}
       />
 
       <Box sx={{ mb: 3 }}>
