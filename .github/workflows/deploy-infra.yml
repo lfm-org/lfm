@@ -23,7 +23,7 @@ jobs:
         uses: azure/arm-deploy@v2
         with:
           scope: resourcegroup
-          resourceGroupName: sisu-raidcal
+          resourceGroupName: lfm
           template: infra/main.bicep
-          parameters: infra/parameters.prod.json
+          parameters: infra/parameters.prod.lfm.json
           failOnStdErr: false

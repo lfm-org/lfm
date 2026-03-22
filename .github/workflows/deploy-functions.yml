@@ -36,11 +36,11 @@ jobs:
       - name: Run database migrations
         working-directory: functions
         env:
-          COSMOS_ENDPOINT: https://sisu-raidcal-cosmos.documents.azure.com:443/
+          COSMOS_ENDPOINT: https://lfm-cosmos.documents.azure.com:443/
         run: |
           COSMOS_KEY=$(az cosmosdb keys list \
-            --name sisu-raidcal-cosmos \
-            --resource-group sisu-raidcal \
+            --name lfm-cosmos \
+            --resource-group lfm \
             --query primaryMasterKey -o tsv)
           COSMOS_KEY=$COSMOS_KEY npx tsx src/scripts/run-migrations.ts
 
@@ -52,5 +52,5 @@ jobs:
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:
-          app-name: sisu-raidcal-functions
+          app-name: lfm-functions
           package: functions
