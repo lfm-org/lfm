@@ -41,10 +41,10 @@ export default function RaidSignupCard({
   const { user } = useAuth();
   const [characterId, setCharacterId] = useState("");
   const [specId, setSpecId] = useState<number | null>(null);
-  const [attendance, setAttendance] = useState<AttendanceStatus>("IN");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"form" | "view" | "edit">("form");
+  const [showCharEdit, setShowCharEdit] = useState(false);
+  const [pendingCancel, setPendingCancel] = useState(false);
 
   const existingSignup = useMemo(
     () => user ? raid.raidCharacters.find(rc => rc.raiderBattleNetId === user.battleNetId) : undefined,
@@ -58,15 +58,11 @@ export default function RaidSignupCard({
 
   const selectedCharacter = characters.find(c => c.id === characterId);
   const availableSpecs = selectedCharacter?.specializations ?? [];
+
   const signupRegionProps = {
     component: "section" as const,
     "aria-label": `Your Signup for ${raid.description}`,
   };
-
-  // Set mode based on existing signup
-  useEffect(() => {
-    setMode(existingSignup ? "view" : "form");
-  }, [existingSignup]);
 
   // Default character + spec when characters load
   useEffect(() => {
@@ -79,11 +75,55 @@ export default function RaidSignupCard({
     }
   }, [characters, selectedCharacterId, existingSignup, characterId]);
 
-  // Update specId when character changes
+  // Reset char edit panel when signup changes
+  useEffect(() => {
+    setShowCharEdit(false);
+    setPendingCancel(false);
+  }, [existingSignup?.characterId]);
+
   const handleCharacterChange = (newCharId: string) => {
     setCharacterId(newCharId);
     const char = characters.find(c => c.id === newCharId);
     setSpecId(char?.activeSpecId ?? char?.specializations?.[0]?.id ?? null);
+  };
+
+  const handleStatusClick = async (newStatus: AttendanceStatus) => {
+    if (submitting) return;
+    // No-op if clicking the already-selected status and not changing character
+    if (existingSignup && existingSignup.desiredAttendance === newStatus && !showCharEdit) return;
+    // Use existing signup's character when not in char-edit mode
+    const submitCharId = (existingSignup && !showCharEdit) ? existingSignup.characterId : characterId;
+    const submitSpecId = (existingSignup && !showCharEdit) ? existingSignup.specId : specId;
+    if (!submitCharId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await api.post<Raid>(`/raids/${raid.id}/signup`, {
+        characterId: submitCharId,
+        desiredAttendance: newStatus,
+        specId: submitSpecId,
+      });
+      onRaidUpdate(res.data);
+      setShowCharEdit(false);
+    } catch {
+      setError("Failed to update signup");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancelSignup = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await api.delete<Raid>(`/raids/${raid.id}/signup`);
+      onRaidUpdate(res.data);
+      setPendingCancel(false);
+    } catch {
+      setError("Failed to cancel signup");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!user) return null;
@@ -102,11 +142,7 @@ export default function RaidSignupCard({
 
   if (charactersError && characters.length === 0) {
     return (
-      <SurfaceCard
-        {...signupRegionProps}
-        tone="error"
-        sx={{ mb: 2 }}
-      >
+      <SurfaceCard {...signupRegionProps} tone="error" sx={{ mb: 2 }}>
         <Alert severity="error">{charactersError}</Alert>
       </SurfaceCard>
     );
@@ -114,10 +150,7 @@ export default function RaidSignupCard({
 
   if (characters.length === 0) {
     return (
-      <SurfaceCard
-        {...signupRegionProps}
-        sx={{ mb: 2 }}
-      >
+      <SurfaceCard {...signupRegionProps} sx={{ mb: 2 }}>
         <Typography variant="body2">
           <Link to="/characters">Add a character</Link> before signing up.
         </Typography>
@@ -127,162 +160,136 @@ export default function RaidSignupCard({
 
   if (isClosed) {
     return (
-      <SurfaceCard
-        {...signupRegionProps}
-        tone="error"
-        sx={{ mb: 2 }}
-      >
+      <SurfaceCard {...signupRegionProps} tone="error" sx={{ mb: 2 }}>
         <Typography variant="body2" color="error">Signups are closed.</Typography>
       </SurfaceCard>
     );
   }
 
-  const handleStartEdit = () => {
-    if (existingSignup) {
-      const match = characters.find(c => c.id === existingSignup.characterId);
-      const char = match ?? characters[0];
-      setCharacterId(char.id);
-      setSpecId(existingSignup.specId ?? char.activeSpecId ?? null);
-      setAttendance(existingSignup.desiredAttendance as AttendanceStatus);
-    }
-    setError(null);
-    setMode("edit");
-  };
+  const currentStatus = existingSignup?.desiredAttendance as AttendanceStatus | undefined;
 
-  const handleCancelEdit = () => { setError(null); setMode("view"); };
-
-  const handleSubmit = async () => {
-    if (!characterId) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await api.post<Raid>(`/raids/${raid.id}/signup`, {
-        characterId,
-        desiredAttendance: attendance,
-        specId,
-      });
-      onRaidUpdate(res.data);
-      setMode("view");
-    } catch {
-      setError("Failed to submit signup");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCancelSignup = async () => {
-    if (!confirm("Cancel your signup for this raid?")) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await api.delete<Raid>(`/raids/${raid.id}/signup`);
-      onRaidUpdate(res.data);
-      setMode("form");
-    } catch {
-      setError("Failed to cancel signup");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const cardSx = { mb: 2 };
-
-  // Read-only view
-  if (mode === "view" && existingSignup) {
-    const cfg = getAttendanceConfig(existingSignup.desiredAttendance);
-    return (
-      <SurfaceCard {...signupRegionProps} sx={cardSx}>
-        {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-          <Typography variant="body2">
-            <strong>{existingSignup.characterName}</strong>
-            {existingSignup.specName ? ` · ${existingSignup.specName}` : ""}
-          </Typography>
-          <Box
-            component="span"
-            sx={{ px: 1.5, py: 0.25, borderRadius: 1, fontSize: "0.75rem", fontWeight: 700, ...cfg.chipSx }}
-          >
-            {cfg.label}
-          </Box>
-          <Button size="small" variant="outlined" onClick={handleStartEdit}>Change</Button>
-          <Button size="small" variant="outlined" color="error" onClick={handleCancelSignup} disabled={submitting}>
-            Cancel Signup
-          </Button>
-        </Box>
-      </SurfaceCard>
-    );
-  }
-
-  // Form (new signup or editing)
   return (
-    <SurfaceCard {...signupRegionProps} sx={cardSx}>
-      {charactersError && <Alert severity="error" sx={{ mb: 1 }}>{charactersError}</Alert>}
+    <SurfaceCard {...signupRegionProps} sx={{ mb: 2 }}>
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
-      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel id={CHARACTER_LABEL_ID}>Character</InputLabel>
-          <Select
-            id={CHARACTER_SELECT_ID}
-            labelId={CHARACTER_LABEL_ID}
-            value={characterId}
-            label="Character"
-            onChange={e => handleCharacterChange(e.target.value)}
-          >
-            {characters.map(c => (
-              <MenuItem key={c.id} value={c.id}>{c.name} — {c.realm}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
 
-        <FormControl size="small" sx={{ minWidth: 140 }} disabled={availableSpecs.length === 0}>
-          <InputLabel id={SPEC_LABEL_ID}>Spec</InputLabel>
-          <Select
-            id={SPEC_SELECT_ID}
-            labelId={SPEC_LABEL_ID}
-            value={specId ?? ""}
-            label="Spec"
-            onChange={e => setSpecId(Number(e.target.value))}
-          >
-            {availableSpecs.length === 0
-              ? <MenuItem value="" disabled>Unknown spec</MenuItem>
-              : availableSpecs.map(s => (
-                  <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-                ))
-            }
-          </Select>
-        </FormControl>
-
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          aria-label="Attendance"
-          value={attendance}
-          onChange={(_, v: AttendanceStatus | null) => { if (v) setAttendance(v); }}
-          sx={{ flexWrap: "wrap" }}
-        >
-          {ATTENDANCE_OPTIONS.map(opt => {
-            const cfg = getAttendanceConfig(opt.value);
-            const selectedStyle = { bgcolor: cfg.color, color: "#fff" };
-            return (
-              <ToggleButton
-                key={opt.value}
-                value={opt.value}
-                sx={{
-                  "&.Mui-selected": { ...selectedStyle, "&:hover": { ...selectedStyle, filter: "brightness(0.9)" } },
-                }}
+        {/* Character info or selectors */}
+        {existingSignup && !showCharEdit ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+            <Typography variant="body2">
+              <strong>{existingSignup.characterName}</strong>
+              {existingSignup.specName ? ` · ${existingSignup.specName}` : ""}
+            </Typography>
+            <Button
+              size="small"
+              variant="text"
+              sx={{ p: 0, minWidth: 0, fontSize: "0.75rem" }}
+              onClick={() => setShowCharEdit(true)}
+            >
+              Change character
+            </Button>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel id={CHARACTER_LABEL_ID}>Character</InputLabel>
+              <Select
+                id={CHARACTER_SELECT_ID}
+                labelId={CHARACTER_LABEL_ID}
+                value={characterId}
+                label="Character"
+                onChange={e => handleCharacterChange(e.target.value)}
               >
-                {opt.label}
-              </ToggleButton>
-            );
-          })}
-        </ToggleButtonGroup>
+                {characters.map(c => (
+                  <MenuItem key={c.id} value={c.id}>{c.name} — {c.realm}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 140 }} disabled={availableSpecs.length === 0}>
+              <InputLabel id={SPEC_LABEL_ID}>Spec</InputLabel>
+              <Select
+                id={SPEC_SELECT_ID}
+                labelId={SPEC_LABEL_ID}
+                value={specId ?? ""}
+                label="Spec"
+                onChange={e => setSpecId(Number(e.target.value))}
+              >
+                {availableSpecs.length === 0
+                  ? <MenuItem value="" disabled>Unknown spec</MenuItem>
+                  : availableSpecs.map(s => (
+                      <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                    ))
+                }
+              </Select>
+            </FormControl>
+            {existingSignup && (
+              <Button
+                size="small"
+                sx={{ alignSelf: "center" }}
+                onClick={() => setShowCharEdit(false)}
+              >
+                Back
+              </Button>
+            )}
+          </Box>
+        )}
 
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <Button variant="contained" size="small" onClick={handleSubmit} disabled={submitting || !characterId}>
-            {submitting ? "Submitting…" : existingSignup ? "Update" : "Sign Up"}
-          </Button>
-          {mode === "edit" && (
-            <Button size="small" onClick={handleCancelEdit}>Cancel</Button>
+        {/* Status buttons + cancel */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            aria-label="Attendance"
+            value={currentStatus ?? null}
+            sx={{ flexWrap: "wrap" }}
+          >
+            {ATTENDANCE_OPTIONS.map(opt => {
+              const cfg = getAttendanceConfig(opt.value);
+              return (
+                <ToggleButton
+                  key={opt.value}
+                  value={opt.value}
+                  disabled={submitting}
+                  onClick={() => handleStatusClick(opt.value as AttendanceStatus)}
+                  sx={{
+                    minWidth: 64,
+                    "&.Mui-selected": {
+                      bgcolor: cfg.color,
+                      color: cfg.textColor,
+                      "&:hover": { bgcolor: cfg.color, color: cfg.textColor, filter: "brightness(0.9)" },
+                    },
+                  }}
+                >
+                  {opt.label}
+                </ToggleButton>
+              );
+            })}
+          </ToggleButtonGroup>
+
+          {submitting && <CircularProgress size={16} />}
+
+          {existingSignup && !pendingCancel && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              disabled={submitting}
+              onClick={() => setPendingCancel(true)}
+            >
+              Cancel
+            </Button>
+          )}
+
+          {existingSignup && pendingCancel && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">Cancel signup?</Typography>
+              <Button size="small" variant="outlined" color="error" onClick={handleCancelSignup} disabled={submitting}>
+                Yes
+              </Button>
+              <Button size="small" onClick={() => setPendingCancel(false)} disabled={submitting}>
+                No
+              </Button>
+            </Box>
           )}
         </Box>
       </Box>
