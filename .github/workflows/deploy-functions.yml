@@ -49,4 +49,5 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: lfm-functions
+          resource-group-name: lfm
           package: functions
