@@ -14,6 +14,11 @@ export interface AccountCharacter {
   realmName: string;   // display name, resolved at fetch time
   level: number;
   region: string;
+  classId?: number;
+  className?: string;
+  portraitUrl?: string;
+  activeSpecId?: number | null;
+  specName?: string | null;
 }
 
 export interface Character {

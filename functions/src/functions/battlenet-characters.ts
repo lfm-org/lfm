@@ -16,8 +16,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     .read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
 
+  const region = process.env.BATTLE_NET_REGION || "eu";
+
   if (raider.accountProfileSummary) {
-    return jsonResponse(toAccountCharacterViews(raider.accountProfileSummary, process.env.BATTLE_NET_REGION || "eu"));
+    return jsonResponse(toAccountCharacterViews(raider.accountProfileSummary, region, raider.characters));
   }
 
   try {
@@ -28,7 +30,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       accountProfileSummary,
       accountProfileFetchedAt: now,
     });
-    return jsonResponse(toAccountCharacterViews(accountProfileSummary, process.env.BATTLE_NET_REGION || "eu"));
+    return jsonResponse(toAccountCharacterViews(accountProfileSummary, region, raider.characters));
   } catch {
     return errorResponse(502, "Failed to fetch characters from Blizzard");
   }

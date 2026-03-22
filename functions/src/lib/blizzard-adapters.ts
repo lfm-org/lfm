@@ -100,16 +100,37 @@ export function toWowInstanceViews(
 
 export function toAccountCharacterViews(
   summary: BlizzardAccountProfileSummary,
-  region: string
+  region: string,
+  storedCharacters?: StoredSelectedCharacter[]
 ): AccountCharacter[] {
+  const storedByKey = new Map<string, StoredSelectedCharacter>();
+  for (const sc of storedCharacters ?? []) {
+    storedByKey.set(`${sc.name.toLowerCase()}:${sc.realm.toLowerCase()}`, sc);
+  }
+
   return (summary.wow_accounts ?? []).flatMap((account) =>
-    (account.characters ?? []).map((character) => ({
-      name: character.name,
-      realm: character.realm.slug,
-      realmName: localizeName(character.realm.name) || character.realm.slug,
-      level: character.level,
-      region,
-    }))
+    (account.characters ?? []).map((character) => {
+      const stored = storedByKey.get(`${character.name.toLowerCase()}:${character.realm.slug.toLowerCase()}`);
+      const classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id;
+      const className = stored?.profileSummary?.character_class?.name;
+      const portraitUrl = stored ? findAvatarUrl(stored.mediaSummary) || undefined : undefined;
+      const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
+      const activeSpec = stored?.specializationsSummary?.specializations?.find(
+        s => s.specialization.id === activeSpecId
+      );
+      return {
+        name: character.name,
+        realm: character.realm.slug,
+        realmName: localizeName(character.realm.name) || character.realm.slug,
+        level: character.level,
+        region,
+        ...(classId !== undefined ? { classId } : {}),
+        ...(className ? { className } : {}),
+        ...(portraitUrl ? { portraitUrl } : {}),
+        ...(activeSpecId !== null ? { activeSpecId } : {}),
+        ...(activeSpec ? { specName: activeSpec.specialization.name } : {}),
+      };
+    })
   );
 }
 
