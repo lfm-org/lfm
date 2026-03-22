@@ -5,6 +5,7 @@ import {
   FormControl, InputLabel, Select, MenuItem,
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
+import FormHelperText from "@mui/material/FormHelperText";
 import DOMPurify from "dompurify";
 import { DateTime } from "luxon";
 import api from "../../../lib/api";
@@ -172,11 +173,7 @@ export default function CreateRaidPage() {
             <MenuItem key={inst.id} value={inst.id}>{inst.name}</MenuItem>
           ))}
         </Select>
-        {errors.instance && (
-          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-            {errors.instance}
-          </Typography>
-        )}
+        {errors.instance && <FormHelperText>{errors.instance}</FormHelperText>}
       </FormControl>
 
       <FormControl fullWidth sx={{ mb: 2 }} disabled={availableModes.length === 0} error={!!errors.mode}>
@@ -192,11 +189,7 @@ export default function CreateRaidPage() {
             </MenuItem>
           ))}
         </Select>
-        {errors.mode && (
-          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-            {errors.mode}
-          </Typography>
-        )}
+        {errors.mode && <FormHelperText>{errors.mode}</FormHelperText>}
       </FormControl>
 
       <DateTimeInput
