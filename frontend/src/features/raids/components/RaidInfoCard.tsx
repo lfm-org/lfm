@@ -21,13 +21,12 @@ export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCard
   const startDt = parseRaidTime(raid.startTime);
   const closeDt = parseRaidTime(raid.signupCloseTime);
 
-  const startDisplay = startDt
-    ? startDt < DateTime.now()
-      ? "Passed"
-      : startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
+  const startDisplay = startDt?.isValid
+    ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
     : "—";
+  const startHasPassed = startDt?.isValid ? startDt < DateTime.now() : false;
 
-  const isClosed = closeDt ? closeDt < DateTime.now() : false;
+  const isClosed = closeDt?.isValid ? closeDt < DateTime.now() : false;
 
   return (
     <SurfaceCard sx={{ mb: 2 }}>
@@ -40,8 +39,8 @@ export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCard
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: "italic" }}>
         &ldquo;{raid.description}&rdquo;
       </Typography>
-      <Typography variant="body2">
-        {startDisplay}
+      <Typography variant="body2" color={startHasPassed ? "text.secondary" : "text.primary"}>
+        {startDisplay}{startHasPassed ? " (passed)" : ""}
       </Typography>
       {closeDt && (
         <Typography variant="caption" color={isClosed ? "error" : "text.secondary"}>
