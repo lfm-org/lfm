@@ -4,7 +4,7 @@
   "parameters": {
     "location": { "value": "westeurope" },
     "cosmosAccountName": { "value": "lfm-cosmos" },
-    "storageAccountName": { "value": "lfmstorage" },
+    "storageAccountName": { "value": "lfmstore" },
     "functionAppName": { "value": "lfm-functions" },
     "swaName": { "value": "lfm-swa" },
     "keyVaultName": { "value": "lfm-kv" }

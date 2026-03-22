@@ -142,24 +142,10 @@ resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
-// Custom domain: managed cert + SNI binding (requires CNAME to resolve first)
-resource managedCert 'Microsoft.Web/certificates@2023-12-01' = {
-  name: 'lfm-api.dinosauruskeksi.com'
-  location: location
-  properties: {
-    canonicalName: 'lfm-api.dinosauruskeksi.com'
-    serverFarmId: hostingPlan.id
-  }
-}
-
-resource customHostnameBinding 'Microsoft.Web/sites/hostNameBindings@2023-12-01' = {
-  parent: functionApp
-  name: 'lfm-api.dinosauruskeksi.com'
-  properties: {
-    sslState: 'SniEnabled'
-    thumbprint: managedCert.properties.thumbprint
-  }
-}
+// Custom domain managed cert + SNI binding provisioned via CLI (one-time, order-dependent):
+// 1. az webapp config hostname add --webapp-name lfm-functions --resource-group lfm --hostname lfm-api.dinosauruskeksi.com
+// 2. az webapp config ssl create --resource-group lfm --name lfm-functions --hostname lfm-api.dinosauruskeksi.com
+// 3. az webapp config ssl bind --resource-group lfm --name lfm-functions --certificate-thumbprint <thumbprint> --ssl-type SNI
 
 output functionAppHostname string = functionApp.properties.defaultHostName
 output functionAppPrincipalId string = functionApp.identity.principalId
