@@ -15,8 +15,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     tenantId: subscription().tenantId
     enableRbacAuthorization: true
     enableSoftDelete: true
-    softDeleteRetentionInDays: 90
-    enablePurgeProtection: true
+    // softDeleteRetentionInDays and enablePurgeProtection are immutable once set.
+    // Live vault has 7-day retention and no purge protection (F7).
+    // To fix: recreate the vault with enablePurgeProtection: true and retentionInDays: 90.
+    softDeleteRetentionInDays: 7
     networkAcls: {
       defaultAction: 'Deny'
       bypass: 'AzureServices'

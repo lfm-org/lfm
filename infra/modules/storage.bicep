@@ -48,7 +48,9 @@ resource blobDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-previ
   properties: {
     workspaceId: logAnalyticsWorkspaceId
     logs: [
-      { category: 'StorageBlobLogs', enabled: true }
+      { category: 'StorageRead', enabled: true }
+      { category: 'StorageWrite', enabled: true }
+      { category: 'StorageDelete', enabled: true }
     ]
   }
 }
