@@ -11,7 +11,7 @@ import { CosmosClient } from "@azure/cosmos";
 import type { RaiderDocument, RaidDocument } from "../../types/index.js";
 import type { BlizzardCharacterProfileSummary } from "../../types/blizzard.js";
 
-const DB_NAME = "sisu-raidcal";
+const DB_NAME = process.env.COSMOS_DATABASE!;
 
 export async function up(client: CosmosClient): Promise<void> {
   const cutoff = new Date().toISOString();

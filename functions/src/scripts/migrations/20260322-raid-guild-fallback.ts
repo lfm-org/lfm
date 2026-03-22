@@ -20,7 +20,7 @@ import { CosmosClient } from "@azure/cosmos";
 import type { RaiderDocument, RaidDocument } from "../../types/index.js";
 import type { BlizzardCharacterProfileSummary } from "../../types/blizzard.js";
 
-const DB_NAME = "sisu-raidcal";
+const DB_NAME = process.env.COSMOS_DATABASE!;
 
 export async function up(client: CosmosClient): Promise<void> {
   console.log("[20260322-raid-guild-fallback] Backfilling guild data for raids missed by 20260321 migration");
