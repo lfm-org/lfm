@@ -4,9 +4,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
+  Typography,
   useMediaQuery,
   useTheme,
-  Typography,
 } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router";
 import PageContainer from "../../../components/layout/PageContainer";
@@ -15,6 +16,7 @@ import { normalizeRaid, type Raid } from "../lib/raidTypes";
 import { normalizeWowInstances, resolveInstanceModeLabel, type WowInstance } from "../../../lib/wow/instances";
 import { useAuth } from "../../auth";
 import RaidListCard from "../components/RaidListCard";
+import RaidSummaryItem from "../components/RaidSummaryItem";
 import {
   normalizeRaidSignupCharacter,
   type RaidSignupCharacter,
@@ -43,6 +45,7 @@ export default function RaidsPage() {
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [raids, setRaids] = useState<Raid[]>([]);
   const [instances, setInstances] = useState<WowInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +139,17 @@ export default function RaidsPage() {
   );
   const visibleRaids = raids.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  // Auto-select first raid on desktop when no raid is selected
+  useEffect(() => {
+    if (!isDesktop || loading || visibleRaids.length === 0) return;
+    const isSelected = requestedRaidId && visibleRaids.some(r => r.id === requestedRaidId);
+    if (!isSelected) {
+      const next = new URLSearchParams(searchParams);
+      next.set("raid", visibleRaids[0].id);
+      setSearchParams(next, { replace: true });
+    }
+  }, [isDesktop, loading, visibleRaids, requestedRaidId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!isMobile || !requestedRaidId || targetIndex < 0) return;
 
@@ -145,10 +159,7 @@ export default function RaidsPage() {
   }, [isMobile, requestedRaidId, targetIndex]);
 
   useEffect(() => {
-    if (!requestedRaidId || targetIndex < 0) {
-      lastFocusedRaidId.current = null;
-      return;
-    }
+    if (isDesktop || !requestedRaidId || targetIndex < 0) return;
 
     const isVisible = visibleRaids.some((raid) => raid.id === requestedRaidId);
     if (!isVisible || lastFocusedRaidId.current === requestedRaidId) return;
@@ -159,7 +170,7 @@ export default function RaidsPage() {
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [requestedRaidId, targetIndex, visibleRaids]);
+  }, [isDesktop, requestedRaidId, targetIndex, visibleRaids]);
 
   const handleRaidUpdate = (updatedRaid: Raid) => {
     setRaids((current) => current.map((raid) => (
@@ -174,6 +185,12 @@ export default function RaidsPage() {
     }));
   };
 
+  const handleSelectRaid = (raidId: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("raid", raidId);
+    setSearchParams(next);
+  };
+
   const handlePageChange = (page: number) => {
     const next = new URLSearchParams(searchParams);
     if (page <= 1) {
@@ -185,8 +202,41 @@ export default function RaidsPage() {
     setSearchParams(next);
   };
 
+  const selectedRaid = requestedRaidId
+    ? visibleRaids.find(r => r.id === requestedRaidId) ?? null
+    : null;
+
+  const pagination = !loading && totalPages > 1 && (
+    <Box
+      component="nav"
+      aria-label="Raid pages"
+      sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
+    >
+      <Button size="small" variant="outlined" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
+        Previous
+      </Button>
+      {Array.from({ length: totalPages }, (_, index) => {
+        const page = index + 1;
+        return (
+          <Button
+            key={page}
+            size="small"
+            variant={page === currentPage ? "contained" : "outlined"}
+            aria-current={page === currentPage ? "page" : undefined}
+            onClick={() => handlePageChange(page)}
+          >
+            {page}
+          </Button>
+        );
+      })}
+      <Button size="small" variant="outlined" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
+        Next
+      </Button>
+    </Box>
+  );
+
   return (
-    <PageContainer>
+    <PageContainer maxWidth={isDesktop ? 1280 : undefined}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
         <Typography component="h1" variant="h5">Raids</Typography>
         <Button variant="contained" onClick={() => navigate("/raids/new")}>Create Raid</Button>
@@ -200,7 +250,57 @@ export default function RaidsPage() {
         </Box>
       ) : raids.length === 0 ? (
         <Typography color="text.secondary">No raids found.</Typography>
+      ) : isDesktop ? (
+        /* Desktop: two-column layout */
+        <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+          {/* Left panel: raid list */}
+          <Box
+            sx={{
+              width: 320,
+              flexShrink: 0,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              overflow: "hidden",
+            }}
+          >
+            {visibleRaids.map((raid, index) => (
+              <Box key={raid.id}>
+                {index > 0 && <Divider />}
+                <RaidSummaryItem
+                  raid={raid}
+                  modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
+                  selected={raid.id === requestedRaidId}
+                  onClick={() => handleSelectRaid(raid.id)}
+                />
+              </Box>
+            ))}
+            {pagination && <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 1 }}>{pagination}</Box>}
+          </Box>
+
+          {/* Right panel: selected raid details */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {selectedRaid ? (
+              <RaidListCard
+                key={selectedRaid.id}
+                raid={selectedRaid}
+                modeLabel={resolveInstanceModeLabel(instances, selectedRaid.instanceId, selectedRaid.modeKey)}
+                isMobile={false}
+                isExpanded={true}
+                onToggle={() => {}}
+                onRaidUpdate={handleRaidUpdate}
+                characters={characters}
+                selectedCharacterId={selectedCharacterId}
+                loadingChars={loadingChars}
+                charactersError={charactersError}
+              />
+            ) : (
+              <Typography color="text.secondary">Select a raid to view details.</Typography>
+            )}
+          </Box>
+        </Box>
       ) : (
+        /* Mobile: stacked cards */
         <Box sx={{ display: "grid", gap: 3 }}>
           {visibleRaids.map((raid) => (
             <RaidListCard
@@ -217,51 +317,7 @@ export default function RaidsPage() {
               charactersError={charactersError}
             />
           ))}
-        </Box>
-      )}
-
-      {!loading && totalPages > 1 && (
-        <Box
-          component="nav"
-          aria-label="Raid pages"
-          sx={{
-            mt: 3,
-            display: "flex",
-            justifyContent: "center",
-            gap: 1,
-            flexWrap: "wrap",
-          }}
-        >
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={currentPage === 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
-            Previous
-          </Button>
-          {Array.from({ length: totalPages }, (_, index) => {
-            const page = index + 1;
-            return (
-              <Button
-                key={page}
-                size="small"
-                variant={page === currentPage ? "contained" : "outlined"}
-                aria-current={page === currentPage ? "page" : undefined}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            );
-          })}
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={currentPage === totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
-            Next
-          </Button>
+          {pagination}
         </Box>
       )}
     </PageContainer>
