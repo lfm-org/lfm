@@ -31,9 +31,9 @@ function getClient(): CosmosClient {
 }
 
 export function getRaidersContainer(): Container {
-  return getClient().database("sisu-raidcal").container("raiders");
+  return getClient().database(process.env.COSMOS_DATABASE!).container("raiders");
 }
 
 export function getRaidsContainer(): Container {
-  return getClient().database("sisu-raidcal").container("raids");
+  return getClient().database(process.env.COSMOS_DATABASE!).container("raids");
 }

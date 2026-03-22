@@ -99,8 +99,8 @@ function staticUrl(pathOrHref: string): string {
 }
 
 async function fetchBlizzardToken(): Promise<string> {
-  const clientId = process.env.SISU_RAIDCAL_CLIENT_ID!;
-  const clientSecret = process.env.SISU_RAIDCAL_CLIENT_SECRET!;
+  const clientId = process.env.LFM_CLIENT_ID!;
+  const clientSecret = process.env.LFM_CLIENT_SECRET!;
   const region = process.env.BATTLE_NET_REGION || "eu";
   const host = region === "cn" ? "gateway.battlenet.com.cn" : `${region}.battle.net`;
   const response = await fetch(`https://${host}/oauth/token`, {

@@ -66,14 +66,14 @@ export function buildRuntimeProfile(rootDir, command) {
     return createProfile(rootDir, {
       mode: "test",
       composeFile: "docker-compose.test.yml",
-      composeProjectName: "sisu-raidcal-e2e",
+      composeProjectName: "lfm-e2e",
       tmpDir: ".tmp/e2e",
       functionsPort: 7072,
       frontendPort: 4173,
       cosmosPort: 8082,
       cosmosExplorerPort: 1235,
       azuriteBlobPort: 10001,
-      cosmosDatabase: "sisu-raidcal-e2e",
+      cosmosDatabase: "lfm-e2e",
       publicHost: "127.0.0.1",
       testMode: true,
     });
@@ -82,14 +82,14 @@ export function buildRuntimeProfile(rootDir, command) {
   return createProfile(rootDir, {
     mode: "serve",
     composeFile: "docker-compose.local.yml",
-    composeProjectName: "sisu-raidcal-dev",
+    composeProjectName: "lfm-dev",
     tmpDir: ".tmp/dev",
     functionsPort: 7071,
     frontendPort: 5173,
     cosmosPort: 8081,
     cosmosExplorerPort: 1234,
     azuriteBlobPort: 10000,
-    cosmosDatabase: "sisu-raidcal-dev",
+    cosmosDatabase: "lfm-dev",
     publicHost: "localhost",
     testMode: false,
   });
@@ -375,8 +375,8 @@ function buildTestEnvironment(profile, scenario) {
     ...profile.env,
     TEST_MODE: "true",
     BATTLE_NET_REGION: process.env.BATTLE_NET_REGION || "eu",
-    SISU_RAIDCAL_CLIENT_ID: "",
-    SISU_RAIDCAL_CLIENT_SECRET: "",
+    LFM_CLIENT_ID: "",
+    LFM_CLIENT_SECRET: "",
     TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY || DEFAULT_TOKEN_ENCRYPTION_KEY,
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
     E2E_SCENARIO: scenario,
@@ -391,8 +391,8 @@ async function buildServeEnvironment(profile) {
   };
 
   for (const key of [
-    "SISU_RAIDCAL_CLIENT_ID",
-    "SISU_RAIDCAL_CLIENT_SECRET",
+    "LFM_CLIENT_ID",
+    "LFM_CLIENT_SECRET",
     "TOKEN_ENCRYPTION_KEY",
     "HMAC_SECRET",
   ]) {
@@ -406,8 +406,8 @@ async function buildServeEnvironment(profile) {
     ...profile.env,
     TEST_MODE: "false",
     BATTLE_NET_REGION: merged.BATTLE_NET_REGION || "eu",
-    SISU_RAIDCAL_CLIENT_ID: merged.SISU_RAIDCAL_CLIENT_ID,
-    SISU_RAIDCAL_CLIENT_SECRET: merged.SISU_RAIDCAL_CLIENT_SECRET,
+    LFM_CLIENT_ID: merged.LFM_CLIENT_ID,
+    LFM_CLIENT_SECRET: merged.LFM_CLIENT_SECRET,
     TOKEN_ENCRYPTION_KEY: merged.TOKEN_ENCRYPTION_KEY,
     HMAC_SECRET: merged.HMAC_SECRET,
   };
@@ -421,8 +421,8 @@ function buildMaintenanceEnvironment(profile) {
     BATTLE_NET_REGION: process.env.BATTLE_NET_REGION || "eu",
     TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY || DEFAULT_TOKEN_ENCRYPTION_KEY,
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
-    SISU_RAIDCAL_CLIENT_ID: process.env.SISU_RAIDCAL_CLIENT_ID || "",
-    SISU_RAIDCAL_CLIENT_SECRET: process.env.SISU_RAIDCAL_CLIENT_SECRET || "",
+    LFM_CLIENT_ID: process.env.LFM_CLIENT_ID || "",
+    LFM_CLIENT_SECRET: process.env.LFM_CLIENT_SECRET || "",
   };
 }
 

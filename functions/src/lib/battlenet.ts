@@ -92,8 +92,8 @@ export class BattlenetService {
   private readonly profileNamespace: string;
 
   constructor() {
-    this.clientId = process.env.SISU_RAIDCAL_CLIENT_ID || "";
-    this.clientSecret = process.env.SISU_RAIDCAL_CLIENT_SECRET || "";
+    this.clientId = process.env.LFM_CLIENT_ID || "";
+    this.clientSecret = process.env.LFM_CLIENT_SECRET || "";
     this.redirectUri =
       process.env.BATTLE_NET_REDIRECT_URI ||
       "http://localhost:7071/api/battlenet/callback";

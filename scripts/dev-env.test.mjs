@@ -47,8 +47,8 @@ test("buildRuntimeProfile keeps e2e and dev data stores separate", () => {
   const serve = buildRuntimeProfile(rootDir, "serve");
   const e2e = buildRuntimeProfile(rootDir, "test");
 
-  assert.equal(serve.cosmosDatabase, "sisu-raidcal-dev");
-  assert.equal(e2e.cosmosDatabase, "sisu-raidcal-e2e");
+  assert.equal(serve.cosmosDatabase, "lfm-dev");
+  assert.equal(e2e.cosmosDatabase, "lfm-e2e");
   assert.equal(serve.env.TEST_MODE, undefined);
   assert.equal(e2e.env.TEST_MODE, "true");
   assert.notEqual(serve.env.COSMOS_DATABASE, e2e.env.COSMOS_DATABASE);
