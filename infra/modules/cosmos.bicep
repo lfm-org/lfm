@@ -13,7 +13,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
-    enableFreeTier: false
+    enableFreeTier: true
     locations: [{ locationName: location, failoverPriority: 0 }]
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
     capabilities: []
