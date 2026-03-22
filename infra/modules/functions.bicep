@@ -33,6 +33,10 @@ resource storageAccountRef 'Microsoft.Storage/storageAccounts@2023-05-01' existi
   name: storageAccountName
 }
 
+var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+var storageQueueDataContributorRoleId = '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
   location: location
@@ -47,23 +51,24 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
       cors: {
-        allowedOrigins: ['https://raidcal.dinosauruskeksi.com']
+        allowedOrigins: ['https://lfm.dinosauruskeksi.com']
         supportCredentials: true
       }
       appSettings: [
-        { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${storageAccountRef.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}' }
+        { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }
         { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
-        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: appInsights.properties.InstrumentationKey }
+        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
         { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}' }
-        { name: 'APP_BASE_URL', value: 'https://raidcal.dinosauruskeksi.com' }
+        { name: 'APP_BASE_URL', value: 'https://lfm.dinosauruskeksi.com' }
         { name: 'COOKIE_DOMAIN', value: '.dinosauruskeksi.com' }
         { name: 'BATTLE_NET_REGION', value: 'eu' }
-        { name: 'SISU_RAIDCAL_CLIENT_ID', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-id)' }
-        { name: 'SISU_RAIDCAL_CLIENT_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
-        { name: 'BATTLE_NET_REDIRECT_URI', value: 'https://raidcal-api.dinosauruskeksi.com/api/battlenet/callback' }
+        { name: 'BATTLE_NET_COOKIE_SECURE', value: 'true' }
+        { name: 'LFM_CLIENT_ID', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-id)' }
+        { name: 'LFM_CLIENT_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
+        { name: 'BATTLE_NET_REDIRECT_URI', value: 'https://lfm-api.dinosauruskeksi.com/api/battlenet/callback' }
         { name: 'HMAC_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=hmac-secret)' }
         { name: 'TOKEN_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
       ]
@@ -106,19 +111,50 @@ resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssi
   }
 }
 
+// Grant Function App's MI storage roles (required for AzureWebJobsStorage__accountName pattern)
+resource storageBlobRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccountRef.id, functionApp.id, storageBlobDataOwnerRoleId)
+  scope: storageAccountRef
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageQueueRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccountRef.id, functionApp.id, storageQueueDataContributorRoleId)
+  scope: storageAccountRef
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataContributorRoleId)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccountRef.id, functionApp.id, storageTableDataContributorRoleId)
+  scope: storageAccountRef
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Custom domain: managed cert + SNI binding (requires CNAME to resolve first)
 resource managedCert 'Microsoft.Web/certificates@2023-12-01' = {
-  name: 'raidcal-api.dinosauruskeksi.com'
+  name: 'lfm-api.dinosauruskeksi.com'
   location: location
   properties: {
-    canonicalName: 'raidcal-api.dinosauruskeksi.com'
+    canonicalName: 'lfm-api.dinosauruskeksi.com'
     serverFarmId: hostingPlan.id
   }
 }
 
 resource customHostnameBinding 'Microsoft.Web/sites/hostNameBindings@2023-12-01' = {
   parent: functionApp
-  name: 'raidcal-api.dinosauruskeksi.com'
+  name: 'lfm-api.dinosauruskeksi.com'
   properties: {
     sslState: 'SniEnabled'
     thumbprint: managedCert.properties.thumbprint
