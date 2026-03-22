@@ -56,6 +56,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       }
       appSettings: [
         { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }
         { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
