@@ -33,6 +33,11 @@ export async function up(client: CosmosClient): Promise<void> {
   let skipped = 0;
 
   for (const raid of raids) {
+    if (!raid.creatorBattleNetId) {
+      console.log(`[20260321-raid-guild] SKIP raid ${raid.id} — creatorBattleNetId is null (deleted account)`);
+      skipped++;
+      continue;
+    }
     const { resource: raider } = await raidersContainer
       .item(raid.creatorBattleNetId, raid.creatorBattleNetId)
       .read<RaiderDocument>();

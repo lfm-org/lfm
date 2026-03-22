@@ -105,7 +105,7 @@ export interface RaidDocument {
   creatorGuildId: number | null;
   instanceId: number;
   instanceName: string;
-  creatorBattleNetId: string;
+  creatorBattleNetId: string | null;
   createdAt: string;
   ttl: number;
   raidCharacters: RaidCharacter[];
