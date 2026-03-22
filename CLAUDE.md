@@ -84,6 +84,21 @@ jq '.raids[] | select(.visibility == "PUBLIC") | .id' raids.json
 python3 -c "import json,sys; data=json.load(open('raids.json')); print([r['id'] for r in data['raids'] if r['visibility']=='PUBLIC'])"
 ```
 
+## Database Migrations
+
+Migrations live in `functions/src/scripts/migrations/` and run via umzug before every functions deploy (see `.github/workflows/deploy-functions.yml`). The migrations container in Cosmos tracks which have run; each migration executes at most once.
+
+**Migrations must be additive (expand-only).** They may add fields, backfill data, or create new documents — never remove or rename fields that the currently-deployed code reads. This is because migrations run before the new function code is deployed: if the deploy fails, the old code keeps running against the already-migrated database.
+
+Follow the expand/contract pattern for breaking changes:
+1. **Expand** — add the new field/shape alongside the old one; deploy code that handles both.
+2. **Contract** — in a later deploy, remove the old field once no code references it.
+
+To run migrations manually:
+```bash
+COSMOS_ENDPOINT=<endpoint> COSMOS_KEY=<key> npx tsx functions/src/scripts/run-migrations.ts
+```
+
 ## Documentation Separation
 
 `CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, and architectural decisions. Do not mix in user-facing content — that belongs in `README.md` or `docs/user/`.
