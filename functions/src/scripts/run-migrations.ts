@@ -28,7 +28,10 @@ async function main() {
   if (DRY_RUN) console.log("DRY RUN — no writes will be made");
 
   const client = new CosmosClient({ endpoint, key });
-  const container = client.database(DB_NAME).container("migrations");
+  const { container } = await client.database(DB_NAME).containers.createIfNotExists({
+    id: "migrations",
+    partitionKey: { paths: ["/id"] },
+  });
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const migrationsDir = path.join(scriptDir, "migrations");
