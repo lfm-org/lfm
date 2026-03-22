@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { Box, Chip, Typography } from "@mui/material";
-import { DateUtils } from "../../../util/dateUtil";
+import { DateTime } from "luxon";
 import type { Raid } from "../lib/raidTypes";
 import SurfaceCard from "../../../components/SurfaceCard";
+import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 
 interface RaidInfoCardProps {
   raid: Raid;
@@ -10,8 +11,23 @@ interface RaidInfoCardProps {
   children?: ReactNode;
 }
 
+function parseRaidTime(iso: string): DateTime | null {
+  if (!iso) return null;
+  const dt = DateTime.fromISO(iso, { zone: "UTC" }).setZone(GUILD_TIMEZONE);
+  return dt.isValid ? dt : null;
+}
+
 export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCardProps) {
-  const isClosed = new Date(raid.signupCloseTime) < new Date();
+  const startDt = parseRaidTime(raid.startTime);
+  const closeDt = parseRaidTime(raid.signupCloseTime);
+
+  const startDisplay = startDt
+    ? startDt < DateTime.now()
+      ? "Passed"
+      : startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
+    : "—";
+
+  const isClosed = closeDt ? closeDt < DateTime.now() : false;
 
   return (
     <SurfaceCard sx={{ mb: 2 }}>
@@ -25,11 +41,14 @@ export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCard
         &ldquo;{raid.description}&rdquo;
       </Typography>
       <Typography variant="body2">
-        {DateUtils.FormatDateWithPassed(raid.startTime)}
+        {startDisplay}
       </Typography>
-      <Typography variant="caption" color={isClosed ? "error" : "text.secondary"}>
-        Signups {isClosed ? "closed" : "close"}: {DateUtils.FormatDate(raid.signupCloseTime)}
-      </Typography>
+      {closeDt && (
+        <Typography variant="caption" color={isClosed ? "error" : "text.secondary"}>
+          Signups {isClosed ? "closed" : "close"}:{" "}
+          {closeDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)}
+        </Typography>
+      )}
       {children}
     </SurfaceCard>
   );

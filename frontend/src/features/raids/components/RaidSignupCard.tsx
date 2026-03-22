@@ -11,6 +11,8 @@ import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "
 import type { Raid } from "../lib/raidTypes";
 import type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
 import SurfaceCard from "../../../components/SurfaceCard";
+import { DateTime } from "luxon";
+import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 
 export type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
 
@@ -49,7 +51,10 @@ export default function RaidSignupCard({
     [raid.raidCharacters, user?.battleNetId]
   );
 
-  const isClosed = new Date(raid.signupCloseTime) < new Date();
+  const closeTime = raid.signupCloseTime
+    ? DateTime.fromISO(raid.signupCloseTime, { zone: "UTC" }).setZone(GUILD_TIMEZONE)
+    : null;
+  const isClosed = closeTime?.isValid ? closeTime < DateTime.now() : false;
 
   const selectedCharacter = characters.find(c => c.id === characterId);
   const availableSpecs = selectedCharacter?.specializations ?? [];
