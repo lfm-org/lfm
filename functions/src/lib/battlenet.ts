@@ -10,6 +10,7 @@ import {
 } from "./test-mode.js";
 import type {
   BlizzardAccountProfileSummary,
+  BlizzardGuildProfileResponse,
   BlizzardUserInfo,
 } from "../types/blizzard.js";
 import type { BattleNetIdentity, RaiderDocument, LoginResponse } from "../types/index.js";
@@ -190,6 +191,24 @@ export class BattlenetService {
       throw new Error(`fetchAccountProfileSummary failed: ${response.status}`);
     }
     return response.json() as Promise<BlizzardAccountProfileSummary>;
+  }
+
+  public async fetchGuildProfile(
+    realmSlug: string,
+    guildNameSlug: string,
+    accessToken: string
+  ): Promise<BlizzardGuildProfileResponse> {
+    const url = new URL(
+      `https://${API_HOSTS[this.region]}/data/wow/guild/${encodeURIComponent(realmSlug)}/${encodeURIComponent(guildNameSlug)}`
+    );
+    url.searchParams.set("namespace", this.profileNamespace);
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error(`fetchGuildProfile failed: ${response.status}`);
+    }
+    return response.json() as Promise<BlizzardGuildProfileResponse>;
   }
 
   public async resolveIdentity(

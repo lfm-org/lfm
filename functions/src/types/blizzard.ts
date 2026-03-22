@@ -152,6 +152,18 @@ export interface BlizzardUserInfo {
   battletag: string;
 }
 
+export interface BlizzardGuildProfileResponse {
+  id: number;
+  name: string;
+  realm: {
+    id?: number;
+    slug: string;
+    name: string | BlizzardLocalizedString;
+  };
+  motd?: string;
+  faction?: { type: string; name?: string };
+}
+
 export interface BlizzardCharacterProfileSummary {
   name: string;
   level: number;

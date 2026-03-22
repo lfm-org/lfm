@@ -63,6 +63,16 @@ export interface RaiderDocument {
   characters: StoredSelectedCharacter[];
 }
 
+// Guild document (Cosmos container: guilds, partition key: /id)
+export interface GuildDocument {
+  id: string;         // guildId as string
+  guildId: number;
+  name: string;
+  realmSlug: string;
+  motd: string;
+  motdFetchedAt: string;
+}
+
 // Raid document (Cosmos container: raids, partition key: /id)
 export type AttendanceStatus = "IN" | "OUT" | "BENCH" | "LATE" | "AWAY";
 export type RaidVisibility = "PUBLIC" | "GUILD";

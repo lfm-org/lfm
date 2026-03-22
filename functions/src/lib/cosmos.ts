@@ -37,3 +37,7 @@ export function getRaidersContainer(): Container {
 export function getRaidsContainer(): Container {
   return getClient().database(process.env.COSMOS_DATABASE!).container("raids");
 }
+
+export function getGuildsContainer(): Container {
+  return getClient().database(process.env.COSMOS_DATABASE!).container("guilds");
+}
