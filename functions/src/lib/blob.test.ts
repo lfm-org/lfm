@@ -9,21 +9,23 @@ const getContainerClient = vi.fn(() => ({
   deleteIfExists,
   getBlockBlobClient,
 }));
-const fromConnectionString = vi.fn(() => ({
-  getContainerClient,
-}));
+const BlobServiceClientConstructor = vi.fn(function () {
+  return { getContainerClient };
+});
 
 vi.mock("@azure/storage-blob", () => ({
-  BlobServiceClient: {
-    fromConnectionString,
-  },
+  BlobServiceClient: BlobServiceClientConstructor,
+}));
+
+vi.mock("@azure/identity", () => ({
+  DefaultAzureCredential: vi.fn(),
 }));
 
 describe("writeBlob", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    process.env.AzureWebJobsStorage = "UseDevelopmentStorage=true";
+    process.env.BLOB_STORAGE_URL = "https://lfmstore.blob.core.windows.net";
   });
 
   it("creates the wow container before uploading a blob", async () => {
