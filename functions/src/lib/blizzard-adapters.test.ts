@@ -135,6 +135,7 @@ describe("blizzard-adapters", () => {
         realmName: "Test Realm",
         level: 80,
         region: "eu",
+        classId: 2,
       },
     ]);
 

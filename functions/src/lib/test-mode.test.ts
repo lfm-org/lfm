@@ -92,6 +92,7 @@ describe("getTestModeAccountCharacters", () => {
         realmName: "Test Realm",
         level: 80,
         region: "eu",
+        classId: 2,
       },
       {
         name: "Brakka",
@@ -99,6 +100,7 @@ describe("getTestModeAccountCharacters", () => {
         realmName: "Test Realm",
         level: 80,
         region: "eu",
+        classId: 1,
       },
     ]);
 
