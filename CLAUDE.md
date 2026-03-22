@@ -94,9 +94,11 @@ Follow the expand/contract pattern for breaking changes:
 1. **Expand** — add the new field/shape alongside the old one; deploy code that handles both.
 2. **Contract** — in a later deploy, remove the old field once no code references it.
 
+**Never hardcode the database name** in migration files. Always use `process.env.COSMOS_DATABASE!` — migrations run against different databases in different environments (`lfm` in production, `lfm-e2e` in test).
+
 To run migrations manually:
 ```bash
-COSMOS_ENDPOINT=<endpoint> COSMOS_KEY=<key> npx tsx functions/src/scripts/run-migrations.ts
+COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm npx tsx functions/src/scripts/run-migrations.ts
 ```
 
 ## Documentation Separation
