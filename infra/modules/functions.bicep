@@ -61,6 +61,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
+        { name: 'COSMOS_DATABASE', value: 'lfm' }
         { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}' }
         { name: 'APP_BASE_URL', value: 'https://lfm.dinosauruskeksi.com' }
         { name: 'COOKIE_DOMAIN', value: '.dinosauruskeksi.com' }
