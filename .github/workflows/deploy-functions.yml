@@ -33,13 +33,6 @@ jobs:
           npm audit
           npm run build
 
-      - name: Run database migrations
-        working-directory: functions
-        env:
-          COSMOS_ENDPOINT: https://lfm-cosmos.documents.azure.com:443/
-          COSMOS_DATABASE: lfm
-        run: npx tsx src/scripts/run-migrations.ts
-
       - name: Prepare deployment package
         working-directory: functions
         run: |
@@ -50,3 +43,18 @@ jobs:
         with:
           app-name: lfm-functions
           package: functions
+
+      - name: Verify deployment health
+        run: |
+          url="https://raidcal-api.dinosauruskeksi.com/api/health"
+          for i in $(seq 1 12); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
+            if [ "$status" = "200" ]; then
+              echo "Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: got $status, retrying in 10s..."
+            sleep 10
+          done
+          echo "Health check failed after 2 minutes — startup or migration may have failed"
+          exit 1

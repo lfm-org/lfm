@@ -7,7 +7,6 @@
     "storageAccountName": { "value": "lfmstore" },
     "functionAppName": { "value": "lfm-functions" },
     "swaName": { "value": "lfm-swa" },
-    "keyVaultName": { "value": "lfm-kv" },
-    "ciPrincipalId": { "value": "3404d7bc-ab9d-4433-a785-37134bba2ab0" }
+    "keyVaultName": { "value": "lfm-kv" }
   }
 }

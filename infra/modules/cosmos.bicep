@@ -4,9 +4,6 @@ param location string
 @description('Cosmos DB account name')
 param accountName string
 
-@description('Object ID of the CI/CD service principal (granted Cosmos Data Contributor for migrations). Empty string skips the assignment.')
-param ciPrincipalId string = ''
-
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: accountName
   location: location
@@ -70,18 +67,6 @@ resource migrationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases
       id: 'migrations'
       partitionKey: { paths: ['/id'], kind: 'Hash' }
     }
-  }
-}
-
-var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
-
-resource ciRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = if (!empty(ciPrincipalId)) {
-  name: guid(cosmosAccount.id, ciPrincipalId, cosmosDataContributorRoleId)
-  parent: cosmosAccount
-  properties: {
-    roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/${cosmosDataContributorRoleId}'
-    principalId: ciPrincipalId
-    scope: cosmosAccount.id
   }
 }
 

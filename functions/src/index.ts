@@ -1,3 +1,6 @@
+import { runStartupMigrations } from "./lib/startup-migrations.js";
+await runStartupMigrations();
+
 // Barrel file — imports all function registrations so the v4 runtime discovers them
 import "./functions/cors-preflight.js";
 import "./functions/health.js";
