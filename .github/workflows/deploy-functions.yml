@@ -37,12 +37,8 @@ jobs:
         working-directory: functions
         env:
           COSMOS_ENDPOINT: https://lfm-cosmos.documents.azure.com:443/
-        run: |
-          COSMOS_KEY=$(az cosmosdb keys list \
-            --name lfm-cosmos \
-            --resource-group lfm \
-            --query primaryMasterKey -o tsv)
-          COSMOS_KEY=$COSMOS_KEY npx tsx src/scripts/run-migrations.ts
+          COSMOS_DATABASE: lfm
+        run: npx tsx src/scripts/run-migrations.ts
 
       - name: Prepare deployment package
         working-directory: functions

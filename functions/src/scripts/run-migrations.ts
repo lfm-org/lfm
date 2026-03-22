@@ -2,33 +2,34 @@
  * Migration runner — applies pending Cosmos DB migrations using umzug.
  *
  * Usage:
- *   COSMOS_ENDPOINT=... COSMOS_KEY=... npx tsx functions/src/scripts/run-migrations.ts
- *   DRY_RUN=true COSMOS_ENDPOINT=... COSMOS_KEY=... npx tsx functions/src/scripts/run-migrations.ts
+ *   COSMOS_ENDPOINT=... npx tsx functions/src/scripts/run-migrations.ts
+ *   DRY_RUN=true COSMOS_ENDPOINT=... npx tsx functions/src/scripts/run-migrations.ts
  *
- * Required env vars: COSMOS_ENDPOINT, COSMOS_KEY
+ * Required env vars: COSMOS_ENDPOINT, COSMOS_DATABASE
+ * Authentication: DefaultAzureCredential (managed identity / Azure CLI / workload identity)
  */
 import { CosmosClient } from "@azure/cosmos";
+import { DefaultAzureCredential } from "@azure/identity";
 import { Umzug } from "umzug";
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CosmosMigrationsStorage } from "../lib/cosmos-migrations-storage.js";
 
-const DB_NAME = "sisu-raidcal";
 const DRY_RUN = process.env.DRY_RUN === "true";
 
 async function main() {
   const endpoint = process.env.COSMOS_ENDPOINT;
-  const key = process.env.COSMOS_KEY;
-  if (!endpoint || !key) {
-    console.error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+  const dbName = process.env.COSMOS_DATABASE;
+  if (!endpoint || !dbName) {
+    console.error("COSMOS_ENDPOINT and COSMOS_DATABASE must be set");
     process.exit(1);
   }
 
   if (DRY_RUN) console.log("DRY RUN — no writes will be made");
 
-  const client = new CosmosClient({ endpoint, key });
-  const { container } = await client.database(DB_NAME).containers.createIfNotExists({
+  const client = new CosmosClient({ endpoint, aadCredentials: new DefaultAzureCredential() });
+  const { container } = await client.database(dbName).containers.createIfNotExists({
     id: "migrations",
     partitionKey: { paths: ["/id"] },
   });

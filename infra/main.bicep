@@ -8,6 +8,9 @@ param functionAppName string
 param swaName string
 param keyVaultName string
 
+@description('Object ID of the CI/CD service principal (for Cosmos data-plane access during migrations)')
+param ciPrincipalId string = ''
+
 module keyVault 'modules/keyvault.bicep' = {
   name: 'keyvault'
   params: { location: location, keyVaultName: keyVaultName }
@@ -15,7 +18,7 @@ module keyVault 'modules/keyvault.bicep' = {
 
 module cosmos 'modules/cosmos.bicep' = {
   name: 'cosmos'
-  params: { location: location, accountName: cosmosAccountName }
+  params: { location: location, accountName: cosmosAccountName, ciPrincipalId: ciPrincipalId }
 }
 
 module storage 'modules/storage.bicep' = {
