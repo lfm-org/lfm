@@ -65,12 +65,11 @@ export interface RaiderDocument {
 
 // Guild document (Cosmos container: guilds, partition key: /id)
 export interface GuildDocument {
-  id: string;         // guildId as string
+  id: string;                              // guildId as string
   guildId: number;
-  name: string;
   realmSlug: string;
-  motd: string;
-  motdFetchedAt: string;
+  profileSummary?: import("./blizzard.js").BlizzardGuildProfileResponse;
+  profileFetchedAt?: string;
 }
 
 // Raid document (Cosmos container: raids, partition key: /id)

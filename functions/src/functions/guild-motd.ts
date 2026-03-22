@@ -2,10 +2,11 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuthWithToken } from "../lib/auth.js";
 import { battlenet } from "../lib/battlenet.js";
 import { getRaidersContainer, getGuildsContainer } from "../lib/cosmos.js";
+import { toGuildMotdView } from "../lib/blizzard-adapters.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { GuildDocument, RaiderDocument } from "../types/index.js";
 
-const MOTD_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const PROFILE_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function toGuildNameSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -25,10 +26,10 @@ async function handler(request: HttpRequest, _context: InvocationContext): Promi
   const { resource: cached } = await guildsContainer
     .item(guildDocId, guildDocId)
     .read<GuildDocument>();
-  if (cached?.motdFetchedAt) {
-    const age = Date.now() - new Date(cached.motdFetchedAt).getTime();
-    if (age < MOTD_CACHE_TTL_MS) {
-      return jsonResponse({ name: cached.name, motd: cached.motd });
+  if (cached?.profileSummary && cached.profileFetchedAt) {
+    const age = Date.now() - new Date(cached.profileFetchedAt).getTime();
+    if (age < PROFILE_CACHE_TTL_MS) {
+      return jsonResponse(toGuildMotdView(cached.profileSummary));
     }
   }
 
@@ -47,20 +48,19 @@ async function handler(request: HttpRequest, _context: InvocationContext): Promi
   const nameSlug = toGuildNameSlug(guildName);
 
   try {
-    const profile = await battlenet.fetchGuildProfile(realmSlug, nameSlug, auth.accessToken);
+    const profileSummary = await battlenet.fetchGuildProfile(realmSlug, nameSlug, auth.accessToken);
     const doc: GuildDocument = {
       id: guildDocId,
       guildId,
-      name: profile.name,
       realmSlug,
-      motd: profile.motd ?? "",
-      motdFetchedAt: new Date().toISOString(),
+      profileSummary,
+      profileFetchedAt: new Date().toISOString(),
     };
     await guildsContainer.items.upsert(doc);
-    return jsonResponse({ name: profile.name, motd: profile.motd ?? "" });
+    return jsonResponse(toGuildMotdView(profileSummary));
   } catch {
     // Fall back to stale cache if available, otherwise error
-    if (cached) return jsonResponse({ name: cached.name, motd: cached.motd });
+    if (cached?.profileSummary) return jsonResponse(toGuildMotdView(cached.profileSummary));
     return errorResponse(502, "Failed to fetch guild profile from Blizzard");
   }
 }

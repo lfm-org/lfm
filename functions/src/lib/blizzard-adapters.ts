@@ -4,6 +4,7 @@ import type {
   BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
+  BlizzardGuildProfileResponse,
   BlizzardJournalInstanceIndexResponse,
   BlizzardJournalInstanceResponse,
   BlizzardLocalizedString,
@@ -159,6 +160,13 @@ function toSpecializations(
     name: entry.specialization.name,
     role: staticSpecs.get(entry.specialization.id)?.role ?? resolveSpecRole(entry.specialization.id),
   }));
+}
+
+export function toGuildMotdView(profile: BlizzardGuildProfileResponse): { name: string; motd: string } {
+  return {
+    name: profile.name,
+    motd: profile.motd ?? "",
+  };
 }
 
 export function toSelectedCharacterView(
