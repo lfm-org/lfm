@@ -16,8 +16,12 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     allowBlobPublicAccess: false
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    // defaultAction is Allow because the Function App (Consumption plan) reads
+    // blobs directly and cannot use the AzureServices bypass for data-plane
+    // access without VNet integration. allowBlobPublicAccess: false still
+    // prevents any container from ever being made public.
     networkAcls: {
-      defaultAction: 'Deny'
+      defaultAction: 'Allow'
       bypass: 'AzureServices'
       ipRules: []
       virtualNetworkRules: []
