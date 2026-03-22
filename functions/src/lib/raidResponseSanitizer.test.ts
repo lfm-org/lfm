@@ -67,6 +67,12 @@ describe("sanitizeRaidDocumentForResponse", () => {
     expect(sanitized.instanceName).toBe("Icecrown Citadel");
   });
 
+  it("strips raiderBattleNetId from sanitized raid characters", () => {
+    const sanitized = sanitizeRaidDocumentForResponse(buildRaid());
+
+    expect(sanitized.raidCharacters[0]).not.toHaveProperty("raiderBattleNetId");
+  });
+
   it("preserves string values and falls back to the first localized value when needed", () => {
     const sanitized = sanitizeRaidDocumentForResponse(
       buildRaid({

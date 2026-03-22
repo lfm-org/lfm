@@ -1,5 +1,10 @@
 import type { RaidCharacter, RaidDocument } from "../types/index.js";
 
+export type RaidCharacterResponse = Omit<RaidCharacter, "raiderBattleNetId">;
+export type RaidDocumentResponse = Omit<RaidDocument, "raidCharacters"> & {
+  raidCharacters: RaidCharacterResponse[];
+};
+
 export function normalizeNameString(name: unknown): string {
   if (typeof name === "string") return name;
   if (name && typeof name === "object") {
@@ -9,15 +14,16 @@ export function normalizeNameString(name: unknown): string {
   return "";
 }
 
-export function sanitizeRaidCharacterForResponse(character: RaidCharacter): RaidCharacter {
+export function sanitizeRaidCharacterForResponse(character: RaidCharacter): RaidCharacterResponse {
+  const { raiderBattleNetId: _stripped, ...rest } = character;
   return {
-    ...character,
-    characterClassName: normalizeNameString(character.characterClassName),
-    characterRaceName: normalizeNameString(character.characterRaceName),
+    ...rest,
+    characterClassName: normalizeNameString(rest.characterClassName),
+    characterRaceName: normalizeNameString(rest.characterRaceName),
   };
 }
 
-export function sanitizeRaidDocumentForResponse(raid: RaidDocument): RaidDocument {
+export function sanitizeRaidDocumentForResponse(raid: RaidDocument): RaidDocumentResponse {
   return {
     ...raid,
     instanceName: normalizeNameString(raid.instanceName),
@@ -25,6 +31,6 @@ export function sanitizeRaidDocumentForResponse(raid: RaidDocument): RaidDocumen
   };
 }
 
-export function sanitizeOptionalRaidDocumentForResponse(raid?: RaidDocument): RaidDocument | null {
+export function sanitizeOptionalRaidDocumentForResponse(raid?: RaidDocument): RaidDocumentResponse | null {
   return raid ? sanitizeRaidDocumentForResponse(raid) : null;
 }

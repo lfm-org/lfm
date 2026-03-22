@@ -4,7 +4,6 @@ import type {
   BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
-  BlizzardUserInfo,
 } from "./blizzard.js";
 
 // Raider document (Cosmos container: raiders, partition key: /battleNetId)
@@ -55,7 +54,6 @@ export interface RaiderDocument {
   battleNetId: string;
   selectedCharacterId: string | null;
   createdAt: string;
-  userInfo?: BlizzardUserInfo;
   accountProfileSummary?: BlizzardAccountProfileSummary;
   accountProfileFetchedAt?: string;
   accountProfileRefreshedAt?: string;

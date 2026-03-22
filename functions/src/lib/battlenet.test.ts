@@ -7,6 +7,11 @@ import {
   TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN,
   TEST_MODE_NEEDS_CHARACTER_IDENTITY,
 } from "./test-mode.js";
+import { getRaidersContainer } from "./cosmos.js";
+
+vi.mock("./cosmos.js", () => ({
+  getRaidersContainer: vi.fn(),
+}));
 
 const originalEnv = { ...process.env };
 const originalFetch = global.fetch;
@@ -127,5 +132,37 @@ describe("BattlenetService local test mode", () => {
       ],
     });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("BattlenetService raider document privacy", () => {
+  it("does not store userInfo in a new raider document", async () => {
+    process.env.BATTLE_NET_REGION = "eu";
+    process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    // No TEST_MODE — exercises the production authentication path
+    delete process.env.TEST_MODE;
+    delete process.env.COSMOS_ENDPOINT;
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 99999, battletag: "TestPlayer#9999" }),
+    }) as typeof fetch;
+
+    let capturedDoc: Record<string, unknown> | undefined;
+    vi.mocked(getRaidersContainer).mockReturnValue({
+      item: () => ({ read: () => Promise.resolve({ resource: undefined }) }),
+      items: {
+        create: vi.fn().mockImplementation(async (doc: Record<string, unknown>) => {
+          capturedDoc = doc;
+          return { resource: doc };
+        }),
+      },
+    } as ReturnType<typeof getRaidersContainer>);
+
+    const service = new BattlenetService();
+    await service.resolveIdentity("non_test_access_token_xyz");
+
+    expect(capturedDoc).toBeDefined();
+    expect(capturedDoc).not.toHaveProperty("userInfo");
   });
 });

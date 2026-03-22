@@ -6,7 +6,6 @@ import {
   getTestModeAccessTokenForCallbackCode,
   getTestModeCallbackCodeForScenario,
   getTestModeIdentity,
-  getTestModeUserInfo,
 } from "./test-mode.js";
 import type {
   BlizzardAccountProfileSummary,
@@ -236,7 +235,6 @@ export class BattlenetService {
   ): Promise<AuthenticationResult | null> {
     const testIdentity = getTestModeIdentity(accessToken);
     if (testIdentity) {
-      const userInfo = getTestModeUserInfo(accessToken);
       const container = getRaidersContainer();
       const { resource: existing } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).read<RaiderDocument>();
 
@@ -249,17 +247,12 @@ export class BattlenetService {
           selectedCharacterId: null,
           createdAt: now,
           characters: [],
-          ...(userInfo ? { userInfo } : {}),
         };
         const { resource } = await container.items.create<RaiderDocument>(newDoc);
         if (!resource) return null;
         raider = resource;
       } else {
-        const updated: RaiderDocument = {
-          ...existing,
-          ...(userInfo ? { userInfo } : {}),
-        };
-        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>(updated);
+        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>(existing);
         if (!resource) return null;
         raider = resource;
       }
@@ -290,17 +283,12 @@ export class BattlenetService {
         selectedCharacterId: null,
         createdAt: now,
         characters: [],
-        userInfo,
       };
       const { resource } = await container.items.create<RaiderDocument>(newDoc);
       if (!resource) return null;
       raider = resource;
     } else {
-      const updated: RaiderDocument = {
-        ...existing,
-        userInfo,
-      };
-      const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>(updated);
+      const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>(existing);
       if (!resource) return null;
       raider = resource;
     }
