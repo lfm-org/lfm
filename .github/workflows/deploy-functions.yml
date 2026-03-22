@@ -20,6 +20,12 @@ jobs:
         with:
           node-version: "22"
 
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
       - name: Install and build
         working-directory: functions
         run: |
@@ -27,16 +33,21 @@ jobs:
           npm audit
           npm run build
 
+      - name: Run database migrations
+        working-directory: functions
+        env:
+          COSMOS_ENDPOINT: https://sisu-raidcal-cosmos.documents.azure.com:443/
+        run: |
+          COSMOS_KEY=$(az cosmosdb keys list \
+            --name sisu-raidcal-cosmos \
+            --resource-group sisu-raidcal \
+            --query primaryMasterKey -o tsv)
+          COSMOS_KEY=$COSMOS_KEY npx tsx src/scripts/run-migrations.ts
+
       - name: Prepare deployment package
         working-directory: functions
         run: |
           npm prune --production
-
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
