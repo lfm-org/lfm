@@ -16,7 +16,9 @@
     "@azure/functions": "4.11.2",
     "@azure/identity": "4.13.0",
     "@azure/storage-blob": "12.31.0",
+    "jose": "^6.2.2",
     "luxon": "3.6.1",
+    "oauth4webapi": "^3.8.5",
     "umzug": "^3.8.2"
   },
   "overrides": {
