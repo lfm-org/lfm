@@ -14,7 +14,7 @@ export interface BlizzardLocalizedString {
 
 export interface BlizzardNamedReference {
   id: number;
-  name: string;
+  name: string | BlizzardLocalizedString;
 }
 
 export interface BlizzardPlayableClassIndexEntry {

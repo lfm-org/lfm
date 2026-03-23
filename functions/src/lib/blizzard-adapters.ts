@@ -113,7 +113,7 @@ export function toAccountCharacterViews(
     (account.characters ?? []).map((character) => {
       const stored = storedByKey.get(`${character.name.toLowerCase()}:${character.realm.slug.toLowerCase()}`);
       const classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id;
-      const className = stored?.profileSummary?.character_class?.name;
+      const className = localizeName(stored?.profileSummary?.character_class?.name) || undefined;
       const portraitUrl = stored ? findAvatarUrl(stored.mediaSummary) || undefined : undefined;
       const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
       const activeSpec = stored?.specializationsSummary?.specializations?.find(
@@ -129,7 +129,7 @@ export function toAccountCharacterViews(
         ...(className ? { className } : {}),
         ...(portraitUrl ? { portraitUrl } : {}),
         ...(activeSpecId !== null ? { activeSpecId } : {}),
-        ...(activeSpec ? { specName: activeSpec.specialization.name } : {}),
+        ...(activeSpec ? { specName: localizeName(activeSpec.specialization.name) || null } : {}),
       };
     })
   );
@@ -157,7 +157,7 @@ function toSpecializations(
 ): NonNullable<Character["specializations"]> {
   return (specializationsSummary?.specializations ?? []).map((entry) => ({
     id: entry.specialization.id,
-    name: entry.specialization.name,
+    name: localizeName(entry.specialization.name),
     role: staticSpecs.get(entry.specialization.id)?.role ?? resolveSpecRole(entry.specialization.id),
   }));
 }
