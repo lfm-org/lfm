@@ -163,13 +163,6 @@ export interface BattleNetIdentity {
   guildId: number | null;
 }
 
-// Encrypted cookie payload
-export interface TokenPayload {
-  accessToken: string;
-  issuedAt: number;
-  expiresIn: number;
-}
-
 // Battle.net callback result (returned by BattlenetService.handleCallback)
 export interface LoginResponse {
   accessToken: string;
