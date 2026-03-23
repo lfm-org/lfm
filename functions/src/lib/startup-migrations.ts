@@ -2,14 +2,15 @@
  * Runs pending Cosmos DB migrations at Function App startup.
  *
  * Called once via top-level await in index.ts before any function handlers are registered.
- * Uses the Function App's managed identity (DefaultAzureCredential) — no key-based auth.
+ * Uses the shared Cosmos client options helper so local HTTP/test environments can
+ * use key auth while deployed environments continue to use AAD.
  *
  * Migrations are listed explicitly so the runtime does not need to read the filesystem.
  * To add a migration: import it below and append an entry to the migrations array.
  */
-import { CosmosClient } from "@azure/cosmos";
-import { DefaultAzureCredential } from "@azure/identity";
+import { CosmosClient, PartitionKeyKind } from "@azure/cosmos";
 import { Umzug } from "umzug";
+import { createCosmosClientOptions } from "./cosmos.js";
 import { CosmosMigrationsStorage } from "./cosmos-migrations-storage.js";
 import * as migration20260321 from "../scripts/migrations/20260321-raid-guild.js";
 import * as migration20260322 from "../scripts/migrations/20260322-raid-guild-fallback.js";
@@ -22,12 +23,20 @@ export async function runStartupMigrations(): Promise<void> {
     return;
   }
 
+  if (process.env.TEST_MODE === "true" && process.env.E2E_SCENARIO === "raids-error") {
+    console.log("[migrations] Skipping startup migrations for raids-error scenario.");
+    return;
+  }
+
   console.log("[migrations] Running startup migrations...");
 
-  const client = new CosmosClient({ endpoint, aadCredentials: new DefaultAzureCredential() });
+  const client = new CosmosClient(createCosmosClientOptions());
   const { container } = await client.database(dbName).containers.createIfNotExists({
     id: "migrations",
-    partitionKey: { paths: ["/id"] },
+    partitionKey: {
+      paths: ["/id"],
+      kind: PartitionKeyKind.Hash,
+    },
   });
 
   const umzug = new Umzug({

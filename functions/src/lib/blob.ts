@@ -3,11 +3,26 @@ import { DefaultAzureCredential } from "@azure/identity";
 
 let _wowContainer: ContainerClient | null = null;
 
+function createBlobServiceClient(
+  env: Record<string, string | undefined> = process.env
+): BlobServiceClient {
+  const url = env.BLOB_STORAGE_URL;
+  if (!url) throw new Error("BLOB_STORAGE_URL environment variable is not set");
+
+  if (url.startsWith("http://")) {
+    const connectionString = env.AzureWebJobsStorage;
+    if (!connectionString) {
+      throw new Error("AzureWebJobsStorage environment variable is required for local HTTP blob endpoints");
+    }
+    return BlobServiceClient.fromConnectionString(connectionString);
+  }
+
+  return new BlobServiceClient(url, new DefaultAzureCredential());
+}
+
 function getWowContainer(): ContainerClient {
   if (!_wowContainer) {
-    const url = process.env.BLOB_STORAGE_URL;
-    if (!url) throw new Error("BLOB_STORAGE_URL environment variable is not set");
-    _wowContainer = new BlobServiceClient(url, new DefaultAzureCredential()).getContainerClient("wow");
+    _wowContainer = createBlobServiceClient().getContainerClient("wow");
   }
   return _wowContainer;
 }

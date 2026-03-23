@@ -14,7 +14,7 @@ export interface RaidSignup {
   characterClassName: string;
   characterRaceId: number;
   characterRaceName: string;
-  raiderBattleNetId: string;
+  isCurrentUser: boolean;
   desiredAttendance: AttendanceStatus;
   reviewedAttendance: AttendanceStatus;
   specId: number | null;

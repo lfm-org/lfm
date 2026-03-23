@@ -34,7 +34,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
         { ...raid, raidCharacters: updatedCharacters },
         { accessCondition: { type: "IfMatch", condition: etag } }
       );
-      const sanitizedRaid = sanitizeOptionalRaidDocumentForResponse(resource);
+      const sanitizedRaid = sanitizeOptionalRaidDocumentForResponse(resource, identity.battleNetId);
       if (!sanitizedRaid) return errorResponse(500, "Failed to update raid");
       return jsonResponse(sanitizedRaid);
     } catch (error: unknown) {

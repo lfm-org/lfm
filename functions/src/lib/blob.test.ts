@@ -12,13 +12,19 @@ const getContainerClient = vi.fn(() => ({
 const BlobServiceClientConstructor = vi.fn(function () {
   return { getContainerClient };
 });
+const fromConnectionString = vi.fn(() => ({
+  getContainerClient,
+}));
+const DefaultAzureCredentialConstructor = vi.fn();
 
 vi.mock("@azure/storage-blob", () => ({
-  BlobServiceClient: BlobServiceClientConstructor,
+  BlobServiceClient: Object.assign(BlobServiceClientConstructor, {
+    fromConnectionString,
+  }),
 }));
 
 vi.mock("@azure/identity", () => ({
-  DefaultAzureCredential: vi.fn(),
+  DefaultAzureCredential: DefaultAzureCredentialConstructor,
 }));
 
 describe("writeBlob", () => {
@@ -26,6 +32,7 @@ describe("writeBlob", () => {
     vi.resetModules();
     vi.clearAllMocks();
     process.env.BLOB_STORAGE_URL = "https://lfmstore.blob.core.windows.net";
+    delete process.env.AzureWebJobsStorage;
   });
 
   it("creates the wow container before uploading a blob", async () => {
@@ -36,6 +43,19 @@ describe("writeBlob", () => {
     expect(createIfNotExists).toHaveBeenCalledTimes(1);
     expect(getBlockBlobClient).toHaveBeenCalledWith("instances.json");
     expect(upload).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the connection string instead of AAD for local HTTP blob storage", async () => {
+    process.env.BLOB_STORAGE_URL = "http://azurite:10000/devstoreaccount1";
+    process.env.AzureWebJobsStorage = "UseDevelopmentStorage=true";
+
+    const { writeBlob } = await import("./blob.js");
+
+    await writeBlob("instances.json", [{ id: 63, name: "Deadmines" }]);
+
+    expect(fromConnectionString).toHaveBeenCalledWith("UseDevelopmentStorage=true");
+    expect(DefaultAzureCredentialConstructor).not.toHaveBeenCalled();
+    expect(BlobServiceClientConstructor).not.toHaveBeenCalled();
   });
 
   it("can reset the wow container for schema cleanup", async () => {

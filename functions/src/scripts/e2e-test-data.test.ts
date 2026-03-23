@@ -6,6 +6,7 @@ import {
   buildReferenceDataWrites,
   buildSeedData,
   resolveE2eScenario,
+  resolveTestDataTimestamp,
 } from "./e2e-test-data.js";
 import type { WowClass, WowInstance, WowRace, WowSpecialization } from "../types/index.js";
 
@@ -130,6 +131,20 @@ describe("resolveE2eScenario", () => {
     expect(resolveE2eScenario("raids-error")).toBe("raids-error");
     expect(resolveE2eScenario("characters-empty")).toBe("characters-empty");
     expect(resolveE2eScenario("instances-missing")).toBe("instances-missing");
+  });
+});
+
+describe("resolveTestDataTimestamp", () => {
+  it("prefers an explicit timestamp override", () => {
+    expect(resolveTestDataTimestamp("2026-03-18T12:00:00.000Z", new Date("2026-03-23T12:00:00.000Z"))).toBe(
+      "2026-03-18T12:00:00.000Z"
+    );
+  });
+
+  it("falls back to the current run time when no override is provided", () => {
+    expect(resolveTestDataTimestamp(undefined, new Date("2026-03-23T12:00:00.000Z"))).toBe(
+      "2026-03-23T12:00:00.000Z"
+    );
   });
 });
 

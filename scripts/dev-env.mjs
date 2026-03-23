@@ -280,7 +280,7 @@ async function runTest(plan) {
 
     playwrightChild = spawnCommand("npx", ["playwright", "test", ...plan.playwrightArgs], {
       cwd: FRONTEND_DIR,
-      env: buildFrontendTestEnvironment(plan.profile),
+      env: buildFrontendTestEnvironment(plan.profile, plan.scenario),
       stdio: "inherit",
     });
     shutdown.attachChild(playwrightChild);
@@ -448,12 +448,13 @@ function buildFrontendServeEnvironment(profile) {
   };
 }
 
-function buildFrontendTestEnvironment(profile) {
+function buildFrontendTestEnvironment(profile, scenario = "default") {
   return {
     ...process.env,
     FRONTEND_PORT: String(profile.ports.frontend),
     PLAYWRIGHT_BASE_URL: profile.env.APP_BASE_URL,
     PLAYWRIGHT_BROWSERS_PATH,
+    PLAYWRIGHT_INCLUDE_SCENARIO_SPECS: scenario === "default" ? "" : "1",
     VITE_PROXY_TARGET: `http://127.0.0.1:${profile.ports.functions}`,
     VITE_API_BASE_URL: "/api",
   };
@@ -491,8 +492,42 @@ async function startFunctionsService(profile, composeEnv) {
   await waitForHttp(`http://127.0.0.1:${profile.ports.functions}/api/health`);
 }
 
+export function isRetryableFunctionsScriptOutput(output) {
+  return (
+    output.includes("pgcosmos extension is still starting; retry request shortly") ||
+    (output.includes('"statusCode": 500') && output.includes("Azurite-Blob/"))
+  );
+}
+
+export async function retryCommandResult(
+  runAttempt,
+  {
+    attempts = 1,
+    delayMs = 0,
+    sleepFn = sleep,
+    shouldRetry = () => false,
+  } = {}
+) {
+  let lastResult = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    lastResult = await runAttempt(attempt);
+    if (lastResult.exitCode === 0) {
+      return lastResult;
+    }
+
+    if (attempt === attempts || !shouldRetry(lastResult)) {
+      return lastResult;
+    }
+
+    await sleepFn(delayMs);
+  }
+
+  return lastResult;
+}
+
 async function runFunctionsScript(profile, composeEnv, scriptName, scriptArgs = []) {
-  await runDockerCompose(profile, composeEnv, [
+  const composeArgs = [
     "run",
     "--rm",
     "--entrypoint",
@@ -500,7 +535,22 @@ async function runFunctionsScript(profile, composeEnv, scriptName, scriptArgs = 
     "functions",
     `dist/src/scripts/${scriptName}`,
     ...scriptArgs,
-  ]);
+  ];
+  const result = await retryCommandResult(
+    () => runDockerComposeCapture(profile, composeEnv, composeArgs),
+    {
+      attempts: 12,
+      delayMs: 5000,
+      shouldRetry: (result) => isRetryableFunctionsScriptOutput(`${result.stdout}\n${result.stderr}`),
+    }
+  );
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  if (result.exitCode !== 0) {
+    throw new Error(`docker compose ${dockerComposeArgs(profile, composeArgs).join(" ")} exited with code ${result.exitCode}`);
+  }
 }
 
 async function ensurePlaywrightBrowser() {
@@ -574,6 +624,30 @@ async function runCommand(command, args, options) {
   }
 }
 
+async function runCommandCapture(command, args, options) {
+  const child = spawnCommand(command, args, {
+    cwd: options.cwd,
+    env: options.env,
+    stdio: "pipe",
+  });
+  const stdoutChunks = [];
+  const stderrChunks = [];
+
+  child.stdout?.on("data", (chunk) => {
+    stdoutChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  });
+  child.stderr?.on("data", (chunk) => {
+    stderrChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  });
+
+  const exitCode = await waitForChild(child);
+  return {
+    exitCode,
+    stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+    stderr: Buffer.concat(stderrChunks).toString("utf8"),
+  };
+}
+
 async function waitForChild(child) {
   return new Promise((resolve, reject) => {
     child.once("error", reject);
@@ -603,6 +677,13 @@ async function runDockerCompose(profile, composeEnv, args, options = {}) {
     cwd: ROOT_DIR,
     env: composeEnv,
     stdio: options.quiet ? "ignore" : "inherit",
+  });
+}
+
+async function runDockerComposeCapture(profile, composeEnv, args) {
+  return runCommandCapture("docker", dockerComposeArgs(profile, args), {
+    cwd: ROOT_DIR,
+    env: composeEnv,
   });
 }
 

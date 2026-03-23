@@ -44,7 +44,12 @@ export type E2eScenario =
   | "characters-empty"
   | "instances-missing";
 
-export const DEFAULT_TEST_DATA_TIMESTAMP = "2026-03-18T12:00:00.000Z";
+export function resolveTestDataTimestamp(
+  explicitTimestamp?: string | null,
+  now: Date = new Date()
+): string {
+  return explicitTimestamp || now.toISOString();
+}
 
 export function resolveE2eScenario(value?: string | null): E2eScenario {
   switch (value) {

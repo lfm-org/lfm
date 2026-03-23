@@ -3,11 +3,11 @@ import { pathToFileURL } from "url";
 import { createCosmosClientOptions } from "../lib/cosmos.js";
 import {
   assertLocalSeedEnvironment,
-  DEFAULT_TEST_DATA_TIMESTAMP,
   buildSeedData,
   loadReferenceDataBundle,
   resolveE2eScenario,
   resolveSnapshotDir,
+  resolveTestDataTimestamp,
   type E2eScenario,
 } from "./e2e-test-data.js";
 import type { RaiderDocument, RaidDocument } from "../types/index.js";
@@ -57,7 +57,7 @@ async function main() {
 
   const snapshotDir = resolveSnapshotDir();
   const bundle = await loadReferenceDataBundle(snapshotDir);
-  const seedTimestamp = process.env.TEST_DATA_BASE_TIME || DEFAULT_TEST_DATA_TIMESTAMP;
+  const seedTimestamp = resolveTestDataTimestamp(process.env.TEST_DATA_BASE_TIME);
   const scenario = resolveE2eScenario(process.env.E2E_SCENARIO);
   const seed = buildSeedData({
     now: seedTimestamp,

@@ -71,7 +71,7 @@ test("raids page renders localized API names without crashing", async ({ page })
   await page.goto("/raids");
 
   await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
-  await expect(page.getByText("Icecrown Citadel")).toBeVisible();
-  await expect(page.getByText("Normal (10 players)")).toBeVisible();
+  await expect(page.getByTestId("raid-card").getByRole("heading", { name: "Icecrown Citadel" })).toBeVisible();
+  await expect(page.getByTestId("raid-card").getByText("Normal (10 players)")).toBeVisible();
   await expect(pageErrors).toEqual([]);
 });

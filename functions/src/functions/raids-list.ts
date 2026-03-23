@@ -23,7 +23,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       };
 
   const { resources } = await getRaidsContainer().items.query<RaidDocument>(querySpec).fetchAll();
-  return jsonResponse(resources.map(sanitizeRaidDocumentForResponse));
+  return jsonResponse(resources.map((raid) => sanitizeRaidDocumentForResponse(raid, identity.battleNetId)));
 }
 
 app.http("raids-list", {

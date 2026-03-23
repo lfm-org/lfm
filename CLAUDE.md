@@ -84,6 +84,22 @@ jq '.raids[] | select(.visibility == "PUBLIC") | .id' raids.json
 python3 -c "import json,sys; data=json.load(open('raids.json')); print([r['id'] for r in data['raids'] if r['visibility']=='PUBLIC'])"
 ```
 
+## E2E Testing
+
+Playwright coverage lives in `frontend/e2e/`. Add or update e2e tests when a change affects auth/login/logout behavior, protected routes, seeded `TEST_MODE` flows, multi-step create/update/cancel journeys, public entry pages, accessibility-critical interactions, or a regression that escaped unit/type-level coverage.
+
+Useful commands:
+- list the default-discovered specs: `npm --prefix frontend run e2e:list`
+- run a focused default-scenario spec: `./scripts/dev-env.mjs test signup`
+- run a scenario-specific spec: `./scripts/e2e.sh raids-empty raids-empty.spec.ts`
+- run the intended full all-scenarios suite: `./scripts/e2e-all.sh`
+
+Rules for agents:
+- Do not claim "full e2e suite passed" unless you ran `./scripts/e2e-all.sh`.
+- Default Playwright discovery excludes the scenario-specific files listed in `frontend/playwright.config.ts`.
+- If you add a new scenario-only spec, update both `frontend/playwright.config.ts` and `scripts/e2e-all.sh`.
+- Keep e2e coverage deterministic and local-first. Do not add routine real Battle.net dependencies to the normal Playwright workflow.
+
 ## Database Migrations
 
 Migrations live in `functions/src/scripts/migrations/` and run via umzug before every functions deploy (see `.github/workflows/deploy-functions.yml`). The migrations container in Cosmos tracks which have run; each migration executes at most once.

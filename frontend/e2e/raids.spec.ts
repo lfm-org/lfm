@@ -4,17 +4,30 @@ test("authenticated raids page shows five full raid cards with pagination", asyn
   await page.goto("/raids");
 
   await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
-  await expect(page.getByText("Closed heroic cleanup")).toBeVisible();
-  await expect(page.getByText("Closed progression lockout")).toBeVisible();
-  await expect(page.getByText("Public dungeon warmup")).toBeVisible();
-  await expect(page.getByText("Heroic farm night")).toBeVisible();
-  await expect(page.getByText("Dragon reset clear")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Deadmines Heroic \(5 players\)/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Icecrown Citadel Heroic \(10 players\)/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Deadmines Normal \(5 players\)/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Icecrown Citadel Heroic \(25 players\)/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Onyxia's Lair Normal \(25 players\)/ })).toBeVisible();
   await expect(page.getByText("Rival guild only raid")).toHaveCount(0);
-  await expect(page.getByTestId("raid-card")).toHaveCount(5);
-  await expect(page.getByRole("button", { name: "2" })).toBeVisible();
-  await page.getByRole("button", { name: "2" }).click();
+  await expect(page.getByTestId("raid-card")).toHaveCount(1);
+  await expect(page.getByText("Closed heroic cleanup")).toBeVisible();
+
+  await page.getByRole("button", { name: /Icecrown Citadel Heroic \(10 players\)/ }).click();
+  await expect(page.getByText("Closed progression lockout")).toBeVisible();
+
+  await page.getByRole("button", { name: /Deadmines Normal \(5 players\)/ }).click();
+  await expect(page.getByText("Public dungeon warmup")).toBeVisible();
+
+  await page.getByRole("button", { name: /Icecrown Citadel Heroic \(25 players\)/ }).click();
+  await expect(page.getByText("Heroic farm night")).toBeVisible();
+
+  await page.getByRole("button", { name: /Onyxia's Lair Normal \(25 players\)/ }).click();
+  await expect(page.getByText("Dragon reset clear")).toBeVisible();
+
+  await expect(page.getByRole("button", { name: "2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "2", exact: true }).click();
   await expect(page.getByText("Guild ten-player alt run")).toBeVisible();
-  await expect(page.getByText("Guild retro forty-player night")).toBeVisible();
   await expect(page.getByText("Closed heroic cleanup")).toHaveCount(0);
 });
 
