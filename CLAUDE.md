@@ -51,15 +51,15 @@ Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g.
 
 ### Running tools in subdirectories
 
-Prefer `--prefix` / `-C` flags over `cd dir &&` to run tools in subdirectories. This avoids `cd` side-effects and is more sandbox-friendly:
+Prefer `--prefix` / `-C` flags over `cd dir &&` to run tools in subdirectories. The sandbox allow-list is keyed on command prefixes like `git -C /absolute/path:*` and `npm --prefix /absolute/path/subdir:*` — using `cd` first produces a different command string that won't match, triggering an unnecessary permission prompt even for an already-allowed operation.
 
 ```bash
-# Good
+# Good — matches sandbox allow-list
 git -C /absolute/path/to/repo status
-npm --prefix frontend install
-npx --prefix frontend tsc --noEmit
+npm --prefix /absolute/path/to/repo/frontend install
+npx --prefix /absolute/path/to/repo/frontend tsc --noEmit
 
-# Avoid
+# Avoid — cd changes the command string, bypasses allow-list match
 cd frontend && npm install
 cd frontend && npx tsc --noEmit
 ```
