@@ -7,7 +7,7 @@
     "storageAccountName": { "value": "lfmstore" },
     "functionAppName": { "value": "lfm-functions" },
     "swaName": { "value": "lfm-swa" },
-    "keyVaultName": { "value": "lfm-kv" },
+    "keyVaultName": { "value": "lfm-kv-prot" },
     "logAnalyticsWorkspaceName": { "value": "lfm-logs" }
   }
 }

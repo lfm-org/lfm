@@ -15,12 +15,16 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     tenantId: subscription().tenantId
     enableRbacAuthorization: true
     enableSoftDelete: true
+    enablePurgeProtection: true
     // softDeleteRetentionInDays and enablePurgeProtection are immutable once set.
-    // Live vault has 7-day retention and no purge protection (F7).
-    // To fix: recreate the vault with enablePurgeProtection: true and retentionInDays: 90.
-    softDeleteRetentionInDays: 7
+    // lfm-kv-prot was created with purge protection on and 90-day retention (F7 resolved).
+    softDeleteRetentionInDays: 90
     networkAcls: {
-      defaultAction: 'Deny'
+      // defaultAction must be Allow on Consumption plan (free tier).
+      // The AzureServices bypass only covers the Functions runtime storage connections,
+      // not application-level Key Vault reference resolution by the platform.
+      // See: https://learn.microsoft.com/en-us/azure/key-vault/general/overview-vnet-service-endpoints
+      defaultAction: 'Allow'
       bypass: 'AzureServices'
       ipRules: []
       virtualNetworkRules: []
