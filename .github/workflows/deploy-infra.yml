@@ -98,10 +98,21 @@ jobs:
             echo "SWA custom domain $HOSTNAME already configured."
           fi
 
-      - name: Delete auto-created Smart Detection action group
+      - name: Clean up auto-created App Insights resources
         run: |
-          # Azure auto-creates an action group named ai_<app-insights>_<guid>_managed
-          # for classic smart detection alerts. Remove it to keep the RG clean.
+          # Azure auto-creates a managed RG + workspace when migrating classic App
+          # Insights. Now that App Insights is linked to lfm-logs, the managed RG
+          # is orphaned. Also clean up any auto-created Smart Detection action groups.
+          MANAGED_RG=$(az group list \
+            --query "[?starts_with(name, 'ai_lfm-functions-insights_')].name" -o tsv)
+
+          if [ -n "$MANAGED_RG" ]; then
+            echo "Deleting orphaned managed resource group: $MANAGED_RG"
+            az group delete --name "$MANAGED_RG" --yes --no-wait
+          else
+            echo "No orphaned managed resource group found."
+          fi
+
           AUTO_AG=$(az monitor action-group list --resource-group lfm \
             --query "[?starts_with(name, 'ai_lfm-functions-insights_')].name" -o tsv)
 
