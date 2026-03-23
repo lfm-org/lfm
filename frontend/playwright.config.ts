@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const frontendPort = process.env.FRONTEND_PORT || "4173";
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${frontendPort}`;
+const includeScenarioSpecs = process.env.PLAYWRIGHT_INCLUDE_SCENARIO_SPECS === "1";
 
 // Specs that require a non-default E2E_SCENARIO (set up by e2e-all.sh).
 // Excluded from open test discovery so `e2e.sh` (default scenario) doesn't
@@ -15,7 +16,7 @@ const SCENARIO_SPECS = [
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: SCENARIO_SPECS,
+  testIgnore: includeScenarioSpecs ? [] : SCENARIO_SPECS,
   outputDir: "./e2e/test-results/artifacts",
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,

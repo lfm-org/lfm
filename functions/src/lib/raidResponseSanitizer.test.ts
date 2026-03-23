@@ -73,6 +73,19 @@ describe("sanitizeRaidDocumentForResponse", () => {
     expect(sanitized.raidCharacters[0]).not.toHaveProperty("raiderBattleNetId");
   });
 
+  it("marks the current user's signup without exposing the private battle.net id", () => {
+    const sanitized = sanitizeRaidDocumentForResponse(buildRaid(), "guild-raider-01");
+
+    expect(sanitized.raidCharacters[0]?.isCurrentUser).toBe(true);
+    expect(sanitized.raidCharacters[0]).not.toHaveProperty("raiderBattleNetId");
+  });
+
+  it("leaves isCurrentUser false for other signups", () => {
+    const sanitized = sanitizeRaidDocumentForResponse(buildRaid(), "guild-raider-99");
+
+    expect(sanitized.raidCharacters[0]?.isCurrentUser).toBe(false);
+  });
+
   it("preserves string values and falls back to the first localized value when needed", () => {
     const sanitized = sanitizeRaidDocumentForResponse(
       buildRaid({

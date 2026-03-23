@@ -22,7 +22,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       return errorResponse(404, "Raid not found");
     }
 
-    return jsonResponse(sanitizeRaidDocumentForResponse(resource));
+    return jsonResponse(sanitizeRaidDocumentForResponse(resource, identity.battleNetId));
   } catch (error: unknown) {
     if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");
     throw error;

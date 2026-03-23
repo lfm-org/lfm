@@ -1,12 +1,12 @@
 import { pathToFileURL } from "url";
 import { writeBlob } from "../lib/blob.js";
 import {
-  DEFAULT_TEST_DATA_TIMESTAMP,
   assertLocalSeedEnvironment,
   buildReferenceDataWrites,
   loadReferenceDataBundle,
   resolveE2eScenario,
   resolveSnapshotDir,
+  resolveTestDataTimestamp,
 } from "./e2e-test-data.js";
 
 export function assertLocalReferenceDataEnvironment(env: Record<string, string | undefined> = process.env): void {
@@ -25,7 +25,7 @@ export async function loadTestReferenceData() {
   const scenario = resolveE2eScenario(process.env.E2E_SCENARIO);
   const writes = buildReferenceDataWrites(
     bundle,
-    process.env.TEST_REFERENCE_TIMESTAMP || DEFAULT_TEST_DATA_TIMESTAMP,
+    resolveTestDataTimestamp(process.env.TEST_REFERENCE_TIMESTAMP),
     scenario
   );
 

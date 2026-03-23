@@ -1,6 +1,8 @@
 import type { RaidCharacter, RaidDocument } from "../types/index.js";
 
-export type RaidCharacterResponse = Omit<RaidCharacter, "raiderBattleNetId">;
+export type RaidCharacterResponse = Omit<RaidCharacter, "raiderBattleNetId"> & {
+  isCurrentUser: boolean;
+};
 export type RaidDocumentResponse = Omit<RaidDocument, "raidCharacters"> & {
   raidCharacters: RaidCharacterResponse[];
 };
@@ -14,23 +16,35 @@ export function normalizeNameString(name: unknown): string {
   return "";
 }
 
-export function sanitizeRaidCharacterForResponse(character: RaidCharacter): RaidCharacterResponse {
-  const { raiderBattleNetId: _stripped, ...rest } = character;
+export function sanitizeRaidCharacterForResponse(
+  character: RaidCharacter,
+  currentBattleNetId?: string
+): RaidCharacterResponse {
+  const { raiderBattleNetId, ...rest } = character;
   return {
     ...rest,
+    isCurrentUser: raiderBattleNetId === currentBattleNetId,
     characterClassName: normalizeNameString(rest.characterClassName),
     characterRaceName: normalizeNameString(rest.characterRaceName),
   };
 }
 
-export function sanitizeRaidDocumentForResponse(raid: RaidDocument): RaidDocumentResponse {
+export function sanitizeRaidDocumentForResponse(
+  raid: RaidDocument,
+  currentBattleNetId?: string
+): RaidDocumentResponse {
   return {
     ...raid,
     instanceName: normalizeNameString(raid.instanceName),
-    raidCharacters: raid.raidCharacters.map(sanitizeRaidCharacterForResponse),
+    raidCharacters: raid.raidCharacters.map((character) =>
+      sanitizeRaidCharacterForResponse(character, currentBattleNetId)
+    ),
   };
 }
 
-export function sanitizeOptionalRaidDocumentForResponse(raid?: RaidDocument): RaidDocumentResponse | null {
-  return raid ? sanitizeRaidDocumentForResponse(raid) : null;
+export function sanitizeOptionalRaidDocumentForResponse(
+  raid?: RaidDocument,
+  currentBattleNetId?: string
+): RaidDocumentResponse | null {
+  return raid ? sanitizeRaidDocumentForResponse(raid, currentBattleNetId) : null;
 }

@@ -17,7 +17,6 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick }: 
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
     : "—";
-  const hasPassed = startDt?.isValid ? startDt < DateTime.now() : false;
   const inCount = raid.raidCharacters.filter(rc => rc.desiredAttendance === "IN").length;
 
   return (
@@ -47,10 +46,10 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick }: 
         </Typography>
         <Chip label={modeLabel} size="small" variant="outlined" sx={{ flexShrink: 0, height: 20, fontSize: "0.7rem" }} />
       </Box>
-      <Typography variant="caption" color={hasPassed ? "text.disabled" : "text.secondary"}>
+      <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
         {startDisplay}
       </Typography>
-      <Typography variant="caption" color="text.disabled">
+      <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
         {inCount} attending · {raid.raidCharacters.length} total
       </Typography>
     </Box>

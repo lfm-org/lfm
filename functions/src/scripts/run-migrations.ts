@@ -6,14 +6,14 @@
  *   DRY_RUN=true COSMOS_ENDPOINT=... npx tsx functions/src/scripts/run-migrations.ts
  *
  * Required env vars: COSMOS_ENDPOINT, COSMOS_DATABASE
- * Authentication: DefaultAzureCredential (managed identity / Azure CLI / workload identity)
+ * Authentication: shared Cosmos client options helper
  */
-import { CosmosClient } from "@azure/cosmos";
-import { DefaultAzureCredential } from "@azure/identity";
+import { CosmosClient, PartitionKeyKind } from "@azure/cosmos";
 import { Umzug } from "umzug";
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createCosmosClientOptions } from "../lib/cosmos.js";
 import { CosmosMigrationsStorage } from "../lib/cosmos-migrations-storage.js";
 
 const DRY_RUN = process.env.DRY_RUN === "true";
@@ -28,10 +28,13 @@ async function main() {
 
   if (DRY_RUN) console.log("DRY RUN — no writes will be made");
 
-  const client = new CosmosClient({ endpoint, aadCredentials: new DefaultAzureCredential() });
+  const client = new CosmosClient(createCosmosClientOptions());
   const { container } = await client.database(dbName).containers.createIfNotExists({
     id: "migrations",
-    partitionKey: { paths: ["/id"] },
+    partitionKey: {
+      paths: ["/id"],
+      kind: PartitionKeyKind.Hash,
+    },
   });
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));

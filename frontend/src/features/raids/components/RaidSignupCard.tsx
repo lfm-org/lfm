@@ -47,8 +47,8 @@ export default function RaidSignupCard({
   const [pendingCancel, setPendingCancel] = useState(false);
 
   const existingSignup = useMemo(
-    () => user ? raid.raidCharacters.find(rc => rc.raiderBattleNetId === user.battleNetId) : undefined,
-    [raid.raidCharacters, user?.battleNetId]
+    () => user ? raid.raidCharacters.find(rc => rc.isCurrentUser) : undefined,
+    [raid.raidCharacters, user]
   );
 
   const closeTime = raid.signupCloseTime

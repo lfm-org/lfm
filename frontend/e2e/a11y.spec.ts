@@ -40,15 +40,15 @@ authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ pag
 });
 
 authenticatedTest("combined raid card detail is keyboard reachable and axe-clean", async ({ page }) => {
-  await page.goto("/raids?raid=raid-public-signup-target-icc25");
+  await page.goto("/raids?raid=raid-public-generated-02");
   const signupRegion = page
     .getByTestId("raid-card")
-    .filter({ hasText: "Heroic farm night" })
-    .getByRole("region", { name: "Your Signup for Heroic farm night" });
-  const signupAction = signupRegion.getByRole("button", { name: /Sign Up|Change/ });
+    .filter({ hasText: "Public roster check 2" })
+    .getByRole("region", { name: "Your Signup for Public roster check 2" });
+  const signupAction = signupRegion.getByRole("combobox", { name: /Character/ });
 
   await expect(signupRegion).toBeVisible();
   await expect(signupAction).toBeVisible();
-  await tabUntilFocused(page, signupAction, 12);
+  await tabUntilFocused(page, signupAction, 40);
   await expectNoSeriousA11yViolations(page);
 });

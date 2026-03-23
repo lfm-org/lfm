@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   buildExecutionPlan,
+  isRetryableFunctionsScriptOutput,
+  retryCommandResult,
   buildRuntimeProfile,
   resolveCliArgs,
 } from "./dev-env.mjs";
@@ -88,4 +90,100 @@ test("buildExecutionPlan preserves e2e shorthand spec names for compatibility", 
   const plan = buildExecutionPlan("/repo", resolveCliArgs(["test", "signup"]));
 
   assert.deepEqual(plan.playwrightArgs, ["e2e/signup.spec.ts"]);
+});
+
+test("retryCommandResult retries transient Cosmos startup failures", async () => {
+  let attempts = 0;
+  const delays = [];
+
+  const result = await retryCommandResult(
+    async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: "pgcosmos extension is still starting; retry request shortly",
+        };
+      }
+
+      return {
+        exitCode: 0,
+        stdout: "ok",
+        stderr: "",
+      };
+    },
+    {
+      attempts: 3,
+      delayMs: 25,
+      sleepFn: async (delayMs) => {
+        delays.push(delayMs);
+      },
+      shouldRetry: (result) => isRetryableFunctionsScriptOutput(`${result.stdout}\n${result.stderr}`),
+    }
+  );
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(attempts, 2);
+  assert.deepEqual(delays, [25]);
+});
+
+test("retryCommandResult retries transient Azurite blob failures", async () => {
+  let attempts = 0;
+  const delays = [];
+
+  const result = await retryCommandResult(
+    async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: 'RestError: {"statusCode": 500, "details": {"server": "Azurite-Blob/3.35.0"}}',
+        };
+      }
+
+      return {
+        exitCode: 0,
+        stdout: "ok",
+        stderr: "",
+      };
+    },
+    {
+      attempts: 3,
+      delayMs: 25,
+      sleepFn: async (delayMs) => {
+        delays.push(delayMs);
+      },
+      shouldRetry: (result) => isRetryableFunctionsScriptOutput(`${result.stdout}\n${result.stderr}`),
+    }
+  );
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(attempts, 2);
+  assert.deepEqual(delays, [25]);
+});
+
+test("retryCommandResult does not retry non-retryable failures", async () => {
+  let attempts = 0;
+
+  const result = await retryCommandResult(
+    async () => {
+      attempts += 1;
+      return {
+        exitCode: 1,
+        stdout: "",
+        stderr: "some other failure",
+      };
+    },
+    {
+      attempts: 3,
+      delayMs: 25,
+      sleepFn: async () => {},
+      shouldRetry: (result) => isRetryableFunctionsScriptOutput(`${result.stdout}\n${result.stderr}`),
+    }
+  );
+
+  assert.equal(result.exitCode, 1);
+  assert.equal(attempts, 1);
 });

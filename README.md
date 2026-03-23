@@ -28,11 +28,14 @@ Useful companion commands:
 - `./scripts/dev-env.mjs test`
 - `./scripts/dev-env.mjs test raids-error`
 - `./scripts/dev-env.mjs test signup`
+- `./scripts/e2e-all.sh`
 - `./scripts/dev-env.mjs refresh-reference`
 - `./scripts/dev-env.mjs reset`
 - `./scripts/dev-env.mjs down`
 
 `./scripts/e2e.sh ...` remains available as a compatibility wrapper for `./scripts/dev-env.mjs test ...`.
+
+`./scripts/e2e-all.sh` is the intended full e2e suite. It runs the default Playwright-discovered specs plus the scenario-specific specs that require separate seed states.
 
 The `test` runner uses a separate stack on different ports (`4173`, `7072`, `8082`, `10001`) and separate scratch/data paths under `.tmp/e2e/`, so local dev and e2e can run at the same time without mixing data.
 
