@@ -38,14 +38,12 @@ jobs:
         working-directory: functions
         run: |
           npm prune --production
-          cd .. && zip -r /tmp/functions.zip functions/ -x 'functions/node_modules/.cache/*' 'functions/src/*' 'functions/.git*'
 
       - name: Deploy to Azure Functions
-        run: |
-          az functionapp deployment source config-zip \
-            --resource-group lfm \
-            --name lfm-functions \
-            --src /tmp/functions.zip
+        uses: Azure/functions-action@v1
+        with:
+          app-name: lfm-functions
+          package: functions
 
       - name: Verify deployment health
         run: |
