@@ -115,7 +115,7 @@ resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssi
   properties: {
     roleDefinitionId: '${cosmosAccountRef.id}/sqlRoleDefinitions/${cosmosDataContributorRoleId}'
     principalId: functionApp.identity.principalId
-    scope: cosmosAccountRef.id
+    scope: '${cosmosAccountRef.id}/dbs/lfm'
   }
 }
 
