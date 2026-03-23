@@ -1,5 +1,5 @@
 import { HttpRequest } from "@azure/functions";
-import { decryptToken } from "./crypto.js";
+import { unsealSession } from "./crypto.js";
 import { getTestModeAccessTokenFromCookieHeader, getTestModeIdentity } from "./test-mode.js";
 import type { BattleNetIdentity } from "../types/index.js";
 
@@ -11,14 +11,11 @@ export async function requireAuth(request: HttpRequest): Promise<BattleNetIdenti
   const match = cookieHeader.match(/(?:^|;\s*)battlenet_token=([^;]*)/);
   if (!match) return null;
 
-  const payload = decryptToken(decodeURIComponent(match[1]));
-  if (!payload) return null;
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now > payload.issuedAt + payload.expiresIn) return null;
+  const accessToken = await unsealSession(decodeURIComponent(match[1]));
+  if (!accessToken) return null;
 
   const { battlenet } = await import("./battlenet.js");
-  return battlenet.resolveIdentity(payload.accessToken);
+  return battlenet.resolveIdentity(accessToken);
 }
 
 export interface AuthWithToken {
@@ -47,15 +44,12 @@ export async function requireAuthWithToken(request: HttpRequest): Promise<AuthWi
   const match = cookieHeader.match(/(?:^|;\s*)battlenet_token=([^;]*)/);
   if (!match) return null;
 
-  const payload = decryptToken(decodeURIComponent(match[1]));
-  if (!payload) return null;
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now > payload.issuedAt + payload.expiresIn) return null;
+  const accessToken = await unsealSession(decodeURIComponent(match[1]));
+  if (!accessToken) return null;
 
   const { battlenet } = await import("./battlenet.js");
-  const identity = await battlenet.resolveIdentity(payload.accessToken);
+  const identity = await battlenet.resolveIdentity(accessToken);
   if (!identity) return null;
 
-  return { identity, accessToken: payload.accessToken };
+  return { identity, accessToken };
 }
