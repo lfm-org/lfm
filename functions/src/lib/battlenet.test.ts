@@ -23,18 +23,20 @@ afterEach(() => {
 });
 
 describe("BattlenetService local test mode", () => {
-  it("buildAuthorizationUrl short-circuits to the local callback in test mode", () => {
+  it("buildAuthorizationUrl short-circuits to the local callback in test mode", async () => {
     process.env.TEST_MODE = "true";
     process.env.COSMOS_ENDPOINT = "http://localhost:8081";
     process.env.BATTLE_NET_REDIRECT_URI = "http://127.0.0.1:7071/api/battlenet/callback";
     process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     const service = new BattlenetService();
-    const url = new URL(service.buildAuthorizationUrl("/raids/new", "needs-character"));
+    const { authUrl, loginStateCookie } = await service.buildAuthorizationUrl("/raids/new", "needs-character");
+    const url = new URL(authUrl);
 
     expect(`${url.origin}${url.pathname}`).toBe("http://127.0.0.1:7071/api/battlenet/callback");
     expect(url.searchParams.get("code")).toBe(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE);
     expect(url.searchParams.get("state")).toBeTruthy();
+    expect(loginStateCookie).toBeNull();
   });
 
   it("handleCallback maps deterministic local callback codes without external fetches", async () => {
@@ -54,7 +56,7 @@ describe("BattlenetService local test mode", () => {
         selectedCharacterId: null,
       });
 
-    await expect(service.handleCallback(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE)).resolves.toEqual({
+    await expect(service.handleCallback(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE, undefined, undefined)).resolves.toEqual({
       accessToken: TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN,
       expiresIn: 86400,
       redirect: "/",

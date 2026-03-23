@@ -1,4 +1,5 @@
-import { signState, verifyState, hashBattleNetId } from "./crypto.js";
+import * as oauth from "oauth4webapi";
+import { sealLoginState, verifyLoginState, hashBattleNetId } from "./crypto.js";
 import { getRaidersContainer } from "./cosmos.js";
 import { toBattleNetIdentity } from "./blizzard-adapters.js";
 import {
@@ -15,10 +16,6 @@ import type {
 import type { BattleNetIdentity, RaiderDocument, LoginResponse } from "../types/index.js";
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
-
-interface BattleNetLoginState {
-  redirect?: string;
-}
 
 interface BattleNetTokenResponse {
   access_token: string;
@@ -105,61 +102,79 @@ export class BattlenetService {
     this.profileNamespace = PROFILE_NAMESPACES[this.region];
   }
 
-  public buildAuthorizationUrl(redirect?: string, testAuthScenario?: string): string {
+  public async buildAuthorizationUrl(
+    redirect?: string,
+    testAuthScenario?: string
+  ): Promise<{ authUrl: string; loginStateCookie: string | null }> {
     const normalizedRedirect = normalizeRedirectPath(redirect);
-    const state = this.encodeState({ redirect: normalizedRedirect });
     const testModeCallbackCode = getTestModeCallbackCodeForScenario(testAuthScenario);
+
     if (testModeCallbackCode) {
+      // Test mode: skip PKCE, redirect straight to callback
       const url = new URL(this.redirectUri);
       url.searchParams.set("code", testModeCallbackCode);
-      url.searchParams.set("state", state);
-      return url.toString();
+      url.searchParams.set("state", "test-state");
+      return { authUrl: url.toString(), loginStateCookie: null };
     }
 
     if (!this.clientId || !this.redirectUri) {
       console.warn("Battle.net OAuth is not configured");
-      return this.buildFrontendFailureUrl();
+      return { authUrl: this.buildFrontendFailureUrl(), loginStateCookie: null };
     }
+
+    const state = oauth.generateRandomState();
+    const codeVerifier = oauth.generateRandomCodeVerifier();
+    const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
+    const loginStateCookie = await sealLoginState({ state, codeVerifier, redirect: normalizedRedirect });
+
     const url = new URL(this.authorizeUrl);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("client_id", this.clientId);
     url.searchParams.set("redirect_uri", this.redirectUri);
     url.searchParams.set("scope", "openid wow.profile");
     url.searchParams.set("state", state);
-    return url.toString();
+    url.searchParams.set("code_challenge", codeChallenge);
+    url.searchParams.set("code_challenge_method", "S256");
+    return { authUrl: url.toString(), loginStateCookie };
   }
 
   public async handleCallback(
     code?: string,
-    state?: string
+    redirect?: string,
+    codeVerifier?: string
   ): Promise<LoginResponse | null> {
     if (!code) {
       console.warn("Battle.net callback did not include a code");
       return null;
     }
-    const parsedState = this.decodeState(state);
-    const redirect = normalizeRedirectPath(parsedState?.redirect);
+
     const testModeAccessToken = getTestModeAccessTokenForCallbackCode(code);
-    const token = testModeAccessToken
-      ? {
-          access_token: testModeAccessToken,
-          token_type: "bearer",
-          expires_in: 86400,
-        }
-      : await this.exchangeCodeForToken(code);
-    if (!token) {
-      console.warn("Battle.net handleCallback: token exchange returned null");
-      return null;
+    let accessToken: string;
+    let expiresIn: number;
+
+    if (testModeAccessToken) {
+      // Test mode: skip PKCE/state verification
+      accessToken = testModeAccessToken;
+      expiresIn = 86400;
+    } else {
+      const token = await this.exchangeCodeForToken(code, codeVerifier);
+      if (!token) {
+        console.warn("Battle.net handleCallback: token exchange returned null");
+        return null;
+      }
+      accessToken = token.access_token;
+      expiresIn = token.expires_in;
     }
-    const result = await this.authenticateWithToken(token.access_token);
+
+    const result = await this.authenticateWithToken(accessToken);
     if (!result) {
       console.warn("Battle.net handleCallback: authenticateWithToken returned null");
       return null;
     }
     return {
-      accessToken: token.access_token,
-      expiresIn: token.expires_in,
-      redirect,
+      accessToken,
+      expiresIn,
+      redirect: normalizeRedirectPath(redirect),
       guildName: result.identity.guildName,
       selectedCharacterId: result.selectedCharacterId,
     };
@@ -304,37 +319,41 @@ export class BattlenetService {
   }
 
   private async exchangeCodeForToken(
-    code: string
+    code: string,
+    codeVerifier?: string
   ): Promise<BattleNetTokenResponse | null> {
     if (!this.clientSecret) {
       console.warn("Battle.net client secret is not configured");
       return null;
     }
     try {
-      const body = new URLSearchParams();
-      body.set("grant_type", "authorization_code");
-      body.set("code", code);
-      body.set("redirect_uri", this.redirectUri);
+      const as: oauth.AuthorizationServer = {
+        issuer: `https://${AUTH_HOSTS[this.region]}`,
+        token_endpoint: this.tokenUrl,
+      };
+      const client: oauth.Client = { client_id: this.clientId };
 
-      const credentials = Buffer.from(
-        `${this.clientId}:${this.clientSecret}`
-      ).toString("base64");
+      // Reconstruct callback params for oauth4webapi
+      const callbackUrl = new URL(this.redirectUri);
+      callbackUrl.searchParams.set("code", code);
 
-      const response = await fetch(this.tokenUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${credentials}`,
-        },
-        body: body.toString(),
-      });
+      const callbackParams = oauth.validateAuthResponse(as, client, callbackUrl);
 
-      if (!response.ok) {
-        const text = await response.text().catch(() => "(unreadable)");
-        console.warn(`Battle.net token exchange failed: ${response.status} ${text}`);
-        return null;
-      }
-      return response.json() as Promise<BattleNetTokenResponse>;
+      const tokenResponse = await oauth.authorizationCodeGrantRequest(
+        as,
+        client,
+        oauth.ClientSecretBasic(this.clientSecret),
+        callbackParams,
+        this.redirectUri,
+        codeVerifier ?? "",
+      );
+
+      const tokens = await oauth.processAuthorizationCodeResponse(as, client, tokenResponse);
+      return {
+        access_token: tokens.access_token,
+        token_type: tokens.token_type,
+        expires_in: tokens.expires_in ?? 86400,
+      };
     } catch (error) {
       console.warn(`Battle.net token exchange error: ${error}`);
       return null;
@@ -360,22 +379,6 @@ export class BattlenetService {
     }
   }
 
-  private encodeState(state: BattleNetLoginState): string {
-    const json = Buffer.from(JSON.stringify(state), "utf-8").toString("base64");
-    return signState(json);
-  }
-
-  private decodeState(state?: string): BattleNetLoginState | null {
-    if (!state) return null;
-    const raw = decodeURIComponent(state);
-    const verified = verifyState(raw);
-    if (!verified) return null;
-    try {
-      return JSON.parse(Buffer.from(verified, "base64").toString("utf-8"));
-    } catch {
-      return null;
-    }
-  }
 }
 
 export const battlenet = new BattlenetService();
