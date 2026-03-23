@@ -1,67 +1,75 @@
-import { createHmac, createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "crypto";
-import type { TokenPayload } from "../types/index.js";
+import { createHmac, createSecretKey } from "crypto";
+import { EncryptJWT, jwtDecrypt, SignJWT, jwtVerify } from "jose";
 
-const hmacSecret = (): string => {
-  const secret = process.env.HMAC_SECRET;
-  if (!secret) throw new Error("HMAC_SECRET environment variable is not set");
-  return secret;
-};
+// --- Key helpers ---
 
-const encryptionKey = (): Buffer => {
-  const key = process.env.TOKEN_ENCRYPTION_KEY;
-  if (!key) throw new Error("TOKEN_ENCRYPTION_KEY environment variable is not set");
-  return Buffer.from(key, "hex");
-};
+function hmacKey() {
+  const hex = process.env.HMAC_SECRET;
+  if (!hex) throw new Error("HMAC_SECRET environment variable is not set");
+  return createSecretKey(Buffer.from(hex, "hex"));
+}
 
-// --- Battle.net ID hashing ---
+function sessionKey() {
+  const hex = process.env.SESSION_ENCRYPTION_KEY;
+  if (!hex) throw new Error("SESSION_ENCRYPTION_KEY environment variable is not set");
+  return createSecretKey(Buffer.from(hex, "hex"));
+}
+
+// --- Battle.net ID hashing (HMAC-SHA256 for privacy; existing raider IDs depend on this) ---
 
 export function hashBattleNetId(id: string | number): string {
-  return createHmac("sha256", hmacSecret()).update(String(id)).digest("hex");
+  const hex = process.env.HMAC_SECRET;
+  if (!hex) throw new Error("HMAC_SECRET environment variable is not set");
+  return createHmac("sha256", hex).update(String(id)).digest("hex");
 }
 
-// --- OAuth state signing ---
+// --- Session cookie (JWE A256GCM via jose; replaces custom AES-256-GCM) ---
 
-export function signState(state: string): string {
-  const signature = createHmac("sha256", hmacSecret()).update(state).digest("hex");
-  return `${state}.${signature}`;
+export async function sealSession(accessToken: string, expiresIn: number): Promise<string> {
+  return new EncryptJWT({ accessToken })
+    .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(Date.now() / 1000) + expiresIn)
+    .encrypt(sessionKey());
 }
 
-export function verifyState(signedState: string): string | null {
-  const lastDot = signedState.lastIndexOf(".");
-  if (lastDot === -1) return null;
-  const state = signedState.substring(0, lastDot);
-  const signature = signedState.substring(lastDot + 1);
-  const expected = createHmac("sha256", hmacSecret()).update(state).digest("hex");
-  const sigBuf = Buffer.from(signature, "hex");
-  const expBuf = Buffer.from(expected, "hex");
-  if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) return null;
-  return state;
-}
-
-// --- Token encryption (AES-256-GCM) ---
-
-export function encryptToken(payload: TokenPayload): string {
-  const key = encryptionKey();
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const plaintext = JSON.stringify(payload);
-  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  // Format: base64(iv + authTag + ciphertext)
-  return Buffer.concat([iv, authTag, encrypted]).toString("base64");
-}
-
-export function decryptToken(encoded: string): TokenPayload | null {
+export async function unsealSession(token: string): Promise<string | null> {
   try {
-    const key = encryptionKey();
-    const data = Buffer.from(encoded, "base64");
-    const iv = data.subarray(0, 12);
-    const authTag = data.subarray(12, 28);
-    const ciphertext = data.subarray(28);
-    const decipher = createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    return JSON.parse(decrypted.toString("utf8")) as TokenPayload;
+    const { payload } = await jwtDecrypt(token, sessionKey());
+    return typeof payload.accessToken === "string" ? payload.accessToken : null;
+  } catch {
+    return null;
+  }
+}
+
+// --- Login state cookie (signed JWT containing PKCE verifier + redirect; replaces HMAC state) ---
+
+export interface LoginStatePayload {
+  state: string;
+  codeVerifier: string;
+  redirect: string;
+}
+
+export async function sealLoginState(loginState: LoginStatePayload): Promise<string> {
+  return new SignJWT({ state: loginState.state, codeVerifier: loginState.codeVerifier, redirect: loginState.redirect })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(hmacKey());
+}
+
+export async function verifyLoginState(token: string): Promise<LoginStatePayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, hmacKey());
+    const { state, codeVerifier, redirect } = payload;
+    if (
+      typeof state !== "string" ||
+      typeof codeVerifier !== "string" ||
+      typeof redirect !== "string"
+    ) {
+      return null;
+    }
+    return { state, codeVerifier, redirect };
   } catch {
     return null;
   }
