@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Avatar, Box, Button, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import api from "../../../lib/api";
@@ -29,6 +29,8 @@ function parsePageParam(value: string | null): number {
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<AccountCharacter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [portraits, setPortraits] = useState<Record<string, string>>({});
+  const fetchedPortraitIds = useRef(new Set<string>());
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { onCharacterSelected } = useAuth();
@@ -44,7 +46,10 @@ export default function CharactersPage() {
   const currentPage = parsePageParam(searchParams.get("page"));
   const totalPages = Math.max(1, Math.ceil(characters.length / PAGE_SIZE));
   const clampedPage = Math.min(Math.max(currentPage, 1), totalPages);
-  const visibleChars = characters.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE);
+  const visibleChars = useMemo(
+    () => characters.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE),
+    [characters, clampedPage, PAGE_SIZE]
+  );
 
   useEffect(() => {
     api.get<AccountCharacter[]>("/battlenet/characters").then(res => {
@@ -53,6 +58,27 @@ export default function CharactersPage() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const missing = visibleChars.filter(c => {
+      if (c.portraitUrl) return false;
+      const id = `${c.region}-${c.realm}-${c.name.toLowerCase()}`;
+      return !fetchedPortraitIds.current.has(id);
+    });
+    if (missing.length === 0) return;
+
+    const ids = missing.map(c => `${c.region}-${c.realm}-${c.name.toLowerCase()}`);
+    ids.forEach(id => fetchedPortraitIds.current.add(id));
+
+    api.post<Record<string, string>>(
+      "/battlenet/character-portraits",
+      missing.map(c => ({ region: c.region, realm: c.realm, name: c.name }))
+    ).then(res => {
+      setPortraits(prev => ({ ...prev, ...res.data }));
+    }).catch(() => {
+      ids.forEach(id => fetchedPortraitIds.current.delete(id));
+    });
+  }, [visibleChars]);
 
   const handlePageChange = (page: number) => {
     const next = new URLSearchParams(searchParams);
@@ -108,6 +134,8 @@ export default function CharactersPage() {
         >
           {visibleChars.map((char) => {
             const color = char.classId ? classColor(char.classId) : undefined;
+            const charId = `${char.region}-${char.realm}-${char.name.toLowerCase()}`;
+            const portraitSrc = char.portraitUrl || portraits[charId];
             return (
               <Button
                 key={`${char.realm}-${char.name}`}
@@ -128,7 +156,7 @@ export default function CharactersPage() {
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, width: "100%" }}>
                   <Avatar
-                    src={char.portraitUrl}
+                    src={portraitSrc}
                     alt={char.name}
                     sx={{ width: 40, height: 40, flexShrink: 0, bgcolor: color ?? "action.selected" }}
                   />
