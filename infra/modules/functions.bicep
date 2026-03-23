@@ -22,7 +22,10 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
   kind: 'web'
-  properties: { Application_Type: 'web' }
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspaceId
+  }
 }
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -169,11 +172,6 @@ resource functionDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-p
     ]
   }
 }
-
-// Custom domain managed cert + SNI binding provisioned via CLI (one-time, order-dependent):
-// 1. az webapp config hostname add --webapp-name lfm-functions --resource-group lfm --hostname lfm-api.dinosauruskeksi.com
-// 2. az webapp config ssl create --resource-group lfm --name lfm-functions --hostname lfm-api.dinosauruskeksi.com
-// 3. az webapp config ssl bind --resource-group lfm --name lfm-functions --certificate-thumbprint <thumbprint> --ssl-type SNI
 
 output functionAppHostname string = functionApp.properties.defaultHostName
 output functionAppPrincipalId string = functionApp.identity.principalId

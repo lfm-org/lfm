@@ -19,6 +19,19 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Ensure resource group exists
+        run: az group create --name lfm --location westeurope
+
+      - name: Recover soft-deleted Key Vault if exists
+        run: |
+          DELETED_KV=$(az keyvault list-deleted --query "[?name=='lfm-kv-prot'].name" -o tsv)
+          if [ -n "$DELETED_KV" ]; then
+            echo "Recovering soft-deleted Key Vault lfm-kv-prot..."
+            az keyvault recover --name lfm-kv-prot
+          else
+            echo "No soft-deleted Key Vault found, proceeding with fresh creation."
+          fi
+
       - name: Deploy Bicep
         uses: azure/arm-deploy@v2
         with:
@@ -27,3 +40,75 @@ jobs:
           template: infra/main.bicep
           parameters: infra/parameters.prod.lfm.json
           failOnStdErr: false
+
+      - name: Configure Functions custom domain and managed certificate
+        run: |
+          HOSTNAME="lfm-api.dinosauruskeksi.com"
+          APP="lfm-functions"
+          RG="lfm"
+
+          # Add custom hostname (idempotent — no-op if already bound)
+          EXISTING=$(az webapp config hostname list \
+            --webapp-name "$APP" --resource-group "$RG" \
+            --query "[?name=='$HOSTNAME'].name" -o tsv)
+
+          if [ -z "$EXISTING" ]; then
+            echo "Adding custom hostname $HOSTNAME..."
+            az webapp config hostname add \
+              --webapp-name "$APP" --resource-group "$RG" --hostname "$HOSTNAME"
+          else
+            echo "Hostname $HOSTNAME already bound."
+          fi
+
+          # Create managed certificate if one doesn't already exist
+          THUMBPRINT=$(az webapp config ssl list --resource-group "$RG" \
+            --query "[?subjectName=='$HOSTNAME'].thumbprint | [0]" -o tsv)
+
+          if [ -z "$THUMBPRINT" ]; then
+            echo "Creating managed certificate for $HOSTNAME..."
+            THUMBPRINT=$(az webapp config ssl create \
+              --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" \
+              --query thumbprint -o tsv)
+          else
+            echo "Managed certificate already exists (thumbprint: $THUMBPRINT)."
+          fi
+
+          # Bind certificate with SNI (idempotent — re-binding same cert is a no-op)
+          echo "Binding certificate to $HOSTNAME..."
+          az webapp config ssl bind \
+            --resource-group "$RG" --name "$APP" \
+            --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
+
+      - name: Configure SWA custom domain
+        run: |
+          HOSTNAME="lfm.dinosauruskeksi.com"
+          SWA="lfm-swa"
+          RG="lfm"
+
+          # Set custom domain (idempotent — SWA auto-provisions managed certificate)
+          EXISTING=$(az staticwebapp hostname list \
+            --name "$SWA" --resource-group "$RG" \
+            --query "[?domainName=='$HOSTNAME'].domainName" -o tsv)
+
+          if [ -z "$EXISTING" ]; then
+            echo "Adding custom domain $HOSTNAME to SWA..."
+            az staticwebapp hostname set \
+              --name "$SWA" --resource-group "$RG" --hostname "$HOSTNAME"
+          else
+            echo "SWA custom domain $HOSTNAME already configured."
+          fi
+
+      - name: Delete auto-created Smart Detection action group
+        run: |
+          # Azure auto-creates an action group named ai_<app-insights>_<guid>_managed
+          # for classic smart detection alerts. Remove it to keep the RG clean.
+          AUTO_AG=$(az monitor action-group list --resource-group lfm \
+            --query "[?starts_with(name, 'ai_lfm-functions-insights_')].name" -o tsv)
+
+          if [ -n "$AUTO_AG" ]; then
+            echo "Deleting auto-created action group: $AUTO_AG"
+            az monitor action-group delete \
+              --name "$AUTO_AG" --resource-group lfm
+          else
+            echo "No auto-created action group found."
+          fi
