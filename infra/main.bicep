@@ -10,12 +10,12 @@ param keyVaultName string
 param logAnalyticsWorkspaceName string
 
 module logAnalytics 'modules/loganalytics.bicep' = {
-  name: 'loganalytics'
+  name: '${uniqueString(resourceGroup().id, location)}-loganalytics'
   params: { location: location, workspaceName: logAnalyticsWorkspaceName }
 }
 
 module keyVault 'modules/keyvault.bicep' = {
-  name: 'keyvault'
+  name: '${uniqueString(resourceGroup().id, location)}-keyvault'
   params: {
     location: location
     keyVaultName: keyVaultName
@@ -24,7 +24,7 @@ module keyVault 'modules/keyvault.bicep' = {
 }
 
 module cosmos 'modules/cosmos.bicep' = {
-  name: 'cosmos'
+  name: '${uniqueString(resourceGroup().id, location)}-cosmos'
   params: {
     location: location
     accountName: cosmosAccountName
@@ -33,7 +33,7 @@ module cosmos 'modules/cosmos.bicep' = {
 }
 
 module storage 'modules/storage.bicep' = {
-  name: 'storage'
+  name: '${uniqueString(resourceGroup().id, location)}-storage'
   params: {
     location: location
     storageAccountName: storageAccountName
@@ -42,7 +42,7 @@ module storage 'modules/storage.bicep' = {
 }
 
 module functions 'modules/functions.bicep' = {
-  name: 'functions'
+  name: '${uniqueString(resourceGroup().id, location)}-functions'
   params: {
     location: location
     functionAppName: functionAppName
@@ -55,6 +55,6 @@ module functions 'modules/functions.bicep' = {
 }
 
 module swa 'modules/swa.bicep' = {
-  name: 'swa'
+  name: '${uniqueString(resourceGroup().id, location)}-swa'
   params: { location: location, swaName: swaName }
 }
