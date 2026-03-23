@@ -101,6 +101,16 @@ To run migrations manually:
 COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm npx tsx functions/src/scripts/run-migrations.ts
 ```
 
+## LSP Tool
+
+The LSP tool provides TypeScript language server intelligence. Use it for **code navigation and type inspection** — it does not surface diagnostics (use `tsc --noEmit` for that).
+
+Prefer LSP over reading files when:
+- **Resolving a type** — `hover` on an expression to see its inferred type without reading surrounding declarations
+- **Tracing a call** — `incomingCalls`/`outgoingCalls` to map where a function is called or what it calls
+- **Finding usages before renaming or deleting** — `findReferences` to ensure nothing is missed
+- **Jumping to a definition across packages** — `goToDefinition` when a symbol comes from a dependency
+
 ## Documentation Separation
 
 `CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, and architectural decisions. Do not mix in user-facing content — that belongs in `README.md` or `docs/user/`.
