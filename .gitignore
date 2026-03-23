@@ -63,6 +63,9 @@ node_modules/
 .cache/*
 !.cache/.gitkeep
 
+# Bicep compiled ARM templates
+infra/main.json
+
 # Azure Functions build output and local settings
 functions/local.settings.json
 functions/dist/
