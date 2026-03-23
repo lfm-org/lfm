@@ -205,7 +205,8 @@ export class BattlenetService {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!response.ok) {
-      throw new Error(`fetchGuildProfile failed: ${response.status}`);
+      const body = await response.text().catch(() => "(unreadable)");
+      throw new Error(`fetchGuildProfile failed: ${response.status} ${body}`);
     }
     return response.json() as Promise<BlizzardGuildProfileResponse>;
   }

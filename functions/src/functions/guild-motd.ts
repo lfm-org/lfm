@@ -12,12 +12,15 @@ function toGuildNameSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
-async function handler(request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
   const { guildId, guildName } = auth.identity;
-  if (!guildId || !guildName) return errorResponse(404, "No guild associated with this account");
+  if (!guildId || !guildName) {
+    context.log(`guild-motd: no guild in identity for ${auth.identity.battleNetId} (guildId=${guildId} guildName=${guildName})`);
+    return errorResponse(404, "No guild associated with this account");
+  }
 
   const guildDocId = String(guildId);
   const guildsContainer = getGuildsContainer();
@@ -47,6 +50,8 @@ async function handler(request: HttpRequest, _context: InvocationContext): Promi
   const realmSlug = selectedChar.realm;
   const nameSlug = toGuildNameSlug(guildName);
 
+  context.log(`guild-motd: fetching guild ${guildDocId} realm=${realmSlug} slug=${nameSlug}`);
+
   try {
     const profileSummary = await battlenet.fetchGuildProfile(realmSlug, nameSlug, auth.accessToken);
     const doc: GuildDocument = {
@@ -58,7 +63,8 @@ async function handler(request: HttpRequest, _context: InvocationContext): Promi
     };
     await guildsContainer.items.upsert(doc);
     return jsonResponse(toGuildMotdView(profileSummary));
-  } catch {
+  } catch (err) {
+    context.log(`guild-motd: fetch failed for guild ${guildDocId} realm=${realmSlug} slug=${nameSlug}:`, err instanceof Error ? err.message : err);
     // Fall back to stale cache if available, otherwise error
     if (cached?.profileSummary) return jsonResponse(toGuildMotdView(cached.profileSummary));
     return errorResponse(502, "Failed to fetch guild profile from Blizzard");
