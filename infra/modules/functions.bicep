@@ -75,7 +75,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'LFM_CLIENT_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
         { name: 'BATTLE_NET_REDIRECT_URI', value: 'https://lfm-api.dinosauruskeksi.com/api/battlenet/callback' }
         { name: 'HMAC_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=hmac-secret)' }
-        { name: 'TOKEN_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
+        { name: 'SESSION_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
       ]
     }
   }
