@@ -7,6 +7,8 @@ Project structure has migrated to Azure:
 
 For migration details, see `docs/superpowers/plans/`.
 
+When working on Azure-related tasks (infrastructure, deployment, Functions, Static Web Apps, Cosmos DB, Bicep, etc.), use the `microsoft-docs` skill to look up official documentation before making changes.
+
 ## Cost Guidance
 
 This is a hobby project. Prefer free tiers where available — Cosmos DB free tier, Functions Consumption (Y1), Static Web Apps Free, and workspace-based App Insights sharing the Log Analytics 5 GB/month free ingestion. Small fixed costs (Key Vault operations, Storage LRS) are fine. When adding or changing infrastructure, avoid introducing resources or SKUs that would create significant recurring costs without discussing it first.
