@@ -7,6 +7,10 @@ Project structure has migrated to Azure:
 
 For migration details, see `docs/superpowers/plans/`.
 
+## Cost Guidance
+
+This is a hobby project. Prefer free tiers where available — Cosmos DB free tier, Functions Consumption (Y1), Static Web Apps Free, and workspace-based App Insights sharing the Log Analytics 5 GB/month free ingestion. Small fixed costs (Key Vault operations, Storage LRS) are fine. When adding or changing infrastructure, avoid introducing resources or SKUs that would create significant recurring costs without discussing it first.
+
 ## Mandatory Git Workflow
 
 1. Start every task with a clean workspace; stop and alert the user if not clean.
