@@ -100,6 +100,14 @@ Rules for agents:
 - If you add a new scenario-only spec, update both `frontend/playwright.config.ts` and `scripts/e2e-all.sh`.
 - Keep e2e coverage deterministic and local-first. Do not add routine real Battle.net dependencies to the normal Playwright workflow.
 
+## Infrastructure Development
+
+`az` CLI commands are acceptable for **exploration and debugging** during infra development (e.g. inspecting resource state, testing a hypothesis). However:
+
+1. Any `az` CLI change to Azure resources is **temporary and must be reverted** once the investigation is done.
+2. The fix must be captured in Bicep templates (`infra/`) or the `deploy-infra.yml` workflow.
+3. Production state is always defined by `deploy-infra.yml` — never by ad-hoc CLI commands. All infrastructure changes ship through that workflow.
+
 ## Database Migrations
 
 Migrations live in `functions/src/scripts/migrations/` and run via umzug before every functions deploy (see `.github/workflows/deploy-functions.yml`). The migrations container in Cosmos tracks which have run; each migration executes at most once.
