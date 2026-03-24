@@ -3,29 +3,10 @@ import { requireAuth } from "../lib/auth.js";
 import { getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
 import { auditLog } from "../lib/audit.js";
 import { withSecurityHeaders } from "../middleware/security-headers.js";
-import type { RaidDocument } from "../types/index.js";
+import { scrubRaiderFromRaids, deleteRaiderDocument } from "../lib/raider-cleanup.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
 const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
-
-export function scrubRaidDocument(
-  raid: RaidDocument,
-  battleNetId: string
-): { modified: boolean; raid: RaidDocument } {
-  let modified = false;
-
-  const raidCharacters = raid.raidCharacters.filter(rc => rc.raiderBattleNetId !== battleNetId);
-  if (raidCharacters.length !== raid.raidCharacters.length) modified = true;
-
-  const creatorBattleNetId = raid.creatorBattleNetId === battleNetId ? null : raid.creatorBattleNetId;
-  if (creatorBattleNetId !== raid.creatorBattleNetId) modified = true;
-
-  if (!modified) return { modified: false, raid };
-  return {
-    modified: true,
-    raid: { ...raid, creatorBattleNetId, raidCharacters },
-  };
-}
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -35,28 +16,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   const { battleNetId } = identity;
 
-  // Find all raids involving this user (as creator or signup)
-  const raidsContainer = getRaidsContainer();
-  const { resources: raids } = await raidsContainer.items.query<RaidDocument>({
-    query: `SELECT * FROM c WHERE c.creatorBattleNetId = @battleNetId OR ARRAY_CONTAINS(c.raidCharacters, {"raiderBattleNetId": @battleNetId}, true)`,
-    parameters: [{ name: "@battleNetId", value: battleNetId }],
-  }).fetchAll();
-
-  // Scrub user data from each raid
-  await Promise.all(
-    raids.map(async (raid) => {
-      const { modified, raid: scrubbed } = scrubRaidDocument(raid, battleNetId);
-      if (modified) {
-        await raidsContainer.item(raid.id, raid.id).replace(scrubbed);
-      }
-    })
-  );
-
-  // Delete the raider document
-  await getRaidersContainer().item(battleNetId, battleNetId).delete();
+  await scrubRaiderFromRaids(battleNetId, getRaidsContainer());
+  await deleteRaiderDocument(battleNetId, getRaidersContainer());
   auditLog(context, { action: "account.delete", actorId: battleNetId, result: "success" });
 
-  // Return 200 and clear the auth cookie
   return withSecurityHeaders({
     status: 200,
     headers: { "Content-Type": "application/json" },
