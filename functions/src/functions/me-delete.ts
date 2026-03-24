@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
+import { auditLog } from "../lib/audit.js";
 import { withSecurityHeaders } from "../middleware/security-headers.js";
 import type { RaidDocument } from "../types/index.js";
 
@@ -26,7 +27,7 @@ export function scrubRaidDocument(
   };
 }
 
-async function handler(request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
   if (!identity) {
     return withSecurityHeaders({ status: 401, body: JSON.stringify({ error: "Unauthorized" }), headers: { "Content-Type": "application/json" } });
@@ -53,6 +54,7 @@ async function handler(request: HttpRequest, _context: InvocationContext): Promi
 
   // Delete the raider document
   await getRaidersContainer().item(battleNetId, battleNetId).delete();
+  auditLog(context, { action: "account.delete", actorId: battleNetId, result: "success" });
 
   // Return 200 and clear the auth cookie
   return withSecurityHeaders({

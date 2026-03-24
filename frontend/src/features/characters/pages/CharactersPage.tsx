@@ -52,11 +52,24 @@ export default function CharactersPage() {
   );
 
   useEffect(() => {
-    api.get<AccountCharacter[]>("/battlenet/characters").then(res => {
-      const sorted = [...res.data].sort((a, b) => b.level - a.level);
-      setCharacters(sorted);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    const fetchCharacters = async () => {
+      try {
+        const res = await api.get<AccountCharacter[]>("/battlenet/characters");
+        if (res.status === 204 || !res.data) {
+          const refreshRes = await api.post<AccountCharacter[]>("/battlenet/characters/refresh");
+          const sorted = [...refreshRes.data].sort((a, b) => b.level - a.level);
+          setCharacters(sorted);
+        } else {
+          const sorted = [...res.data].sort((a, b) => b.level - a.level);
+          setCharacters(sorted);
+        }
+      } catch {
+        // Fetch failed — show empty state
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCharacters();
   }, []);
 
   useEffect(() => {

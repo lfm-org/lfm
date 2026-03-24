@@ -1,6 +1,12 @@
 import { app } from "@azure/functions";
 
-const APP_ORIGIN = process.env.APP_BASE_URL || "http://localhost:5173";
+const APP_ORIGIN = (() => {
+  try {
+    return new URL(process.env.APP_BASE_URL || "http://localhost:5173").origin;
+  } catch {
+    return "http://localhost:5173";
+  }
+})();
 
 app.http("cors-preflight", {
   methods: ["OPTIONS"],

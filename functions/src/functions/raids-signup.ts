@@ -8,6 +8,7 @@ import {
   normalizeNameString,
   sanitizeOptionalRaidDocumentForResponse,
 } from "../lib/raidResponseSanitizer.js";
+import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus } from "../types/index.js";
 
@@ -113,6 +114,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       );
       const sanitizedRaid = sanitizeOptionalRaidDocumentForResponse(resource, identity.battleNetId);
       if (!sanitizedRaid) return errorResponse(500, "Failed to update raid");
+      auditLog(context, { action: "signup.update", actorId: identity.battleNetId, targetId: raidId, result: "success" });
       return jsonResponse(sanitizedRaid);
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 412) {

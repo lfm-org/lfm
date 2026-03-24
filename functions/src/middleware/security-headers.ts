@@ -1,12 +1,20 @@
 import { HttpResponseInit } from "@azure/functions";
 
-const APP_ORIGIN = process.env.APP_BASE_URL || "http://localhost:5173";
+const APP_ORIGIN = (() => {
+  try {
+    return new URL(process.env.APP_BASE_URL || "http://localhost:5173").origin;
+  } catch {
+    return "http://localhost:5173";
+  }
+})();
 
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; connect-src 'self' https:; frame-ancestors 'none'",
   "Access-Control-Allow-Origin": APP_ORIGIN,
   "Access-Control-Allow-Credentials": "true",
 };

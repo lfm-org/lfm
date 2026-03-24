@@ -3,6 +3,7 @@ import { requireAuthWithToken } from "../lib/auth.js";
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaiderDocument } from "../types/index.js";
+import { validateRegion, validateRealmSlug, validateCharacterName, encodeBlizzardPathSegments } from "../lib/blizzard-validation.js";
 import type { BlizzardCharacterMediaSummary } from "../types/blizzard.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -25,8 +26,17 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const toFetch: Array<{ region: string; realm: string; name: string; id: string }> = [];
 
   for (const char of body) {
-    const charName = char.name.toLowerCase();
-    const characterId = `${char.region}-${char.realm}-${charName}`;
+    let validRegion: string;
+    let validRealm: string;
+    let validName: string;
+    try {
+      validRegion = validateRegion(char.region);
+      validRealm = validateRealmSlug(char.realm);
+      validName = validateCharacterName(char.name);
+    } catch {
+      continue; // Skip invalid entries
+    }
+    const characterId = `${validRegion}-${validRealm}-${validName}`;
 
     // Check fully stored characters first (selected characters with cached media)
     const stored = raider.characters.find(c => c.id === characterId);
@@ -42,15 +52,14 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       continue;
     }
 
-    toFetch.push({ ...char, id: characterId });
+    toFetch.push({ region: validRegion, realm: validRealm, name: validName, id: characterId });
   }
 
   if (toFetch.length > 0) {
     const fetchResults = await Promise.allSettled(
       toFetch.map(async (char) => {
-        const charName = char.name.toLowerCase();
         const namespace = `profile-${char.region}`;
-        const apiBase = `https://${char.region}.api.blizzard.com/profile/wow/character/${char.realm}/${charName}`;
+        const apiBase = `https://${char.region}.api.blizzard.com/profile/wow/character/${encodeBlizzardPathSegments(char.realm, char.name)}`;
         const res = await fetch(`${apiBase}/character-media?namespace=${namespace}`, {
           headers: { Authorization: `Bearer ${auth.accessToken}` },
         });

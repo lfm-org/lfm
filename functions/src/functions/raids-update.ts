@@ -3,6 +3,7 @@ import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
+import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
 
@@ -109,6 +110,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     }
 
     const { resource } = await getRaidsContainer().item(id, id).replace(updated);
+    auditLog(context, { action: "raid.update", actorId: identity.battleNetId, targetId: id, result: "success" });
     return jsonResponse(resource);
   } catch (error: unknown) {
     if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");

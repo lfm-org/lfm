@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
+import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaidDocument } from "../types/index.js";
 
@@ -19,6 +20,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     }
 
     await getRaidsContainer().item(id, id).delete();
+    auditLog(context, { action: "raid.delete", actorId: identity.battleNetId, targetId: id, result: "success" });
     return jsonResponse({ deleted: true });
   } catch (error: unknown) {
     if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");

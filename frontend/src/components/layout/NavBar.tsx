@@ -1,6 +1,6 @@
 import { AppBar, Box, Button, Toolbar } from "@mui/material";
-import { Link as RouterLink, useLocation } from "react-router";
-import { getLogoutUrl } from "../../lib/auth";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router";
+import { logout } from "../../lib/auth";
 import Logo from "../Logo";
 
 interface NavBarCharacter {
@@ -14,6 +14,14 @@ interface NavBarProps {
 
 export default function NavBar({ character = null }: NavBarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/login");
+    }
+  };
   const redirectPath = location.pathname === "/" || location.pathname.startsWith("/login")
     ? "/raids"
     : `${location.pathname}${location.search}`;
@@ -58,8 +66,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               {character.name}
             </Button>
             <Button
-              component="a"
-              href={getLogoutUrl()}
+              onClick={handleLogout}
               color="inherit"
               size="small"
               sx={{ ml: 0.5 }}

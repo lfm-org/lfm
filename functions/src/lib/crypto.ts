@@ -3,23 +3,28 @@ import { EncryptJWT, jwtDecrypt, SignJWT, jwtVerify } from "jose";
 
 // --- Key helpers ---
 
+function validateHexKey(value: string | undefined, name: string): string {
+  if (!value) throw new Error(`${name} environment variable is not set`);
+  if (!/^[0-9a-fA-F]{64}$/.test(value)) {
+    throw new Error(`${name} must be exactly 64 hex characters (256-bit key)`);
+  }
+  return value;
+}
+
 function hmacKey() {
-  const hex = process.env.HMAC_SECRET;
-  if (!hex) throw new Error("HMAC_SECRET environment variable is not set");
+  const hex = validateHexKey(process.env.HMAC_SECRET, "HMAC_SECRET");
   return createSecretKey(Buffer.from(hex, "hex"));
 }
 
 function sessionKey() {
-  const hex = process.env.SESSION_ENCRYPTION_KEY;
-  if (!hex) throw new Error("SESSION_ENCRYPTION_KEY environment variable is not set");
+  const hex = validateHexKey(process.env.SESSION_ENCRYPTION_KEY, "SESSION_ENCRYPTION_KEY");
   return createSecretKey(Buffer.from(hex, "hex"));
 }
 
 // --- Battle.net ID hashing (HMAC-SHA256 for privacy; existing raider IDs depend on this) ---
 
 export function hashBattleNetId(id: string | number): string {
-  const hex = process.env.HMAC_SECRET;
-  if (!hex) throw new Error("HMAC_SECRET environment variable is not set");
+  const hex = validateHexKey(process.env.HMAC_SECRET, "HMAC_SECRET");
   return createHmac("sha256", hex).update(String(id)).digest("hex");
 }
 
