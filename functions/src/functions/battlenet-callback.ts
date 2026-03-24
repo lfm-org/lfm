@@ -1,38 +1,88 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { battlenet } from "../lib/battlenet.js";
 import { verifyLoginState, sealSession } from "../lib/crypto.js";
+import { isLocalTestMode } from "../lib/test-mode.js";
 import { redirectResponse } from "../middleware/security-headers.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
 const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
 
-async function handler(request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+function sessionCookie(encryptedToken: string, maxAge: number) {
+  return {
+    name: "battlenet_token",
+    value: encryptedToken,
+    options: {
+      domain: COOKIE_DOMAIN,
+      path: "/",
+      sameSite: "Lax",
+      secure: secureCookie,
+      httpOnly: true,
+      maxAge,
+    },
+  };
+}
+
+function clearLoginStateCookie() {
+  return {
+    name: "login_state",
+    value: "",
+    options: {
+      domain: COOKIE_DOMAIN,
+      path: "/",
+      sameSite: "Lax",
+      secure: secureCookie,
+      httpOnly: true,
+      maxAge: 0,
+    },
+  };
+}
+
+function rejectWithClearedCookie(): HttpResponseInit {
+  return redirectResponse(battlenet.buildFrontendFailureUrl(), [clearLoginStateCookie()]);
+}
+
+async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const code = request.query.get("code") ?? undefined;
   const urlState = request.query.get("state") ?? undefined;
 
-  // Extract and verify the PKCE login state cookie
+  // Extract the PKCE login state cookie
   const cookieHeader = request.headers.get("cookie") ?? "";
   const loginStateCookieMatch = cookieHeader.match(/(?:^|;\s*)login_state=([^;]*)/);
   const loginStateRaw = loginStateCookieMatch ? decodeURIComponent(loginStateCookieMatch[1]) : undefined;
 
-  let redirect: string | undefined;
-  let codeVerifier: string | undefined;
-
-  if (loginStateRaw) {
-    const loginState = await verifyLoginState(loginStateRaw);
-    if (loginState && loginState.state === urlState) {
-      redirect = loginState.redirect;
-      codeVerifier = loginState.codeVerifier;
-    } else if (loginState === null && urlState !== "test-state") {
-      // Login state cookie present but invalid (tampered or expired) — reject
-      console.warn("Battle.net callback: invalid or expired login_state cookie");
+  // Test-mode fast path: bypass PKCE for local E2E tests only
+  if (isLocalTestMode() && urlState === "test-state") {
+    const result = await battlenet.handleCallback(code, undefined, undefined);
+    if (!result) {
       return redirectResponse(battlenet.buildFrontendFailureUrl());
     }
+    const encryptedToken = await sealSession(result.accessToken, result.expiresIn || 86400);
+    const redirectUrl = result.selectedCharacterId
+      ? battlenet.buildFrontendSuccessUrl(result)
+      : `${process.env.APP_BASE_URL}/characters?redirect=${encodeURIComponent(result.redirect || "/raids")}`;
+    return redirectResponse(redirectUrl, [
+      sessionCookie(encryptedToken, result.expiresIn || 86400),
+      clearLoginStateCookie(),
+    ]);
   }
+
+  // Production path: both cookie and state query param are required
+  if (!loginStateRaw || !urlState) {
+    context.log("Battle.net callback: missing login_state cookie or state parameter");
+    return rejectWithClearedCookie();
+  }
+
+  const loginState = await verifyLoginState(loginStateRaw);
+  if (!loginState || loginState.state !== urlState) {
+    context.log("Battle.net callback: invalid, expired, or mismatched login_state");
+    return rejectWithClearedCookie();
+  }
+
+  const { redirect, codeVerifier } = loginState;
 
   const result = await battlenet.handleCallback(code, redirect, codeVerifier);
   if (!result) {
-    return redirectResponse(battlenet.buildFrontendFailureUrl());
+    return rejectWithClearedCookie();
   }
 
   const encryptedToken = await sealSession(result.accessToken, result.expiresIn || 86400);
@@ -40,32 +90,9 @@ async function handler(request: HttpRequest, _context: InvocationContext): Promi
     ? battlenet.buildFrontendSuccessUrl(result)
     : `${process.env.APP_BASE_URL}/characters?redirect=${encodeURIComponent(result.redirect || "/raids")}`;
 
-  // Clear login_state cookie and set session cookie
   return redirectResponse(redirectUrl, [
-    {
-      name: "battlenet_token",
-      value: encryptedToken,
-      options: {
-        domain: COOKIE_DOMAIN,
-        path: "/",
-        sameSite: "Lax",
-        secure: secureCookie,
-        httpOnly: true,
-        maxAge: result.expiresIn || 86400,
-      },
-    },
-    {
-      name: "login_state",
-      value: "",
-      options: {
-        domain: COOKIE_DOMAIN,
-        path: "/",
-        sameSite: "Lax",
-        secure: secureCookie,
-        httpOnly: true,
-        maxAge: 0,
-      },
-    },
+    sessionCookie(encryptedToken, result.expiresIn || 86400),
+    clearLoginStateCookie(),
   ]);
 }
 
@@ -75,3 +102,5 @@ app.http("battlenet-callback", {
   authLevel: "anonymous",
   handler,
 });
+
+export { handler };
