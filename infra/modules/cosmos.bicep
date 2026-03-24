@@ -38,9 +38,8 @@ resource raidersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
     resource: {
       id: 'raiders'
       partitionKey: { paths: ['/battleNetId'], kind: 'Hash' }
-      // 90-day TTL: documents are updated on every login (updating _ts),
-      // so inactive accounts expire 90 days after their last login.
-      defaultTtl: 7776000 // 90 days in seconds
+      // Cleanup handled by raider-cleanup timer function (daily, 90-day inactivity threshold).
+      // No container-level TTL — the timer scrubs raid data before deleting the raider document.
     }
   }
 }
