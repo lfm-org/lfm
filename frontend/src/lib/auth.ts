@@ -20,6 +20,6 @@ export function getLoginUrl(redirect?: string): string {
   return redirect ? `${base}?redirect=${encodeURIComponent(redirect)}` : base;
 }
 
-export function getLogoutUrl(): string {
-  return `${api.defaults.baseURL}/battlenet/logout`;
+export async function logout(): Promise<void> {
+  await api.post("/battlenet/logout");
 }
