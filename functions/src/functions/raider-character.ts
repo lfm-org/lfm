@@ -11,6 +11,7 @@ import type {
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
 } from "../types/blizzard.js";
+import { validateRegion, validateRealmSlug, validateCharacterName, encodeBlizzardPathSegments } from "../lib/blizzard-validation.js";
 import type { RaiderDocument, StoredSelectedCharacter } from "../types/index.js";
 
 export function canReuseCachedCharacter(
@@ -30,7 +31,7 @@ async function fetchCharacterSpecializationsSummary(
 ): Promise<BlizzardCharacterSpecializationsSummary | null> {
   const namespace = `profile-${region}`;
   const res = await fetch(
-    `https://${region}.api.blizzard.com/profile/wow/character/${realm}/${charName}/specializations?namespace=${namespace}`,
+    `https://${region}.api.blizzard.com/profile/wow/character/${encodeBlizzardPathSegments(realm, charName)}/specializations?namespace=${namespace}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   if (!res.ok) return null;
@@ -47,14 +48,24 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     return errorResponse(400, "region, realm, and name are required");
   }
 
+  let validRegion: string;
+  let validRealm: string;
+  let validName: string;
+  try {
+    validRegion = validateRegion(body.region);
+    validRealm = validateRealmSlug(body.realm);
+    validName = validateCharacterName(body.name);
+  } catch {
+    return errorResponse(400, "Invalid region, realm, or character name");
+  }
+
   const container = getRaidersContainer();
   const { resource: raider } = await container
     .item(auth.identity.battleNetId, auth.identity.battleNetId)
     .read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
 
-  const charName = body.name.toLowerCase();
-  const characterId = `${body.region}-${body.realm}-${charName}`;
+  const characterId = `${validRegion}-${validRealm}-${validName}`;
   const existingIdx = raider.characters.findIndex(c => c.id === characterId);
   const existing = existingIdx >= 0 ? raider.characters[existingIdx] : undefined;
 
@@ -63,13 +74,13 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   if (canReuseCachedCharacter(existing, auth.accessToken)) {
     character = existing as StoredSelectedCharacter;
   } else {
-    const namespace = `profile-${body.region}`;
-    const apiBase = `https://${body.region}.api.blizzard.com/profile/wow/character/${body.realm}/${charName}`;
+    const namespace = `profile-${validRegion}`;
+    const apiBase = `https://${validRegion}.api.blizzard.com/profile/wow/character/${encodeBlizzardPathSegments(validRealm, validName)}`;
     const authHeaders = { Authorization: `Bearer ${auth.accessToken}` };
 
     // If cached and fresh but missing specializations, only fetch specs
     if (existing && isFresh(existing.fetchedAt, CHARACTER_PROFILE_TTL_MS) && !existing.specializationsSummary) {
-      const specializationsSummary = await fetchCharacterSpecializationsSummary(body.region, body.realm, charName, auth.accessToken);
+      const specializationsSummary = await fetchCharacterSpecializationsSummary(validRegion, validRealm, validName, auth.accessToken);
       character = { ...existing, specializationsSummary };
     } else {
       const profileRes = await fetch(`${apiBase}?namespace=${namespace}`, { headers: authHeaders });
@@ -87,16 +98,16 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       }
 
       const specializationsSummary = await fetchCharacterSpecializationsSummary(
-        body.region,
-        body.realm,
-        charName,
+        validRegion,
+        validRealm,
+        validName,
         auth.accessToken
       );
 
       character = {
         id: characterId,
-        region: body.region,
-        realm: body.realm,
+        region: validRegion,
+        realm: validRealm,
         name: body.name,
         fetchedAt: new Date().toISOString(),
         profileSummary,
