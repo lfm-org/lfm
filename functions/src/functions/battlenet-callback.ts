@@ -2,6 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { battlenet } from "../lib/battlenet.js";
 import { verifyLoginState, sealSession } from "../lib/crypto.js";
 import { isLocalTestMode } from "../lib/test-mode.js";
+import { auditLog } from "../lib/audit.js";
 import { redirectResponse } from "../middleware/security-headers.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
@@ -68,13 +69,13 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   // Production path: both cookie and state query param are required
   if (!loginStateRaw || !urlState) {
-    context.log("Battle.net callback: missing login_state cookie or state parameter");
+    auditLog(context, { action: "login.failure", actorId: "anonymous", result: "failure", detail: "missing login_state or state" });
     return rejectWithClearedCookie();
   }
 
   const loginState = await verifyLoginState(loginStateRaw);
   if (!loginState || loginState.state !== urlState) {
-    context.log("Battle.net callback: invalid, expired, or mismatched login_state");
+    auditLog(context, { action: "login.failure", actorId: "anonymous", result: "failure", detail: "invalid or mismatched login_state" });
     return rejectWithClearedCookie();
   }
 
@@ -90,6 +91,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     ? battlenet.buildFrontendSuccessUrl(result)
     : `${process.env.APP_BASE_URL}/characters?redirect=${encodeURIComponent(result.redirect || "/raids")}`;
 
+  auditLog(context, { action: "login.success", actorId: "anonymous", result: "success" });
   return redirectResponse(redirectUrl, [
     sessionCookie(encryptedToken, result.expiresIn || 86400),
     clearLoginStateCookie(),

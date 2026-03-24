@@ -1,10 +1,12 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { auditLog } from "../lib/audit.js";
 import { withSecurityHeaders } from "../middleware/security-headers.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
 const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  auditLog(context, { action: "logout", actorId: "anonymous", result: "success" });
   return withSecurityHeaders({
     status: 200,
     headers: { "Content-Type": "application/json" },

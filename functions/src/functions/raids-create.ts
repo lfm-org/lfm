@@ -4,6 +4,7 @@ import { requireAuth } from "../lib/auth.js";
 import { getRaidsContainer } from "../lib/cosmos.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
+import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { BattleNetIdentity, RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
 
@@ -128,6 +129,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const raid = buildRaidDocument(body, identity, randomUUID(), new Date().toISOString());
 
   const { resource } = await getRaidsContainer().items.create(raid);
+  auditLog(context, { action: "raid.create", actorId: identity.battleNetId, targetId: raid.id, result: "success" });
   return jsonResponse(resource, 201);
 }
 
