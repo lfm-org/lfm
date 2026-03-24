@@ -55,7 +55,6 @@ export interface RaiderDocument {
   selectedCharacterId: string | null;
   createdAt: string;
   lastSeenAt: string;
-  ttl?: number;
   accountProfileSummary?: BlizzardAccountProfileSummary;
   accountProfileFetchedAt?: string;
   accountProfileRefreshedAt?: string;
