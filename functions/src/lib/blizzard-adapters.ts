@@ -102,7 +102,8 @@ export function toWowInstanceViews(
 export function toAccountCharacterViews(
   summary: BlizzardAccountProfileSummary,
   region: string,
-  storedCharacters?: StoredSelectedCharacter[]
+  storedCharacters?: StoredSelectedCharacter[],
+  portraitCache?: Record<string, string>
 ): AccountCharacter[] {
   const storedByKey = new Map<string, StoredSelectedCharacter>();
   for (const sc of storedCharacters ?? []) {
@@ -114,7 +115,10 @@ export function toAccountCharacterViews(
       const stored = storedByKey.get(`${character.name.toLowerCase()}:${character.realm.slug.toLowerCase()}`);
       const classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id;
       const className = localizeName(stored?.profileSummary?.character_class?.name) || undefined;
-      const portraitUrl = stored ? findAvatarUrl(stored.mediaSummary) || undefined : undefined;
+      const cachedId = `${region}-${character.realm.slug}-${character.name.toLowerCase()}`;
+      const portraitUrl = (stored ? findAvatarUrl(stored.mediaSummary) : undefined)
+        || portraitCache?.[cachedId]
+        || undefined;
       const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
       const activeSpec = stored?.specializationsSummary?.specializations?.find(
         s => s.specialization.id === activeSpecId

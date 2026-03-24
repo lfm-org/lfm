@@ -139,6 +139,20 @@ describe("blizzard-adapters", () => {
       },
     ]);
 
+    // portraitCache fallback
+    const cache = { "eu-test-realm-aelrin": "https://example.test/cached-avatar.jpg" };
+    expect(toAccountCharacterViews(accountProfileSummary, "eu", [], cache)).toEqual([
+      {
+        name: "Aelrin",
+        realm: "test-realm",
+        realmName: "Test Realm",
+        level: 80,
+        region: "eu",
+        classId: 2,
+        portraitUrl: "https://example.test/cached-avatar.jpg",
+      },
+    ]);
+
     const storedCharacter = {
       id: "eu-test-realm-aelrin",
       region: "eu",

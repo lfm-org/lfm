@@ -38,7 +38,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       accountProfileFetchedAt: now,
       accountProfileRefreshedAt: now,
     });
-    return jsonResponse(toAccountCharacterViews(accountProfileSummary, process.env.BATTLE_NET_REGION || "eu"));
+    return jsonResponse(toAccountCharacterViews(accountProfileSummary, process.env.BATTLE_NET_REGION || "eu", raider.characters, raider.portraitCache));
   } catch {
     // Do not update accountProfileRefreshedAt — failed attempt must not consume the cooldown
     return errorResponse(502, "Failed to fetch characters from Blizzard");

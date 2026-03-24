@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Avatar, Box, Button, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
 import PageContainer from "../../../components/layout/PageContainer";
@@ -30,6 +30,7 @@ export default function CharactersPage() {
   const [characters, setCharacters] = useState<AccountCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [portraits, setPortraits] = useState<Record<string, string>>({});
+  const [loadingPortraits, setLoadingPortraits] = useState(false);
   const fetchedPortraitIds = useRef(new Set<string>());
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ export default function CharactersPage() {
     const ids = missing.map(c => `${c.region}-${c.realm}-${c.name.toLowerCase()}`);
     ids.forEach(id => fetchedPortraitIds.current.add(id));
 
+    setLoadingPortraits(true);
     api.post<Record<string, string>>(
       "/battlenet/character-portraits",
       missing.map(c => ({ region: c.region, realm: c.realm, name: c.name }))
@@ -90,6 +92,8 @@ export default function CharactersPage() {
       setPortraits(prev => ({ ...prev, ...res.data }));
     }).catch(() => {
       ids.forEach(id => fetchedPortraitIds.current.delete(id));
+    }).finally(() => {
+      setLoadingPortraits(false);
     });
   }, [visibleChars]);
 
@@ -149,6 +153,7 @@ export default function CharactersPage() {
             const color = char.classId ? classColor(char.classId) : undefined;
             const charId = `${char.region}-${char.realm}-${char.name.toLowerCase()}`;
             const portraitSrc = char.portraitUrl || portraits[charId];
+            const awaitingPortrait = !portraitSrc && loadingPortraits;
             return (
               <Button
                 key={`${char.realm}-${char.name}`}
@@ -172,7 +177,9 @@ export default function CharactersPage() {
                     src={portraitSrc}
                     alt={char.name}
                     sx={{ width: 40, height: 40, flexShrink: 0, bgcolor: color ?? "action.selected" }}
-                  />
+                  >
+                    {awaitingPortrait && <CircularProgress size={20} color="inherit" />}
+                  </Avatar>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body1" component="span" display="block" noWrap>
                       {char.name}

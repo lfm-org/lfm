@@ -17,7 +17,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   if (raider.accountProfileSummary) {
     const region = process.env.BATTLE_NET_REGION || "eu";
-    return jsonResponse(toAccountCharacterViews(raider.accountProfileSummary, region, raider.characters));
+    return jsonResponse(toAccountCharacterViews(raider.accountProfileSummary, region, raider.characters, raider.portraitCache));
   }
 
   // No cached data — caller should POST /battlenet/characters/refresh
