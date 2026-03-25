@@ -56,6 +56,9 @@ node_modules/
 # Claude Code project settings and memory
 .claude/
 
+# OpenAI Codes project settings and memory
+.codex/
+
 # Git worktrees
 .worktrees/
 
