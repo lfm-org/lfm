@@ -31,7 +31,7 @@ test("logout clears the session and protects raids again", async ({ page }) => {
   await expect(page).toHaveURL(/\/raids$/);
   await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Logout" }).click();
+  await page.getByRole("button", { name: "Logout" }).click();
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "Sign in with Battle.net" })).toBeVisible();
