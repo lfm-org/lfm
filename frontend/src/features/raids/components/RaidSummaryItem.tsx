@@ -8,11 +8,13 @@ interface RaidSummaryItemProps {
   modeLabel: string;
   selected: boolean;
   onClick: () => void;
+  guildTimezone?: string;
 }
 
-export default function RaidSummaryItem({ raid, modeLabel, selected, onClick }: RaidSummaryItemProps) {
+export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, guildTimezone }: RaidSummaryItemProps) {
+  const timezone = guildTimezone ?? GUILD_TIMEZONE;
   const startDt = raid.startTime
-    ? DateTime.fromISO(raid.startTime, { zone: "UTC" }).setZone(GUILD_TIMEZONE)
+    ? DateTime.fromISO(raid.startTime, { zone: "UTC" }).setZone(timezone)
     : null;
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)

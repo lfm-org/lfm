@@ -1,10 +1,12 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
+import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
 import type {
   BlizzardAccountProfileSummary,
   BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
   BlizzardGuildProfileResponse,
+  BlizzardGuildRosterResponse,
   BlizzardJournalInstanceIndexResponse,
   BlizzardJournalInstanceResponse,
   BlizzardLocalizedString,
@@ -19,6 +21,7 @@ import type {
   AccountCharacter,
   BattleNetIdentity,
   Character,
+  GuildDocument,
   StoredSelectedCharacter,
   WowClass,
   WowInstance,
@@ -170,6 +173,123 @@ export function toGuildMotdView(profile: BlizzardGuildProfileResponse): { name: 
   return {
     name: profile.name,
     motd: profile.motd ?? "",
+  };
+}
+
+export interface GuildHomeView {
+  guild: {
+    id: number;
+    name: string;
+    realmSlug: string;
+    realmName: string;
+    factionName: string | null;
+    memberCount: number | null;
+    achievementPoints: number | null;
+    syncedMemberCount: number | null;
+    rankCount: number | null;
+    crestUrl: string | null;
+  } | null;
+  setup: {
+    isInitialized: boolean;
+    requiresSetup: boolean;
+    rankDataFresh: boolean;
+    rankDataFetchedAt: string | null;
+    timezone: string;
+  };
+  settings: {
+    rankPermissions: Array<{
+      rank: number;
+      canCreateGuildRaids: boolean;
+      canSignupGuildRaids: boolean;
+    }>;
+  } | null;
+  editor: {
+    canEdit: boolean;
+    mode: "member" | "guild-master" | "site-admin";
+    overrideAvailable: false;
+  };
+  memberPermissions: EffectiveGuildPermissions;
+  adminOverride: {
+    lastOverrideBy: string | null;
+    lastOverrideAt: string | null;
+  } | null;
+}
+
+function getGuildProfile(guildDoc: GuildDocument): BlizzardGuildProfileResponse | undefined {
+  return guildDoc.blizzardProfileRaw ?? guildDoc.profileSummary;
+}
+
+function getGuildRoster(guildDoc: GuildDocument): BlizzardGuildRosterResponse | undefined {
+  return guildDoc.blizzardRosterRaw;
+}
+
+export function toGuildHomeView(
+  guildDoc?: GuildDocument | null,
+  editor: GuildHomeView["editor"] = { canEdit: false, mode: "member", overrideAvailable: false },
+  memberPermissions: GuildHomeView["memberPermissions"] = {
+    matchedRank: null,
+    canCreateGuildRaids: false,
+    canSignupGuildRaids: false,
+    rankDataFresh: false,
+  },
+  adminOverride: GuildHomeView["adminOverride"] = null
+): GuildHomeView {
+  const profile = guildDoc ? getGuildProfile(guildDoc) : undefined;
+  const roster = guildDoc ? getGuildRoster(guildDoc) : undefined;
+  const rankDataFresh = isGuildRosterFresh(guildDoc);
+
+  if (!guildDoc || !profile) {
+    return {
+      guild: null,
+      setup: {
+        isInitialized: false,
+        requiresSetup: false,
+        rankDataFresh,
+        rankDataFetchedAt: guildDoc?.blizzardRosterFetchedAt ?? null,
+        timezone: guildDoc?.setup?.timezone ?? "Europe/Helsinki",
+      },
+      settings: null,
+      editor: {
+        ...editor,
+      },
+      memberPermissions,
+      adminOverride,
+    };
+  }
+
+  return {
+    guild: {
+      id: guildDoc.guildId,
+      name: profile.name,
+      realmSlug: guildDoc.realmSlug,
+      realmName: localizeName(profile.realm.name) || guildDoc.realmSlug,
+      factionName: profile.faction?.name ?? null,
+      memberCount: profile.member_count ?? null,
+      achievementPoints: profile.achievement_points ?? null,
+      syncedMemberCount: roster?.members.length ?? null,
+      rankCount: roster ? new Set(roster.members.map((member) => member.rank)).size : null,
+      crestUrl: guildDoc.crestUrl ?? null,
+    },
+    setup: {
+      isInitialized: Boolean(guildDoc.setup?.initializedAt),
+      requiresSetup: editor.canEdit && !guildDoc.setup?.initializedAt,
+      rankDataFresh,
+      rankDataFetchedAt: guildDoc.blizzardRosterFetchedAt ?? null,
+      timezone: guildDoc.setup?.timezone ?? "Europe/Helsinki",
+    },
+    settings: editor.canEdit
+      ? {
+          rankPermissions: getResolvedRankPermissions(guildDoc),
+        }
+      : null,
+    editor: {
+      ...editor,
+    },
+    memberPermissions,
+    adminOverride: adminOverride ?? {
+      lastOverrideBy: guildDoc.lastOverrideBy ?? null,
+      lastOverrideAt: guildDoc.lastOverrideAt ?? null,
+    },
   };
 }
 

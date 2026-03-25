@@ -27,7 +27,7 @@ function getWowContainer(): ContainerClient {
   return _wowContainer;
 }
 
-const blobUrl = (): string => process.env.BLOB_STORAGE_URL || "";
+const blobUrl = (): string => process.env.PUBLIC_BLOB_STORAGE_URL || process.env.BLOB_STORAGE_URL || "";
 
 export async function readBlob<T>(blobName: string): Promise<T | null> {
   try {
@@ -43,12 +43,16 @@ export async function readBlob<T>(blobName: string): Promise<T | null> {
 }
 
 export async function writeBlob(blobName: string, data: unknown): Promise<void> {
+  const content = JSON.stringify(data, null, 2);
+  await writeBinaryBlob(blobName, new TextEncoder().encode(content), "application/json");
+}
+
+export async function writeBinaryBlob(blobName: string, bytes: Uint8Array, contentType: string): Promise<void> {
   const container = getWowContainer();
   await container.createIfNotExists();
   const blockBlob = container.getBlockBlobClient(blobName);
-  const content = JSON.stringify(data, null, 2);
-  await blockBlob.upload(content, Buffer.byteLength(content), {
-    blobHTTPHeaders: { blobContentType: "application/json" },
+  await blockBlob.upload(bytes, bytes.byteLength, {
+    blobHTTPHeaders: { blobContentType: contentType },
   });
 }
 

@@ -4,6 +4,9 @@ import type {
   BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
+  BlizzardGuildProfileResponse,
+  BlizzardGuildRosterResponse,
+  BlizzardMediaSummary,
 } from "./blizzard.js";
 
 // Raider document (Cosmos container: raiders, partition key: /battleNetId)
@@ -68,8 +71,30 @@ export interface GuildDocument {
   id: string;                              // guildId as string
   guildId: number;
   realmSlug: string;
-  profileSummary?: import("./blizzard.js").BlizzardGuildProfileResponse;
+  profileSummary?: BlizzardGuildProfileResponse;
   profileFetchedAt?: string;
+  blizzardProfileRaw?: BlizzardGuildProfileResponse;
+  blizzardProfileFetchedAt?: string;
+  blizzardRosterRaw?: BlizzardGuildRosterResponse;
+  blizzardRosterFetchedAt?: string;
+  blizzardCrestEmblemMediaRaw?: BlizzardMediaSummary;
+  blizzardCrestBorderMediaRaw?: BlizzardMediaSummary;
+  blizzardCrestMediaFetchedAt?: string;
+  crestBlobName?: string;
+  crestEmblemBlobName?: string;
+  crestBorderBlobName?: string;
+  crestUrl?: string;
+  rankPermissions?: Array<{
+    rank: number;
+    canCreateGuildRaids: boolean;
+    canSignupGuildRaids: boolean;
+  }>;
+  lastOverrideBy?: string;
+  lastOverrideAt?: string;
+  setup?: {
+    initializedAt?: string;
+    timezone?: string;
+  };
 }
 
 // Raid document (Cosmos container: raids, partition key: /id)

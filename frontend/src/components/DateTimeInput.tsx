@@ -10,6 +10,7 @@ interface DateTimeInputProps {
   required?: boolean;
   disablePast?: boolean;
   maxDateTime?: DateTime;
+  timezone?: string;
 }
 
 export default function DateTimeInput({
@@ -20,6 +21,7 @@ export default function DateTimeInput({
   required,
   disablePast,
   maxDateTime,
+  timezone = GUILD_TIMEZONE,
 }: DateTimeInputProps) {
   return (
     <DateTimePicker
@@ -28,7 +30,7 @@ export default function DateTimeInput({
       onChange={onChange}
       disablePast={disablePast}
       maxDateTime={maxDateTime}
-      timezone={GUILD_TIMEZONE}
+      timezone={timezone}
       slotProps={{
         textField: {
           fullWidth: true,

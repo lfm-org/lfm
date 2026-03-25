@@ -1,8 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
-import { getRaidsContainer, getRaidersContainer } from "../lib/cosmos.js";
+import { getGuildsContainer, getRaidsContainer, getRaidersContainer } from "../lib/cosmos.js";
 import { toSelectedCharacterView } from "../lib/blizzard-adapters.js";
+import { getEffectiveGuildPermissions } from "../lib/guild-permissions.js";
 import { readWowClasses, readWowRaces, readWowSpecializationMap } from "../lib/reference-data.js";
 import {
   normalizeNameString,
@@ -10,7 +11,7 @@ import {
 } from "../lib/raidResponseSanitizer.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus } from "../types/index.js";
+import type { GuildDocument, RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus } from "../types/index.js";
 
 const MAX_OCC_RETRIES = 3;
 export const VALID_ATTENDANCE: AttendanceStatus[] = ["IN", "OUT", "BENCH", "LATE", "AWAY"];
@@ -79,6 +80,17 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     const isGuildMember = identity.guildId != null && raid.creatorGuildId === identity.guildId;
     if (raid.visibility === "GUILD" && !isCreator && !isGuildMember) {
       return errorResponse(404, "Raid not found");
+    }
+
+    if (raid.visibility === "GUILD") {
+      const guildDocId = raid.creatorGuildId != null ? String(raid.creatorGuildId) : null;
+      const { resource: guildDoc } = guildDocId
+        ? await getGuildsContainer().item(guildDocId, guildDocId).read<GuildDocument>()
+        : { resource: null };
+      const permissions = getEffectiveGuildPermissions(guildDoc, raider);
+      if (!permissions.canSignupGuildRaids) {
+        return errorResponse(403, "Guild signup is not enabled for your rank");
+      }
     }
 
     const existingIndex = raid.raidCharacters.findIndex(rc => rc.raiderBattleNetId === identity.battleNetId);

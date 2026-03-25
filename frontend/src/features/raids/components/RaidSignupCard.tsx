@@ -23,6 +23,8 @@ interface RaidSignupCardProps {
   selectedCharacterId: string | null;
   loadingChars: boolean;
   charactersError: string | null;
+  guildTimezone?: string;
+  canSignupToGuildRaids: boolean;
 }
 
 const CHARACTER_LABEL_ID = "raid-signup-character-label";
@@ -37,6 +39,8 @@ export default function RaidSignupCard({
   selectedCharacterId,
   loadingChars,
   charactersError,
+  guildTimezone,
+  canSignupToGuildRaids,
 }: RaidSignupCardProps) {
   const { user } = useAuth();
   const [characterId, setCharacterId] = useState("");
@@ -50,11 +54,13 @@ export default function RaidSignupCard({
     () => user ? raid.raidCharacters.find(rc => rc.isCurrentUser) : undefined,
     [raid.raidCharacters, user]
   );
+  const timezone = guildTimezone ?? GUILD_TIMEZONE;
 
   const closeTime = raid.signupCloseTime
-    ? DateTime.fromISO(raid.signupCloseTime, { zone: "UTC" }).setZone(GUILD_TIMEZONE)
+    ? DateTime.fromISO(raid.signupCloseTime, { zone: "UTC" }).setZone(timezone)
     : null;
   const isClosed = closeTime?.isValid ? closeTime < DateTime.now() : false;
+  const guildSignupBlocked = raid.visibility === "GUILD" && !canSignupToGuildRaids;
 
   const selectedCharacter = characters.find(c => c.id === characterId);
   const availableSpecs = selectedCharacter?.specializations ?? [];
@@ -234,37 +240,43 @@ export default function RaidSignupCard({
           </Box>
         )}
 
+        {guildSignupBlocked && (
+          <Alert severity="info">Guild signup is not enabled for your rank.</Alert>
+        )}
+
         {/* Status buttons + cancel */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <ToggleButtonGroup
-            exclusive
-            size="small"
-            aria-label="Attendance"
-            value={currentStatus ?? null}
-            sx={{ flexWrap: "wrap" }}
-          >
-            {ATTENDANCE_OPTIONS.map(opt => {
-              const cfg = getAttendanceConfig(opt.value);
-              return (
-                <ToggleButton
-                  key={opt.value}
-                  value={opt.value}
-                  disabled={submitting}
-                  onClick={() => handleStatusClick(opt.value as AttendanceStatus)}
-                  sx={{
-                    minWidth: 64,
-                    "&.Mui-selected": {
-                      bgcolor: cfg.color,
-                      color: cfg.textColor,
-                      "&:hover": { bgcolor: cfg.color, color: cfg.textColor, filter: "brightness(0.9)" },
-                    },
-                  }}
-                >
-                  {opt.label}
-                </ToggleButton>
-              );
-            })}
-          </ToggleButtonGroup>
+          {!guildSignupBlocked && (
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              aria-label="Attendance"
+              value={currentStatus ?? null}
+              sx={{ flexWrap: "wrap" }}
+            >
+              {ATTENDANCE_OPTIONS.map(opt => {
+                const cfg = getAttendanceConfig(opt.value);
+                return (
+                  <ToggleButton
+                    key={opt.value}
+                    value={opt.value}
+                    disabled={submitting}
+                    onClick={() => handleStatusClick(opt.value as AttendanceStatus)}
+                    sx={{
+                      minWidth: 64,
+                      "&.Mui-selected": {
+                        bgcolor: cfg.color,
+                        color: cfg.textColor,
+                        "&:hover": { bgcolor: cfg.color, color: cfg.textColor, filter: "brightness(0.9)" },
+                      },
+                    }}
+                  >
+                    {opt.label}
+                  </ToggleButton>
+                );
+              })}
+            </ToggleButtonGroup>
+          )}
 
           {submitting && <CircularProgress size={16} />}
 

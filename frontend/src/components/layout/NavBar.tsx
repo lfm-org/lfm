@@ -1,6 +1,7 @@
 import { AppBar, Box, Button, Toolbar } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router";
 import { logout } from "../../lib/auth";
+import { useAuth } from "../../features/auth";
 import Logo from "../Logo";
 
 interface NavBarCharacter {
@@ -15,10 +16,12 @@ interface NavBarProps {
 export default function NavBar({ character = null }: NavBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { clearAuth, user } = useAuth();
   const handleLogout = async () => {
     try {
       await logout();
     } finally {
+      clearAuth();
       navigate("/login");
     }
   };
@@ -40,8 +43,28 @@ export default function NavBar({ character = null }: NavBarProps) {
         >
           Raids
         </Button>
+        <Button
+          component={RouterLink}
+          to="/guild"
+          color="inherit"
+          size="small"
+          sx={{ ml: 0.5 }}
+        >
+          Guild
+        </Button>
         {character ? (
           <>
+            {user?.isSiteAdmin && (
+              <Button
+                component={RouterLink}
+                to="/guild/admin"
+                color="inherit"
+                size="small"
+                sx={{ ml: 0.5 }}
+              >
+                Guild Admin
+              </Button>
+            )}
             {character.portraitUrl && (
               <Box
                 component="img"

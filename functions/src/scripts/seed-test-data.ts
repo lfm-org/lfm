@@ -30,6 +30,14 @@ export const RAIDS_CONTAINER_DEFINITION = {
   },
 };
 
+export const GUILDS_CONTAINER_DEFINITION = {
+  id: "guilds",
+  partitionKey: {
+    paths: ["/id"],
+    kind: PartitionKeyKind.Hash,
+  },
+};
+
 export function getRaidsContainerDefinitionForScenario(
   scenario: E2eScenario
 ): typeof RAIDS_CONTAINER_DEFINITION | null {
@@ -69,6 +77,7 @@ async function main() {
   const client = new CosmosClient(createCosmosClientOptions());
   const { database } = await client.databases.createIfNotExists({ id: DB_NAME });
   const { container: raidersContainer } = await database.containers.createIfNotExists(RAIDERS_CONTAINER_DEFINITION);
+  await database.containers.createIfNotExists(GUILDS_CONTAINER_DEFINITION);
 
   await resetContainer<RaiderDocument>(raidersContainer, (raider) => raider.battleNetId);
   await upsertAll(raidersContainer, seed.raiders);

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   TEST_MODE_ACCESS_TOKEN,
   TEST_MODE_CALLBACK_CODE,
+  TEST_MODE_DELETE_ACCOUNT_ACCESS_TOKEN,
+  TEST_MODE_DELETE_ACCOUNT_CALLBACK_CODE,
+  TEST_MODE_DELETE_ACCOUNT_IDENTITY,
   TEST_MODE_IDENTITY,
   TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN,
   TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE,
@@ -54,6 +57,12 @@ describe("getTestModeAccessTokenFromCookieHeader", () => {
         enabledEnv
       )
     ).toBe(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN);
+    expect(
+      getTestModeAccessTokenFromCookieHeader(
+        `battlenet_token=${TEST_MODE_DELETE_ACCOUNT_ACCESS_TOKEN}`,
+        enabledEnv
+      )
+    ).toBe(TEST_MODE_DELETE_ACCOUNT_ACCESS_TOKEN);
   });
 });
 
@@ -68,6 +77,9 @@ describe("getTestModeIdentity", () => {
     expect(
       getTestModeIdentity(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN, enabledEnv)
     ).toEqual(TEST_MODE_NEEDS_CHARACTER_IDENTITY);
+    expect(
+      getTestModeIdentity(TEST_MODE_DELETE_ACCOUNT_ACCESS_TOKEN, enabledEnv)
+    ).toEqual(TEST_MODE_DELETE_ACCOUNT_IDENTITY);
   });
 });
 
@@ -79,6 +91,9 @@ describe("getTestModeAccessTokenForCallbackCode", () => {
     expect(
       getTestModeAccessTokenForCallbackCode(TEST_MODE_NEEDS_CHARACTER_CALLBACK_CODE, enabledEnv)
     ).toBe(TEST_MODE_NEEDS_CHARACTER_ACCESS_TOKEN);
+    expect(
+      getTestModeAccessTokenForCallbackCode(TEST_MODE_DELETE_ACCOUNT_CALLBACK_CODE, enabledEnv)
+    ).toBe(TEST_MODE_DELETE_ACCOUNT_ACCESS_TOKEN);
     expect(getTestModeAccessTokenForCallbackCode("wrong-code", enabledEnv)).toBeNull();
   });
 });

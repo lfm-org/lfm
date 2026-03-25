@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  GUILDS_CONTAINER_DEFINITION,
   RAIDERS_CONTAINER_DEFINITION,
   RAIDS_CONTAINER_DEFINITION,
   getRaidsContainerDefinitionForScenario,
@@ -16,6 +17,13 @@ describe("seed-test-data container definitions", () => {
     });
     expect(RAIDS_CONTAINER_DEFINITION).toEqual({
       id: "raids",
+      partitionKey: {
+        paths: ["/id"],
+        kind: "Hash",
+      },
+    });
+    expect(GUILDS_CONTAINER_DEFINITION).toEqual({
+      id: "guilds",
       partitionKey: {
         paths: ["/id"],
         kind: "Hash",

@@ -153,15 +153,119 @@ export interface BlizzardUserInfo {
 }
 
 export interface BlizzardGuildProfileResponse {
+  _links?: BlizzardLinks;
   id: number;
   name: string;
+  achievement_points?: number;
+  member_count?: number;
   realm: {
+    key?: BlizzardLink;
     id?: number;
     slug: string;
     name: string | BlizzardLocalizedString;
   };
   motd?: string;
   faction?: { type: string; name?: string };
+  crest?: {
+    emblem?: {
+      id: number;
+      media?: {
+        key?: BlizzardLink;
+        id?: number;
+      };
+      color?: {
+        id?: number;
+        rgba?: {
+          r: number;
+          g: number;
+          b: number;
+          a: number;
+        };
+      };
+    };
+    border?: {
+      id: number;
+      media?: {
+        key?: BlizzardLink;
+        id?: number;
+      };
+      color?: {
+        id?: number;
+        rgba?: {
+          r: number;
+          g: number;
+          b: number;
+          a: number;
+        };
+      };
+    };
+    background?: {
+      color?: {
+        id?: number;
+        rgba?: {
+          r: number;
+          g: number;
+          b: number;
+          a: number;
+        };
+      };
+    };
+  };
+  roster?: BlizzardLink;
+  achievements?: BlizzardLink;
+  created_timestamp?: number;
+  activity?: BlizzardLink;
+  name_search?: string;
+}
+
+export interface BlizzardGuildRosterMemberCharacter {
+  key?: BlizzardLink;
+  name: string;
+  id: number;
+  realm: {
+    key?: BlizzardLink;
+    id?: number;
+    slug: string;
+    name?: string | BlizzardLocalizedString;
+  };
+  level?: number;
+  playable_class?: {
+    key?: BlizzardLink;
+    id?: number;
+  };
+  playable_race?: {
+    key?: BlizzardLink;
+    id?: number;
+  };
+  faction?: {
+    type: string;
+    name?: string;
+  };
+}
+
+export interface BlizzardGuildRosterMember {
+  character: BlizzardGuildRosterMemberCharacter;
+  rank: number;
+}
+
+export interface BlizzardGuildRosterResponse {
+  _links?: BlizzardLinks;
+  guild: {
+    key?: BlizzardLink;
+    name: string;
+    id: number;
+    realm: {
+      key?: BlizzardLink;
+      name?: string | BlizzardLocalizedString;
+      id?: number;
+      slug: string;
+    };
+    faction?: {
+      type: string;
+      name?: string;
+    };
+  };
+  members: BlizzardGuildRosterMember[];
 }
 
 export interface BlizzardCharacterProfileSummary {
@@ -178,6 +282,14 @@ export interface BlizzardCharacterProfileSummary {
 }
 
 export interface BlizzardCharacterMediaSummary {
+  assets?: Array<{
+    key: string;
+    value: string;
+    file_data_id?: number;
+  }>;
+}
+
+export interface BlizzardMediaSummary {
   assets?: Array<{
     key: string;
     value: string;

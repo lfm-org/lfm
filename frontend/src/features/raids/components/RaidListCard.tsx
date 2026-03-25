@@ -15,6 +15,8 @@ interface RaidListCardProps {
   selectedCharacterId: string | null;
   loadingChars: boolean;
   charactersError: string | null;
+  guildTimezone?: string;
+  canSignupToGuildRaids: boolean;
 }
 
 function getRoleCounts(raid: Raid) {
@@ -38,6 +40,8 @@ export default function RaidListCard({
   selectedCharacterId,
   loadingChars,
   charactersError,
+  guildTimezone,
+  canSignupToGuildRaids,
 }: RaidListCardProps) {
   const roleCounts = getRoleCounts(raid);
   const showDetails = !isMobile || isExpanded;
@@ -81,6 +85,8 @@ export default function RaidListCard({
             selectedCharacterId={selectedCharacterId}
             loadingChars={loadingChars}
             charactersError={charactersError}
+            guildTimezone={guildTimezone}
+            canSignupToGuildRaids={canSignupToGuildRaids}
           />
           <RaidRosterGrid signups={raid.raidCharacters} />
         </>

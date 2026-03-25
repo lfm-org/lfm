@@ -107,6 +107,7 @@ Useful commands:
 Rules for agents:
 - Do not claim "full e2e suite passed" unless you ran `./scripts/e2e-all.sh`.
 - Default Playwright discovery excludes the scenario-specific files listed in `frontend/playwright.config.ts`.
+- Default Playwright runs are intentionally single-worker because the local Docker-backed seed state is shared across specs. Do not raise worker parallelism unless the affected specs are made state-isolated first.
 - If you add a new scenario-only spec, update three places: the `E2E_SCENARIOS` set in `scripts/dev-env.mjs`, the `SCENARIO_SPECS` array in `frontend/playwright.config.ts`, and `scripts/e2e-all.sh`.
 - Keep e2e coverage deterministic and local-first. Do not add routine real Battle.net dependencies to the normal Playwright workflow.
 

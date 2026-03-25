@@ -37,6 +37,8 @@ Useful companion commands:
 
 `./scripts/e2e-all.sh` is the intended full e2e suite. It runs the default Playwright-discovered specs plus the scenario-specific specs that require separate seed states.
 
+Default Playwright discovery currently runs with `workers: 1`. The local Docker-backed test stack seeds a shared database, so serial execution is intentional until each spec gets fully isolated state.
+
 The `test` runner uses a separate stack on different ports (`4173`, `7072`, `8082`, `10001`) and separate scratch/data paths under `.tmp/e2e/`, so local dev and e2e can run at the same time without mixing data.
 
 Copy `example.env` before using `serve`. The runner overrides local emulator URLs automatically, so the important values in `.env` are your Blizzard credentials plus `SESSION_ENCRYPTION_KEY` and `HMAC_SECRET`.

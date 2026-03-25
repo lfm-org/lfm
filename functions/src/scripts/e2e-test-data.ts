@@ -4,7 +4,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import {
   TEST_MODE_IDENTITY,
+  TEST_MODE_DELETE_ACCOUNT_IDENTITY,
+  TEST_MODE_GUILD_MASTER_IDENTITY,
   TEST_MODE_NEEDS_CHARACTER_IDENTITY,
+  TEST_MODE_SITE_ADMIN_IDENTITY,
   isLocalTestMode,
 } from "../lib/test-mode.js";
 import { findModeByKey, getModePlayers } from "../lib/wow-instance-modes.js";
@@ -548,6 +551,29 @@ function createRaiderDocument(
   };
 }
 
+function createUnguildedRaiderDocument(
+  battleNetId: string,
+  characters: SeedCharacterMeta[],
+  createdAt: string
+): RaiderDocument {
+  return {
+    id: battleNetId,
+    battleNetId,
+    selectedCharacterId: characters[0]?.character.id ?? null,
+    createdAt,
+    lastSeenAt: createdAt,
+    characters: characters.map((entry) => ({
+      ...toStoredSelectedCharacter(entry.character),
+      profileSummary: {
+        ...toStoredSelectedCharacter(entry.character).profileSummary,
+      },
+    })),
+    accountProfileSummary: toAccountProfileSummary(characters.map((entry) => entry.character)),
+    accountProfileFetchedAt: createdAt,
+    accountProfileRefreshedAt: createdAt,
+  };
+}
+
 function generateName(index: number): string {
   const prefix = NAME_PREFIXES[index % NAME_PREFIXES.length];
   const suffix = NAME_SUFFIXES[Math.floor(index / NAME_PREFIXES.length) % NAME_SUFFIXES.length];
@@ -562,6 +588,15 @@ function buildRaiderSeeds(region: string, createdAt: string): { guild: RaiderSee
     createSeedCharacter("Aelrin", CHARACTER_TEMPLATES[1], region),
     createSeedCharacter("Brakka", CHARACTER_TEMPLATES[4], region),
   ];
+  const guildMasterCharacters = [
+    createSeedCharacter("Highlord", CHARACTER_TEMPLATES[1], region),
+  ];
+  const siteAdminCharacters = [
+    createSeedCharacter("Observer", CHARACTER_TEMPLATES[5], region),
+  ];
+  const deleteAccountCharacters = [
+    createSeedCharacter("Farewell", CHARACTER_TEMPLATES[5], region),
+  ];
   guild.push({
     document: createRaiderDocument(
       TEST_MODE_IDENTITY.battleNetId,
@@ -571,6 +606,16 @@ function buildRaiderSeeds(region: string, createdAt: string): { guild: RaiderSee
       createdAt
     ),
     primary: testCharacters[0],
+  });
+  guild.push({
+    document: createRaiderDocument(
+      TEST_MODE_GUILD_MASTER_IDENTITY.battleNetId,
+      TEST_GUILD_NAME,
+      TEST_MODE_GUILD_MASTER_IDENTITY.guildId ?? 12345,
+      guildMasterCharacters,
+      createdAt
+    ),
+    primary: guildMasterCharacters[0],
   });
   guild.push({
     document: {
@@ -584,6 +629,24 @@ function buildRaiderSeeds(region: string, createdAt: string): { guild: RaiderSee
       selectedCharacterId: null,
     },
     primary: testCharacters[0],
+  });
+  guild.push({
+    document: createUnguildedRaiderDocument(
+      TEST_MODE_SITE_ADMIN_IDENTITY.battleNetId,
+      siteAdminCharacters,
+      createdAt
+    ),
+    primary: siteAdminCharacters[0],
+  });
+  guild.push({
+    document: createRaiderDocument(
+      TEST_MODE_DELETE_ACCOUNT_IDENTITY.battleNetId,
+      TEST_GUILD_NAME,
+      TEST_MODE_DELETE_ACCOUNT_IDENTITY.guildId ?? 12345,
+      deleteAccountCharacters,
+      createdAt
+    ),
+    primary: deleteAccountCharacters[0],
   });
 
   for (let index = 0; index < 31; index++) {

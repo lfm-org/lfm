@@ -6,11 +6,16 @@ import {
   getTestModeAccountProfileSummary,
   getTestModeAccessTokenForCallbackCode,
   getTestModeCallbackCodeForScenario,
+  getTestModeGuildCrestMedia,
+  getTestModeGuildProfile,
+  getTestModeGuildRoster,
   getTestModeIdentity,
 } from "./test-mode.js";
 import type {
   BlizzardAccountProfileSummary,
   BlizzardGuildProfileResponse,
+  BlizzardGuildRosterResponse,
+  BlizzardMediaSummary,
   BlizzardUserInfo,
 } from "../types/blizzard.js";
 import type { BattleNetIdentity, RaiderDocument, LoginResponse } from "../types/index.js";
@@ -213,6 +218,9 @@ export class BattlenetService {
     guildNameSlug: string,
     accessToken: string
   ): Promise<BlizzardGuildProfileResponse> {
+    const testGuildProfile = getTestModeGuildProfile(accessToken, realmSlug, guildNameSlug);
+    if (testGuildProfile) return testGuildProfile;
+
     const url = new URL(
       `https://${API_HOSTS[this.region]}/data/wow/guild/${encodeURIComponent(realmSlug)}/${encodeURIComponent(guildNameSlug)}`
     );
@@ -225,6 +233,45 @@ export class BattlenetService {
       throw new Error(`fetchGuildProfile failed: ${response.status} ${body}`);
     }
     return response.json() as Promise<BlizzardGuildProfileResponse>;
+  }
+
+  public async fetchGuildRoster(
+    realmSlug: string,
+    guildNameSlug: string,
+    accessToken: string
+  ): Promise<BlizzardGuildRosterResponse> {
+    const testGuildRoster = getTestModeGuildRoster(accessToken, realmSlug, guildNameSlug);
+    if (testGuildRoster) return testGuildRoster;
+
+    const url = new URL(
+      `https://${API_HOSTS[this.region]}/data/wow/guild/${encodeURIComponent(realmSlug)}/${encodeURIComponent(guildNameSlug)}/roster`
+    );
+    url.searchParams.set("namespace", this.profileNamespace);
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "(unreadable)");
+      throw new Error(`fetchGuildRoster failed: ${response.status} ${body}`);
+    }
+    return response.json() as Promise<BlizzardGuildRosterResponse>;
+  }
+
+  public async fetchMediaDocument(
+    href: string,
+    accessToken: string
+  ): Promise<BlizzardMediaSummary> {
+    const testMedia = getTestModeGuildCrestMedia(accessToken, href);
+    if (testMedia) return testMedia;
+
+    const response = await fetch(href, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "(unreadable)");
+      throw new Error(`fetchMediaDocument failed: ${response.status} ${body}`);
+    }
+    return response.json() as Promise<BlizzardMediaSummary>;
   }
 
   public async resolveIdentity(
