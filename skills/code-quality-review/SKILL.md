@@ -1,6 +1,6 @@
 ---
 name: code-quality-review
-description: Use when assessing the quality of an entire codebase, identifying systemic engineering risks, or producing a prioritized remediation plan. Trigger for repository-wide quality audits, maintainability reviews, agent-readiness checks, technical-debt triage, or requests to rank code quality metrics and improvement work across a project.
+description: Use when assessing the quality of an entire codebase, identifying systemic engineering risks, or producing a prioritized remediation plan for a repository-wide audit.
 ---
 
 # Code Quality Review
@@ -56,15 +56,17 @@ Apply these weights:
 
 Apply this gate:
 
-- Do not rate the overall codebase as `good` if two or more Tier 1 metrics are weak.
+- Do not rate the overall codebase as `good` if two or more assessed Tier 1 metrics are weak.
 
 Prefer qualitative ratings backed by evidence:
 
 - `strong`
 - `adequate`
 - `weak`
+- `not assessed`
 
-Do not invent numeric precision when the repository does not expose trustworthy measurements.
+Use `not assessed` when the repository or environment does not provide enough trustworthy evidence to score a metric.
+Do not invent numeric precision or certainty when the repository does not expose trustworthy measurements.
 
 ### 4. Write findings
 
@@ -121,6 +123,8 @@ List all fifteen metrics in the approved order with:
 - rating
 - short evidence note
 
+If a metric cannot be scored credibly, mark it `not assessed` and say what evidence is missing.
+
 ### Top Findings
 
 List the highest-impact issues first.
@@ -140,6 +144,7 @@ Call out missing evidence, skipped commands, or areas that need deeper inspectio
 - Treat passing tests as partial evidence, not proof of quality.
 - If tooling cannot run, say so plainly and downgrade confidence.
 - Distinguish observed evidence from inference.
+- Do not guess a rating when the evidence is missing; use `not assessed`.
 - Keep the review read-only unless the user explicitly asks for fixes.
 
 ## Common Mistakes

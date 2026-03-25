@@ -84,3 +84,11 @@ Use the existing TypeScript style in the repo: 2-space indentation, double quote
 ## AI Assistance
 
 This project is developed with the assistance of [Claude Code](https://claude.ai/claude-code) and [Codex](https://openai.com/codex/). AI is used for coding, code review, and documentation tasks throughout the codebase.
+
+Repo-tracked Codex skills live under `skills/`. To install them into the directory Codex actually discovers, run:
+
+```bash
+./scripts/install-codex-skills.sh
+```
+
+This links each repo skill into `${CODEX_HOME:-~/.codex}/skills/`. Restart Codex after running it so new skills appear in the session.
