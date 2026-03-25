@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Quality Review"
+  short_description: "Audit whole-codebase quality risks"
+  default_prompt: "Use $code-quality-review to assess this repository, rank code quality risks, and prioritize remediation work."
