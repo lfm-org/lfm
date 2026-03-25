@@ -17,6 +17,7 @@ import {
 } from "../../../lib/wow/instances";
 import PageContainer from "../../../components/layout/PageContainer";
 import DateTimeInput from "../../../components/DateTimeInput";
+import { useGuildHome } from "../../guild/lib/useGuildHome";
 
 type FormField = "instance" | "mode" | "startTime" | "signupCloseTime" | "description";
 
@@ -57,6 +58,7 @@ const MAX_DESCRIPTION = 500;
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();
+  const { data: guildHome } = useGuildHome();
 
   const [instances, setInstances] = useState<WowInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,8 +70,14 @@ export default function CreateRaidPage() {
   const [signupCloseTime, setSignupCloseTime] = useState<DateTime | null>(null);
   const [description, setDescription] = useState("");
   const [selectedModeKey, setSelectedModeKey] = useState("");
-  const [visibility, setVisibility] = useState<"GUILD" | "PUBLIC">("GUILD");
+  const [visibility, setVisibility] = useState<"GUILD" | "PUBLIC">("PUBLIC");
   const [errors, setErrors] = useState<Partial<Record<FormField, string>>>({});
+
+  useEffect(() => {
+    if (!guildHome?.memberPermissions.canCreateGuildRaids && visibility === "GUILD") {
+      setVisibility("PUBLIC");
+    }
+  }, [guildHome?.memberPermissions.canCreateGuildRaids, visibility]);
 
   useEffect(() => {
     api.get<WowInstance[]>("/instances")
@@ -199,6 +207,7 @@ export default function CreateRaidPage() {
         error={errors.startTime}
         required
         disablePast
+        timezone={guildHome?.setup.timezone}
       />
 
       <DateTimeInput
@@ -208,6 +217,7 @@ export default function CreateRaidPage() {
         error={errors.signupCloseTime}
         disablePast
         maxDateTime={startTime?.isValid ? startTime : undefined}
+        timezone={guildHome?.setup.timezone}
       />
 
       <TextField
@@ -240,8 +250,10 @@ export default function CreateRaidPage() {
             if (newValue) setVisibility(newValue);
           }}
         >
-          <ToggleButton value="GUILD">Guild</ToggleButton>
           <ToggleButton value="PUBLIC">Public</ToggleButton>
+          {guildHome?.memberPermissions.canCreateGuildRaids && (
+            <ToggleButton value="GUILD">Guild</ToggleButton>
+          )}
         </ToggleButtonGroup>
       </Box>
 

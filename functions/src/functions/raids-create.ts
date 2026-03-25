@@ -1,12 +1,13 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
-import { getRaidsContainer } from "../lib/cosmos.js";
+import { getGuildsContainer, getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
+import { getEffectiveGuildPermissions } from "../lib/guild-permissions.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { BattleNetIdentity, RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
+import type { BattleNetIdentity, GuildDocument, RaidDocument, RaidVisibility, RaiderDocument, WowInstance } from "../types/index.js";
 
 export interface CreateRaidBody {
   startTime: string;
@@ -124,6 +125,18 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   if (body.visibility === "GUILD" && !identity.guildId) {
     return errorResponse(400, "A guild raid requires an active character in a guild");
+  }
+
+  if (body.visibility === "GUILD" && identity.guildId) {
+    const guildDocId = String(identity.guildId);
+    const [{ resource: guildDoc }, { resource: raider }] = await Promise.all([
+      getGuildsContainer().item(guildDocId, guildDocId).read<GuildDocument>(),
+      getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>(),
+    ]);
+    const permissions = getEffectiveGuildPermissions(guildDoc, raider);
+    if (!permissions.canCreateGuildRaids) {
+      return errorResponse(403, "Guild raid creation is not enabled for your rank");
+    }
   }
 
   const raid = buildRaidDocument(body, identity, randomUUID(), new Date().toISOString());

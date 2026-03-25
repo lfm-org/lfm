@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Avatar, Box, Button, CircularProgress, Stack, SvgIcon, TextField, Typography, useMediaQuery, useTheme } from "@mui/material";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
 import PageContainer from "../../../components/layout/PageContainer";
+import SurfaceCard from "../../../components/SurfaceCard";
 import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
+import { deleteAccount } from "../../../lib/auth";
 
 interface AccountCharacter {
   name: string;
@@ -20,6 +22,14 @@ interface AccountCharacter {
   specName?: string | null;
 }
 
+function TrashBinIcon() {
+  return (
+    <SvgIcon fontSize="small" aria-hidden="true">
+      <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 21h12a2 2 0 0 0 2-2V7H4v12a2 2 0 0 0 2 2Z" />
+    </SvgIcon>
+  );
+}
+
 function parsePageParam(value: string | null): number {
   if (!value) return 1;
   const parsed = Number.parseInt(value, 10);
@@ -31,13 +41,17 @@ export default function CharactersPage() {
   const [loading, setLoading] = useState(true);
   const [portraits, setPortraits] = useState<Record<string, string>>({});
   const [loadingPortraits, setLoadingPortraits] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fetchedPortraitIds = useRef(new Set<string>());
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { onCharacterSelected } = useAuth();
+  const { onAccountDeleted, onCharacterSelected } = useAuth();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("sm"));
   const PAGE_SIZE = isDesktop ? 9 : 3;
+  const deleteConfirmationValid = deleteConfirmation === "FORGET ME";
 
   const redirectPath = (() => {
     const requested = searchParams.get("redirect");
@@ -115,6 +129,21 @@ export default function CharactersPage() {
     });
     onCharacterSelected(res.data.selectedCharacterId);
     navigate(redirectPath);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirmationValid || deleting) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount();
+      onAccountDeleted();
+    } catch {
+      setDeleteError("Unable to delete the account right now. Try again in a moment.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -232,6 +261,65 @@ export default function CharactersPage() {
             </Button>
           </Box>
         )}
+
+        <SurfaceCard
+          tone="error"
+          sx={{
+            borderWidth: 2,
+            background: "linear-gradient(180deg, rgba(244, 67, 54, 0.12) 0%, rgba(29, 29, 29, 1) 100%)",
+          }}
+        >
+          <Stack spacing={2}>
+            <Box>
+              <Typography component="h2" variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <TrashBinIcon />
+                Forget me
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>
+                Permanently delete your stored raider profile, clear your Battle.net session, and remove your raid signups.
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>
+                Existing raids stay visible, but you lose access to the deleted account and anything tied to it.
+              </Typography>
+            </Box>
+
+            <TextField
+              label="Type FORGET ME to confirm"
+              value={deleteConfirmation}
+              onChange={(event) => setDeleteConfirmation(event.target.value)}
+              autoComplete="off"
+              disabled={deleting}
+              error={deleteConfirmation.length > 0 && !deleteConfirmationValid}
+              helperText={deleteConfirmation.length > 0 && !deleteConfirmationValid ? "Confirmation text must match exactly." : "This action cannot be undone."}
+              sx={{
+                maxWidth: 320,
+                "& .MuiOutlinedInput-root": {
+                  "&.Mui-focused fieldset": {
+                    borderColor: "error.main",
+                  },
+                },
+              }}
+            />
+
+            {deleteError && (
+              <Typography color="error.main" role="alert">
+                {deleteError}
+              </Typography>
+            )}
+
+            <Box>
+              <Button
+                variant="contained"
+                color="error"
+                startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <TrashBinIcon />}
+                disabled={!deleteConfirmationValid || deleting}
+                onClick={handleDeleteAccount}
+              >
+                Forget me
+              </Button>
+            </Box>
+          </Stack>
+        </SurfaceCard>
       </Stack>
     </PageContainer>
   );

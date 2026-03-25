@@ -1,15 +1,20 @@
 services:
   cosmosdb:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        printf '%s' "$COSMOS_KEY_CONTENT" > /run/cosmos.key
+        export KEY_FILE=/run/cosmos.key
+        exec /home/cosmosdev/docker_entrypoint.sh
     ports:
       - "${COSMOS_PORT:-8082}:8081"
       - "${COSMOS_EXPLORER_PORT:-1235}:1234"
     environment:
       PROTOCOL: http
       GATEWAY_PUBLIC_ENDPOINT: cosmosdb
-      KEY_FILE: /run/cosmos.key
-    volumes:
-      - ${COSMOS_KEY_FILE:-./.tmp/e2e/cosmos.key}:/run/cosmos.key:ro
+      COSMOS_KEY_CONTENT: ${COSMOS_KEY_CONTENT}
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
@@ -17,7 +22,7 @@ services:
     ports:
       - "${AZURITE_BLOB_PORT:-10001}:10000"
     volumes:
-      - ${AZURITE_DATA_DIR:-./.tmp/e2e/azurite}:/data
+      - azurite-data:/data
 
   functions:
     build:
@@ -33,6 +38,7 @@ services:
       COSMOS_DATABASE: ${COSMOS_DATABASE}
       AzureWebJobsStorage: ${AzureWebJobsStorage}
       BLOB_STORAGE_URL: ${BLOB_STORAGE_URL}
+      PUBLIC_BLOB_STORAGE_URL: ${PUBLIC_BLOB_STORAGE_URL}
       APP_BASE_URL: ${APP_BASE_URL}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
       BATTLE_NET_COOKIE_SECURE: ${BATTLE_NET_COOKIE_SECURE}
@@ -42,6 +48,10 @@ services:
       LFM_CLIENT_SECRET: ${LFM_CLIENT_SECRET}
       SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY}
       HMAC_SECRET: ${HMAC_SECRET}
+      SITE_ADMIN_BATTLE_NET_IDS: ${SITE_ADMIN_BATTLE_NET_IDS}
       E2E_SCENARIO: ${E2E_SCENARIO}
     ports:
       - "${FUNCTIONS_PORT:-7072}:80"
+
+volumes:
+  azurite-data:

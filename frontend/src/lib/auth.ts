@@ -4,6 +4,7 @@ export interface AuthUser {
   battleNetId: string;
   guildName: string | null;
   selectedCharacterId: string | null;
+  isSiteAdmin: boolean;
 }
 
 export async function checkAuth(): Promise<AuthUser | null> {
@@ -22,4 +23,8 @@ export function getLoginUrl(redirect?: string): string {
 
 export async function logout(): Promise<void> {
   await api.post("/battlenet/logout");
+}
+
+export async function deleteAccount(): Promise<void> {
+  await api.delete("/me");
 }

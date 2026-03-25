@@ -4,7 +4,7 @@ import { resetWowContainer } from "../lib/blob.js";
 import { createCosmosClientOptions } from "../lib/cosmos.js";
 
 export const WOW_BLOB_CONTAINER_NAME = "wow";
-export const RESET_CONTAINER_IDS = ["raiders", "raids"] as const;
+export const RESET_CONTAINER_IDS = ["raiders", "raids", "guilds"] as const;
 
 const DB_NAME = process.env.COSMOS_DATABASE ?? "lfm";
 
@@ -60,11 +60,31 @@ async function resetRaids(client: CosmosClient): Promise<number> {
   }
 }
 
+async function resetGuilds(client: CosmosClient): Promise<number> {
+  const container = client.database(DB_NAME).container("guilds");
+
+  try {
+    const { resources } = await container.items.query<RaidResetDocument>(
+      "SELECT c.id FROM c"
+    ).fetchAll();
+
+    for (const resource of resources) {
+      await container.item(resource.id, resource.id).delete();
+    }
+
+    return resources.length;
+  } catch (error: unknown) {
+    if (isNotFound(error)) return 0;
+    throw error;
+  }
+}
+
 export async function resetStorage(): Promise<void> {
   const client = new CosmosClient(createCosmosClientOptions());
-  const [raidersDeleted, raidsDeleted] = await Promise.all([
+  const [raidersDeleted, raidsDeleted, guildsDeleted] = await Promise.all([
     resetRaiders(client),
     resetRaids(client),
+    resetGuilds(client),
   ]);
 
   await resetWowContainer();
@@ -72,6 +92,7 @@ export async function resetStorage(): Promise<void> {
   console.log(`Reset ${WOW_BLOB_CONTAINER_NAME} blob container`);
   console.log(`Deleted ${raidersDeleted} raider documents`);
   console.log(`Deleted ${raidsDeleted} raid documents`);
+  console.log(`Deleted ${guildsDeleted} guild documents`);
 }
 
 async function main() {

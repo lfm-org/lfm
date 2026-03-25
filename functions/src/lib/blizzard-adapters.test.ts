@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   toAccountCharacterViews,
   toBattleNetIdentity,
+  toGuildHomeView,
   toSelectedCharacterView,
   toWowClassViews,
   toWowInstanceViews,
   toWowRaceViews,
   toWowSpecializationViews,
 } from "./blizzard-adapters.js";
-import type { StoredSelectedCharacter } from "../types/index.js";
+import type { GuildDocument, StoredSelectedCharacter } from "../types/index.js";
 
 describe("blizzard-adapters", () => {
   it("adapts raw reference documents into app view models", () => {
@@ -307,5 +308,50 @@ describe("toBattleNetIdentity", () => {
       guildId: null,
       guildName: null,
     });
+  });
+});
+
+describe("toGuildHomeView", () => {
+  it("returns the mirrored crest URL when guild crest assets were synced locally", () => {
+    const guildDoc: GuildDocument = {
+      id: "12345",
+      guildId: 12345,
+      realmSlug: "test-realm",
+      blizzardProfileRaw: {
+        id: 12345,
+        name: "Test Guild",
+        realm: {
+          slug: "test-realm",
+          name: { en_US: "Test Realm" },
+        },
+        faction: { type: "ALLIANCE", name: "Alliance" },
+        crest: {
+          background: {
+            color: {
+              rgba: { r: 12, g: 34, b: 56, a: 1 },
+            },
+          },
+        },
+      },
+      blizzardProfileFetchedAt: "2026-03-25T10:00:00.000Z",
+      blizzardRosterRaw: {
+        guild: {
+          name: "Test Guild",
+          id: 12345,
+          realm: { slug: "test-realm" },
+        },
+        members: [],
+      },
+      blizzardRosterFetchedAt: new Date().toISOString(),
+      setup: {
+        initializedAt: "2026-03-25T10:00:00.000Z",
+        timezone: "Europe/Helsinki",
+      },
+      crestUrl: "https://blob.example.test/wow/guild-crests/12345-composite.png",
+    };
+
+    const view = toGuildHomeView(guildDoc);
+
+    expect(view.guild?.crestUrl).toBe("https://blob.example.test/wow/guild-crests/12345-composite.png");
   });
 });

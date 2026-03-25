@@ -65,4 +65,14 @@ describe("writeBlob", () => {
 
     expect(deleteIfExists).toHaveBeenCalledTimes(1);
   });
+
+  it("can upload binary assets with an explicit content type", async () => {
+    const { writeBinaryBlob } = await import("./blob.js");
+
+    await writeBinaryBlob("guild-crests/12345/crest.svg", new Uint8Array([60, 62]), "image/svg+xml");
+
+    expect(upload).toHaveBeenCalledWith(expect.any(Uint8Array), 2, {
+      blobHTTPHeaders: { blobContentType: "image/svg+xml" },
+    });
+  });
 });

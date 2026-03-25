@@ -67,7 +67,7 @@ export function buildRuntimeProfile(rootDir, command) {
       mode: "test",
       composeFile: "docker-compose.test.yml",
       composeProjectName: "lfm-e2e",
-      tmpDir: ".tmp/e2e",
+      tmpDir: "/tmp/lfm-e2e",
       functionsPort: 7072,
       frontendPort: 4173,
       cosmosPort: 8082,
@@ -325,11 +325,12 @@ async function runDown(plan) {
 }
 
 function createProfile(rootDir, config) {
-  const tmpDir = path.join(rootDir, config.tmpDir);
+  const tmpDir = path.isAbsolute(config.tmpDir) ? config.tmpDir : path.join(rootDir, config.tmpDir);
   const azuriteDataDir = path.join(tmpDir, "azurite");
   const cosmosKeyFile = path.join(tmpDir, "cosmos.key");
   const internalCosmosEndpoint = "http://cosmosdb:8081";
   const internalBlobEndpoint = "http://azurite:10000/devstoreaccount1";
+  const publicBlobEndpoint = `http://${config.publicHost}:${config.azuriteBlobPort}/devstoreaccount1`;
   const appBaseUrl = `http://${config.publicHost}:${config.frontendPort}`;
   const azureWebJobsStorage = [
     "DefaultEndpointsProtocol=http",
@@ -361,6 +362,7 @@ function createProfile(rootDir, config) {
       COSMOS_DATABASE: config.cosmosDatabase,
       AzureWebJobsStorage: azureWebJobsStorage,
       BLOB_STORAGE_URL: internalBlobEndpoint,
+      PUBLIC_BLOB_STORAGE_URL: publicBlobEndpoint,
       APP_BASE_URL: appBaseUrl,
       COOKIE_DOMAIN: config.publicHost,
       BATTLE_NET_COOKIE_SECURE: "false",
@@ -379,6 +381,7 @@ function buildTestEnvironment(profile, scenario) {
     LFM_CLIENT_SECRET: "",
     SESSION_ENCRYPTION_KEY: process.env.SESSION_ENCRYPTION_KEY || DEFAULT_SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
+    SITE_ADMIN_BATTLE_NET_IDS: process.env.SITE_ADMIN_BATTLE_NET_IDS || "test-bnet-id-admin",
     E2E_SCENARIO: scenario,
   };
 }
@@ -410,6 +413,7 @@ async function buildServeEnvironment(profile) {
     LFM_CLIENT_SECRET: merged.LFM_CLIENT_SECRET,
     SESSION_ENCRYPTION_KEY: merged.SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: merged.HMAC_SECRET,
+    SITE_ADMIN_BATTLE_NET_IDS: merged.SITE_ADMIN_BATTLE_NET_IDS || "",
   };
 }
 
@@ -423,6 +427,7 @@ function buildMaintenanceEnvironment(profile) {
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
     LFM_CLIENT_ID: process.env.LFM_CLIENT_ID || "",
     LFM_CLIENT_SECRET: process.env.LFM_CLIENT_SECRET || "",
+    SITE_ADMIN_BATTLE_NET_IDS: process.env.SITE_ADMIN_BATTLE_NET_IDS || "",
   };
 }
 
@@ -432,6 +437,7 @@ function buildComposeEnvironment(profile, runtimeEnv) {
     TMP_DIR: profile.tmpDir,
     AZURITE_DATA_DIR: profile.azuriteDataDir,
     COSMOS_KEY_FILE: profile.cosmosKeyFile,
+    COSMOS_KEY_CONTENT: runtimeEnv.COSMOS_KEY || COSMOS_KEY,
     FUNCTIONS_PORT: String(profile.ports.functions),
     COSMOS_PORT: String(profile.ports.cosmos),
     COSMOS_EXPLORER_PORT: String(profile.ports.cosmosExplorer),
@@ -692,7 +698,7 @@ async function stopComposeServices(profile, composeEnv, options = {}) {
 }
 
 async function teardownComposeProject(profile, composeEnv, options = {}) {
-  await runDockerCompose(profile, composeEnv, ["down", "--remove-orphans"], options);
+  await runDockerCompose(profile, composeEnv, ["down", "--remove-orphans", "--volumes"], options);
 }
 
 function dockerComposeArgs(profile, args) {

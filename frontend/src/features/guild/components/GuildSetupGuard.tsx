@@ -1,16 +1,15 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { Navigate, useLocation } from "react-router";
 import { type ReactNode } from "react";
-import { useAuth } from "../lib/AuthContext";
+import { Navigate, useLocation } from "react-router";
+import { useGuildHome } from "../lib/useGuildHome";
 
 interface Props {
   children: ReactNode;
 }
 
-export default function AuthGuard({ children }: Props) {
-  const { user, loading, postAuthRedirect } = useAuth();
+export default function GuildSetupGuard({ children }: Props) {
+  const { data, loading, error } = useGuildHome();
   const location = useLocation();
-  const redirectPath = `${location.pathname}${location.search}`;
 
   if (loading) {
     return (
@@ -25,17 +24,14 @@ export default function AuthGuard({ children }: Props) {
       >
         <Box sx={{ display: "grid", justifyItems: "center", gap: 2 }}>
           <CircularProgress />
-          <Typography color="text.secondary">Checking Battle.net session...</Typography>
+          <Typography color="text.secondary">Checking guild setup...</Typography>
         </Box>
       </Box>
     );
   }
 
-  if (!user) {
-    if (postAuthRedirect) {
-      return <Navigate to={postAuthRedirect} replace />;
-    }
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
+  if (!error && data?.editor.canEdit && data.setup.requiresSetup && location.pathname !== "/guild") {
+    return <Navigate to="/guild" replace />;
   }
 
   return <>{children}</>;

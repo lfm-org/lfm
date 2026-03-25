@@ -22,6 +22,9 @@ const PERF_SPECS = ["**/perf/**"];
 
 export default defineConfig({
   testDir: "./e2e",
+  // The local Docker stack uses a shared seeded database, so default E2E runs
+  // must stay single-worker until scenarios are fully isolated per test.
+  workers: 1,
   testIgnore: [
     ...(includePerfSpecs ? [] : PERF_SPECS),
     ...(includeScenarioSpecs ? [] : SCENARIO_SPECS),

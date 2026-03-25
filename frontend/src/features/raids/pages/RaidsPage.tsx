@@ -15,6 +15,7 @@ import api from "../../../lib/api";
 import { normalizeRaid, type Raid } from "../lib/raidTypes";
 import { normalizeWowInstances, resolveInstanceModeLabel, type WowInstance } from "../../../lib/wow/instances";
 import { useAuth } from "../../auth";
+import { useGuildHome } from "../../guild/lib/useGuildHome";
 import RaidListCard from "../components/RaidListCard";
 import RaidSummaryItem from "../components/RaidSummaryItem";
 import {
@@ -56,6 +57,7 @@ export default function RaidsPage() {
   const [charactersError, setCharactersError] = useState<string | null>(null);
   const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
   const lastFocusedRaidId = useRef<string | null>(null);
+  const { data: guildHome } = useGuildHome();
 
   useEffect(() => {
     let active = true;
@@ -272,6 +274,7 @@ export default function RaidsPage() {
                   modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
                   selected={raid.id === requestedRaidId}
                   onClick={() => handleSelectRaid(raid.id)}
+                  guildTimezone={guildHome?.setup.timezone}
                 />
               </Box>
             ))}
@@ -293,6 +296,8 @@ export default function RaidsPage() {
                 selectedCharacterId={selectedCharacterId}
                 loadingChars={loadingChars}
                 charactersError={charactersError}
+                guildTimezone={guildHome?.setup.timezone}
+                canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
               />
             ) : (
               <Typography color="text.secondary">Select a raid to view details.</Typography>
@@ -315,6 +320,8 @@ export default function RaidsPage() {
               selectedCharacterId={selectedCharacterId}
               loadingChars={loadingChars}
               charactersError={charactersError}
+              guildTimezone={guildHome?.setup.timezone}
+              canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
             />
           ))}
           {pagination}

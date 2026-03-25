@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
+import { isSiteAdmin } from "../lib/site-admin.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -14,6 +15,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     battleNetId: identity.battleNetId,
     guildName: identity.guildName,
     selectedCharacterId: raider?.selectedCharacterId ?? null,
+    isSiteAdmin: isSiteAdmin(identity.battleNetId),
   });
 }
 
