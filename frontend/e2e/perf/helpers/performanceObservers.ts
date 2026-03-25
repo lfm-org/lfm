@@ -8,7 +8,8 @@ export interface StabilityData {
 
 /**
  * Install browser-side PerformanceObservers for layout-shift and longtask.
- * Call before the measured interaction.
+ * Call before the measured interaction. Resets accumulated data on each call —
+ * do not call more than once per measurement window.
  */
 export async function installObservers(page: Page): Promise<void> {
   await page.evaluate(() => {

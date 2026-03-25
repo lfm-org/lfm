@@ -47,7 +47,8 @@ export async function measureInteraction(
   await options.ackMarker.waitFor({ state: "visible", timeout });
   const ackMs = performance.now() - start;
 
-  await options.completionMarker.waitFor({ state: "visible", timeout });
+  const remaining = Math.max(timeout - ackMs, 1_000);
+  await options.completionMarker.waitFor({ state: "visible", timeout: remaining });
   const completionMs = performance.now() - start;
 
   const stability = await collectStabilityData(page);
