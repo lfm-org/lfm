@@ -94,16 +94,20 @@ python3 -c "import json,sys; data=json.load(open('raids.json')); print([r['id'] 
 
 Playwright coverage lives in `frontend/e2e/`. Add or update e2e tests when a change affects auth/login/logout behavior, protected routes, seeded `TEST_MODE` flows, multi-step create/update/cancel journeys, public entry pages, accessibility-critical interactions, or a regression that escaped unit/type-level coverage.
 
+`scripts/dev-env.mjs` is the primary test runner. It manages the full Docker stack lifecycle (start, seed, run Playwright, teardown) — you do not need to start or stop Docker manually.
+
+Available E2E scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each scenario seeds the database differently; scenario-specific specs only pass under their matching scenario.
+
 Useful commands:
 - list the default-discovered specs: `npm --prefix frontend run e2e:list`
-- run a focused default-scenario spec: `./scripts/dev-env.mjs test signup`
+- run a focused default-scenario spec: `./scripts/dev-env.mjs test signup` (bare names like `signup` are expanded to `e2e/signup.spec.ts` automatically)
 - run a scenario-specific spec: `./scripts/e2e.sh raids-empty raids-empty.spec.ts`
-- run the intended full all-scenarios suite: `./scripts/e2e-all.sh`
+- run the full all-scenarios suite: `./scripts/e2e-all.sh`
 
 Rules for agents:
 - Do not claim "full e2e suite passed" unless you ran `./scripts/e2e-all.sh`.
 - Default Playwright discovery excludes the scenario-specific files listed in `frontend/playwright.config.ts`.
-- If you add a new scenario-only spec, update both `frontend/playwright.config.ts` and `scripts/e2e-all.sh`.
+- If you add a new scenario-only spec, update three places: the `E2E_SCENARIOS` set in `scripts/dev-env.mjs`, the `SCENARIO_SPECS` array in `frontend/playwright.config.ts`, and `scripts/e2e-all.sh`.
 - Keep e2e coverage deterministic and local-first. Do not add routine real Battle.net dependencies to the normal Playwright workflow.
 
 ## Infrastructure Development
