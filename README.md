@@ -39,7 +39,7 @@ Useful companion commands:
 
 The `test` runner uses a separate stack on different ports (`4173`, `7072`, `8082`, `10001`) and separate scratch/data paths under `.tmp/e2e/`, so local dev and e2e can run at the same time without mixing data.
 
-Copy `example.env` before using `serve`. The runner overrides local emulator URLs automatically, so the important values in `.env` are your Blizzard credentials plus `TOKEN_ENCRYPTION_KEY` and `HMAC_SECRET`.
+Copy `example.env` before using `serve`. The runner overrides local emulator URLs automatically, so the important values in `.env` are your Blizzard credentials plus `SESSION_ENCRYPTION_KEY` and `HMAC_SECRET`.
 
 ### Frontend
 

@@ -24,7 +24,7 @@ const E2E_SCENARIOS = new Set([
 
 const COSMOS_KEY = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
 const AZURITE_ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
-const DEFAULT_TOKEN_ENCRYPTION_KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
+const DEFAULT_SESSION_ENCRYPTION_KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 const DEFAULT_HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 export function resolveCliArgs(argv) {
@@ -377,7 +377,7 @@ function buildTestEnvironment(profile, scenario) {
     BATTLE_NET_REGION: process.env.BATTLE_NET_REGION || "eu",
     LFM_CLIENT_ID: "",
     LFM_CLIENT_SECRET: "",
-    TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY || DEFAULT_TOKEN_ENCRYPTION_KEY,
+    SESSION_ENCRYPTION_KEY: process.env.SESSION_ENCRYPTION_KEY || DEFAULT_SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
     E2E_SCENARIO: scenario,
   };
@@ -393,7 +393,7 @@ async function buildServeEnvironment(profile) {
   for (const key of [
     "LFM_CLIENT_ID",
     "LFM_CLIENT_SECRET",
-    "TOKEN_ENCRYPTION_KEY",
+    "SESSION_ENCRYPTION_KEY",
     "HMAC_SECRET",
   ]) {
     if (!merged[key]) {
@@ -408,7 +408,7 @@ async function buildServeEnvironment(profile) {
     BATTLE_NET_REGION: merged.BATTLE_NET_REGION || "eu",
     LFM_CLIENT_ID: merged.LFM_CLIENT_ID,
     LFM_CLIENT_SECRET: merged.LFM_CLIENT_SECRET,
-    TOKEN_ENCRYPTION_KEY: merged.TOKEN_ENCRYPTION_KEY,
+    SESSION_ENCRYPTION_KEY: merged.SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: merged.HMAC_SECRET,
   };
 }
@@ -419,7 +419,7 @@ function buildMaintenanceEnvironment(profile) {
     ...profile.env,
     TEST_MODE: profile.mode === "test" ? "true" : "false",
     BATTLE_NET_REGION: process.env.BATTLE_NET_REGION || "eu",
-    TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY || DEFAULT_TOKEN_ENCRYPTION_KEY,
+    SESSION_ENCRYPTION_KEY: process.env.SESSION_ENCRYPTION_KEY || DEFAULT_SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
     LFM_CLIENT_ID: process.env.LFM_CLIENT_ID || "",
     LFM_CLIENT_SECRET: process.env.LFM_CLIENT_SECRET || "",

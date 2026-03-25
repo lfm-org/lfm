@@ -53,7 +53,8 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   // Test-mode fast path: bypass PKCE for local E2E tests only
   if (isLocalTestMode() && urlState === "test-state") {
-    const result = await battlenet.handleCallback(code, undefined, undefined);
+    const testRedirect = request.query.get("redirect") ?? undefined;
+    const result = await battlenet.handleCallback(code, testRedirect, undefined);
     if (!result) {
       return redirectResponse(battlenet.buildFrontendFailureUrl());
     }

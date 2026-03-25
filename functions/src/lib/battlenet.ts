@@ -114,6 +114,7 @@ export class BattlenetService {
       const url = new URL(this.redirectUri);
       url.searchParams.set("code", testModeCallbackCode);
       url.searchParams.set("state", "test-state");
+      url.searchParams.set("redirect", normalizedRedirect);
       return { authUrl: url.toString(), loginStateCookie: null };
     }
 
