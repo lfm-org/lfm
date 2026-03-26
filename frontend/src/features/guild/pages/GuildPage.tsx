@@ -25,10 +25,15 @@ export default function GuildPage() {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState(() => createGuildSettingsDraft(data ?? null));
+  const draftTimezone = data?.setup.timezone;
+  const draftRankPermissions = data?.settings?.rankPermissions;
 
   useEffect(() => {
-    setDraft(createGuildSettingsDraft(data ?? null));
-  }, [data?.settings?.rankPermissions, data?.setup.timezone]);
+    setDraft({
+      timezone: draftTimezone ?? "Europe/Helsinki",
+      rankPermissions: draftRankPermissions ?? [],
+    });
+  }, [draftRankPermissions, draftTimezone]);
 
   const handlePermissionChange = (
     rank: number,

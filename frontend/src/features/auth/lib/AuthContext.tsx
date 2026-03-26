@@ -1,24 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
 import { checkAuth, type AuthUser } from "../../../lib/auth";
-
-interface AuthContextValue {
-  user: AuthUser | null;
-  loading: boolean;
-  onCharacterSelected: (selectedCharacterId: string) => void;
-  clearAuth: () => void;
-  onAccountDeleted: () => void;
-  postAuthRedirect: string | null;
-}
-
-const AuthContext = createContext<AuthContextValue>({
-  user: null,
-  loading: true,
-  onCharacterSelected: () => {},
-  clearAuth: () => {},
-  onAccountDeleted: () => {},
-  postAuthRedirect: null,
-});
+import { AuthContext } from "./authContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -55,8 +38,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

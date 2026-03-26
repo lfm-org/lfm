@@ -58,6 +58,7 @@ export default function RaidsPage() {
   const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
   const lastFocusedRaidId = useRef<string | null>(null);
   const { data: guildHome } = useGuildHome();
+  const battleNetId = user?.battleNetId ?? null;
 
   useEffect(() => {
     let active = true;
@@ -96,7 +97,7 @@ export default function RaidsPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!battleNetId) {
       setCharacters([]);
       setSelectedCharacterId(null);
       setLoadingChars(false);
@@ -129,7 +130,7 @@ export default function RaidsPage() {
     return () => {
       active = false;
     };
-  }, [user?.battleNetId]);
+  }, [battleNetId]);
 
   const requestedRaidId = searchParams.get("raid");
   const requestedPage = parsePageParam(searchParams.get("page"));
