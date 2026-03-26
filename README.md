@@ -66,6 +66,22 @@ Useful checks:
 - `cd functions && npm run build`
 - `cd functions && npm test`
 
+## Local Verification
+
+Use the repo-level verifier to keep the quality bar explicit:
+
+- `./scripts/verify-local.sh fast`
+  - backend build + tests
+  - frontend lint + unit tests + build
+- `./scripts/verify-local.sh browser`
+  - everything in `fast`
+  - full Playwright journey suite
+- `./scripts/verify-local.sh full`
+  - currently the same as `browser`
+  - expanded in the later perf task once the perf suite is intentionally part of the contract
+
+Use `fast` for ordinary local iterations, `browser` for user-flow changes, and `full` as the end-state final verifier once the later tasks add perf and infra posture checks.
+
 Copy `example.env` and `frontend/example.env` before running locally. Do not commit populated `.env` files.
 
 ## Structure
