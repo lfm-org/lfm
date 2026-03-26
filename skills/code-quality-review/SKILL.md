@@ -11,6 +11,7 @@ Assess repository-wide code quality with a metric-driven audit and produce a pri
 Optimize for agentic development: prefer code that is easy to understand, modify in small units, and verify cheaply.
 
 Read `references/browserstack-metrics.md` before scoring. It contains the approved metric order, tier weights, and assessment rules derived from the BrowserStack article and adapted for agentic workflows.
+Then read `references/tooling-evidence.md` and use it to choose the evidence stack and fallback path.
 
 ## Workflow
 
@@ -24,10 +25,18 @@ Read `references/browserstack-metrics.md` before scoring. It contains the approv
 
 Use concrete repository signals before making judgments.
 
+- Prefer a Docker Sandbox when available, then official Docker images, then local installation.
+- Start evidence gathering with `scripts/bootstrap-sandbox.sh --json --repo "$PWD"` to identify the base toolkit and any language adapter packs the repository needs.
 - Read top-level docs, package manifests, build scripts, and test configuration.
 - Inspect representative modules, not just one hotspot.
 - Run available validation commands when practical.
 - Record blockers explicitly when tooling is missing or verification cannot run.
+
+Use the evidence classes from `references/tooling-evidence.md`:
+
+- direct metrics should be backed by tool output
+- derived metrics should combine tool output with repository inspection
+- inspection-dominant metrics should stay review-driven even if tools provide supporting signals
 
 Look for evidence in these areas:
 
@@ -47,6 +56,7 @@ Use the metric order and tiering from `references/browserstack-metrics.md`.
 - Tier 1 metrics carry the most weight and determine whether the codebase is safe for repeated agentic edits.
 - Tier 2 metrics strengthen or weaken the assessment but should not override severe Tier 1 weakness.
 - Tier 3 metrics are supporting signals and must not dominate the conclusion.
+- Tool output is evidence only. Do not invent numeric rollups beyond the approved tier model.
 
 Apply these weights:
 
