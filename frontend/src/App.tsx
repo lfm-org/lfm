@@ -5,12 +5,12 @@ import AppLayout from "./components/layout/AppLayout";
 import PageContainer from "./components/layout/PageContainer";
 import AuthGuard from "./features/auth/components/AuthGuard";
 import GuildSetupGuard from "./features/guild/components/GuildSetupGuard";
-import LandingPage from "./features/auth/pages/LandingPage";
-import LoginPage from "./features/auth/pages/LoginPage";
-import LoginFailedPage from "./features/auth/pages/LoginFailedPage";
-import LoginSuccessPage from "./features/auth/pages/LoginSuccessPage";
-import GoodbyePage from "./features/auth/pages/GoodbyePage";
 
+const LandingPage = lazy(() => import("./features/auth/pages/LandingPage"));
+const LoginPage = lazy(() => import("./features/auth/pages/LoginPage"));
+const LoginFailedPage = lazy(() => import("./features/auth/pages/LoginFailedPage"));
+const LoginSuccessPage = lazy(() => import("./features/auth/pages/LoginSuccessPage"));
+const GoodbyePage = lazy(() => import("./features/auth/pages/GoodbyePage"));
 const CharactersPage = lazy(() => import("./features/characters/pages/CharactersPage"));
 const GuildPage = lazy(() => import("./features/guild/pages/GuildPage"));
 const GuildAdminPage = lazy(() => import("./features/guild/pages/GuildAdminPage"));

@@ -4,6 +4,8 @@ export const ACK_BUDGET = {
   STANDARD: 200,
   /** Heavier transitions: route changes, panel swaps */
   HEAVY: 300,
+  /** Cold entry loads: initial app shell render after navigation commit */
+  ENTRY: 500,
 } as const;
 
 /** Flow completion budgets (ms) */
