@@ -1,7 +1,6 @@
 import { IANAZone } from "luxon";
+import { mergeRankPermissions } from "../guild-permissions.js";
 import type { GuildDocument } from "../../types/index.js";
-
-type GuildRankPermission = NonNullable<GuildDocument["rankPermissions"]>[number];
 
 export function parseGuildSettingsInput(
   input: unknown,
@@ -17,32 +16,17 @@ export function parseGuildSettingsInput(
 
   return {
     timezone,
-    rankPermissions: mergeRankPermissionsByAllowedRanks(
-      allowedRanks,
-      body.rankPermissions,
-      fallbackRankPermissions,
-    ),
+    rankPermissions:
+      body.rankPermissions === undefined
+        ? mergeRankPermissions(allowedRanks, fallbackRankPermissions)
+        : mergeRankPermissions(allowedRanks, parseRankPermissions(body.rankPermissions, allowedRanks)),
   };
 }
 
-function mergeRankPermissionsByAllowedRanks(
-  allowedRanks: number[],
+function parseRankPermissions(
   providedRankPermissions: unknown,
-  fallbackRankPermissions: GuildDocument["rankPermissions"],
+  allowedRanks: number[],
 ): NonNullable<GuildDocument["rankPermissions"]> {
-  const fallbackByRank = new Map((fallbackRankPermissions ?? []).map((permission) => [permission.rank, permission]));
-
-  if (providedRankPermissions === undefined) {
-    return [...new Set(allowedRanks)].sort((left, right) => left - right).map((rank) => {
-      const fallback = fallbackByRank.get(rank);
-      return fallback ?? {
-        rank,
-        canCreateGuildRaids: false,
-        canSignupGuildRaids: false,
-      };
-    });
-  }
-
   if (!Array.isArray(providedRankPermissions)) {
     throw new Error("Invalid rank permissions");
   }
@@ -72,15 +56,5 @@ function mergeRankPermissionsByAllowedRanks(
     };
   });
 
-  const parsedByRank = new Map(parsed.map((permission) => [permission.rank, permission]));
-  return [...new Set(allowedRanks)].sort((left, right) => left - right).map((rank) => {
-    const permission = parsedByRank.get(rank);
-    if (permission) return permission;
-    const fallback = fallbackByRank.get(rank);
-    return fallback ?? {
-      rank,
-      canCreateGuildRaids: false,
-      canSignupGuildRaids: false,
-    };
-  });
+  return parsed;
 }
