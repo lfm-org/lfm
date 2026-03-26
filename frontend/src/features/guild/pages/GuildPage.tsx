@@ -2,22 +2,21 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
-  Button,
-  Checkbox,
   Chip,
   CircularProgress,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  NativeSelect,
   Stack,
   Typography,
 } from "@mui/material";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
 import api from "../../../lib/api";
-import { GUILD_TIMEZONE_OPTIONS } from "../../../lib/guildConfig";
+import GuildSettingsEditor from "../components/GuildSettingsEditor";
 import type { GuildHomeResponse } from "../lib/guildHome";
+import {
+  createGuildSettingsDraft,
+  toGuildSettingsPayload,
+  updateGuildRankPermission,
+} from "../lib/guildSettingsForm";
 import { useGuildHome } from "../lib/useGuildHome";
 
 export default function GuildPage() {
@@ -25,26 +24,21 @@ export default function GuildPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [timezone, setTimezone] = useState("Europe/Helsinki");
-  const [rankPermissions, setRankPermissions] = useState<NonNullable<GuildHomeResponse["settings"]>["rankPermissions"]>([]);
+  const [draft, setDraft] = useState(() => createGuildSettingsDraft(data ?? null));
 
   useEffect(() => {
-    if (data?.setup.timezone) {
-      setTimezone(data.setup.timezone);
-    }
-    setRankPermissions(data?.settings?.rankPermissions ?? []);
-  }, [data?.settings?.rankPermissions, data?.setup.timezone]);
+    setDraft(createGuildSettingsDraft(data ?? null));
+  }, [data]);
 
   const handlePermissionChange = (
     rank: number,
     field: "canCreateGuildRaids" | "canSignupGuildRaids",
-    checked: boolean
+    checked: boolean,
   ) => {
-    setRankPermissions((current) => current.map((permission) => (
-      permission.rank === rank
-        ? { ...permission, [field]: checked }
-        : permission
-    )));
+    setDraft((current) => ({
+      ...current,
+      rankPermissions: updateGuildRankPermission(current.rankPermissions, rank, field, checked),
+    }));
   };
 
   const handleSaveSettings = async () => {
@@ -53,7 +47,10 @@ export default function GuildPage() {
     setSaveSuccess(null);
 
     try {
-      const response = await api.put<GuildHomeResponse>("/guild/settings", { timezone, rankPermissions });
+      const response = await api.put<GuildHomeResponse>(
+        "/guild/settings",
+        toGuildSettingsPayload(draft),
+      );
       setData(response.data);
       setSaveSuccess("Guild settings saved");
     } catch {
@@ -184,67 +181,17 @@ export default function GuildPage() {
                     )}
                     {saveError && <Alert severity="error">{saveError}</Alert>}
                     {saveSuccess && <Alert severity="success">{saveSuccess}</Alert>}
-                    <FormControl fullWidth sx={{ maxWidth: 320 }}>
-                      <InputLabel htmlFor="guild-timezone">Time zone</InputLabel>
-                      <NativeSelect
-                        value={timezone}
-                        onChange={(event) => setTimezone(event.target.value)}
-                        inputProps={{ id: "guild-timezone", name: "timezone" }}
-                        disabled={!data.setup.rankDataFresh || saving}
-                      >
-                        {GUILD_TIMEZONE_OPTIONS.map((option) => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </NativeSelect>
-                    </FormControl>
-
-                    {rankPermissions.length > 0 && (
-                      <Stack spacing={1.5}>
-                        <Typography variant="h6" component="h3">Rank permissions</Typography>
-                        {rankPermissions.map((permission) => (
-                          <Box
-                            key={permission.rank}
-                            sx={{
-                              display: "grid",
-                              gap: 1,
-                              p: 2,
-                              border: "1px solid",
-                              borderColor: "divider",
-                              borderRadius: 2,
-                            }}
-                          >
-                            <Typography fontWeight={600}>Rank {permission.rank}</Typography>
-                            <FormControlLabel
-                              control={(
-                                <Checkbox
-                                  checked={permission.canCreateGuildRaids}
-                                  onChange={(event) =>
-                                    handlePermissionChange(permission.rank, "canCreateGuildRaids", event.target.checked)}
-                                  disabled={!data.setup.rankDataFresh || saving}
-                                />
-                              )}
-                              label={`Allow guild raid creation for Rank ${permission.rank}`}
-                            />
-                            <FormControlLabel
-                              control={(
-                                <Checkbox
-                                  checked={permission.canSignupGuildRaids}
-                                  onChange={(event) =>
-                                    handlePermissionChange(permission.rank, "canSignupGuildRaids", event.target.checked)}
-                                  disabled={!data.setup.rankDataFresh || saving}
-                                />
-                              )}
-                              label={`Allow guild raid signup for Rank ${permission.rank}`}
-                            />
-                          </Box>
-                        ))}
-                      </Stack>
-                    )}
-                    <Box>
-                      <Button variant="contained" onClick={handleSaveSettings} disabled={saving || !data.setup.rankDataFresh}>
-                        {saving ? "Saving..." : "Save guild settings"}
-                      </Button>
-                    </Box>
+                    <GuildSettingsEditor
+                      timezone={draft.timezone}
+                      rankPermissions={draft.rankPermissions}
+                      saving={saving}
+                      rankDataFresh={data.setup.rankDataFresh}
+                      onTimezoneChange={(timezone) =>
+                        setDraft((current) => ({ ...current, timezone }))
+                      }
+                      onPermissionChange={handlePermissionChange}
+                      onSave={handleSaveSettings}
+                    />
                   </Stack>
                 ) : (
                   <Box>
