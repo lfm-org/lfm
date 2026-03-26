@@ -77,10 +77,10 @@ Use the repo-level verifier to keep the quality bar explicit:
   - everything in `fast`
   - full Playwright journey suite
 - `./scripts/verify-local.sh full`
-  - currently the same as `browser`
-  - expanded in the later perf task once the perf suite is intentionally part of the contract
+  - everything in `browser`
+  - frontend Playwright perf suite
 
-Use `fast` for ordinary local iterations, `browser` for user-flow changes, and `full` as the end-state final verifier once the later tasks add perf and infra posture checks.
+Use `fast` for ordinary local iterations, `browser` for user-flow changes, and `full` as the final integrated verifier for this program.
 
 Copy `example.env` and `frontend/example.env` before running locally. Do not commit populated `.env` files.
 
