@@ -8,6 +8,8 @@
     "dev:e2e": "FRONTEND_PORT=${FRONTEND_PORT:-4173} vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "e2e": "playwright test",
     "e2e:list": "playwright test --list"
   },
@@ -32,6 +34,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",
     "typescript": "5.9.3",
-    "vite": "8.0.1"
+    "vite": "8.0.1",
+    "vitest": "^4.1.0"
   }
 }
