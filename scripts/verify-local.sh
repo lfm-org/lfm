@@ -11,7 +11,7 @@ run_fast() {
 
 run_browser() {
   run_fast
-  "$ROOT_DIR/scripts/e2e-all.sh"
+  bash "$ROOT_DIR/scripts/e2e-all.sh"
 }
 
 case "$MODE" in
