@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:e2e": "FRONTEND_PORT=${FRONTEND_PORT:-4173} vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "lint": "eslint --max-warnings=0 src",
+    "lint": "eslint --max-warnings=0 src eslint.config.mjs vite.config.ts vitest.config.ts playwright.config.ts",
     "preview": "vite preview",
     "test": "npm run test:unit",
     "test:unit": "vitest run",
