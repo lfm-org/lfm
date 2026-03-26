@@ -45,56 +45,58 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
         </NativeSelect>
       </FormControl>
 
-      <Stack spacing={1.5}>
-        <Typography variant="h6" component="h3">
-          Rank permissions
-        </Typography>
-        {props.rankPermissions.map((permission) => (
-          <Box
-            key={permission.rank}
-            sx={{
-              display: "grid",
-              gap: 1,
-              p: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Typography fontWeight={600}>Rank {permission.rank}</Typography>
-            <FormControlLabel
-              control={(
-                <Checkbox
-                  checked={permission.canCreateGuildRaids}
-                  onChange={(event) =>
-                    props.onPermissionChange(
-                      permission.rank,
-                      "canCreateGuildRaids",
-                      event.target.checked,
-                    )}
-                  disabled={!props.rankDataFresh || props.saving}
-                />
-              )}
-              label={`Allow guild raid creation for Rank ${permission.rank}`}
-            />
-            <FormControlLabel
-              control={(
-                <Checkbox
-                  checked={permission.canSignupGuildRaids}
-                  onChange={(event) =>
-                    props.onPermissionChange(
-                      permission.rank,
-                      "canSignupGuildRaids",
-                      event.target.checked,
-                    )}
-                  disabled={!props.rankDataFresh || props.saving}
-                />
-              )}
-              label={`Allow guild raid signup for Rank ${permission.rank}`}
-            />
-          </Box>
-        ))}
-      </Stack>
+      {props.rankPermissions.length > 0 && (
+        <Stack spacing={1.5}>
+          <Typography variant="h6" component="h3">
+            Rank permissions
+          </Typography>
+          {props.rankPermissions.map((permission) => (
+            <Box
+              key={permission.rank}
+              sx={{
+                display: "grid",
+                gap: 1,
+                p: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+              }}
+            >
+              <Typography fontWeight={600}>Rank {permission.rank}</Typography>
+              <FormControlLabel
+                control={(
+                  <Checkbox
+                    checked={permission.canCreateGuildRaids}
+                    onChange={(event) =>
+                      props.onPermissionChange(
+                        permission.rank,
+                        "canCreateGuildRaids",
+                        event.target.checked,
+                      )}
+                    disabled={!props.rankDataFresh || props.saving}
+                  />
+                )}
+                label={`Allow guild raid creation for Rank ${permission.rank}`}
+              />
+              <FormControlLabel
+                control={(
+                  <Checkbox
+                    checked={permission.canSignupGuildRaids}
+                    onChange={(event) =>
+                      props.onPermissionChange(
+                        permission.rank,
+                        "canSignupGuildRaids",
+                        event.target.checked,
+                      )}
+                    disabled={!props.rankDataFresh || props.saving}
+                  />
+                )}
+                label={`Allow guild raid signup for Rank ${permission.rank}`}
+              />
+            </Box>
+          ))}
+        </Stack>
+      )}
 
       <Box>
         <Button

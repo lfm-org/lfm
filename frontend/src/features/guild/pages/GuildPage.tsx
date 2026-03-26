@@ -28,7 +28,7 @@ export default function GuildPage() {
 
   useEffect(() => {
     setDraft(createGuildSettingsDraft(data ?? null));
-  }, [data]);
+  }, [data?.settings?.rankPermissions, data?.setup.timezone]);
 
   const handlePermissionChange = (
     rank: number,
