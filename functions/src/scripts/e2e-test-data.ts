@@ -14,6 +14,7 @@ import { findModeByKey, getModePlayers } from "../lib/wow-instance-modes.js";
 import type {
   Character,
   EntitySyncMeta,
+  GuildDocument,
   RaiderDocument,
   RaidCharacter,
   RaidDocument,
@@ -38,6 +39,7 @@ export interface BlobWrite {
 export interface SeedDataBundle {
   raiders: RaiderDocument[];
   raids: RaidDocument[];
+  guilds: GuildDocument[];
 }
 
 export type E2eScenario =
@@ -120,6 +122,8 @@ const TEST_REALM_NAME = "Test Realm";
 const TEST_GUILD_NAME = "Test Guild";
 const OUTSIDER_GUILD_ID = 54321;
 const OUTSIDER_GUILD_NAME = "Rival Guild";
+const STALE_GUILD_ID = 65432;
+const STALE_GUILD_NAME = "Stale Vanguard";
 
 const CHARACTER_TEMPLATES: CharacterTemplate[] = [
   {
@@ -994,8 +998,87 @@ export function buildSeedData({
     return buildRaidDocument(definition, creator, signups, seedTime, instances);
   });
 
+  const staleFetchedAt = new Date(seedTime.getTime() - 2 * 60 * 60 * 1000).toISOString();
+  const guilds: GuildDocument[] = [
+    {
+      id: String(STALE_GUILD_ID),
+      guildId: STALE_GUILD_ID,
+      realmSlug: TEST_REALM,
+      slogan: "Hold roster until sync returns.",
+      blizzardProfileRaw: {
+        id: STALE_GUILD_ID,
+        name: STALE_GUILD_NAME,
+        achievement_points: 2400,
+        member_count: 42,
+        realm: {
+          id: 559,
+          slug: TEST_REALM,
+          name: { en_US: TEST_REALM_NAME },
+        },
+        faction: { type: "ALLIANCE", name: "Alliance" },
+      },
+      blizzardProfileFetchedAt: staleFetchedAt,
+      blizzardRosterRaw: {
+        guild: {
+          id: STALE_GUILD_ID,
+          name: STALE_GUILD_NAME,
+          realm: {
+            id: 559,
+            slug: TEST_REALM,
+            name: { en_US: TEST_REALM_NAME },
+          },
+          faction: { type: "ALLIANCE", name: "Alliance" },
+        },
+        members: [
+          {
+            character: {
+              id: 91001,
+              name: "Archivist",
+              realm: {
+                id: 559,
+                slug: TEST_REALM,
+                name: { en_US: TEST_REALM_NAME },
+              },
+              level: 80,
+              playable_class: { id: 8 },
+              playable_race: { id: 7 },
+              faction: { type: "ALLIANCE", name: "Alliance" },
+            },
+            rank: 0,
+          },
+          {
+            character: {
+              id: 91002,
+              name: "Quarterline",
+              realm: {
+                id: 559,
+                slug: TEST_REALM,
+                name: { en_US: TEST_REALM_NAME },
+              },
+              level: 80,
+              playable_class: { id: 2 },
+              playable_race: { id: 3 },
+              faction: { type: "ALLIANCE", name: "Alliance" },
+            },
+            rank: 2,
+          },
+        ],
+      },
+      blizzardRosterFetchedAt: staleFetchedAt,
+      rankPermissions: [
+        { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
+        { rank: 2, canCreateGuildRaids: false, canSignupGuildRaids: true },
+      ],
+      setup: {
+        initializedAt: createdAt,
+        timezone: "UTC",
+      },
+    },
+  ];
+
   return {
     raiders: [...guildPool.map((entry) => entry.document), ...outsiderPool.map((entry) => entry.document)],
     raids,
+    guilds,
   };
 }

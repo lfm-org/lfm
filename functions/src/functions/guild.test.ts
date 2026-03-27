@@ -114,6 +114,23 @@ describe("currentGuildSettingsHandler", () => {
     expect(saveCurrentGuildSettings).toHaveBeenCalledTimes(1);
     expect(json).not.toHaveBeenCalled();
   });
+
+  it("maps stale guild settings to 409", async () => {
+    vi.mocked(requireAuthWithToken).mockResolvedValue({
+      identity: { guildId: 12345, guildName: "Test Guild", battleNetId: "bnet-1" },
+      accessToken: "token",
+    });
+    vi.mocked(saveCurrentGuildSettings).mockResolvedValue({ kind: "stale" });
+
+    const response = await currentGuildSettingsHandler({
+      json: vi.fn(),
+    } as never, makeContext());
+
+    expect(response.status).toBe(409);
+    expect(JSON.parse(response.body as string)).toEqual({
+      error: "Guild rank data is stale",
+    });
+  });
 });
 
 describe("adminGuildSettingsHandler", () => {
@@ -166,5 +183,24 @@ describe("adminGuildSettingsHandler", () => {
     });
     expect(saveAdminGuildSettings).toHaveBeenCalledTimes(1);
     expect(json).not.toHaveBeenCalled();
+  });
+
+  it("maps stale admin guild settings to 409", async () => {
+    vi.mocked(requireSiteAdminAuthWithToken).mockResolvedValue({
+      identity: { guildId: null, guildName: null, battleNetId: "admin-bnet" },
+      accessToken: "token",
+      isSiteAdmin: true,
+    });
+    vi.mocked(saveAdminGuildSettings).mockResolvedValue({ kind: "stale" });
+
+    const response = await adminGuildSettingsHandler({
+      params: { guildId: "12345" },
+      json: vi.fn(),
+    } as never, makeContext());
+
+    expect(response.status).toBe(409);
+    expect(JSON.parse(response.body as string)).toEqual({
+      error: "Guild rank data is stale",
+    });
   });
 });

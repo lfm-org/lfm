@@ -1,7 +1,7 @@
 import { battlenet } from "../battlenet.js";
 import { getPublicBlobUrl, writeBinaryBlob } from "../blob.js";
 import { syncGuildCrest } from "../guild-crest.js";
-import { getEffectiveGuildPermissions, getGuildRanksFromRoster } from "../guild-permissions.js";
+import { getEffectiveGuildPermissions, getGuildRanksFromRoster, isGuildRosterFresh } from "../guild-permissions.js";
 import { toGuildHomeView } from "../blizzard-adapters.js";
 import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "./document.js";
 import { resolveGuildEditor, resolveRealmSlug } from "./context.js";
@@ -23,11 +23,13 @@ export type SaveCurrentGuildSettingsResult =
   | { kind: "missing_guild" }
   | { kind: "not_found" }
   | { kind: "forbidden" }
+  | { kind: "stale" }
   | { kind: "invalid" };
 
 export type SaveAdminGuildSettingsResult =
   | { kind: "ok"; view: ReturnType<typeof toGuildHomeView> }
   | { kind: "not_found" }
+  | { kind: "stale" }
   | { kind: "invalid" };
 
 export class BlizzardGuildRefreshError extends Error {
@@ -205,6 +207,9 @@ export async function saveCurrentGuildSettings(args: {
   if (!editor.canEdit) {
     return { kind: "forbidden" };
   }
+  if (!isGuildRosterFresh(guildDoc)) {
+    return { kind: "stale" };
+  }
 
   const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
   let rawInput: unknown;
@@ -276,6 +281,7 @@ export async function saveAdminGuildSettings(args: {
 }): Promise<SaveAdminGuildSettingsResult> {
   const guildDoc = await bootstrapGuildDocumentForAdmin(args);
   if (!guildDoc) return { kind: "not_found" };
+  if (!isGuildRosterFresh(guildDoc)) return { kind: "stale" };
 
   const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
   let rawInput: unknown;

@@ -343,7 +343,6 @@ export function getTestModeGuildProfile(
       slug: realmSlug,
       name: { en_US: "Test Realm" },
     },
-    motd: "Practice clean pulls and cleaner logs.",
     faction: { type: "ALLIANCE", name: "Alliance" },
     crest: {
       emblem: {

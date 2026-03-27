@@ -50,6 +50,7 @@ function createRoster(): BlizzardGuildRosterResponse {
 }
 
 function createGuildDoc(overrides: Partial<GuildDocument> = {}): GuildDocument {
+  const freshTimestamp = new Date().toISOString();
   const profileSummary: BlizzardGuildProfileResponse = {
     id: 12345,
     name: "Test Guild",
@@ -68,9 +69,9 @@ function createGuildDoc(overrides: Partial<GuildDocument> = {}): GuildDocument {
     guildId: 12345,
     realmSlug: "test-realm",
     blizzardProfileRaw: profileSummary,
-    blizzardProfileFetchedAt: "2026-03-25T10:00:00.000Z",
+    blizzardProfileFetchedAt: freshTimestamp,
     blizzardRosterRaw: createRoster(),
-    blizzardRosterFetchedAt: "2026-03-25T10:00:00.000Z",
+    blizzardRosterFetchedAt: freshTimestamp,
     setup: {
       initializedAt: "2026-03-20T10:00:00.000Z",
       timezone: "Europe/Helsinki",
@@ -204,6 +205,25 @@ describe("saveCurrentGuildSettings", () => {
     expect(result).toEqual({ kind: "forbidden" });
     expect(readRawInput).not.toHaveBeenCalled();
   });
+
+  it("returns stale before attempting to read malformed input", async () => {
+    const readRawInput = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    const result = await saveCurrentGuildSettings({
+      guildId: 12345,
+      guildName: "Test Guild",
+      battleNetId: "bnet-1",
+      readRawInput,
+      readGuildDocument: vi.fn().mockResolvedValue(createGuildDoc({
+        blizzardRosterFetchedAt: "2026-03-25T08:00:00.000Z",
+      })),
+      readRaider: vi.fn().mockResolvedValue(createRaider()),
+      replaceGuildDocument: vi.fn(),
+    });
+
+    expect(result).toEqual({ kind: "stale" });
+    expect(readRawInput).not.toHaveBeenCalled();
+  });
 });
 
 describe("saveAdminGuildSettings", () => {
@@ -264,6 +284,27 @@ describe("saveAdminGuildSettings", () => {
     });
 
     expect(result).toEqual({ kind: "not_found" });
+    expect(readRawInput).not.toHaveBeenCalled();
+  });
+
+  it("returns stale before attempting to read malformed input", async () => {
+    const readRawInput = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    vi.mocked(ensureGuildDocumentForAdmin).mockResolvedValue(createGuildDoc({
+      blizzardRosterFetchedAt: "2026-03-25T08:00:00.000Z",
+    }));
+
+    const result = await saveAdminGuildSettings({
+      guildDocId: "12345",
+      accessToken: "token",
+      battleNetId: "admin-bnet",
+      readRawInput,
+      readGuildDocument: vi.fn(),
+      listRaiders: vi.fn(),
+      replaceGuildDocument: vi.fn(),
+    });
+
+    expect(result).toEqual({ kind: "stale" });
     expect(readRawInput).not.toHaveBeenCalled();
   });
 });

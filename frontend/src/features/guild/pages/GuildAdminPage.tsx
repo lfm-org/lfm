@@ -174,6 +174,10 @@ export default function GuildAdminPage() {
                 </Typography>
               </Box>
 
+              {!data.setup.rankDataFresh && (
+                <Alert severity="error">Rank sync is stale. Guild settings are locked until roster data refreshes.</Alert>
+              )}
+
               {data.adminOverride?.lastOverrideAt && (
                 <Alert severity="info">
                   Last override by {data.adminOverride.lastOverrideBy ?? "unknown"} at {data.adminOverride.lastOverrideAt}
@@ -185,7 +189,7 @@ export default function GuildAdminPage() {
                 slogan={draft.slogan}
                 rankPermissions={draft.rankPermissions}
                 saving={saving}
-                rankDataFresh={true}
+                rankDataFresh={data.setup.rankDataFresh}
                 onTimezoneChange={(timezone) =>
                   setDraft((current) => ({ ...current, timezone }))
                 }

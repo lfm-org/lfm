@@ -245,6 +245,7 @@ describe("buildSeedData", () => {
 
     expect(seed.raiders.length).toBeGreaterThanOrEqual(40);
     expect(seed.raids.length).toBeGreaterThanOrEqual(40);
+    expect(seed.guilds).toHaveLength(1);
 
     const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
     expect(testRaider).toMatchObject({
@@ -311,6 +312,16 @@ describe("buildSeedData", () => {
       "IN",
       "BENCH",
     ]);
+
+    expect(seed.guilds[0]).toMatchObject({
+      id: "65432",
+      guildId: 65432,
+      slogan: "Hold roster until sync returns.",
+      setup: {
+        timezone: "UTC",
+      },
+    });
+    expect(seed.guilds[0]?.blizzardRosterFetchedAt).toBe("2026-03-18T10:00:00.000Z");
   });
 
   it("builds an empty raids dataset for the raids-empty scenario", () => {
@@ -323,6 +334,7 @@ describe("buildSeedData", () => {
 
     expect(seed.raiders.length).toBeGreaterThan(0);
     expect(seed.raids).toEqual([]);
+    expect(seed.guilds).toHaveLength(1);
   });
 
   it("removes cached account characters for the characters-empty scenario", () => {
@@ -336,5 +348,6 @@ describe("buildSeedData", () => {
     const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
     expect(testRaider?.accountProfileSummary?.wow_accounts?.[0]?.characters).toEqual([]);
     expect(testRaider?.selectedCharacterId).toBeNull();
+    expect(seed.guilds).toHaveLength(1);
   });
 });

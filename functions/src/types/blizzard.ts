@@ -164,7 +164,6 @@ export interface BlizzardGuildProfileResponse {
     slug: string;
     name: string | BlizzardLocalizedString;
   };
-  motd?: string;
   faction?: { type: string; name?: string };
   crest?: {
     emblem?: {

@@ -29,7 +29,7 @@
   - Log action name, hashed/current `battleNetId`, target raid ID when relevant, and result status.
   - Never log access tokens, cookies, raw Blizzard IDs, or request bodies.
 - Deferred in this pass:
-  - Leave `GET /api/guild/motd` unchanged and document it as lower-priority cache-write-on-read hardening.
+  - The earlier `GET /api/guild/motd` idea is abandoned for this product path because Blizzard API support is not available; do not treat it as deferred implementation work.
   - Leave the frontend CSP `style-src 'unsafe-inline'` as documented technical debt, not part of the STRIDE remediation pass.
 
 ## Public API / Interface Changes

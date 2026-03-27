@@ -10,7 +10,7 @@ import {
   resolveTestDataTimestamp,
   type E2eScenario,
 } from "./e2e-test-data.js";
-import type { RaiderDocument, RaidDocument } from "../types/index.js";
+import type { GuildDocument, RaiderDocument, RaidDocument } from "../types/index.js";
 
 const DB_NAME = process.env.COSMOS_DATABASE ?? "lfm";
 
@@ -77,10 +77,12 @@ async function main() {
   const client = new CosmosClient(createCosmosClientOptions());
   const { database } = await client.databases.createIfNotExists({ id: DB_NAME });
   const { container: raidersContainer } = await database.containers.createIfNotExists(RAIDERS_CONTAINER_DEFINITION);
-  await database.containers.createIfNotExists(GUILDS_CONTAINER_DEFINITION);
+  const { container: guildsContainer } = await database.containers.createIfNotExists(GUILDS_CONTAINER_DEFINITION);
 
   await resetContainer<RaiderDocument>(raidersContainer, (raider) => raider.battleNetId);
   await upsertAll(raidersContainer, seed.raiders);
+  await resetContainer<GuildDocument>(guildsContainer, (guild) => guild.id);
+  await upsertAll(guildsContainer, seed.guilds);
 
   const raidsContainerDefinition = getRaidsContainerDefinitionForScenario(scenario);
   if (raidsContainerDefinition) {
@@ -89,7 +91,7 @@ async function main() {
     await upsertAll(raidsContainer, seed.raids);
   }
 
-  console.log(`Seeded ${seed.raiders.length} raiders and ${seed.raids.length} raids from ${snapshotDir}`);
+  console.log(`Seeded ${seed.raiders.length} raiders, ${seed.raids.length} raids, and ${seed.guilds.length} guilds from ${snapshotDir}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

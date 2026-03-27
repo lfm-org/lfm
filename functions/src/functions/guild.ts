@@ -88,11 +88,15 @@ export async function currentGuildSettingsHandler(request: HttpRequest, context:
       return errorResponse(404, "Guild not found");
     case "forbidden":
       return errorResponse(403, "Forbidden");
+    case "stale":
+      return errorResponse(409, "Guild rank data is stale");
     case "invalid":
       return errorResponse(400, "Invalid guild settings payload");
     case "ok":
       auditLog(context, { action: "guild.settings.update", actorId: auth.identity.battleNetId, targetId: String(auth.identity.guildId), result: "success" });
       return jsonResponse(view.view);
+    default:
+      throw new Error(`Unhandled guild settings result: ${(view as { kind: string }).kind}`);
   }
 }
 
@@ -178,11 +182,15 @@ export async function adminGuildSettingsHandler(request: HttpRequest, context: I
   switch (view.kind) {
     case "not_found":
       return errorResponse(404, "Guild not found");
+    case "stale":
+      return errorResponse(409, "Guild rank data is stale");
     case "invalid":
       return errorResponse(400, "Invalid guild settings payload");
     case "ok":
       auditLog(context, { action: "guild.admin.override", actorId: auth.identity.battleNetId, targetId: guildDocId, result: "success" });
       return jsonResponse(view.view);
+    default:
+      throw new Error(`Unhandled admin guild settings result: ${(view as { kind: string }).kind}`);
   }
 }
 
