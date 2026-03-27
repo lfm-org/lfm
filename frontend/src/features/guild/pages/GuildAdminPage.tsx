@@ -1,17 +1,10 @@
 import { useState } from "react";
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Button,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import PageContainer from "../../../components/layout/PageContainer";
+import { Alert, Box, Button, Chip, CircularProgress, Stack, TextField, Typography } from "@mui/material";
 import SurfaceCard from "../../../components/SurfaceCard";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
+import GuildIdentityCard from "../components/GuildIdentityCard";
+import GuildRouteShell from "../components/GuildRouteShell";
 import GuildSettingsEditor from "../components/GuildSettingsEditor";
 import type { GuildHomeResponse } from "../lib/guildHome";
 import {
@@ -102,38 +95,27 @@ export default function GuildAdminPage() {
 
   if (!user?.isSiteAdmin) {
     return (
-      <PageContainer>
+      <GuildRouteShell
+        title="Guild admin"
+        description="Resolve a guild explicitly, then edit the same settings through the site-admin override path."
+      >
         <Stack spacing={3}>
-          <Box>
-            <Typography component="h1" variant="h4" gutterBottom>
-              Guild Admin
-            </Typography>
-            <Typography color="text.secondary">
-              Explicit guild override is restricted to the configured site-admin allowlist.
-            </Typography>
-          </Box>
           <Alert severity="error">Site admin access required.</Alert>
         </Stack>
-      </PageContainer>
+      </GuildRouteShell>
     );
   }
 
   return (
-    <PageContainer>
+    <GuildRouteShell
+      title="Guild admin"
+      description="Resolve a guild explicitly, then edit the same settings through the site-admin override path."
+    >
       <Stack spacing={3}>
-        <Box>
-          <Typography component="h1" variant="h4" gutterBottom>
-            Guild Admin
-          </Typography>
-          <Typography color="text.secondary">
-            Resolve a guild explicitly, then edit its settings through the override path. This does not change normal guild-master permissions.
-          </Typography>
-        </Box>
-
         {error && <Alert severity="error">{error}</Alert>}
         {success && <Alert severity="success">{success}</Alert>}
 
-        <SurfaceCard>
+        <SurfaceCard padding={3}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "flex-end" }}>
             <TextField
               label="Guild ID"
@@ -150,45 +132,72 @@ export default function GuildAdminPage() {
         {loading && (
           <Stack direction="row" spacing={1.5} alignItems="center">
             <CircularProgress size={20} />
-            <Typography color="text.secondary">Loading guild override data...</Typography>
-          </Stack>
-        )}
+          <Typography color="text.secondary">Loading guild override data...</Typography>
+        </Stack>
+      )}
 
-        {resolved && data?.guild && (
-          <SurfaceCard sx={{ overflow: "hidden", borderRadius: 4 }}>
-            <Box sx={{ p: { xs: 3, md: 4 } }}>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography variant="h5" component="h2">
-                    Editing {resolved.guildName ?? data.guild.name}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Guild ID {resolved.guildId}
-                  </Typography>
-                </Box>
-
-                {data.adminOverride?.lastOverrideAt && (
-                  <Alert severity="info">
-                    Last override by {data.adminOverride.lastOverrideBy ?? "unknown"} at {data.adminOverride.lastOverrideAt}
-                  </Alert>
-                )}
-
-                <GuildSettingsEditor
-                  timezone={draft.timezone}
-                  rankPermissions={draft.rankPermissions}
-                  saving={saving}
-                  rankDataFresh
-                  onTimezoneChange={(timezone) =>
-                    setDraft((current) => ({ ...current, timezone }))
-                  }
-                  onPermissionChange={handlePermissionChange}
-                  onSave={handleSave}
+      {resolved && data?.guild && (
+        <Stack spacing={3}>
+          <GuildIdentityCard
+            guild={data.guild}
+            metadata={(
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
+                <Chip label={`Guild ID ${resolved.guildId}`} variant="outlined" />
+                <Chip
+                  label={data.setup.rankDataFresh ? "Rank sync fresh" : "Rank sync not configured yet"}
+                  variant="outlined"
                 />
+                {data.guild.memberCount != null && (
+                  <Chip label={`${data.guild.memberCount} members`} variant="outlined" />
+                )}
+                {data.guild.syncedMemberCount != null && (
+                  <Chip label={`${data.guild.syncedMemberCount} synced roster`} variant="outlined" />
+                )}
+                {data.guild.rankCount != null && (
+                  <Chip label={`${data.guild.rankCount} ranks detected`} variant="outlined" />
+                )}
+                {data.guild.achievementPoints != null && (
+                  <Chip label={`${data.guild.achievementPoints} achievement points`} variant="outlined" />
+                )}
               </Stack>
-            </Box>
+            )}
+          />
+
+          <SurfaceCard padding={3}>
+            <Stack spacing={2.5}>
+              <Box>
+                <Typography variant="h6" component="h2">
+                  Override settings
+                </Typography>
+                <Typography color="text.secondary">
+                  Editing {resolved.guildName ?? data.guild.name}
+                </Typography>
+              </Box>
+
+              {data.adminOverride?.lastOverrideAt && (
+                <Alert severity="info">
+                  Last override by {data.adminOverride.lastOverrideBy ?? "unknown"} at {data.adminOverride.lastOverrideAt}
+                </Alert>
+              )}
+
+              <GuildSettingsEditor
+                timezone={draft.timezone}
+                slogan={draft.slogan}
+                rankPermissions={draft.rankPermissions}
+                saving={saving}
+                rankDataFresh={true}
+                onTimezoneChange={(timezone) =>
+                  setDraft((current) => ({ ...current, timezone }))
+                }
+                onSloganChange={(slogan) => setDraft((current) => ({ ...current, slogan }))}
+                onPermissionChange={handlePermissionChange}
+                onSave={handleSave}
+              />
+            </Stack>
           </SurfaceCard>
-        )}
-      </Stack>
-    </PageContainer>
+        </Stack>
+      )}
+    </Stack>
+  </GuildRouteShell>
   );
 }

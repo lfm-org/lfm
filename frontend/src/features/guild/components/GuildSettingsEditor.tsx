@@ -7,6 +7,7 @@ import {
   InputLabel,
   NativeSelect,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { GUILD_TIMEZONE_OPTIONS } from "../../../lib/guildConfig";
@@ -14,10 +15,12 @@ import type { GuildRankPermission } from "../lib/guildSettingsForm";
 
 interface GuildSettingsEditorProps {
   timezone: string;
+  slogan: string;
   rankPermissions: GuildRankPermission[];
   saving: boolean;
   rankDataFresh: boolean;
   onTimezoneChange: (value: string) => void;
+  onSloganChange: (value: string) => void;
   onPermissionChange: (
     rank: number,
     field: "canCreateGuildRaids" | "canSignupGuildRaids",
@@ -44,6 +47,17 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
           ))}
         </NativeSelect>
       </FormControl>
+
+      <TextField
+        label="Slogan"
+        value={props.slogan}
+        onChange={(event) => props.onSloganChange(event.target.value)}
+        disabled={!props.rankDataFresh || props.saving}
+        multiline
+        minRows={2}
+        helperText="Shown beside the guild name."
+        sx={{ maxWidth: 480 }}
+      />
 
       {props.rankPermissions.length > 0 && (
         <Stack spacing={1.5}>

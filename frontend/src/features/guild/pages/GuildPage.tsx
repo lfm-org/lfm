@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Stack,
-  Typography,
-} from "@mui/material";
-import PageContainer from "../../../components/layout/PageContainer";
+import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 import SurfaceCard from "../../../components/SurfaceCard";
 import api from "../../../lib/api";
+import GuildIdentityCard from "../components/GuildIdentityCard";
+import GuildRouteShell from "../components/GuildRouteShell";
 import GuildSettingsEditor from "../components/GuildSettingsEditor";
 import type { GuildHomeResponse } from "../lib/guildHome";
 import {
@@ -62,117 +56,77 @@ export default function GuildPage() {
 
   if (loading) {
     return (
-      <PageContainer>
+      <GuildRouteShell
+        title="Guild"
+        description="Review the active guild, keep its slogan current, and manage rank-gated raid settings from one shared surface."
+      >
         <Stack direction="row" spacing={1.5} alignItems="center">
           <CircularProgress size={20} />
           <Typography color="text.secondary">Loading guild home...</Typography>
         </Stack>
-      </PageContainer>
+      </GuildRouteShell>
     );
   }
 
   return (
-    <PageContainer>
+    <GuildRouteShell
+      title="Guild"
+      description="Review the active guild, keep its slogan current, and manage rank-gated raid settings from one shared surface."
+    >
       <Stack spacing={3}>
-        <Box>
-          <Typography component="h1" variant="h4" gutterBottom>
-            Guild
-          </Typography>
-          <Typography color="text.secondary">
-            Guild identity and setup status live here. Rank permissions and crest customization land in the next slices.
-          </Typography>
-        </Box>
-
         {error && <Alert severity="error">{error}</Alert>}
 
         {!error && !data?.guild && (
-          <SurfaceCard>
+          <SurfaceCard padding={3}>
             <Stack spacing={1.5}>
               <Typography variant="h6" component="h2">
                 No guild on the active character
               </Typography>
               <Typography color="text.secondary">
-                Select a character that belongs to a guild to unlock guild home, branding, and guild-only raid settings.
+                Select a character that belongs to a guild to unlock the shared guild surface.
               </Typography>
             </Stack>
           </SurfaceCard>
         )}
 
         {!error && data?.guild && (
-          <SurfaceCard sx={{ overflow: "hidden", borderRadius: 4 }}>
-            <Box
-              sx={{
-                p: { xs: 3, md: 4 },
-                background: "radial-gradient(circle at top left, rgba(100, 181, 246, 0.22), transparent 45%), linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0))",
-              }}
-            >
-              <Stack spacing={3}>
-                <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems={{ xs: "flex-start", md: "center" }}>
-                  {data.guild.crestUrl ? (
-                    <Box
-                      component="img"
-                      src={data.guild.crestUrl}
-                      alt={`${data.guild.name} crest`}
-                      sx={{
-                        width: 92,
-                        height: 92,
-                        borderRadius: 3,
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(255,255,255,0.04)",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <Box
-                      aria-hidden="true"
-                      sx={{
-                        width: 92,
-                        height: 92,
-                        borderRadius: 3,
-                        display: "grid",
-                        placeItems: "center",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(100,181,246,0.22))",
-                        fontSize: "2rem",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {data.guild.name.slice(0, 1).toUpperCase()}
-                    </Box>
-                  )}
-
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.18em" }}>
-                      Realm Guild
-                    </Typography>
-                    <Typography variant="h3" component="h2" sx={{ lineHeight: 1.1 }}>
-                      {data.guild.name}
-                    </Typography>
-                    <Typography color="text.secondary" sx={{ mt: 1 }}>
-                      {data.guild.realmName}
-                      {data.guild.factionName ? ` · ${data.guild.factionName}` : ""}
-                    </Typography>
-                  </Box>
-                </Stack>
-
+          <Stack spacing={3}>
+            <GuildIdentityCard
+              guild={data.guild}
+              metadata={(
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
-                  <Chip label={data.setup.isInitialized ? "Settings initialized" : "Settings pending"} color={data.setup.isInitialized ? "success" : "warning"} />
-                  <Chip label={data.editor.canEdit ? "Editor access" : "Read-only member view"} variant="outlined" />
-                  <Chip label={data.setup.rankDataFresh ? "Rank sync fresh" : "Rank sync not configured yet"} variant="outlined" />
-                  {data.guild.memberCount != null && <Chip label={`${data.guild.memberCount} members`} variant="outlined" />}
-                  {data.guild.syncedMemberCount != null && <Chip label={`${data.guild.syncedMemberCount} synced roster`} variant="outlined" />}
-                  {data.guild.rankCount != null && <Chip label={`${data.guild.rankCount} ranks detected`} variant="outlined" />}
-                  {data.guild.achievementPoints != null && <Chip label={`${data.guild.achievementPoints} achievement points`} variant="outlined" />}
+                  <Chip
+                    label={data.setup.isInitialized ? "Settings live" : "Settings pending"}
+                    color={data.setup.isInitialized ? "success" : "warning"}
+                  />
+                  <Chip
+                    label={data.editor.canEdit ? "Editable" : "Read-only"}
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={data.setup.rankDataFresh ? "Rank sync fresh" : "Rank sync not configured yet"}
+                    variant="outlined"
+                  />
+                  {data.guild.memberCount != null && (
+                    <Chip label={`${data.guild.memberCount} members`} variant="outlined" />
+                  )}
+                  {data.guild.syncedMemberCount != null && (
+                    <Chip label={`${data.guild.syncedMemberCount} synced roster`} variant="outlined" />
+                  )}
+                  {data.guild.rankCount != null && (
+                    <Chip label={`${data.guild.rankCount} ranks detected`} variant="outlined" />
+                  )}
+                  {data.guild.achievementPoints != null && (
+                    <Chip label={`${data.guild.achievementPoints} achievement points`} variant="outlined" />
+                  )}
                 </Stack>
+              )}
+            />
 
-                <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
-                  {data.editor.canEdit
-                    ? "Guild setup starts here. Choose the guild time zone and control which synced ranks can create or sign up to guild-only raids."
-                    : "This guild home is intentionally read-only for now. The next slices add crest mirroring and rank-backed permissions without changing this route."}
-                </Typography>
-
+            <SurfaceCard padding={3}>
+              <Stack spacing={3}>
                 {data.editor.canEdit ? (
-                  <Stack spacing={2.5} sx={{ maxWidth: 640 }}>
+                  <Stack spacing={2.5}>
                     {data.setup.requiresSetup && (
                       <Alert severity="warning">Guild master setup required</Alert>
                     )}
@@ -183,18 +137,23 @@ export default function GuildPage() {
                     {saveSuccess && <Alert severity="success">{saveSuccess}</Alert>}
                     <GuildSettingsEditor
                       timezone={draft.timezone}
+                      slogan={draft.slogan}
                       rankPermissions={draft.rankPermissions}
                       saving={saving}
                       rankDataFresh={data.setup.rankDataFresh}
                       onTimezoneChange={(timezone) =>
                         setDraft((current) => ({ ...current, timezone }))
                       }
+                      onSloganChange={(slogan) => setDraft((current) => ({ ...current, slogan }))}
                       onPermissionChange={handlePermissionChange}
                       onSave={handleSaveSettings}
                     />
                   </Stack>
                 ) : (
                   <Box>
+                    <Typography variant="h6" component="h2" gutterBottom>
+                      Member access
+                    </Typography>
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
                       <Chip
                         label={data.memberPermissions.canCreateGuildRaids ? "You can create guild raids" : "Guild raid creation blocked for your rank"}
@@ -210,10 +169,10 @@ export default function GuildPage() {
                   </Box>
                 )}
               </Stack>
-            </Box>
-          </SurfaceCard>
+            </SurfaceCard>
+          </Stack>
         )}
       </Stack>
-    </PageContainer>
+    </GuildRouteShell>
   );
 }

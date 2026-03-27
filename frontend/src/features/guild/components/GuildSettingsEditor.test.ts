@@ -8,15 +8,36 @@ describe("GuildSettingsEditor", () => {
     const markup = renderToStaticMarkup(
       createElement(GuildSettingsEditor, {
         timezone: "Europe/Helsinki",
+        slogan: "",
         rankPermissions: [],
         saving: false,
         rankDataFresh: true,
         onTimezoneChange: () => {},
+        onSloganChange: () => {},
         onPermissionChange: () => {},
         onSave: () => {},
       }),
     );
 
     expect(markup).not.toContain("Rank permissions");
+  });
+
+  it("renders the slogan field with the current slogan", () => {
+    const markup = renderToStaticMarkup(
+      createElement(GuildSettingsEditor, {
+        timezone: "Europe/Helsinki",
+        slogan: "Victory or Lunch",
+        rankPermissions: [],
+        saving: false,
+        rankDataFresh: true,
+        onTimezoneChange: () => {},
+        onSloganChange: () => {},
+        onPermissionChange: () => {},
+        onSave: () => {},
+      }),
+    );
+
+    expect(markup).toContain("Slogan");
+    expect(markup).toContain("Victory or Lunch");
   });
 });
