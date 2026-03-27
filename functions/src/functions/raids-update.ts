@@ -52,6 +52,10 @@ export function parseRaidUpdateBody(body: unknown): UpdateRaidBody {
   };
 }
 
+export function isGuildVisibilityPromotion(requestedVisibility: RaidVisibility | undefined, currentVisibility: RaidVisibility): boolean {
+  return requestedVisibility === "GUILD" && currentVisibility !== "GUILD";
+}
+
 export function applyRaidUpdate(existing: RaidDocument, body: UpdateRaidBody, instances: WowInstance[]): RaidDocument {
   const instanceId = body.instanceId ?? existing.instanceId;
   const instance = findInstance(instances, instanceId);
@@ -104,7 +108,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     if (!instances) return errorResponse(503, "Instance data not available");
 
     // Guard: visibility change to GUILD requires guild membership + permissions
-    if (body.visibility === "GUILD" && existing.visibility !== "GUILD") {
+    if (isGuildVisibilityPromotion(body.visibility, existing.visibility)) {
       if (!identity.guildId) {
         return errorResponse(400, "A guild raid requires an active character in a guild");
       }
@@ -127,7 +131,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     }
 
     // When promoting to GUILD, stamp the creator's guild identity
-    if (body.visibility === "GUILD" && existing.visibility !== "GUILD") {
+    if (isGuildVisibilityPromotion(body.visibility, existing.visibility)) {
       updated.creatorGuild = identity.guildName || "";
       updated.creatorGuildId = identity.guildId ?? null;
     }
