@@ -24,4 +24,3 @@ import "./functions/battlenet-characters-refresh.js";
 import "./functions/wow-update.js";
 import "./functions/instances-list.js";
 import "./functions/guild.js";
-import "./functions/guild-motd.js";

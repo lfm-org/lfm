@@ -169,13 +169,6 @@ function toSpecializations(
   }));
 }
 
-export function toGuildMotdView(profile: BlizzardGuildProfileResponse): { name: string; motd: string } {
-  return {
-    name: profile.name,
-    motd: profile.motd ?? "",
-  };
-}
-
 export interface GuildHomeView {
   guild: {
     id: number;
