@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { syncGuildCrest } from "./guild-crest.js";
 
 describe("syncGuildCrest", () => {
-  it("mirrors emblem and border assets locally and returns a composite crest URL", async () => {
+  it("mirrors emblem and border assets locally and returns an app-served composite crest URL", async () => {
     const fetchMediaDocument = vi.fn(async (href: string) => {
       if (href.includes("/emblem/50")) {
         return {
@@ -19,7 +19,6 @@ describe("syncGuildCrest", () => {
       bytes: new Uint8Array(Buffer.from(url)),
     }));
     const writeBinaryBlob = vi.fn(async () => {});
-    const getPublicUrl = vi.fn((blobName: string) => `https://blob.example.test/wow/${blobName}`);
 
     const result = await syncGuildCrest("12345", {
       id: 12345,
@@ -44,12 +43,11 @@ describe("syncGuildCrest", () => {
       fetchMediaDocument,
       fetchBinaryAsset,
       writeBinaryBlob,
-      getPublicUrl,
       now: "2026-03-25T12:00:00.000Z",
     });
 
     expect(result).toMatchObject({
-      crestUrl: "https://blob.example.test/wow/guild-crests/12345/crest.svg",
+      crestUrl: "/api/guild/12345/crest",
       crestBlobName: "guild-crests/12345/crest.svg",
       crestEmblemBlobName: "guild-crests/12345/emblem.png",
       crestBorderBlobName: "guild-crests/12345/border.png",
@@ -81,5 +79,10 @@ describe("syncGuildCrest", () => {
       expect.any(Uint8Array),
       "image/svg+xml"
     );
+
+    const crestSvgBytes = writeBinaryBlob.mock.calls[2]?.[1] as Uint8Array;
+    const crestSvg = Buffer.from(crestSvgBytes).toString("utf-8");
+    expect(crestSvg).toContain("data:image/png;base64,");
+    expect(crestSvg).not.toContain("https://blob.example.test");
   });
 });

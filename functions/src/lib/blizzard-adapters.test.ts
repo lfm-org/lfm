@@ -371,7 +371,7 @@ describe("toGuildHomeView", () => {
     });
   });
 
-  it("returns the mirrored crest URL when guild crest assets were synced locally", () => {
+  it("prefers the app-served crest route when mirrored crest assets were synced locally", () => {
     const guildDoc: GuildDocument = {
       id: "12345",
       guildId: 12345,
@@ -406,11 +406,12 @@ describe("toGuildHomeView", () => {
         initializedAt: "2026-03-25T10:00:00.000Z",
         timezone: "Europe/Helsinki",
       },
+      crestBlobName: "guild-crests/12345/crest.svg",
       crestUrl: "https://blob.example.test/wow/guild-crests/12345-composite.png",
     };
 
     const view = toGuildHomeView(guildDoc);
 
-    expect(view.guild?.crestUrl).toBe("https://blob.example.test/wow/guild-crests/12345-composite.png");
+    expect(view.guild?.crestUrl).toBe("/api/guild/12345/crest");
   });
 });

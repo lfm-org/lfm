@@ -3,6 +3,11 @@ import { DefaultAzureCredential } from "@azure/identity";
 
 let _wowContainer: ContainerClient | null = null;
 
+export interface BinaryBlob {
+  bytes: Uint8Array;
+  contentType: string;
+}
+
 function createBlobServiceClient(
   env: Record<string, string | undefined> = process.env
 ): BlobServiceClient {
@@ -30,12 +35,21 @@ function getWowContainer(): ContainerClient {
 const blobUrl = (): string => process.env.PUBLIC_BLOB_STORAGE_URL || process.env.BLOB_STORAGE_URL || "";
 
 export async function readBlob<T>(blobName: string): Promise<T | null> {
+  const asset = await readBinaryBlob(blobName);
+  if (!asset) return null;
+  return JSON.parse(Buffer.from(asset.bytes).toString("utf-8")) as T;
+}
+
+export async function readBinaryBlob(blobName: string): Promise<BinaryBlob | null> {
   try {
     const container = getWowContainer();
     const blobClient = container.getBlobClient(blobName);
     const response = await blobClient.download();
-    const body = await streamToString(response.readableStreamBody!);
-    return JSON.parse(body) as T;
+    const body = await streamToBuffer(response.readableStreamBody!);
+    return {
+      bytes: new Uint8Array(body),
+      contentType: response.contentType ?? "application/octet-stream",
+    };
   } catch (error: unknown) {
     if ((error as { statusCode?: number }).statusCode === 404) return null;
     throw error;
@@ -67,9 +81,13 @@ export function getPublicBlobUrl(blobName: string): string {
 }
 
 async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
+  return (await streamToBuffer(stream)).toString("utf-8");
+}
+
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = [];
   for await (const chunk of stream) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-  return Buffer.concat(chunks).toString("utf-8");
+  return Buffer.concat(chunks);
 }
