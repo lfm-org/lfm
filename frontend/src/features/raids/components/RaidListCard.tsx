@@ -54,7 +54,7 @@ export default function RaidListCard({
       data-testid="raid-card"
       sx={{ display: "grid", gap: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}
     >
-      <RaidInfoCard raid={raid} modeLabel={modeLabel}>
+      <RaidInfoCard raid={raid} modeLabel={modeLabel} guildTimezone={guildTimezone}>
         {isMobile && (
           <Box
             sx={{

@@ -8,18 +8,20 @@ import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 interface RaidInfoCardProps {
   raid: Raid;
   modeLabel: string;
+  guildTimezone?: string;
   children?: ReactNode;
 }
 
-function parseRaidTime(iso: string): DateTime | null {
+function parseRaidTime(iso: string, zone: string): DateTime | null {
   if (!iso) return null;
-  const dt = DateTime.fromISO(iso, { zone: "UTC" }).setZone(GUILD_TIMEZONE);
+  const dt = DateTime.fromISO(iso, { zone: "UTC" }).setZone(zone);
   return dt.isValid ? dt : null;
 }
 
-export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCardProps) {
-  const startDt = parseRaidTime(raid.startTime);
-  const closeDt = parseRaidTime(raid.signupCloseTime);
+export default function RaidInfoCard({ raid, modeLabel, guildTimezone, children }: RaidInfoCardProps) {
+  const timezone = guildTimezone ?? GUILD_TIMEZONE;
+  const startDt = parseRaidTime(raid.startTime, timezone);
+  const closeDt = parseRaidTime(raid.signupCloseTime, timezone);
 
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
@@ -35,6 +37,9 @@ export default function RaidInfoCard({ raid, modeLabel, children }: RaidInfoCard
           {raid.instanceName}
         </Typography>
         <Chip label={modeLabel} size="small" variant="outlined" />
+        {raid.visibility === "GUILD" && (
+          <Chip label={raid.creatorGuild || "Guild"} size="small" color="primary" variant="outlined" />
+        )}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: "italic" }}>
         &ldquo;{raid.description}&rdquo;

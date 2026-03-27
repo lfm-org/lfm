@@ -47,6 +47,9 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
           {raid.instanceName}
         </Typography>
         <Chip label={modeLabel} size="small" variant="outlined" sx={{ flexShrink: 0, height: 20, fontSize: "0.7rem" }} />
+        {raid.visibility === "GUILD" && (
+          <Chip label="Guild" size="small" color="primary" variant="outlined" sx={{ flexShrink: 0, height: 20, fontSize: "0.7rem" }} />
+        )}
       </Box>
       <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
         {startDisplay}
