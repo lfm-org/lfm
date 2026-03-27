@@ -25,8 +25,6 @@ export default function GuildPage() {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState(() => createGuildSettingsDraft(data ?? null));
-  const draftTimezone = data?.setup.timezone;
-  const draftRankPermissions = data?.settings?.rankPermissions;
 
   useEffect(() => {
     setDraft(createGuildSettingsDraft(data ?? null));
