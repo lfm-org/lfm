@@ -10,9 +10,9 @@ Source article:
 1. `Maintainability`
 2. `Testability`
 3. `Reliability`
-4. `Efficiency`
-5. `Readability`
-6. `Documentation`
+4. `Readability`
+5. `Documentation`
+6. `Efficiency`
 7. `Cyclomatic Complexity`
 8. `Technical Debt`
 9. `Extensibility`
@@ -30,15 +30,19 @@ Source article:
 - `Maintainability`
 - `Testability`
 - `Reliability`
-- `Efficiency`
 - `Readability`
+- `Documentation`
 
 Why:
-- These most directly control whether an agent can understand code, change it in a bounded area, and verify the result with acceptable risk.
+- These most directly control whether an agent can understand code, orient itself in the codebase, change code in a bounded area, and verify the result with acceptable risk.
+- Documentation is Tier 1 because agents cannot intuit context from team experience. They depend on written architecture notes, setup guides, and extension points to navigate unfamiliar code.
+
+Gate:
+- The overall codebase assessment cannot be `good` if two or more Tier 1 metrics are weak.
 
 ### Tier 2: strong secondary signals
 
-- `Documentation`
+- `Efficiency`
 - `Cyclomatic Complexity`
 - `Technical Debt`
 - `Extensibility`
@@ -46,6 +50,7 @@ Why:
 
 Why:
 - These materially affect long-term change safety and review confidence, but usually act through the top-tier metrics rather than replacing them.
+- Efficiency matters for users and can raise the cost of verification, but does not typically block an agent from making correct changes.
 
 ### Tier 3: context-dependent supporting signals
 
@@ -57,15 +62,6 @@ Why:
 
 Why:
 - These can be useful leading indicators, but they are easy to misread without surrounding context.
-
-## Weighting
-
-- Tier 1: `5x`
-- Tier 2: `3x`
-- Tier 3: `1x`
-
-Gate:
-- The overall codebase assessment cannot be `good` if two or more Tier 1 metrics are weak.
 
 ## What To Look For
 
@@ -90,13 +86,6 @@ Gate:
 - recovery behavior
 - evidence of regression protection
 
-### Efficiency
-
-- avoidable hot-path waste
-- unnecessary repeated work
-- pathological rendering or query patterns
-- performance issues that raise the cost of verification or change
-
 ### Readability
 
 - descriptive naming
@@ -110,6 +99,13 @@ Gate:
 - architecture notes
 - ownership or subsystem boundaries
 - extension guidance for common changes
+
+### Efficiency
+
+- avoidable hot-path waste
+- unnecessary repeated work
+- pathological rendering or query patterns
+- performance issues that raise the cost of verification or change
 
 ### Cyclomatic Complexity
 
@@ -162,6 +158,35 @@ Gate:
 - cross-platform correctness
 - environment independence
 - deployability across expected targets
+
+## Supplementary Agentic Signals
+
+These are not standalone metrics. Look for these signals when assessing the metrics above, and call them out in findings when they materially affect agentic development safety.
+
+### Type Safety
+
+Assess alongside Reliability and Maintainability.
+
+- presence and strictness of static type checking
+- type coverage across the codebase
+- whether types provide meaningful compile-time feedback for common changes
+- typed APIs that prevent hallucinated method calls or wrong argument types
+
+### Change Isolation
+
+Assess alongside Maintainability and Testability.
+
+- blast radius of typical edits — how many files does a small change touch?
+- module boundaries that contain ripple effects
+- import graphs that show concentrated vs. diffuse dependencies
+
+### Feedback Loop Speed
+
+Assess alongside Testability and Efficiency.
+
+- time from code change to build/type-check/lint/test feedback
+- whether fast verification paths exist for incremental changes
+- test suite runtime and whether focused test runs are supported
 
 ## Interpretation Rules
 
