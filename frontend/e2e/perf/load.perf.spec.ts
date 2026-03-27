@@ -67,8 +67,8 @@ test.describe("Entry and load responsiveness", () => {
     // Full-page auth redirects do not expose an earlier visual acknowledgement
     // than the authenticated raids screen itself, so treat that first render as
     // a network-backed acknowledgement rather than a lightweight route swap.
-    expectAcknowledgementWithin(result, COMPLETION_BUDGET.NETWORK);
-    expectCompletionWithin(result, COMPLETION_BUDGET.NETWORK);
+    expectAcknowledgementWithin(result, COMPLETION_BUDGET.REDIRECT);
+    expectCompletionWithin(result, COMPLETION_BUDGET.REDIRECT);
     expectStableInteraction(result);
   });
 });

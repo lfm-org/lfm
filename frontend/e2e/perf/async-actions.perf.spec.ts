@@ -21,7 +21,7 @@ test.describe("Async action responsiveness", () => {
     // Ack: ToggleButtons become disabled during submitting state. This is more
     // durable than the spinner (CircularProgress), which could appear and vanish
     // faster than Playwright's polling interval on a fast local backend.
-    const disabledButton = signupRegion.locator('[aria-label="Attendance"] button[disabled]');
+    const disabledButton = signupRegion.locator('[aria-label="Attendance"] button[disabled]').first();
     // Completion: character name "Aelrin" appears after signup succeeds — it is
     // NOT visible before signup (the card shows a character select dropdown instead).
     const characterName = signupRegion.getByText("Aelrin");
@@ -58,7 +58,7 @@ test.describe("Async action responsiveness", () => {
     await signupRegion.getByText("Cancel signup?").waitFor({ state: "visible" });
 
     // Ack: ToggleButtons become disabled during submitting state
-    const disabledButton = signupRegion.locator('[aria-label="Attendance"] button[disabled]');
+    const disabledButton = signupRegion.locator('[aria-label="Attendance"] button[disabled]').first();
     // Completion: Character select reappears after cancel succeeds
     const characterSelect = signupRegion.getByLabel("Character");
 

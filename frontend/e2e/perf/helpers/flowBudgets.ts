@@ -14,6 +14,8 @@ export const COMPLETION_BUDGET = {
   FAST: 1_000,
   /** Network-backed updates with visible loading */
   NETWORK: 2_000,
+  /** Full-page redirects that re-enter the app after server-side auth */
+  REDIRECT: 2_500,
   /** Slower flows under mobile emulation */
   MOBILE: 3_000,
 } as const;

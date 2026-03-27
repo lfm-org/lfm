@@ -17,11 +17,11 @@ run_browser() {
 
 run_perf() {
   PLAYWRIGHT_INCLUDE_PERF_SPECS=1 bash "$ROOT_DIR/scripts/e2e.sh" default \
-    frontend/e2e/perf/async-actions.perf.spec.ts \
-    frontend/e2e/perf/forms.perf.spec.ts \
-    frontend/e2e/perf/load.perf.spec.ts \
-    frontend/e2e/perf/mobile.perf.spec.ts \
-    frontend/e2e/perf/navigation.perf.spec.ts
+    e2e/perf/async-actions.perf.spec.ts \
+    e2e/perf/forms.perf.spec.ts \
+    e2e/perf/load.perf.spec.ts \
+    e2e/perf/mobile.perf.spec.ts \
+    e2e/perf/navigation.perf.spec.ts
 }
 
 case "$MODE" in
