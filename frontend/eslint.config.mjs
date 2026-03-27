@@ -27,6 +27,8 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // ESLint 10 support currently requires a react-hooks canary that adds new rules.
+      "react-hooks/set-state-in-effect": "off",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
