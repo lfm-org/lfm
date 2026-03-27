@@ -259,7 +259,7 @@ export function toGuildHomeView(
       slogan: guildDoc.slogan ?? null,
       realmSlug: guildDoc.realmSlug,
       realmName: localizeName(profile.realm.name) || guildDoc.realmSlug,
-      factionName: profile.faction?.name ?? null,
+      factionName: localizeName(profile.faction?.name) || null,
       memberCount: profile.member_count ?? null,
       achievementPoints: profile.achievement_points ?? null,
       syncedMemberCount: roster?.members.length ?? null,

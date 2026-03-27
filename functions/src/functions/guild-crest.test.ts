@@ -63,6 +63,6 @@ describe("guildCrestHandler", () => {
     expect(response.headers).toMatchObject({
       "Content-Type": "image/svg+xml",
     });
-    expect(response.body).toEqual(new Uint8Array([60, 62]));
+    expect(response.body).toEqual(Buffer.from([60, 62]));
   });
 });

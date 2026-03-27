@@ -26,7 +26,7 @@ export async function guildCrestHandler(request: HttpRequest, _context: Invocati
       "Content-Type": asset.contentType,
       "Cache-Control": "public, max-age=3600",
     },
-    body: asset.bytes,
+    body: Buffer.from(asset.bytes),
   });
 }
 
