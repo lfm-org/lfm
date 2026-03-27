@@ -4,6 +4,8 @@ export const ACK_BUDGET = {
   STANDARD: 200,
   /** Heavier transitions: route changes, panel swaps */
   HEAVY: 300,
+  /** Cold entry loads: initial app shell render after navigation commit */
+  ENTRY: 500,
 } as const;
 
 /** Flow completion budgets (ms) */
@@ -12,6 +14,8 @@ export const COMPLETION_BUDGET = {
   FAST: 1_000,
   /** Network-backed updates with visible loading */
   NETWORK: 2_000,
+  /** Full-page redirects that re-enter the app after server-side auth */
+  REDIRECT: 2_500,
   /** Slower flows under mobile emulation */
   MOBILE: 3_000,
 } as const;

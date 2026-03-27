@@ -1,24 +1,50 @@
+import { Suspense, lazy, type ReactNode } from "react";
 import { Routes, Route } from "react-router";
+import { CircularProgress, Stack } from "@mui/material";
 import AppLayout from "./components/layout/AppLayout";
-import { AuthGuard, GoodbyePage, LandingPage, LoginPage, LoginFailedPage, LoginSuccessPage } from "./features/auth";
-import { CharactersPage } from "./features/characters";
-import { GuildAdminPage, GuildPage, GuildSetupGuard } from "./features/guild";
-import { RaidsPage, CreateRaidPage } from "./features/raids";
+import PageContainer from "./components/layout/PageContainer";
+import AuthGuard from "./features/auth/components/AuthGuard";
+import GuildSetupGuard from "./features/guild/components/GuildSetupGuard";
+
+const LandingPage = lazy(() => import("./features/auth/pages/LandingPage"));
+const LoginPage = lazy(() => import("./features/auth/pages/LoginPage"));
+const LoginFailedPage = lazy(() => import("./features/auth/pages/LoginFailedPage"));
+const LoginSuccessPage = lazy(() => import("./features/auth/pages/LoginSuccessPage"));
+const GoodbyePage = lazy(() => import("./features/auth/pages/GoodbyePage"));
+const CharactersPage = lazy(() => import("./features/characters/pages/CharactersPage"));
+const GuildPage = lazy(() => import("./features/guild/pages/GuildPage"));
+const GuildAdminPage = lazy(() => import("./features/guild/pages/GuildAdminPage"));
+const RaidsPage = lazy(() => import("./features/raids/pages/RaidsPage"));
+const CreateRaidPage = lazy(() => import("./features/raids/pages/CreateRaidPage"));
+
+function RouteFallback() {
+  return (
+    <PageContainer>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <CircularProgress size={20} />
+      </Stack>
+    </PageContainer>
+  );
+}
+
+function withRouteFallback(node: ReactNode) {
+  return <Suspense fallback={<RouteFallback />}>{node}</Suspense>;
+}
 
 export default function App() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/login/failed" element={<LoginFailedPage />} />
-        <Route path="/login/success" element={<LoginSuccessPage />} />
-        <Route path="/goodbye" element={<GoodbyePage />} />
-        <Route path="/characters" element={<AuthGuard><CharactersPage /></AuthGuard>} />
-        <Route path="/guild" element={<AuthGuard><GuildPage /></AuthGuard>} />
-        <Route path="/guild/admin" element={<AuthGuard><GuildAdminPage /></AuthGuard>} />
-        <Route path="/raids" element={<AuthGuard><GuildSetupGuard><RaidsPage /></GuildSetupGuard></AuthGuard>} />
-        <Route path="/raids/new" element={<AuthGuard><GuildSetupGuard><CreateRaidPage /></GuildSetupGuard></AuthGuard>} />
+        <Route path="/" element={withRouteFallback(<LandingPage />)} />
+        <Route path="/login" element={withRouteFallback(<LoginPage />)} />
+        <Route path="/login/failed" element={withRouteFallback(<LoginFailedPage />)} />
+        <Route path="/login/success" element={withRouteFallback(<LoginSuccessPage />)} />
+        <Route path="/goodbye" element={withRouteFallback(<GoodbyePage />)} />
+        <Route path="/characters" element={withRouteFallback(<AuthGuard><CharactersPage /></AuthGuard>)} />
+        <Route path="/guild" element={withRouteFallback(<AuthGuard><GuildPage /></AuthGuard>)} />
+        <Route path="/guild/admin" element={withRouteFallback(<AuthGuard><GuildAdminPage /></AuthGuard>)} />
+        <Route path="/raids" element={withRouteFallback(<AuthGuard><GuildSetupGuard><RaidsPage /></GuildSetupGuard></AuthGuard>)} />
+        <Route path="/raids/new" element={withRouteFallback(<AuthGuard><GuildSetupGuard><CreateRaidPage /></GuildSetupGuard></AuthGuard>)} />
       </Routes>
     </AppLayout>
   );

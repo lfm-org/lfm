@@ -7,9 +7,15 @@
     "dev": "vite",
     "dev:e2e": "FRONTEND_PORT=${FRONTEND_PORT:-4173} vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "bundle:check": "node ./scripts/check-bundle.mjs",
+    "lint": "eslint --max-warnings=0 src eslint.config.mjs vite.config.ts vitest.config.ts playwright.config.ts",
     "preview": "vite preview",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "e2e": "playwright test",
-    "e2e:list": "playwright test --list"
+    "e2e:list": "playwright test --list",
+    "verify:fast": "npm run lint && npm run test:unit && npm run build && npm run bundle:check"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -25,13 +31,20 @@
     "react-router": "7.13.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.22.0",
     "@axe-core/playwright": "4.11.1",
     "@playwright/test": "1.58.2",
     "@types/luxon": "3.4.2",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",
+    "eslint": "^9.22.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
     "typescript": "5.9.3",
-    "vite": "8.0.1"
+    "typescript-eslint": "^8.26.1",
+    "vite": "8.0.1",
+    "vitest": "4.1.2"
   }
 }

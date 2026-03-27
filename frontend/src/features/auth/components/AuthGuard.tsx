@@ -1,7 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { Navigate, useLocation } from "react-router";
 import { type ReactNode } from "react";
-import { useAuth } from "../lib/AuthContext";
+import { useAuth } from "../lib/useAuth";
 
 interface Props {
   children: ReactNode;

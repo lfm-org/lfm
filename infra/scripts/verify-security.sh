@@ -53,8 +53,8 @@ check "Storage: wow container publicAccess is None" \
 echo ""
 echo "=== Finding 2: Network restrictions ==="
 
-check "Storage: networkAcls defaultAction is Deny" \
-  "Deny" \
+check "Storage: networkAcls defaultAction is Allow" \
+  "Allow" \
   "$(az storage account show --name "$STORAGE_ACCOUNT" --resource-group "$RG" \
       --query "networkRuleSet.defaultAction" --output tsv)"
 

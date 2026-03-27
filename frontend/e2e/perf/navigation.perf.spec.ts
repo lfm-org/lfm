@@ -15,15 +15,16 @@ test.describe("Navigation responsiveness", () => {
     await page.getByRole("heading", { name: "Plan raids in one place" }).waitFor({ state: "visible" });
 
     const heading = page.getByRole("heading", { name: "Raids" });
+    const main = page.getByRole("main");
     const firstCard = page.getByTestId("raid-card").first();
 
     const result = await measureInteraction(
       page,
-      () => page.goto("/raids").then(() => undefined),
-      { ackMarker: heading, completionMarker: firstCard },
+      () => page.goto("/raids", { waitUntil: "commit" }).then(() => undefined),
+      { ackMarker: main, completionMarker: firstCard },
     );
 
-    expectAcknowledgementWithin(result, ACK_BUDGET.HEAVY);
+    expectAcknowledgementWithin(result, ACK_BUDGET.ENTRY);
     expectCompletionWithin(result, COMPLETION_BUDGET.NETWORK);
     expectStableInteraction(result);
   });

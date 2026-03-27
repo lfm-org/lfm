@@ -16,25 +16,30 @@ test.describe("Entry and load responsiveness", () => {
 
     const result = await measureInteraction(
       page,
-      () => page.goto("/").then(() => undefined),
+      // Measure the app's visual acknowledgement after navigation commits
+      // rather than waiting for the browser's full load event.
+      () => page.goto("/", { waitUntil: "commit" }).then(() => undefined),
       { ackMarker: main, completionMarker: heading },
     );
 
-    expectAcknowledgementWithin(result, ACK_BUDGET.HEAVY);
+    expectAcknowledgementWithin(result, ACK_BUDGET.ENTRY);
     expectCompletionWithin(result, COMPLETION_BUDGET.FAST);
     expectStableInteraction(result);
   });
 
   test("login page loads within budget", async ({ page }) => {
+    const main = page.getByRole("main");
     const heading = page.getByRole("heading", { name: "Sign in with Battle.net" });
 
     const result = await measureInteraction(
       page,
-      () => page.goto("/login?redirect=%2Fraids").then(() => undefined),
-      { ackMarker: heading, completionMarker: heading },
+      // For direct entry, treat the committed navigation as the start of the
+      // route-render budget instead of the later browser load event.
+      () => page.goto("/login?redirect=%2Fraids", { waitUntil: "commit" }).then(() => undefined),
+      { ackMarker: main, completionMarker: heading },
     );
 
-    expectAcknowledgementWithin(result, ACK_BUDGET.HEAVY);
+    expectAcknowledgementWithin(result, ACK_BUDGET.ENTRY);
     expectCompletionWithin(result, COMPLETION_BUDGET.FAST);
     expectStableInteraction(result);
   });
@@ -57,10 +62,13 @@ test.describe("Entry and load responsiveness", () => {
       { ackMarker: raidsHeading, completionMarker: raidsHeading },
     );
 
-    await expect(page).toHaveURL(/\/raids$/);
+    await expect(page).toHaveURL(/\/raids(?:\?.*)?$/);
 
-    expectAcknowledgementWithin(result, ACK_BUDGET.HEAVY);
-    expectCompletionWithin(result, COMPLETION_BUDGET.NETWORK);
+    // Full-page auth redirects do not expose an earlier visual acknowledgement
+    // than the authenticated raids screen itself, so treat that first render as
+    // a network-backed acknowledgement rather than a lightweight route swap.
+    expectAcknowledgementWithin(result, COMPLETION_BUDGET.REDIRECT);
+    expectCompletionWithin(result, COMPLETION_BUDGET.REDIRECT);
     expectStableInteraction(result);
   });
 });

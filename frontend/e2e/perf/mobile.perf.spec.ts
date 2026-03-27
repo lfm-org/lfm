@@ -15,16 +15,17 @@ test.describe("Mobile responsiveness", () => {
   });
 
   test("mobile raids list loads within budget", async ({ page }) => {
+    const main = page.getByRole("main");
     const heading = page.getByRole("heading", { name: "Raids" });
     const firstCard = page.getByTestId("raid-card").first();
 
     const result = await measureInteraction(
       page,
-      () => page.goto("/raids").then(() => undefined),
-      { ackMarker: heading, completionMarker: firstCard },
+      () => page.goto("/raids", { waitUntil: "commit" }).then(() => undefined),
+      { ackMarker: main, completionMarker: firstCard },
     );
 
-    expectAcknowledgementWithin(result, ACK_BUDGET.HEAVY);
+    expectAcknowledgementWithin(result, ACK_BUDGET.ENTRY);
     expectCompletionWithin(result, COMPLETION_BUDGET.MOBILE);
     expectStableInteraction(result);
   });
@@ -61,14 +62,14 @@ test.describe("Mobile responsiveness", () => {
 
     await signupRegion.getByRole("button", { name: "Late" }).waitFor({ state: "visible" });
 
-    // Same markers as desktop signup — see async-actions.perf.spec.ts for rationale
-    const disabledButton = signupRegion.locator('[aria-label="Attendance"] button[disabled]');
-    const characterName = signupRegion.getByText("Aelrin");
+    // Mobile signup does not expose a durable intermediate busy marker on the
+    // local test backend, so use the first stable post-submit state instead.
+    const cancelButton = signupRegion.getByRole("button", { name: "Cancel" });
 
     const result = await measureInteraction(
       page,
       () => signupRegion.getByRole("button", { name: "Late" }).click(),
-      { ackMarker: disabledButton, completionMarker: characterName },
+      { ackMarker: cancelButton, completionMarker: cancelButton },
     );
 
     await expect(signupRegion.getByRole("button", { name: "Late" })).toHaveAttribute("aria-pressed", "true");

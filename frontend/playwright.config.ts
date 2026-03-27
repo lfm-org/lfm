@@ -16,8 +16,8 @@ const SCENARIO_SPECS = [
 ];
 
 // Perf specs are always excluded from default discovery. Run them explicitly
-// with PLAYWRIGHT_INCLUDE_PERF_SPECS=1 — they need the Docker stack running
-// but should not gate normal E2E runs until baselines are established.
+// with PLAYWRIGHT_INCLUDE_PERF_SPECS=1. They do not gate ordinary e2e.sh runs,
+// but verify-local.sh full includes them as the final integrated verifier.
 const PERF_SPECS = ["**/perf/**"];
 
 export default defineConfig({
