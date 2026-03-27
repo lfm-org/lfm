@@ -61,14 +61,6 @@ export async function currentGuildHandler(request: HttpRequest, context: Invocat
   }
 }
 
-async function readSettingsPayload(request: HttpRequest): Promise<unknown | null> {
-  try {
-    return await request.json();
-  } catch {
-    return null;
-  }
-}
-
 app.http("guild", {
   methods: ["GET"],
   route: "guild",
@@ -80,14 +72,11 @@ export async function currentGuildSettingsHandler(request: HttpRequest, context:
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
-  const body = await readSettingsPayload(request);
-  if (body === null) return errorResponse(400, "Invalid guild settings payload");
-
   const view = await saveCurrentGuildSettings({
     guildId: auth.identity.guildId,
     guildName: auth.identity.guildName,
     battleNetId: auth.identity.battleNetId,
-    rawInput: body,
+    readRawInput: request.json.bind(request),
     readGuildDocument,
     readRaider,
     replaceGuildDocument,
@@ -176,14 +165,11 @@ export async function adminGuildSettingsHandler(request: HttpRequest, context: I
   const guildDocId = parseGuildId(request.params.guildId);
   if (!guildDocId) return errorResponse(400, "Invalid guild ID");
 
-  const body = await readSettingsPayload(request);
-  if (body === null) return errorResponse(400, "Invalid guild settings payload");
-
   const view = await saveAdminGuildSettings({
     guildDocId,
     accessToken: auth.accessToken,
     battleNetId: auth.identity.battleNetId,
-    rawInput: body,
+    readRawInput: request.json.bind(request),
     readGuildDocument,
     listRaiders,
     upsertGuildDocument,

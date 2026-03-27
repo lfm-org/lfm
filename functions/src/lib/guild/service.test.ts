@@ -2,7 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BlizzardGuildProfileResponse, BlizzardGuildRosterResponse } from "../../types/blizzard.js";
 import type { GuildDocument, RaiderDocument } from "../../types/index.js";
 import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "./document.js";
-import { BlizzardGuildRefreshError, loadCurrentGuildHome, saveAdminGuildSettings, saveCurrentGuildSettings } from "./service.js";
+import {
+  BlizzardGuildRefreshError,
+  loadAdminGuildHome,
+  loadCurrentGuildHome,
+  resolveAdminGuild,
+  saveAdminGuildSettings,
+  saveCurrentGuildSettings,
+} from "./service.js";
 
 vi.mock("./document.js", () => ({
   ensureGuildDocumentForAdmin: vi.fn(),
@@ -74,22 +81,22 @@ function createGuildDoc(overrides: Partial<GuildDocument> = {}): GuildDocument {
   };
 }
 
-function createRaider(): RaiderDocument {
+function createRaider(name = "Highlord"): RaiderDocument {
   return {
     id: "bnet-1",
     battleNetId: "bnet-1",
-    selectedCharacterId: "eu-test-realm-highlord",
+    selectedCharacterId: `eu-test-realm-${name.toLowerCase()}`,
     createdAt: "2026-03-25T10:00:00.000Z",
     lastSeenAt: "2026-03-25T10:00:00.000Z",
     characters: [
       {
-        id: "eu-test-realm-highlord",
+        id: `eu-test-realm-${name.toLowerCase()}`,
         region: "eu",
         realm: "test-realm",
-        name: "Highlord",
+        name,
         fetchedAt: "2026-03-25T10:00:00.000Z",
         profileSummary: {
-          name: "Highlord",
+          name,
           level: 80,
           realm: { slug: "test-realm", name: { en_US: "Test Realm" } },
           character_class: { id: 2, name: "Paladin" },
@@ -106,16 +113,17 @@ describe("saveCurrentGuildSettings", () => {
     const guildDoc = createGuildDoc();
     const readGuildDocument = vi.fn().mockResolvedValue(guildDoc);
     const readRaider = vi.fn().mockResolvedValue(createRaider());
+    const readRawInput = vi.fn().mockResolvedValue({
+      timezone: "America/New_York",
+      slogan: "Victory or Lunch",
+    });
     const replaceGuildDocument = vi.fn(async (doc: GuildDocument) => doc);
 
     const result = await saveCurrentGuildSettings({
       guildId: 12345,
       guildName: "Test Guild",
       battleNetId: "bnet-1",
-      rawInput: {
-        timezone: "America/New_York",
-        slogan: "Victory or Lunch",
-      },
+      readRawInput,
       readGuildDocument,
       readRaider,
       replaceGuildDocument,
@@ -123,6 +131,7 @@ describe("saveCurrentGuildSettings", () => {
 
     expect(readGuildDocument).toHaveBeenCalledWith("12345");
     expect(readRaider).toHaveBeenCalledWith("bnet-1");
+    expect(readRawInput).toHaveBeenCalledTimes(1);
     expect(replaceGuildDocument).toHaveBeenCalledWith(expect.objectContaining({
       slogan: "Victory or Lunch",
       setup: {
@@ -142,6 +151,59 @@ describe("saveCurrentGuildSettings", () => {
       });
     }
   });
+
+  it("returns missing_guild before attempting to read malformed input", async () => {
+    const readRawInput = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    const result = await saveCurrentGuildSettings({
+      guildId: null,
+      guildName: null,
+      battleNetId: "bnet-1",
+      readRawInput,
+      readGuildDocument: vi.fn(),
+      readRaider: vi.fn(),
+      replaceGuildDocument: vi.fn(),
+    });
+
+    expect(result).toEqual({ kind: "missing_guild" });
+    expect(readRawInput).not.toHaveBeenCalled();
+  });
+
+  it("returns not_found before attempting to read malformed input", async () => {
+    const readRawInput = vi.fn().mockRejectedValue(new Error("bad json"));
+    const readGuildDocument = vi.fn().mockResolvedValue(null);
+
+    const result = await saveCurrentGuildSettings({
+      guildId: 12345,
+      guildName: "Test Guild",
+      battleNetId: "bnet-1",
+      readRawInput,
+      readGuildDocument,
+      readRaider: vi.fn(),
+      replaceGuildDocument: vi.fn(),
+    });
+
+    expect(result).toEqual({ kind: "not_found" });
+    expect(readGuildDocument).toHaveBeenCalledWith("12345");
+    expect(readRawInput).not.toHaveBeenCalled();
+  });
+
+  it("returns forbidden before attempting to read malformed input", async () => {
+    const readRawInput = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    const result = await saveCurrentGuildSettings({
+      guildId: 12345,
+      guildName: "Test Guild",
+      battleNetId: "bnet-1",
+      readRawInput,
+      readGuildDocument: vi.fn().mockResolvedValue(createGuildDoc()),
+      readRaider: vi.fn().mockResolvedValue(createRaider("Peon")),
+      replaceGuildDocument: vi.fn(),
+    });
+
+    expect(result).toEqual({ kind: "forbidden" });
+    expect(readRawInput).not.toHaveBeenCalled();
+  });
 });
 
 describe("saveAdminGuildSettings", () => {
@@ -151,6 +213,10 @@ describe("saveAdminGuildSettings", () => {
       throw new Error("admin save should not read the guild doc before bootstrap");
     });
     const listRaiders = vi.fn().mockResolvedValue([]);
+    const readRawInput = vi.fn().mockResolvedValue({
+      timezone: "Europe/Helsinki",
+      slogan: "Admin override",
+    });
     const replaceGuildDocument = vi.fn(async (doc: GuildDocument) => doc);
 
     vi.mocked(ensureGuildDocumentForAdmin).mockResolvedValue(guildDoc);
@@ -159,10 +225,7 @@ describe("saveAdminGuildSettings", () => {
       guildDocId: "12345",
       accessToken: "token",
       battleNetId: "admin-bnet",
-      rawInput: {
-        timezone: "Europe/Helsinki",
-        slogan: "Admin override",
-      },
+      readRawInput,
       readGuildDocument,
       listRaiders,
       replaceGuildDocument,
@@ -171,6 +234,7 @@ describe("saveAdminGuildSettings", () => {
     expect(ensureGuildDocumentForAdmin).toHaveBeenCalledTimes(1);
     expect(readGuildDocument).not.toHaveBeenCalled();
     expect(listRaiders).not.toHaveBeenCalled();
+    expect(readRawInput).toHaveBeenCalledTimes(1);
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
       expect(result.view.guild).toMatchObject({
@@ -182,6 +246,78 @@ describe("saveAdminGuildSettings", () => {
         lastOverrideAt: expect.any(String),
       });
     }
+  });
+
+  it("returns not_found before attempting to read malformed input", async () => {
+    const readRawInput = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    vi.mocked(ensureGuildDocumentForAdmin).mockResolvedValue(null);
+
+    const result = await saveAdminGuildSettings({
+      guildDocId: "12345",
+      accessToken: "token",
+      battleNetId: "admin-bnet",
+      readRawInput,
+      readGuildDocument: vi.fn(),
+      listRaiders: vi.fn(),
+      replaceGuildDocument: vi.fn(),
+    });
+
+    expect(result).toEqual({ kind: "not_found" });
+    expect(readRawInput).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveAdminGuild", () => {
+  it("returns explicit guild id and guild name from the bootstrapped guild doc", async () => {
+    vi.mocked(ensureGuildDocumentForAdmin).mockResolvedValue(createGuildDoc());
+
+    const result = await resolveAdminGuild({
+      guildDocId: "12345",
+      accessToken: "token",
+      readGuildDocument: vi.fn(),
+      listRaiders: vi.fn(),
+      upsertGuildDocument: vi.fn(),
+    });
+
+    expect(ensureGuildDocumentForAdmin).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      guildId: "12345",
+      guildName: "Test Guild",
+    });
+  });
+});
+
+describe("loadAdminGuildHome", () => {
+  it("returns the admin guild view from the bootstrapped guild doc", async () => {
+    vi.mocked(ensureGuildDocumentForAdmin).mockResolvedValue(createGuildDoc({
+      lastOverrideBy: "admin-bnet",
+      lastOverrideAt: "2026-03-25T12:00:00.000Z",
+    }));
+
+    const result = await loadAdminGuildHome({
+      guildDocId: "12345",
+      accessToken: "token",
+      readGuildDocument: vi.fn(),
+      listRaiders: vi.fn(),
+      upsertGuildDocument: vi.fn(),
+    });
+
+    expect(ensureGuildDocumentForAdmin).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      guild: {
+        id: 12345,
+        name: "Test Guild",
+      },
+      editor: {
+        canEdit: true,
+        mode: "site-admin",
+      },
+      adminOverride: {
+        lastOverrideBy: "admin-bnet",
+        lastOverrideAt: "2026-03-25T12:00:00.000Z",
+      },
+    });
   });
 });
 

@@ -73,16 +73,46 @@ describe("currentGuildSettingsHandler", () => {
       identity: { guildId: 12345, guildName: "Test Guild", battleNetId: "bnet-1" },
       accessToken: "token",
     });
+    vi.mocked(saveCurrentGuildSettings).mockImplementation(async ({ readRawInput }) => {
+      try {
+        await readRawInput();
+      } catch {
+        return { kind: "invalid" };
+      }
+      return { kind: "ok", view: {} as never };
+    });
+    const json = vi.fn().mockRejectedValue(new Error("bad json"));
 
     const response = await currentGuildSettingsHandler({
-      json: vi.fn().mockRejectedValue(new Error("bad json")),
+      json,
     } as never, makeContext());
 
     expect(response.status).toBe(400);
     expect(JSON.parse(response.body as string)).toEqual({
       error: "Invalid guild settings payload",
     });
-    expect(saveCurrentGuildSettings).not.toHaveBeenCalled();
+    expect(saveCurrentGuildSettings).toHaveBeenCalledTimes(1);
+    expect(json).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets missing_guild win before malformed JSON is read", async () => {
+    vi.mocked(requireAuthWithToken).mockResolvedValue({
+      identity: { guildId: null, guildName: null, battleNetId: "bnet-1" },
+      accessToken: "token",
+    });
+    vi.mocked(saveCurrentGuildSettings).mockResolvedValue({ kind: "missing_guild" });
+    const json = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    const response = await currentGuildSettingsHandler({
+      json,
+    } as never, makeContext());
+
+    expect(response.status).toBe(400);
+    expect(JSON.parse(response.body as string)).toEqual({
+      error: "No guild associated with this account",
+    });
+    expect(saveCurrentGuildSettings).toHaveBeenCalledTimes(1);
+    expect(json).not.toHaveBeenCalled();
   });
 });
 
@@ -93,16 +123,48 @@ describe("adminGuildSettingsHandler", () => {
       accessToken: "token",
       isSiteAdmin: true,
     });
+    vi.mocked(saveAdminGuildSettings).mockImplementation(async ({ readRawInput }) => {
+      try {
+        await readRawInput();
+      } catch {
+        return { kind: "invalid" };
+      }
+      return { kind: "ok", view: {} as never };
+    });
+    const json = vi.fn().mockRejectedValue(new Error("bad json"));
 
     const response = await adminGuildSettingsHandler({
       params: { guildId: "12345" },
-      json: vi.fn().mockRejectedValue(new Error("bad json")),
+      json,
     } as never, makeContext());
 
     expect(response.status).toBe(400);
     expect(JSON.parse(response.body as string)).toEqual({
       error: "Invalid guild settings payload",
     });
-    expect(saveAdminGuildSettings).not.toHaveBeenCalled();
+    expect(saveAdminGuildSettings).toHaveBeenCalledTimes(1);
+    expect(json).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets not_found win before malformed JSON is read", async () => {
+    vi.mocked(requireSiteAdminAuthWithToken).mockResolvedValue({
+      identity: { guildId: null, guildName: null, battleNetId: "admin-bnet" },
+      accessToken: "token",
+      isSiteAdmin: true,
+    });
+    vi.mocked(saveAdminGuildSettings).mockResolvedValue({ kind: "not_found" });
+    const json = vi.fn().mockRejectedValue(new Error("bad json"));
+
+    const response = await adminGuildSettingsHandler({
+      params: { guildId: "12345" },
+      json,
+    } as never, makeContext());
+
+    expect(response.status).toBe(404);
+    expect(JSON.parse(response.body as string)).toEqual({
+      error: "Guild not found",
+    });
+    expect(saveAdminGuildSettings).toHaveBeenCalledTimes(1);
+    expect(json).not.toHaveBeenCalled();
   });
 });

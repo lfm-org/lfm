@@ -16,6 +16,7 @@ type ReadRaider = (battleNetId: string) => Promise<RaiderDocument | null>;
 type ListRaiders = () => Promise<RaiderDocument[]>;
 type UpsertGuildDocument = (doc: GuildDocument) => Promise<GuildDocument>;
 type ReplaceGuildDocument = (doc: GuildDocument) => Promise<void>;
+type ReadRawInput = () => Promise<unknown>;
 
 export type SaveCurrentGuildSettingsResult =
   | { kind: "ok"; view: ReturnType<typeof toGuildHomeView> }
@@ -186,7 +187,7 @@ export async function saveCurrentGuildSettings(args: {
   guildId: number | null;
   guildName: string | null;
   battleNetId: string;
-  rawInput: unknown;
+  readRawInput: ReadRawInput;
   readGuildDocument: ReadGuildDocument;
   readRaider: ReadRaider;
   replaceGuildDocument: ReplaceGuildDocument;
@@ -206,9 +207,16 @@ export async function saveCurrentGuildSettings(args: {
   }
 
   const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
+  let rawInput: unknown;
+  try {
+    rawInput = await args.readRawInput();
+  } catch {
+    return { kind: "invalid" };
+  }
+
   let parsedSettings;
   try {
-    parsedSettings = parseGuildSettingsInput(args.rawInput, allowedRanks, guildDoc.rankPermissions);
+    parsedSettings = parseGuildSettingsInput(rawInput, allowedRanks, guildDoc.rankPermissions);
   } catch {
     return { kind: "invalid" };
   }
@@ -260,7 +268,7 @@ export async function saveAdminGuildSettings(args: {
   guildDocId: string;
   accessToken: string;
   battleNetId: string;
-  rawInput: unknown;
+  readRawInput: ReadRawInput;
   readGuildDocument: ReadGuildDocument;
   listRaiders: ListRaiders;
   upsertGuildDocument: UpsertGuildDocument;
@@ -270,9 +278,16 @@ export async function saveAdminGuildSettings(args: {
   if (!guildDoc) return { kind: "not_found" };
 
   const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
+  let rawInput: unknown;
+  try {
+    rawInput = await args.readRawInput();
+  } catch {
+    return { kind: "invalid" };
+  }
+
   let parsedSettings;
   try {
-    parsedSettings = parseGuildSettingsInput(args.rawInput, allowedRanks, guildDoc.rankPermissions);
+    parsedSettings = parseGuildSettingsInput(rawInput, allowedRanks, guildDoc.rankPermissions);
   } catch {
     return { kind: "invalid" };
   }
