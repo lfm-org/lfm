@@ -2,10 +2,8 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuthWithToken, requireSiteAdminAuthWithToken } from "../lib/auth.js";
 import { auditLog } from "../lib/audit.js";
 import { getGuildsContainer, getRaidersContainer } from "../lib/cosmos.js";
-import { getGuildRanksFromRoster } from "../lib/guild-permissions.js";
-import { parseGuildId, resolveGuildEditor } from "../lib/guild/context.js";
+import { parseGuildId } from "../lib/guild/context.js";
 import { loadAdminGuildHome, loadCurrentGuildHome, resolveAdminGuild, saveAdminGuildSettings, saveCurrentGuildSettings } from "../lib/guild/service.js";
-import { parseGuildSettingsInput } from "../lib/guild/settings.js";
 import { errorResponse, jsonResponse } from "../middleware/security-headers.js";
 import type { GuildDocument, RaiderDocument } from "../types/index.js";
 
@@ -64,40 +62,30 @@ async function currentGuildSettingsHandler(request: HttpRequest, context: Invoca
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
-  const { guildId, guildName, battleNetId } = auth.identity;
-  if (!guildId || !guildName) return errorResponse(400, "No guild associated with this account");
-
-  const guildDocId = String(guildId);
-  const guildDoc = await readGuildDocument(guildDocId);
-  if (!guildDoc) return errorResponse(404, "Guild not found");
-
-  const raider = await readRaider(battleNetId);
-  const editor = resolveGuildEditor(raider ?? undefined, guildDoc.blizzardRosterRaw);
-  if (!editor.canEdit) {
-    context.log(`guild-settings: forbidden for ${battleNetId} in guild ${guildDocId}`);
-    return errorResponse(403, "Forbidden");
-  }
-
-  const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
-  let body: ReturnType<typeof parseGuildSettingsInput>;
-  try {
-    body = parseGuildSettingsInput(await request.json(), allowedRanks, guildDoc.rankPermissions);
-  } catch {
-    return errorResponse(400, "Invalid guild settings payload");
-  }
+  const body = await request.json();
 
   const view = await saveCurrentGuildSettings({
-    guildDocId,
-    battleNetId,
-    settings: body,
+    guildId: auth.identity.guildId,
+    guildName: auth.identity.guildName,
+    battleNetId: auth.identity.battleNetId,
+    rawInput: body,
     readGuildDocument,
     readRaider,
     replaceGuildDocument,
   });
-  if (!view) return errorResponse(404, "Guild not found");
-
-  auditLog(context, { action: "guild.settings.update", actorId: battleNetId, targetId: guildDocId, result: "success" });
-  return jsonResponse(view);
+  switch (view.kind) {
+    case "missing_guild":
+      return errorResponse(400, "No guild associated with this account");
+    case "not_found":
+      return errorResponse(404, "Guild not found");
+    case "forbidden":
+      return errorResponse(403, "Forbidden");
+    case "invalid":
+      return errorResponse(400, "Invalid guild settings payload");
+    case "ok":
+      auditLog(context, { action: "guild.settings.update", actorId: auth.identity.battleNetId, targetId: String(auth.identity.guildId), result: "success" });
+      return jsonResponse(view.view);
+  }
 }
 
 app.http("guild-settings", {
@@ -169,31 +157,27 @@ async function adminGuildSettingsHandler(request: HttpRequest, context: Invocati
   const guildDocId = parseGuildId(request.params.guildId);
   if (!guildDocId) return errorResponse(400, "Invalid guild ID");
 
-  const guildDoc = await readGuildDocument(guildDocId);
-  if (!guildDoc) return errorResponse(404, "Guild not found");
-
-  const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
-  let body: ReturnType<typeof parseGuildSettingsInput>;
-  try {
-    body = parseGuildSettingsInput(await request.json(), allowedRanks, guildDoc.rankPermissions);
-  } catch {
-    return errorResponse(400, "Invalid guild settings payload");
-  }
+  const body = await request.json();
 
   const view = await saveAdminGuildSettings({
     guildDocId,
     accessToken: auth.accessToken,
     battleNetId: auth.identity.battleNetId,
-    settings: body,
+    rawInput: body,
     readGuildDocument,
     listRaiders,
     upsertGuildDocument,
     replaceGuildDocument,
   });
-  if (!view) return errorResponse(404, "Guild not found");
-
-  auditLog(context, { action: "guild.admin.override", actorId: auth.identity.battleNetId, targetId: guildDocId, result: "success" });
-  return jsonResponse(view);
+  switch (view.kind) {
+    case "not_found":
+      return errorResponse(404, "Guild not found");
+    case "invalid":
+      return errorResponse(400, "Invalid guild settings payload");
+    case "ok":
+      auditLog(context, { action: "guild.admin.override", actorId: auth.identity.battleNetId, targetId: guildDocId, result: "success" });
+      return jsonResponse(view.view);
+  }
 }
 
 app.http("guild-admin-settings", {

@@ -1,7 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BlizzardGuildProfileResponse, BlizzardGuildRosterResponse } from "../../types/blizzard.js";
 import type { GuildDocument, RaiderDocument } from "../../types/index.js";
-import { resolveAdminGuild, saveCurrentGuildSettings } from "./service.js";
+import { ensureGuildDocumentForAdmin } from "./document.js";
+import { saveAdminGuildSettings, saveCurrentGuildSettings } from "./service.js";
+
+vi.mock("./document.js", () => ({
+  ensureGuildDocumentForAdmin: vi.fn(),
+  refreshGuildDocument: vi.fn(),
+}));
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 function createRoster(): BlizzardGuildRosterResponse {
   return {
@@ -59,9 +69,7 @@ function createGuildDoc(overrides: Partial<GuildDocument> = {}): GuildDocument {
       timezone: "Europe/Helsinki",
     },
     slogan: "Old slogan",
-    rankPermissions: [
-      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
-    ],
+    rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
     ...overrides,
   };
 }
@@ -94,22 +102,19 @@ function createRaider(): RaiderDocument {
 }
 
 describe("saveCurrentGuildSettings", () => {
-  it("returns an updated guild view after persisting settings", async () => {
+  it("reads its own state, parses raw input, and persists an updated view", async () => {
     const guildDoc = createGuildDoc();
     const readGuildDocument = vi.fn().mockResolvedValue(guildDoc);
     const readRaider = vi.fn().mockResolvedValue(createRaider());
     const replaceGuildDocument = vi.fn(async (doc: GuildDocument) => doc);
 
     const result = await saveCurrentGuildSettings({
-      guildDocId: "12345",
+      guildId: 12345,
+      guildName: "Test Guild",
       battleNetId: "bnet-1",
-      accessToken: "token",
-      settings: {
+      rawInput: {
         timezone: "America/New_York",
         slogan: "Victory or Lunch",
-        rankPermissions: [
-          { rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true },
-        ],
       },
       readGuildDocument,
       readRaider,
@@ -124,42 +129,58 @@ describe("saveCurrentGuildSettings", () => {
         initializedAt: "2026-03-20T10:00:00.000Z",
         timezone: "America/New_York",
       },
-      rankPermissions: [
-        { rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true },
-      ],
     }));
-    expect(result.guild).toMatchObject({
-      id: 12345,
-      name: "Test Guild",
-      slogan: "Victory or Lunch",
-    });
-    expect(result.setup).toMatchObject({
-      isInitialized: true,
-      timezone: "America/New_York",
-    });
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      expect(result.view.guild).toMatchObject({
+        id: 12345,
+        slogan: "Victory or Lunch",
+      });
+      expect(result.view.setup).toMatchObject({
+        isInitialized: true,
+        timezone: "America/New_York",
+      });
+    }
   });
 });
 
-describe("resolveAdminGuild", () => {
-  it("returns the explicit guild id and guild name", async () => {
-    const readGuildDocument = vi.fn().mockResolvedValue(createGuildDoc());
-    const listRaiders = vi.fn();
-    const upsertGuildDocument = vi.fn();
+describe("saveAdminGuildSettings", () => {
+  it("bootstraps a missing guild doc before saving admin settings", async () => {
+    const guildDoc = createGuildDoc({ lastOverrideBy: undefined, lastOverrideAt: undefined });
+    const readGuildDocument = vi.fn().mockImplementation(() => {
+      throw new Error("admin save should not read the guild doc before bootstrap");
+    });
+    const listRaiders = vi.fn().mockResolvedValue([]);
+    const replaceGuildDocument = vi.fn(async (doc: GuildDocument) => doc);
 
-    const result = await resolveAdminGuild({
+    vi.mocked(ensureGuildDocumentForAdmin).mockResolvedValue(guildDoc);
+
+    const result = await saveAdminGuildSettings({
       guildDocId: "12345",
       accessToken: "token",
+      battleNetId: "admin-bnet",
+      rawInput: {
+        timezone: "Europe/Helsinki",
+        slogan: "Admin override",
+      },
       readGuildDocument,
       listRaiders,
-      upsertGuildDocument,
+      replaceGuildDocument,
     });
 
-    expect(result).toEqual({
-      guildId: "12345",
-      guildName: "Test Guild",
-    });
-    expect(readGuildDocument).toHaveBeenCalledWith("12345");
+    expect(ensureGuildDocumentForAdmin).toHaveBeenCalledTimes(1);
+    expect(readGuildDocument).not.toHaveBeenCalled();
     expect(listRaiders).not.toHaveBeenCalled();
-    expect(upsertGuildDocument).not.toHaveBeenCalled();
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      expect(result.view.guild).toMatchObject({
+        id: 12345,
+        slogan: "Admin override",
+      });
+      expect(result.view.adminOverride).toMatchObject({
+        lastOverrideBy: "admin-bnet",
+        lastOverrideAt: expect.any(String),
+      });
+    }
   });
 });

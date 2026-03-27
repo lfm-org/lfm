@@ -1,11 +1,11 @@
 import { battlenet } from "../battlenet.js";
 import { getPublicBlobUrl, writeBinaryBlob } from "../blob.js";
 import { syncGuildCrest } from "../guild-crest.js";
-import { getEffectiveGuildPermissions } from "../guild-permissions.js";
+import { getEffectiveGuildPermissions, getGuildRanksFromRoster } from "../guild-permissions.js";
 import { toGuildHomeView } from "../blizzard-adapters.js";
 import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "./document.js";
 import { resolveGuildEditor, resolveRealmSlug } from "./context.js";
-import { applyGuildSettings, type ParsedGuildSettingsInput } from "./settings.js";
+import { applyGuildSettings, parseGuildSettingsInput } from "./settings.js";
 import type { BlizzardGuildProfileResponse } from "../../types/blizzard.js";
 import type { GuildDocument, RaiderDocument } from "../../types/index.js";
 
@@ -16,6 +16,18 @@ type ReadRaider = (battleNetId: string) => Promise<RaiderDocument | null>;
 type ListRaiders = () => Promise<RaiderDocument[]>;
 type UpsertGuildDocument = (doc: GuildDocument) => Promise<GuildDocument>;
 type ReplaceGuildDocument = (doc: GuildDocument) => Promise<void>;
+
+export type SaveCurrentGuildSettingsResult =
+  | { kind: "ok"; view: ReturnType<typeof toGuildHomeView> }
+  | { kind: "missing_guild" }
+  | { kind: "not_found" }
+  | { kind: "forbidden" }
+  | { kind: "invalid" };
+
+export type SaveAdminGuildSettingsResult =
+  | { kind: "ok"; view: ReturnType<typeof toGuildHomeView> }
+  | { kind: "not_found" }
+  | { kind: "invalid" };
 
 function toGuildEditorView(editor: ReturnType<typeof resolveGuildEditor>) {
   return {
@@ -164,26 +176,48 @@ export async function loadCurrentGuildHome(args: {
 }
 
 export async function saveCurrentGuildSettings(args: {
-  guildDocId: string;
+  guildId: number | null;
+  guildName: string | null;
   battleNetId: string;
-  settings: ParsedGuildSettingsInput;
+  rawInput: unknown;
   readGuildDocument: ReadGuildDocument;
   readRaider: ReadRaider;
   replaceGuildDocument: ReplaceGuildDocument;
-}) {
-  const guildDoc = await args.readGuildDocument(args.guildDocId);
-  if (!guildDoc) return null;
+}): Promise<SaveCurrentGuildSettingsResult> {
+  if (!args.guildId || !args.guildName) {
+    return { kind: "missing_guild" };
+  }
+
+  const guildDocId = String(args.guildId);
+  const guildDoc = await args.readGuildDocument(guildDocId);
+  if (!guildDoc) return { kind: "not_found" };
 
   const raider = await args.readRaider(args.battleNetId);
-  applyGuildSettings(guildDoc, args.settings);
+  const editor = resolveGuildEditor(raider ?? undefined, guildDoc.blizzardRosterRaw);
+  if (!editor.canEdit) {
+    return { kind: "forbidden" };
+  }
+
+  const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
+  let parsedSettings;
+  try {
+    parsedSettings = parseGuildSettingsInput(args.rawInput, allowedRanks, guildDoc.rankPermissions);
+  } catch {
+    return { kind: "invalid" };
+  }
+
+  applyGuildSettings(guildDoc, parsedSettings);
 
   await args.replaceGuildDocument(guildDoc);
 
-  return toGuildHomeView(
-    guildDoc,
-    { canEdit: true, mode: "guild-master", overrideAvailable: false },
-    getEffectiveGuildPermissions(guildDoc, raider ?? undefined),
-  );
+  return {
+    kind: "ok",
+    view: toGuildHomeView(
+      guildDoc,
+      { canEdit: true, mode: "guild-master", overrideAvailable: false },
+      getEffectiveGuildPermissions(guildDoc, raider ?? undefined),
+    ),
+  };
 }
 
 export async function resolveAdminGuild(args: {
@@ -219,20 +253,31 @@ export async function saveAdminGuildSettings(args: {
   guildDocId: string;
   accessToken: string;
   battleNetId: string;
-  settings: ParsedGuildSettingsInput;
+  rawInput: unknown;
   readGuildDocument: ReadGuildDocument;
   listRaiders: ListRaiders;
   upsertGuildDocument: UpsertGuildDocument;
   replaceGuildDocument: ReplaceGuildDocument;
-}) {
+}): Promise<SaveAdminGuildSettingsResult> {
   const guildDoc = await bootstrapGuildDocumentForAdmin(args);
-  if (!guildDoc) return null;
+  if (!guildDoc) return { kind: "not_found" };
 
-  applyGuildSettings(guildDoc, args.settings);
+  const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
+  let parsedSettings;
+  try {
+    parsedSettings = parseGuildSettingsInput(args.rawInput, allowedRanks, guildDoc.rankPermissions);
+  } catch {
+    return { kind: "invalid" };
+  }
+
+  applyGuildSettings(guildDoc, parsedSettings);
   guildDoc.lastOverrideBy = args.battleNetId;
   guildDoc.lastOverrideAt = new Date().toISOString();
 
   await args.replaceGuildDocument(guildDoc);
 
-  return buildAdminGuildHomeView(guildDoc);
+  return {
+    kind: "ok",
+    view: buildAdminGuildHomeView(guildDoc),
+  };
 }
