@@ -1,4 +1,5 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
+import { getGuildCrestUrl } from "./guild-crest.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
 import type {
   BlizzardAccountProfileSummary,
@@ -263,7 +264,7 @@ export function toGuildHomeView(
       achievementPoints: profile.achievement_points ?? null,
       syncedMemberCount: roster?.members.length ?? null,
       rankCount: roster ? new Set(roster.members.map((member) => member.rank)).size : null,
-      crestUrl: guildDoc.crestUrl ?? null,
+      crestUrl: guildDoc.crestBlobName ? getGuildCrestUrl(guildDoc.id) : guildDoc.crestUrl ?? null,
     },
     setup: {
       isInitialized: Boolean(guildDoc.setup?.initializedAt),

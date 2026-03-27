@@ -445,6 +445,19 @@ function buildComposeEnvironment(profile, runtimeEnv) {
   };
 }
 
+export function buildDockerCommandEnvironment(baseEnv) {
+  const dockerEnv = { ...baseEnv };
+  const dockerContext = baseEnv.LFM_DOCKER_CONTEXT || "default";
+
+  delete dockerEnv.DOCKER_HOST;
+  delete dockerEnv.DOCKER_CERT_PATH;
+  delete dockerEnv.DOCKER_TLS_VERIFY;
+  delete dockerEnv.LFM_DOCKER_CONTEXT;
+
+  dockerEnv.DOCKER_CONTEXT = dockerContext;
+  return dockerEnv;
+}
+
 function buildFrontendServeEnvironment(profile) {
   return {
     ...process.env,
@@ -501,7 +514,8 @@ async function startFunctionsService(profile, composeEnv) {
 export function isRetryableFunctionsScriptOutput(output) {
   return (
     output.includes("pgcosmos extension is still starting; retry request shortly") ||
-    (output.includes('"statusCode": 500') && output.includes("Azurite-Blob/"))
+    (output.includes('"statusCode": 500') && output.includes("Azurite-Blob/")) ||
+    (output.includes("RestError: connect ECONNREFUSED") && output.includes('"url": "http://cosmosdb:8081"'))
   );
 }
 
@@ -681,7 +695,7 @@ async function terminateChild(child) {
 async function runDockerCompose(profile, composeEnv, args, options = {}) {
   await runCommand("docker", dockerComposeArgs(profile, args), {
     cwd: ROOT_DIR,
-    env: composeEnv,
+    env: buildDockerCommandEnvironment(composeEnv),
     stdio: options.quiet ? "ignore" : "inherit",
   });
 }
@@ -689,7 +703,7 @@ async function runDockerCompose(profile, composeEnv, args, options = {}) {
 async function runDockerComposeCapture(profile, composeEnv, args) {
   return runCommandCapture("docker", dockerComposeArgs(profile, args), {
     cwd: ROOT_DIR,
-    env: composeEnv,
+    env: buildDockerCommandEnvironment(composeEnv),
   });
 }
 

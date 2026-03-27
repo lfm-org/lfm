@@ -1,5 +1,5 @@
 import { battlenet } from "../battlenet.js";
-import { getPublicBlobUrl, writeBinaryBlob } from "../blob.js";
+import { writeBinaryBlob } from "../blob.js";
 import { syncGuildCrest } from "../guild-crest.js";
 import { getEffectiveGuildPermissions, getGuildRanksFromRoster, isGuildRosterFresh } from "../guild-permissions.js";
 import { toGuildHomeView } from "../blizzard-adapters.js";
@@ -77,7 +77,6 @@ async function syncGuildCrestForDocument(
     fetchMediaDocument: (href) => battlenet.fetchMediaDocument(href, accessToken),
     fetchBinaryAsset,
     writeBinaryBlob,
-    getPublicUrl: getPublicBlobUrl,
   });
 }
 

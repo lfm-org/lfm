@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildExecutionPlan,
+  buildDockerCommandEnvironment,
   isRetryableFunctionsScriptOutput,
   retryCommandResult,
   buildRuntimeProfile,
@@ -92,6 +93,34 @@ test("buildExecutionPlan preserves e2e shorthand spec names for compatibility", 
   assert.deepEqual(plan.playwrightArgs, ["e2e/signup.spec.ts"]);
 });
 
+test("buildDockerCommandEnvironment defaults docker commands to the engine context", () => {
+  const env = buildDockerCommandEnvironment({
+    PATH: "/usr/bin",
+    DOCKER_HOST: "unix:///home/user/.docker/desktop/docker.sock",
+    DOCKER_CONTEXT: "desktop-linux",
+    DOCKER_CERT_PATH: "/tmp/docker-certs",
+    DOCKER_TLS_VERIFY: "1",
+  });
+
+  assert.equal(env.PATH, "/usr/bin");
+  assert.equal(env.DOCKER_CONTEXT, "default");
+  assert.equal(env.DOCKER_HOST, undefined);
+  assert.equal(env.DOCKER_CERT_PATH, undefined);
+  assert.equal(env.DOCKER_TLS_VERIFY, undefined);
+});
+
+test("buildDockerCommandEnvironment preserves an explicit harness docker context override", () => {
+  const env = buildDockerCommandEnvironment({
+    PATH: "/usr/bin",
+    LFM_DOCKER_CONTEXT: "podman",
+    DOCKER_CONTEXT: "desktop-linux",
+  });
+
+  assert.equal(env.DOCKER_CONTEXT, "podman");
+  assert.equal(env.LFM_DOCKER_CONTEXT, undefined);
+  assert.equal(env.DOCKER_HOST, undefined);
+});
+
 test("retryCommandResult retries transient Cosmos startup failures", async () => {
   let attempts = 0;
   const delays = [];
@@ -140,6 +169,42 @@ test("retryCommandResult retries transient Azurite blob failures", async () => {
           exitCode: 1,
           stdout: "",
           stderr: 'RestError: {"statusCode": 500, "details": {"server": "Azurite-Blob/3.35.0"}}',
+        };
+      }
+
+      return {
+        exitCode: 0,
+        stdout: "ok",
+        stderr: "",
+      };
+    },
+    {
+      attempts: 3,
+      delayMs: 25,
+      sleepFn: async (delayMs) => {
+        delays.push(delayMs);
+      },
+      shouldRetry: (result) => isRetryableFunctionsScriptOutput(`${result.stdout}\n${result.stderr}`),
+    }
+  );
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(attempts, 2);
+  assert.deepEqual(delays, [25]);
+});
+
+test("retryCommandResult retries transient Cosmos connection-refused startup failures", async () => {
+  let attempts = 0;
+  const delays = [];
+
+  const result = await retryCommandResult(
+    async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: 'RestError: connect ECONNREFUSED 172.18.0.3:8081\\n"url": "http://cosmosdb:8081"',
         };
       }
 

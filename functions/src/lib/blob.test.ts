@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Readable } from "stream";
 
 const upload = vi.fn();
 const createIfNotExists = vi.fn();
 const deleteIfExists = vi.fn();
+const download = vi.fn(async () => ({
+  readableStreamBody: Readable.from([Uint8Array.from([60, 62])]),
+  contentType: "image/svg+xml",
+}));
 const getBlockBlobClient = vi.fn(() => ({ upload }));
+const getBlobClient = vi.fn(() => ({ download }));
 const getContainerClient = vi.fn(() => ({
   createIfNotExists,
   deleteIfExists,
   getBlockBlobClient,
+  getBlobClient,
 }));
 const BlobServiceClientConstructor = vi.fn(function () {
   return { getContainerClient };
@@ -73,6 +80,18 @@ describe("writeBlob", () => {
 
     expect(upload).toHaveBeenCalledWith(expect.any(Uint8Array), 2, {
       blobHTTPHeaders: { blobContentType: "image/svg+xml" },
+    });
+  });
+
+  it("can read binary assets and preserve the stored content type", async () => {
+    const { readBinaryBlob } = await import("./blob.js");
+
+    const result = await readBinaryBlob("guild-crests/12345/crest.svg");
+
+    expect(getBlobClient).toHaveBeenCalledWith("guild-crests/12345/crest.svg");
+    expect(result).toEqual({
+      bytes: new Uint8Array([60, 62]),
+      contentType: "image/svg+xml",
     });
   });
 });

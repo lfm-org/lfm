@@ -9,7 +9,6 @@ interface GuildCrestSyncDeps {
   fetchMediaDocument: (href: string) => Promise<BlizzardMediaSummary>;
   fetchBinaryAsset: (url: string) => Promise<BinaryAsset>;
   writeBinaryBlob: (blobName: string, bytes: Uint8Array, contentType: string) => Promise<void>;
-  getPublicUrl: (blobName: string) => string;
   now?: string;
 }
 
@@ -61,6 +60,14 @@ function buildGuildCrestSvg(
   ].join("");
 }
 
+function toDataUrl(asset: BinaryAsset): string {
+  return `data:${asset.contentType};base64,${Buffer.from(asset.bytes).toString("base64")}`;
+}
+
+export function getGuildCrestUrl(guildDocId: string): string {
+  return `/api/guild/${guildDocId}/crest`;
+}
+
 export async function syncGuildCrest(
   guildDocId: string,
   profile: BlizzardGuildProfileResponse,
@@ -94,8 +101,8 @@ export async function syncGuildCrest(
 
   const svg = buildGuildCrestSvg(
     profile,
-    deps.getPublicUrl(crestEmblemBlobName),
-    deps.getPublicUrl(crestBorderBlobName)
+    toDataUrl(emblemAsset),
+    toDataUrl(borderAsset)
   );
   await deps.writeBinaryBlob(crestBlobName, new TextEncoder().encode(svg), "image/svg+xml");
 
@@ -106,6 +113,6 @@ export async function syncGuildCrest(
     crestBlobName,
     crestEmblemBlobName,
     crestBorderBlobName,
-    crestUrl: deps.getPublicUrl(crestBlobName),
+    crestUrl: getGuildCrestUrl(guildDocId),
   };
 }
