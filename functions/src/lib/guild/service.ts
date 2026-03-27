@@ -1,5 +1,5 @@
 import { battlenet } from "../battlenet.js";
-import { writeBinaryBlob } from "../blob.js";
+import { readBinaryBlob, writeBinaryBlob } from "../blob.js";
 import { syncGuildCrest } from "../guild-crest.js";
 import { getEffectiveGuildPermissions, getGuildRanksFromRoster, isGuildRosterFresh } from "../guild-permissions.js";
 import { toGuildHomeView } from "../blizzard-adapters.js";
@@ -80,6 +80,33 @@ async function syncGuildCrestForDocument(
   });
 }
 
+async function ensureMirroredGuildCrest(args: {
+  guildDocId: string;
+  cached: GuildDocument;
+  accessToken: string;
+  upsertGuildDocument: UpsertGuildDocument;
+  log?: (...message: unknown[]) => void;
+}): Promise<GuildDocument> {
+  const profileSummary = args.cached.blizzardProfileRaw;
+  if (!profileSummary?.crest) return args.cached;
+
+  if (args.cached.crestBlobName) {
+    const asset = await readBinaryBlob(args.cached.crestBlobName);
+    if (asset) return args.cached;
+    args.log?.(`guild: mirrored crest blob missing for guild ${args.guildDocId}; re-syncing`);
+  } else {
+    args.log?.(`guild: mirrored crest metadata missing for guild ${args.guildDocId}; re-syncing`);
+  }
+
+  const crest = await syncGuildCrestForDocument(args.guildDocId, profileSummary, args.accessToken);
+  if (!crest) return args.cached;
+
+  return args.upsertGuildDocument({
+    ...args.cached,
+    ...crest,
+  });
+}
+
 function buildGuildHomeView(guildDoc: GuildDocument | null | undefined, raider: RaiderDocument | null | undefined) {
   return toGuildHomeView(
     guildDoc ?? null,
@@ -151,7 +178,19 @@ export async function loadCurrentGuildHome(args: {
     const profileAge = Date.now() - new Date(cached.blizzardProfileFetchedAt).getTime();
     const rosterAge = Date.now() - new Date(cached.blizzardRosterFetchedAt).getTime();
     if (profileAge < PROFILE_CACHE_TTL_MS && rosterAge < PROFILE_CACHE_TTL_MS) {
-      return buildGuildHomeView(cached, raider);
+      try {
+        const hydrated = await ensureMirroredGuildCrest({
+          guildDocId,
+          cached,
+          accessToken: args.accessToken,
+          upsertGuildDocument: args.upsertGuildDocument,
+          log: args.log,
+        });
+        return buildGuildHomeView(hydrated, raider);
+      } catch (error) {
+        args.log?.(`guild: crest re-sync failed for guild ${guildDocId}:`, error instanceof Error ? error.message : error);
+        return buildGuildHomeView(cached, raider);
+      }
     }
   }
 
