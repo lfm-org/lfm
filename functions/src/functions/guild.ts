@@ -9,7 +9,7 @@ import { syncGuildCrest } from "../lib/guild-crest.js";
 import { parseGuildId, resolveGuildEditor, resolveRealmSlug } from "../lib/guild/context.js";
 import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "../lib/guild/document.js";
 import { getEffectiveGuildPermissions, getGuildRanksFromRoster } from "../lib/guild-permissions.js";
-import { parseGuildSettingsInput } from "../lib/guild/settings.js";
+import { applyGuildSettings, parseGuildSettingsInput } from "../lib/guild/settings.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { BlizzardGuildProfileResponse } from "../types/blizzard.js";
 import type { GuildDocument, RaiderDocument } from "../types/index.js";
@@ -168,19 +168,14 @@ async function settingsHandler(request: HttpRequest, context: InvocationContext)
   }
 
   const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
-  let body: { timezone: string; rankPermissions: NonNullable<GuildDocument["rankPermissions"]> };
+  let body: ReturnType<typeof parseGuildSettingsInput>;
   try {
     body = parseGuildSettingsInput(await request.json(), allowedRanks, guildDoc.rankPermissions);
   } catch {
     return errorResponse(400, "Invalid guild settings payload");
   }
 
-  guildDoc.setup = {
-    ...guildDoc.setup,
-    initializedAt: guildDoc.setup?.initializedAt ?? new Date().toISOString(),
-    timezone: body.timezone,
-  };
-  guildDoc.rankPermissions = body.rankPermissions;
+  applyGuildSettings(guildDoc, body);
 
   await guildsContainer.item(guildDocId, guildDocId).replace(guildDoc);
   auditLog(context, { action: "guild.settings.update", actorId: battleNetId, targetId: guildDocId, result: "success" });
@@ -308,19 +303,14 @@ async function adminGuildSettingsHandler(request: HttpRequest, context: Invocati
   if (!guildDoc) return errorResponse(404, "Guild not found");
 
   const allowedRanks = getGuildRanksFromRoster(guildDoc.blizzardRosterRaw);
-  let body: { timezone: string; rankPermissions: NonNullable<GuildDocument["rankPermissions"]> };
+  let body: ReturnType<typeof parseGuildSettingsInput>;
   try {
     body = parseGuildSettingsInput(await request.json(), allowedRanks, guildDoc.rankPermissions);
   } catch {
     return errorResponse(400, "Invalid guild settings payload");
   }
 
-  guildDoc.setup = {
-    ...guildDoc.setup,
-    initializedAt: guildDoc.setup?.initializedAt ?? new Date().toISOString(),
-    timezone: body.timezone,
-  };
-  guildDoc.rankPermissions = body.rankPermissions;
+  applyGuildSettings(guildDoc, body);
   guildDoc.lastOverrideBy = auth.identity.battleNetId;
   guildDoc.lastOverrideAt = new Date().toISOString();
 

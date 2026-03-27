@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseGuildSettingsInput } from "./settings.js";
+import type { GuildDocument } from "../../types/index.js";
+import { applyGuildSettings, parseGuildSettingsInput } from "./settings.js";
 
 describe("parseGuildSettingsInput", () => {
   it("merges omitted rank permissions onto the allowed rank set", () => {
@@ -103,5 +104,36 @@ describe("parseGuildSettingsInput", () => {
       [0, 1],
       [],
     )).toThrow("Unknown guild rank");
+  });
+
+  it("applies parsed slogan settings back onto the guild document", () => {
+    const guildDoc: GuildDocument = {
+      id: "12345",
+      guildId: 12345,
+      realmSlug: "test-realm",
+    };
+
+    applyGuildSettings(
+      guildDoc,
+      parseGuildSettingsInput(
+        {
+          timezone: "Europe/Helsinki",
+          slogan: "Victory or Lunch",
+          rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true }],
+        },
+        [0],
+        [],
+      ),
+      "2026-03-27T10:00:00.000Z",
+    );
+
+    expect(guildDoc).toMatchObject({
+      slogan: "Victory or Lunch",
+      setup: {
+        initializedAt: "2026-03-27T10:00:00.000Z",
+        timezone: "Europe/Helsinki",
+      },
+      rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true }],
+    });
   });
 });

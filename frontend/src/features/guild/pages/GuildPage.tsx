@@ -29,11 +29,8 @@ export default function GuildPage() {
   const draftRankPermissions = data?.settings?.rankPermissions;
 
   useEffect(() => {
-    setDraft({
-      timezone: draftTimezone ?? "Europe/Helsinki",
-      rankPermissions: draftRankPermissions ?? [],
-    });
-  }, [draftRankPermissions, draftTimezone]);
+    setDraft(createGuildSettingsDraft(data ?? null));
+  }, [data]);
 
   const handlePermissionChange = (
     rank: number,

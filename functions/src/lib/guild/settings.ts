@@ -2,15 +2,17 @@ import { IANAZone } from "luxon";
 import { mergeRankPermissions } from "../guild-permissions.js";
 import type { GuildDocument } from "../../types/index.js";
 
+export interface ParsedGuildSettingsInput {
+  timezone: string;
+  slogan: string | null;
+  rankPermissions: NonNullable<GuildDocument["rankPermissions"]>;
+}
+
 export function parseGuildSettingsInput(
   input: unknown,
   allowedRanks: number[],
   fallbackRankPermissions: GuildDocument["rankPermissions"],
-): {
-  timezone: string;
-  slogan: string | null;
-  rankPermissions: NonNullable<GuildDocument["rankPermissions"]>;
-} {
+): ParsedGuildSettingsInput {
   const body = (input ?? {}) as { timezone?: unknown; slogan?: unknown; rankPermissions?: unknown };
   const timezone = typeof body.timezone === "string" ? body.timezone.trim() : "";
 
@@ -26,6 +28,21 @@ export function parseGuildSettingsInput(
         ? mergeRankPermissions(allowedRanks, fallbackRankPermissions)
         : mergeRankPermissions(allowedRanks, parseRankPermissions(body.rankPermissions, allowedRanks)),
   };
+}
+
+export function applyGuildSettings(
+  guildDoc: GuildDocument,
+  settings: ParsedGuildSettingsInput,
+  initializedAt = new Date().toISOString(),
+): GuildDocument {
+  guildDoc.setup = {
+    ...guildDoc.setup,
+    initializedAt: guildDoc.setup?.initializedAt ?? initializedAt,
+    timezone: settings.timezone,
+  };
+  guildDoc.slogan = settings.slogan;
+  guildDoc.rankPermissions = settings.rankPermissions;
+  return guildDoc;
 }
 
 function parseRankPermissions(
