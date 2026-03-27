@@ -1,11 +1,12 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
-import { getRaidsContainer } from "../lib/cosmos.js";
+import { getGuildsContainer, getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
+import { getEffectiveGuildPermissions } from "../lib/guild-permissions.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { RaidDocument, RaidVisibility, WowInstance } from "../types/index.js";
+import type { GuildDocument, RaidDocument, RaiderDocument, RaidVisibility, WowInstance } from "../types/index.js";
 
 export interface UpdateRaidBody {
   startTime?: string;
@@ -102,11 +103,33 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     const instances = await readWowInstances();
     if (!instances) return errorResponse(503, "Instance data not available");
 
+    // Guard: visibility change to GUILD requires guild membership + permissions
+    if (body.visibility === "GUILD" && existing.visibility !== "GUILD") {
+      if (!identity.guildId) {
+        return errorResponse(400, "A guild raid requires an active character in a guild");
+      }
+      const guildDocId = String(identity.guildId);
+      const [{ resource: guildDoc }, { resource: raider }] = await Promise.all([
+        getGuildsContainer().item(guildDocId, guildDocId).read<GuildDocument>(),
+        getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>(),
+      ]);
+      const permissions = getEffectiveGuildPermissions(guildDoc, raider);
+      if (!permissions.canCreateGuildRaids) {
+        return errorResponse(403, "Guild raid creation is not enabled for your rank");
+      }
+    }
+
     let updated: RaidDocument;
     try {
       updated = applyRaidUpdate(existing, body, instances);
     } catch (error: unknown) {
       return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
+    }
+
+    // When promoting to GUILD, stamp the creator's guild identity
+    if (body.visibility === "GUILD" && existing.visibility !== "GUILD") {
+      updated.creatorGuild = identity.guildName || "";
+      updated.creatorGuildId = identity.guildId ?? null;
     }
 
     const { resource } = await getRaidsContainer().item(id, id).replace(updated);
