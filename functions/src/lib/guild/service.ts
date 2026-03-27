@@ -29,6 +29,13 @@ export type SaveAdminGuildSettingsResult =
   | { kind: "not_found" }
   | { kind: "invalid" };
 
+export class BlizzardGuildRefreshError extends Error {
+  constructor(message = "Failed to fetch guild profile from Blizzard") {
+    super(message);
+    this.name = "BlizzardGuildRefreshError";
+  }
+}
+
 function toGuildEditorView(editor: ReturnType<typeof resolveGuildEditor>) {
   return {
     canEdit: editor.canEdit,
@@ -171,7 +178,7 @@ export async function loadCurrentGuildHome(args: {
     if (cached?.blizzardProfileRaw || cached?.profileSummary) {
       return buildGuildHomeView(cached, raider);
     }
-    throw new Error("Failed to fetch guild profile from Blizzard");
+    throw new BlizzardGuildRefreshError();
   }
 }
 

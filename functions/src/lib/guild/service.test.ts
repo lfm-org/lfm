@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BlizzardGuildProfileResponse, BlizzardGuildRosterResponse } from "../../types/blizzard.js";
 import type { GuildDocument, RaiderDocument } from "../../types/index.js";
-import { ensureGuildDocumentForAdmin } from "./document.js";
-import { saveAdminGuildSettings, saveCurrentGuildSettings } from "./service.js";
+import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "./document.js";
+import { BlizzardGuildRefreshError, loadCurrentGuildHome, saveAdminGuildSettings, saveCurrentGuildSettings } from "./service.js";
 
 vi.mock("./document.js", () => ({
   ensureGuildDocumentForAdmin: vi.fn(),
@@ -182,5 +182,24 @@ describe("saveAdminGuildSettings", () => {
         lastOverrideAt: expect.any(String),
       });
     }
+  });
+});
+
+describe("loadCurrentGuildHome", () => {
+  it("surfaces Blizzard refresh failures with a typed error", async () => {
+    vi.mocked(refreshGuildDocument).mockRejectedValue(new Error("blizzard down"));
+
+    await expect(
+      loadCurrentGuildHome({
+        guildId: 12345,
+        guildName: "Test Guild",
+        battleNetId: "bnet-1",
+        accessToken: "token",
+        readGuildDocument: vi.fn().mockResolvedValue(null),
+        readRaider: vi.fn().mockResolvedValue(createRaider()),
+        upsertGuildDocument: vi.fn(),
+        log: vi.fn(),
+      }),
+    ).rejects.toBeInstanceOf(BlizzardGuildRefreshError);
   });
 });

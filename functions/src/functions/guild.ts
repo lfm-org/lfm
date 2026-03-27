@@ -3,7 +3,14 @@ import { requireAuthWithToken, requireSiteAdminAuthWithToken } from "../lib/auth
 import { auditLog } from "../lib/audit.js";
 import { getGuildsContainer, getRaidersContainer } from "../lib/cosmos.js";
 import { parseGuildId } from "../lib/guild/context.js";
-import { loadAdminGuildHome, loadCurrentGuildHome, resolveAdminGuild, saveAdminGuildSettings, saveCurrentGuildSettings } from "../lib/guild/service.js";
+import {
+  BlizzardGuildRefreshError,
+  loadAdminGuildHome,
+  loadCurrentGuildHome,
+  resolveAdminGuild,
+  saveAdminGuildSettings,
+  saveCurrentGuildSettings,
+} from "../lib/guild/service.js";
 import { errorResponse, jsonResponse } from "../middleware/security-headers.js";
 import type { GuildDocument, RaiderDocument } from "../types/index.js";
 
@@ -30,7 +37,7 @@ async function listRaiders(): Promise<RaiderDocument[]> {
   return (await getRaidersContainer().items.query<RaiderDocument>({ query: "SELECT * FROM c" }).fetchAll()).resources;
 }
 
-async function currentGuildHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function currentGuildHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
@@ -46,8 +53,19 @@ async function currentGuildHandler(request: HttpRequest, context: InvocationCont
       log: context.log.bind(context),
     });
     return jsonResponse(view);
+  } catch (error) {
+    if (error instanceof BlizzardGuildRefreshError) {
+      return errorResponse(502, "Failed to fetch guild profile from Blizzard");
+    }
+    throw error;
+  }
+}
+
+async function readSettingsPayload(request: HttpRequest): Promise<unknown | null> {
+  try {
+    return await request.json();
   } catch {
-    return errorResponse(502, "Failed to fetch guild profile from Blizzard");
+    return null;
   }
 }
 
@@ -58,11 +76,12 @@ app.http("guild", {
   handler: currentGuildHandler,
 });
 
-async function currentGuildSettingsHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function currentGuildSettingsHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
-  const body = await request.json();
+  const body = await readSettingsPayload(request);
+  if (body === null) return errorResponse(400, "Invalid guild settings payload");
 
   const view = await saveCurrentGuildSettings({
     guildId: auth.identity.guildId,
@@ -150,14 +169,15 @@ app.http("guild-admin-get", {
   handler: adminGuildGetHandler,
 });
 
-async function adminGuildSettingsHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function adminGuildSettingsHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireSiteAdminAuthWithToken(request);
   if (!auth) return errorResponse(403, "Forbidden");
 
   const guildDocId = parseGuildId(request.params.guildId);
   if (!guildDocId) return errorResponse(400, "Invalid guild ID");
 
-  const body = await request.json();
+  const body = await readSettingsPayload(request);
+  if (body === null) return errorResponse(400, "Invalid guild settings payload");
 
   const view = await saveAdminGuildSettings({
     guildDocId,
