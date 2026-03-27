@@ -2,6 +2,7 @@ export interface GuildHomeResponse {
   guild: {
     id: number;
     name: string;
+    slogan: string | null;
     realmSlug: string;
     realmName: string;
     factionName: string | null;

@@ -71,6 +71,7 @@ export interface GuildDocument {
   id: string;                              // guildId as string
   guildId: number;
   realmSlug: string;
+  slogan?: string | null;
   profileSummary?: BlizzardGuildProfileResponse;
   profileFetchedAt?: string;
   blizzardProfileRaw?: BlizzardGuildProfileResponse;

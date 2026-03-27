@@ -312,6 +312,65 @@ describe("toBattleNetIdentity", () => {
 });
 
 describe("toGuildHomeView", () => {
+  it("exposes the optional guild slogan", () => {
+    const guildDoc: GuildDocument = {
+      id: "12345",
+      guildId: 12345,
+      realmSlug: "test-realm",
+      slogan: "Victory or Lunch",
+      blizzardProfileRaw: {
+        id: 12345,
+        name: "Test Guild",
+        realm: {
+          slug: "test-realm",
+          name: { en_US: "Test Realm" },
+        },
+        faction: { type: "ALLIANCE", name: "Alliance" },
+      },
+      blizzardRosterRaw: {
+        guild: {
+          name: "Test Guild",
+          id: 12345,
+          realm: { slug: "test-realm" },
+        },
+        members: [],
+      },
+    };
+
+    expect(toGuildHomeView(guildDoc).guild).toMatchObject({
+      slogan: "Victory or Lunch",
+    });
+  });
+
+  it("exposes a null guild slogan when none is stored", () => {
+    const guildDoc: GuildDocument = {
+      id: "12345",
+      guildId: 12345,
+      realmSlug: "test-realm",
+      blizzardProfileRaw: {
+        id: 12345,
+        name: "Test Guild",
+        realm: {
+          slug: "test-realm",
+          name: { en_US: "Test Realm" },
+        },
+        faction: { type: "ALLIANCE", name: "Alliance" },
+      },
+      blizzardRosterRaw: {
+        guild: {
+          name: "Test Guild",
+          id: 12345,
+          realm: { slug: "test-realm" },
+        },
+        members: [],
+      },
+    };
+
+    expect(toGuildHomeView(guildDoc).guild).toMatchObject({
+      slogan: null,
+    });
+  });
+
   it("returns the mirrored crest URL when guild crest assets were synced locally", () => {
     const guildDoc: GuildDocument = {
       id: "12345",

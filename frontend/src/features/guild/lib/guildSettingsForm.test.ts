@@ -6,9 +6,10 @@ import {
 } from "./guildSettingsForm";
 
 describe("createGuildSettingsDraft", () => {
-  it("hydrates timezone and rank permissions from the guild response", () => {
+  it("hydrates timezone, slogan, and rank permissions from the guild response", () => {
     expect(
       createGuildSettingsDraft({
+        guild: { slogan: "Victory or Lunch" },
         setup: { timezone: "Europe/Helsinki" },
         settings: {
           rankPermissions: [
@@ -22,6 +23,7 @@ describe("createGuildSettingsDraft", () => {
       } as never),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      slogan: "Victory or Lunch",
       rankPermissions: [
         {
           rank: 1,
@@ -29,6 +31,20 @@ describe("createGuildSettingsDraft", () => {
           canSignupGuildRaids: false,
         },
       ],
+    });
+  });
+
+  it("defaults slogan to an empty string when the guild has none", () => {
+    expect(
+      createGuildSettingsDraft({
+        guild: { slogan: null },
+        setup: { timezone: "Europe/Helsinki" },
+        settings: { rankPermissions: [] },
+      } as never),
+    ).toEqual({
+      timezone: "Europe/Helsinki",
+      slogan: "",
+      rankPermissions: [],
     });
   });
 });
@@ -51,6 +67,7 @@ describe("toGuildSettingsPayload", () => {
     expect(
       toGuildSettingsPayload({
         timezone: "Europe/Helsinki",
+        slogan: "Victory or Lunch",
         rankPermissions: [
           {
             rank: 1,
@@ -61,6 +78,7 @@ describe("toGuildSettingsPayload", () => {
       }),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      slogan: "Victory or Lunch",
       rankPermissions: [
         {
           rank: 1,

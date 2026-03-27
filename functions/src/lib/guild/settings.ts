@@ -6,8 +6,12 @@ export function parseGuildSettingsInput(
   input: unknown,
   allowedRanks: number[],
   fallbackRankPermissions: GuildDocument["rankPermissions"],
-): { timezone: string; rankPermissions: NonNullable<GuildDocument["rankPermissions"]> } {
-  const body = (input ?? {}) as { timezone?: unknown; rankPermissions?: unknown };
+): {
+  timezone: string;
+  slogan: string | null;
+  rankPermissions: NonNullable<GuildDocument["rankPermissions"]>;
+} {
+  const body = (input ?? {}) as { timezone?: unknown; slogan?: unknown; rankPermissions?: unknown };
   const timezone = typeof body.timezone === "string" ? body.timezone.trim() : "";
 
   if (!timezone || !IANAZone.isValidZone(timezone)) {
@@ -16,6 +20,7 @@ export function parseGuildSettingsInput(
 
   return {
     timezone,
+    slogan: parseSlogan(body.slogan),
     rankPermissions:
       body.rankPermissions === undefined
         ? mergeRankPermissions(allowedRanks, fallbackRankPermissions)
@@ -57,4 +62,25 @@ function parseRankPermissions(
   });
 
   return parsed;
+}
+
+function parseSlogan(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    throw new Error("Invalid slogan");
+  }
+
+  const slogan = value.trim();
+  if (!slogan) {
+    return null;
+  }
+
+  if (slogan.length > 120) {
+    throw new Error("Invalid slogan");
+  }
+
+  return slogan;
 }

@@ -180,6 +180,7 @@ export interface GuildHomeView {
   guild: {
     id: number;
     name: string;
+    slogan: string | null;
     realmSlug: string;
     realmName: string;
     factionName: string | null;
@@ -261,6 +262,7 @@ export function toGuildHomeView(
     guild: {
       id: guildDoc.guildId,
       name: profile.name,
+      slogan: guildDoc.slogan ?? null,
       realmSlug: guildDoc.realmSlug,
       realmName: localizeName(profile.realm.name) || guildDoc.realmSlug,
       factionName: profile.faction?.name ?? null,
