@@ -22,9 +22,32 @@ interface GuildCrestSyncResult {
   crestUrl: string;
 }
 
-function toRgba(value?: { r: number; g: number; b: number; a: number }): string {
-  if (!value) return "rgba(32, 34, 40, 1)";
-  return `rgba(${value.r}, ${value.g}, ${value.b}, ${value.a})`;
+interface SvgColor {
+  color: string;
+  opacity: number;
+}
+
+function toSvgColor(value?: { r: number; g: number; b: number; a: number }): SvgColor {
+  if (!value) {
+    return {
+      color: "rgb(32, 34, 40)",
+      opacity: 1,
+    };
+  }
+
+  return {
+    color: `rgb(${value.r}, ${value.g}, ${value.b})`,
+    opacity: value.a,
+  };
+}
+
+function buildColorizeFilter(id: string, color: SvgColor): string {
+  return [
+    `<filter id="${id}" color-interpolation-filters="sRGB">`,
+    `<feFlood flood-color="${color.color}" flood-opacity="${color.opacity}" result="color" />`,
+    `<feComposite in="color" in2="SourceGraphic" operator="in" />`,
+    `</filter>`,
+  ].join("");
 }
 
 function pickPreferredAssetUrl(media: BlizzardMediaSummary): string | null {
@@ -47,15 +70,16 @@ function buildGuildCrestSvg(
   borderUrl: string
 ): string {
   const size = 256;
-  const background = toRgba(profile.crest?.background?.color?.rgba);
-  const emblemColor = toRgba(profile.crest?.emblem?.color?.rgba);
-  const borderColor = toRgba(profile.crest?.border?.color?.rgba);
+  const background = toSvgColor(profile.crest?.background?.color?.rgba);
+  const emblemColor = toSvgColor(profile.crest?.emblem?.color?.rgba);
+  const borderColor = toSvgColor(profile.crest?.border?.color?.rgba);
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`,
-    `<rect width="${size}" height="${size}" rx="28" fill="${background}" />`,
-    `<image href="${emblemUrl}" x="24" y="24" width="${size - 48}" height="${size - 48}" preserveAspectRatio="xMidYMid meet" style="filter: drop-shadow(0 0 0 ${emblemColor});" />`,
-    `<image href="${borderUrl}" x="0" y="0" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet" style="filter: drop-shadow(0 0 0 ${borderColor});" />`,
+    `<defs>${buildColorizeFilter("emblem-colorize", emblemColor)}${buildColorizeFilter("border-colorize", borderColor)}</defs>`,
+    `<rect width="${size}" height="${size}" rx="28" fill="${background.color}" fill-opacity="${background.opacity}" />`,
+    `<image href="${emblemUrl}" x="24" y="24" width="${size - 48}" height="${size - 48}" preserveAspectRatio="xMidYMid meet" filter="url(#emblem-colorize)" />`,
+    `<image href="${borderUrl}" x="0" y="0" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet" filter="url(#border-colorize)" />`,
     `</svg>`,
   ].join("");
 }

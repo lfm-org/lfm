@@ -21,6 +21,28 @@ test("authenticated guild members can open the read-only guild home", async ({ p
   const response = await page.request.get("/api/guild/12345/crest");
   expect(response.ok()).toBe(true);
   expect(response.headers()["content-type"]).toContain("image/svg+xml");
+
+  const renderedCenterPixel = await crest.evaluate(async (img) => {
+    await img.decode();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("2d context unavailable");
+
+    context.drawImage(img, 0, 0);
+
+    return Array.from(
+      context.getImageData(
+        Math.floor(img.naturalWidth / 2),
+        Math.floor(img.naturalHeight / 2),
+        1,
+        1
+      ).data
+    );
+  });
+  expect(renderedCenterPixel).not.toEqual([158, 0, 54, 255]);
 });
 
 test("guild masters can save slogan and timezone before entering raids", async ({ page }) => {

@@ -84,5 +84,10 @@ describe("syncGuildCrest", () => {
     const crestSvg = Buffer.from(crestSvgBytes).toString("utf-8");
     expect(crestSvg).toContain("data:image/png;base64,");
     expect(crestSvg).not.toContain("https://blob.example.test");
+    expect(crestSvg).toContain('id="emblem-colorize"');
+    expect(crestSvg).toContain('id="border-colorize"');
+    expect(crestSvg).toContain("<feFlood");
+    expect(crestSvg).toContain('operator="in"');
+    expect(crestSvg).not.toContain("drop-shadow(");
   });
 });
