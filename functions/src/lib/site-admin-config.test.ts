@@ -43,7 +43,6 @@ describe("site-admin-config", () => {
   });
 
   it("allows the local test-mode site-admin identity without consulting Key Vault", async () => {
-    delete process.env.KEY_VAULT_URL;
     const { isSiteAdmin, resetSiteAdminCacheForTests } = await import("./site-admin-config.js");
     resetSiteAdminCacheForTests();
 
@@ -51,9 +50,9 @@ describe("site-admin-config", () => {
       isSiteAdmin(TEST_MODE_SITE_ADMIN_IDENTITY.battleNetId, {
         TEST_MODE: "true",
         COSMOS_ENDPOINT: "http://localhost:8081",
+        KEY_VAULT_URL: undefined,
       }),
     ).resolves.toBe(true);
-    expect(process.env.KEY_VAULT_URL).toBeUndefined();
     expect(getSecret).not.toHaveBeenCalled();
   });
 
