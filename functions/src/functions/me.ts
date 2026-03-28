@@ -1,9 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
-import { isSiteAdmin } from "../lib/site-admin.js";
+import { isSiteAdmin } from "../lib/site-admin-config.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 
-async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function meHandler(request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
 
@@ -15,7 +15,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     battleNetId: identity.battleNetId,
     guildName: identity.guildName,
     selectedCharacterId: raider?.selectedCharacterId ?? null,
-    isSiteAdmin: isSiteAdmin(identity.battleNetId),
+    isSiteAdmin: await isSiteAdmin(identity.battleNetId),
   });
 }
 
@@ -23,5 +23,5 @@ app.http("me", {
   methods: ["GET"],
   route: "me",
   authLevel: "anonymous",
-  handler,
+  handler: meHandler,
 });
