@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Pre-commit hook: block files that should never be committed.
+# Install: cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Patterns that must never be committed (exact basename matches).
+# example.env files are allowed; .env files are not.
+BLOCKED_BASENAMES=('.env' '.env.local' '.env.production' 'local.settings.json')
+
+# Extension patterns that must never be committed
+BLOCKED_EXTENSIONS=('*.pem' '*.key' '*.p12' '*.pfx')
+
+status=0
+
+for file in $STAGED; do
+  basename=$(basename "$file")
+
+  for pattern in "${BLOCKED_BASENAMES[@]}"; do
+    if [[ "$basename" == "$pattern" ]]; then
+      echo "BLOCKED: $file — matches forbidden basename '$pattern'"
+      status=1
+    fi
+  done
+
+  for pattern in "${BLOCKED_EXTENSIONS[@]}"; do
+    # Strip leading * for extension match
+    ext="${pattern#\*}"
+    if [[ "$basename" == *"$ext" ]]; then
+      echo "BLOCKED: $file — matches forbidden extension '$pattern'"
+      status=1
+    fi
+  done
+done
+
+if [[ $status -ne 0 ]]; then
+  echo ""
+  echo "Commit aborted. Remove the blocked files from staging:"
+  echo "  git reset HEAD <file>"
+  echo ""
+  echo "If this is truly intentional, bypass with: git commit --no-verify"
+  exit 1
+fi
