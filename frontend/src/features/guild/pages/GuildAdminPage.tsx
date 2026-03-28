@@ -7,6 +7,7 @@ import GuildIdentityCard from "../components/GuildIdentityCard";
 import GuildRouteShell from "../components/GuildRouteShell";
 import GuildSettingsEditor from "../components/GuildSettingsEditor";
 import type { GuildHomeResponse } from "../lib/guildHome";
+import { normalizeGuildHomeResponse } from "../lib/guildHome";
 import {
   createGuildSettingsDraft,
   toGuildSettingsPayload,
@@ -46,8 +47,9 @@ export default function GuildAdminPage() {
     setError(null);
     try {
       const response = await api.get<GuildHomeResponse>(`/guild/admin/${targetGuildId}`);
-      setData(response.data);
-      setDraft(createGuildSettingsDraft(response.data));
+      const normalized = normalizeGuildHomeResponse(response.data);
+      setData(normalized);
+      setDraft(createGuildSettingsDraft(normalized));
     } catch {
       setError("Failed to load guild settings");
       setData(null);
@@ -83,8 +85,9 @@ export default function GuildAdminPage() {
         `/guild/admin/${resolved.guildId}/settings`,
         toGuildSettingsPayload(draft),
       );
-      setData(response.data);
-      setDraft(createGuildSettingsDraft(response.data));
+      const normalized = normalizeGuildHomeResponse(response.data);
+      setData(normalized);
+      setDraft(createGuildSettingsDraft(normalized));
       setSuccess("Guild settings saved");
     } catch {
       setError("Failed to save guild settings");

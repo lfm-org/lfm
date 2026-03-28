@@ -6,6 +6,7 @@ import GuildIdentityCard from "../components/GuildIdentityCard";
 import GuildRouteShell from "../components/GuildRouteShell";
 import GuildSettingsEditor from "../components/GuildSettingsEditor";
 import type { GuildHomeResponse } from "../lib/guildHome";
+import { normalizeGuildHomeResponse } from "../lib/guildHome";
 import {
   createGuildSettingsDraft,
   toGuildSettingsPayload,
@@ -45,7 +46,7 @@ export default function GuildPage() {
         "/guild/settings",
         toGuildSettingsPayload(draft),
       );
-      setData(response.data);
+      setData(normalizeGuildHomeResponse(response.data));
       setSaveSuccess("Guild settings saved");
     } catch {
       setSaveError("Failed to save guild settings");

@@ -1,3 +1,5 @@
+import { resolveApiAssetUrl } from "../../../lib/api";
+
 export interface GuildHomeResponse {
   guild: {
     id: number;
@@ -41,4 +43,19 @@ export interface GuildHomeResponse {
     lastOverrideBy: string | null;
     lastOverrideAt: string | null;
   } | null;
+}
+
+export function normalizeGuildHomeResponse(
+  data: GuildHomeResponse,
+  apiBaseUrl?: string
+): GuildHomeResponse {
+  if (!data.guild?.crestUrl) return data;
+
+  return {
+    ...data,
+    guild: {
+      ...data.guild,
+      crestUrl: resolveApiAssetUrl(data.guild.crestUrl, apiBaseUrl),
+    },
+  };
 }
