@@ -381,7 +381,7 @@ function buildTestEnvironment(profile, scenario) {
     LFM_CLIENT_SECRET: "",
     SESSION_ENCRYPTION_KEY: process.env.SESSION_ENCRYPTION_KEY || DEFAULT_SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
-    SITE_ADMIN_BATTLE_NET_IDS: process.env.SITE_ADMIN_BATTLE_NET_IDS || "test-bnet-id-admin",
+    KEY_VAULT_URL: process.env.KEY_VAULT_URL || "",
     E2E_SCENARIO: scenario,
   };
 }
@@ -413,7 +413,7 @@ async function buildServeEnvironment(profile) {
     LFM_CLIENT_SECRET: merged.LFM_CLIENT_SECRET,
     SESSION_ENCRYPTION_KEY: merged.SESSION_ENCRYPTION_KEY,
     HMAC_SECRET: merged.HMAC_SECRET,
-    SITE_ADMIN_BATTLE_NET_IDS: merged.SITE_ADMIN_BATTLE_NET_IDS || "",
+    KEY_VAULT_URL: merged.KEY_VAULT_URL || "",
   };
 }
 
@@ -427,7 +427,7 @@ function buildMaintenanceEnvironment(profile) {
     HMAC_SECRET: process.env.HMAC_SECRET || DEFAULT_HMAC_SECRET,
     LFM_CLIENT_ID: process.env.LFM_CLIENT_ID || "",
     LFM_CLIENT_SECRET: process.env.LFM_CLIENT_SECRET || "",
-    SITE_ADMIN_BATTLE_NET_IDS: process.env.SITE_ADMIN_BATTLE_NET_IDS || "",
+    KEY_VAULT_URL: process.env.KEY_VAULT_URL || "",
   };
 }
 
