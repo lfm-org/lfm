@@ -1,7 +1,7 @@
 import { HttpRequest } from "@azure/functions";
 import { unsealSession } from "./crypto.js";
 import { getTestModeAccessTokenFromCookieHeader, getTestModeIdentity } from "./test-mode.js";
-import { isSiteAdmin } from "./site-admin.js";
+import { isSiteAdmin } from "./site-admin-config.js";
 import type { BattleNetIdentity } from "../types/index.js";
 
 export async function requireAuth(request: HttpRequest): Promise<BattleNetIdentity | null> {
@@ -62,6 +62,6 @@ export async function requireAuthWithToken(request: HttpRequest): Promise<AuthWi
 export async function requireSiteAdminAuthWithToken(request: HttpRequest): Promise<SiteAdminAuth | null> {
   const auth = await requireAuthWithToken(request);
   if (!auth) return null;
-  if (!isSiteAdmin(auth.identity.battleNetId)) return null;
+  if (!(await isSiteAdmin(auth.identity.battleNetId))) return null;
   return { ...auth, isSiteAdmin: true };
 }

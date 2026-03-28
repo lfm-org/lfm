@@ -1,16 +1,38 @@
-import { describe, expect, it } from "vitest";
-import { resolveLocalTestModeAuth } from "./auth.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TEST_MODE_IDENTITY } from "./test-mode.js";
 
-const enabledEnv = {
-  TEST_MODE: "true",
-  COSMOS_ENDPOINT: "http://localhost:8081",
-};
+const unsealSession = vi.fn();
+const resolveIdentity = vi.fn();
+const isSiteAdmin = vi.fn();
+
+vi.mock("./crypto.js", () => ({
+  unsealSession,
+}));
+
+vi.mock("./site-admin-config.js", () => ({
+  isSiteAdmin,
+}));
+
+vi.mock("./battlenet.js", () => ({
+  battlenet: {
+    resolveIdentity,
+  },
+}));
 
 describe("resolveLocalTestModeAuth", () => {
-  it("accepts the plain deterministic cookie only under the local test-mode guard", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+  });
+
+  it("accepts the plain deterministic cookie only under the local test-mode guard", async () => {
+    const { resolveLocalTestModeAuth } = await import("./auth.js");
+
     expect(
-      resolveLocalTestModeAuth("foo=bar; battlenet_token=test_battlenet_token", enabledEnv)
+      resolveLocalTestModeAuth("foo=bar; battlenet_token=test_battlenet_token", {
+        TEST_MODE: "true",
+        COSMOS_ENDPOINT: "http://localhost:8081",
+      }),
     ).toEqual({
       identity: TEST_MODE_IDENTITY,
       accessToken: "test_battlenet_token",
@@ -20,7 +42,61 @@ describe("resolveLocalTestModeAuth", () => {
       resolveLocalTestModeAuth("battlenet_token=test_battlenet_token", {
         TEST_MODE: "true",
         COSMOS_ENDPOINT: "https://localhost:8081",
-      })
+      }),
     ).toBeNull();
+  });
+});
+
+describe("requireSiteAdminAuthWithToken", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+  });
+
+  it("returns the auth payload when the async resolver allows the user", async () => {
+    unsealSession.mockResolvedValue("access-token");
+    resolveIdentity.mockResolvedValue({
+      battleNetId: "admin-hash",
+      guildId: null,
+      guildName: null,
+    });
+    isSiteAdmin.mockResolvedValue(true);
+
+    const { requireSiteAdminAuthWithToken } = await import("./auth.js");
+    const request = {
+      headers: {
+        get: vi.fn(() => "battlenet_token=sealed-token"),
+      },
+    } as never;
+
+    await expect(requireSiteAdminAuthWithToken(request)).resolves.toEqual({
+      accessToken: "access-token",
+      identity: {
+        battleNetId: "admin-hash",
+        guildId: null,
+        guildName: null,
+      },
+      isSiteAdmin: true,
+    });
+    expect(isSiteAdmin).toHaveBeenCalledWith("admin-hash");
+  });
+
+  it("returns null when the async resolver denies the user", async () => {
+    unsealSession.mockResolvedValue("access-token");
+    resolveIdentity.mockResolvedValue({
+      battleNetId: "member-hash",
+      guildId: null,
+      guildName: null,
+    });
+    isSiteAdmin.mockResolvedValue(false);
+
+    const { requireSiteAdminAuthWithToken } = await import("./auth.js");
+    const request = {
+      headers: {
+        get: vi.fn(() => "battlenet_token=sealed-token"),
+      },
+    } as never;
+
+    await expect(requireSiteAdminAuthWithToken(request)).resolves.toBeNull();
   });
 });
