@@ -46,6 +46,8 @@ export interface StoredSelectedCharacter {
   region: string;
   realm: string;
   name: string;
+  portraitBlobName?: string;
+  portraitUrl?: string;
   fetchedAt?: string;
   profileSummary: BlizzardCharacterProfileSummary;
   mediaSummary?: BlizzardCharacterMediaSummary | null;

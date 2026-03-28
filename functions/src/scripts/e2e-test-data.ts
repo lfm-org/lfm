@@ -462,6 +462,7 @@ function toStoredSelectedCharacter(character: Character, guild?: { id: number; n
     region: character.region,
     realm: character.realm,
     name: character.name,
+    portraitUrl: character.portraitUrl,
     fetchedAt: character.fetchedAt,
     profileSummary: {
       name: character.name,

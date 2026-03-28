@@ -2,6 +2,8 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { requireAuth, requireAuthWithToken } from "../lib/auth.js";
 import { toSelectedCharacterView } from "../lib/blizzard-adapters.js";
+import { writeBinaryBlob } from "../lib/blob.js";
+import { getLegacyPortraitSourceUrl, syncCharacterPortrait } from "../lib/character-portrait.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
 import { getTestModeIdentity } from "../lib/test-mode.js";
@@ -38,8 +40,35 @@ async function fetchCharacterSpecializationsSummary(
   return res.json() as Promise<BlizzardCharacterSpecializationsSummary>;
 }
 
+async function fetchBinaryAsset(url: string): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to mirror character portrait: ${response.status}`);
+  }
+
+  return {
+    bytes: new Uint8Array(await response.arrayBuffer()),
+    contentType: response.headers.get("content-type") ?? "application/octet-stream",
+  };
+}
+
+async function ensureMirroredCharacterPortrait(character: StoredSelectedCharacter): Promise<StoredSelectedCharacter> {
+  const portraitSourceUrl = getLegacyPortraitSourceUrl(character);
+  if (!portraitSourceUrl) return character;
+
+  try {
+    const mirrored = await syncCharacterPortrait(character.id, portraitSourceUrl, {
+      fetchBinaryAsset,
+      writeBinaryBlob,
+    });
+    return { ...character, ...mirrored };
+  } catch {
+    return character;
+  }
+}
+
 // POST /api/raider/character — add/upsert a character and set as selected
-async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
@@ -116,6 +145,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       };
     }
   }
+  character = await ensureMirroredCharacterPortrait(character);
 
   // Always update characters array and selectedCharacterId, even on cache hit
   if (existingIdx >= 0) {
@@ -124,6 +154,12 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     raider.characters.push(character);
   }
   raider.selectedCharacterId = characterId;
+  if (character.portraitUrl) {
+    raider.portraitCache = {
+      ...(raider.portraitCache ?? {}),
+      [characterId]: character.portraitUrl,
+    };
+  }
 
   await container.item(raider.id, raider.battleNetId).replace(raider);
   const staticSpecs = await readWowSpecializationMap();
@@ -142,17 +178,43 @@ app.http("raider-character", {
 });
 
 // GET /api/raider/characters — list authenticated user's characters
-async function listHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function listHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
 
   const container = getRaidersContainer();
   const { resource: raider } = await container.item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
+  const repairedCharacters = await Promise.all(raider.characters.map((character) => ensureMirroredCharacterPortrait(character)));
+  const portraitCache = { ...(raider.portraitCache ?? {}) };
+  let repaired = false;
+
+  for (let index = 0; index < repairedCharacters.length; index += 1) {
+    const before = raider.characters[index];
+    const after = repairedCharacters[index];
+    if (
+      before?.portraitUrl !== after?.portraitUrl
+      || before?.portraitBlobName !== after?.portraitBlobName
+    ) {
+      repaired = true;
+    }
+    if (after?.portraitUrl && portraitCache[after.id] !== after.portraitUrl) {
+      portraitCache[after.id] = after.portraitUrl;
+      repaired = true;
+    }
+  }
+
+  if (repaired) {
+    await container.item(raider.id, raider.battleNetId).replace({
+      ...raider,
+      characters: repairedCharacters,
+      portraitCache,
+    });
+  }
   const staticSpecs = await readWowSpecializationMap();
 
   return jsonResponse({
-    characters: raider.characters.map((character) => toSelectedCharacterView(character, staticSpecs)),
+    characters: repairedCharacters.map((character) => toSelectedCharacterView(character, staticSpecs)),
     selectedCharacterId: raider.selectedCharacterId,
   });
 }

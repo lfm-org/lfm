@@ -1,9 +1,9 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
 import { getGuildCrestUrl } from "./guild-crest.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
+import { isBlizzardRenderUrl } from "./character-portrait.js";
 import type {
   BlizzardAccountProfileSummary,
-  BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
   BlizzardGuildProfileResponse,
@@ -120,9 +120,9 @@ export function toAccountCharacterViews(
       const classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id;
       const className = localizeName(stored?.profileSummary?.character_class?.name) || undefined;
       const cachedId = `${region}-${character.realm.slug}-${character.name.toLowerCase()}`;
-      const portraitUrl = (stored ? findAvatarUrl(stored.mediaSummary) : undefined)
-        || portraitCache?.[cachedId]
-        || undefined;
+      const cachedPortraitUrl = portraitCache?.[cachedId];
+      const portraitUrl = stored?.portraitUrl
+        || (cachedPortraitUrl && !isBlizzardRenderUrl(cachedPortraitUrl) ? cachedPortraitUrl : undefined);
       const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
       const activeSpec = stored?.specializationsSummary?.specializations?.find(
         s => s.specialization.id === activeSpecId
@@ -153,10 +153,6 @@ export function toBattleNetIdentity(
     guildId: guild?.id ?? null,
     guildName: guild?.name ?? null,
   };
-}
-
-function findAvatarUrl(mediaSummary?: BlizzardCharacterMediaSummary | null): string {
-  return mediaSummary?.assets?.find((asset) => asset.key === "avatar")?.value ?? "";
 }
 
 function toSpecializations(
@@ -304,7 +300,7 @@ export function toSelectedCharacterView(
     level: profile.level,
     classId: profile.character_class.id,
     raceId: profile.race.id,
-    portraitUrl: findAvatarUrl(storedCharacter.mediaSummary),
+    portraitUrl: storedCharacter.portraitUrl ?? "",
     fetchedAt: storedCharacter.fetchedAt,
     specializations,
     activeSpecId: storedCharacter.specializationsSummary?.active_specialization?.id ?? null,
