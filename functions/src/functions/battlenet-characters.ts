@@ -27,10 +27,9 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     .read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
 
-  const accountProfileSummary = raider.accountProfileSummary;
   if (shouldServeCachedAccountProfile(raider, auth.accessToken)) {
     const region = process.env.BATTLE_NET_REGION || "eu";
-    return jsonResponse(toAccountCharacterViews(accountProfileSummary, region, raider.characters, raider.portraitCache));
+    return jsonResponse(toAccountCharacterViews(raider.accountProfileSummary!, region, raider.characters, raider.portraitCache));
   }
 
   // No cached data — caller should POST /battlenet/characters/refresh
