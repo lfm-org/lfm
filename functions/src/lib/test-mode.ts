@@ -87,6 +87,7 @@ const TEST_MODE_AUTH_FIXTURES: Record<TestModeAuthScenario, TestModeAuthFixture>
 };
 
 function readCookie(cookieHeader: string, name: string): string | null {
+  // eslint-disable-next-line security/detect-non-literal-regexp -- name is a hardcoded cookie name, not user input
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 }

@@ -30,6 +30,7 @@ function extractPortraitBlobName(characterId: string, url?: string | null): stri
 
   try {
     const parsed = new URL(url, "https://example.test");
+    // eslint-disable-next-line security/detect-non-literal-regexp -- characterId is an internal identifier, not user input
     const match = parsed.pathname.match(new RegExp(`/character-portraits/${characterId}\\.([a-z0-9]+)$`, "i"));
     if (!match) return "";
     return `character-portraits/${characterId}.${match[1].toLowerCase()}`;

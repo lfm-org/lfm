@@ -10,7 +10,8 @@
     "reset-storage": "npm run build && node dist/src/scripts/reset-storage.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:fast": "npm run build && npm test"
+    "lint": "eslint src/ --max-warnings=0",
+    "verify:fast": "npm run lint && npm run build && npm test"
   },
   "dependencies": {
     "@azure/cosmos": "4.9.1",
@@ -24,13 +25,18 @@
     "umzug": "^3.8.2"
   },
   "overrides": {
-    "ajv": ">=8.18.0"
+    "umzug": {
+      "ajv": ">=8.18.0"
+    }
   },
   "devDependencies": {
     "@types/luxon": "3.4.2",
     "@types/node": "25.5.0",
+    "eslint": "^10.1.0",
+    "eslint-plugin-security": "^4.0.0",
     "tsx": "^4.21.0",
     "typescript": "5.9.3",
+    "typescript-eslint": "^8.57.2",
     "vitest": "^4.1.0"
   }
 }
