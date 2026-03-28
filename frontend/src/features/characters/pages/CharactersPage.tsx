@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import api from "../../../lib/api";
@@ -7,8 +7,8 @@ import PageContainer from "../../../components/layout/PageContainer";
 import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
-import { normalizePortraitMap, normalizePortraitUrlField } from "../../../lib/portraitUrls";
 import ForgetMeSection from "../components/ForgetMeSection";
+import { useCharacters } from "../lib/useCharacters";
 
 interface AccountCharacter {
   name: string;
@@ -29,120 +29,41 @@ function parsePageParam(value: string | null): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
-export default function CharactersPage() {
-  const [characters, setCharacters] = useState<AccountCharacter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [portraits, setPortraits] = useState<Record<string, string>>({});
-  const [loadingPortraits, setLoadingPortraits] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const fetchedPortraitIds = useRef(new Set<string>());
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { onAccountDeleted, onCharacterSelected } = useAuth();
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("sm"));
-  const PAGE_SIZE = isDesktop ? 9 : 3;
-  const deleteConfirmationValid = deleteConfirmation === "FORGET ME";
-
-  const redirectPath = (() => {
-    const requested = searchParams.get("redirect");
-    return requested && requested.startsWith("/") ? requested : "/raids";
-  })();
-
-  const currentPage = parsePageParam(searchParams.get("page"));
-  const totalPages = Math.max(1, Math.ceil(characters.length / PAGE_SIZE));
-  const clampedPage = Math.min(Math.max(currentPage, 1), totalPages);
-  const visibleChars = useMemo(
-    () => characters.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE),
-    [characters, clampedPage, PAGE_SIZE]
-  );
-
-  useEffect(() => {
-    const fetchCharacters = async () => {
-      try {
-        const res = await api.get<AccountCharacter[]>("/battlenet/characters");
-        if (res.status === 204 || !res.data) {
-          const refreshRes = await api.post<AccountCharacter[]>("/battlenet/characters/refresh");
-          const sorted = refreshRes.data
-            .map((character) => normalizePortraitUrlField(character))
-            .sort((a, b) => b.level - a.level);
-          setCharacters(sorted);
-        } else {
-          const sorted = res.data
-            .map((character) => normalizePortraitUrlField(character))
-            .sort((a, b) => b.level - a.level);
-          setCharacters(sorted);
-        }
-      } catch {
-        // Fetch failed — show empty state
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCharacters();
-  }, []);
-
-  useEffect(() => {
-    const missing = visibleChars.filter(c => {
-      if (c.portraitUrl) return false;
-      const id = `${c.region}-${c.realm}-${c.name.toLowerCase()}`;
-      return !fetchedPortraitIds.current.has(id);
-    });
-    if (missing.length === 0) return;
-
-    const ids = missing.map(c => `${c.region}-${c.realm}-${c.name.toLowerCase()}`);
-    ids.forEach(id => fetchedPortraitIds.current.add(id));
-
-    setLoadingPortraits(true);
-    api.post<Record<string, string>>(
-      "/battlenet/character-portraits",
-      missing.map(c => ({ region: c.region, realm: c.realm, name: c.name }))
-    ).then(res => {
-      setPortraits(prev => ({ ...prev, ...normalizePortraitMap(res.data) }));
-    }).catch(() => {
-      ids.forEach(id => fetchedPortraitIds.current.delete(id));
-    }).finally(() => {
-      setLoadingPortraits(false);
-    });
-  }, [visibleChars]);
-
-  const handlePageChange = (page: number) => {
-    const next = new URLSearchParams(searchParams);
-    if (page <= 1) {
-      next.delete("page");
-    } else {
-      next.set("page", String(page));
-    }
-    setSearchParams(next);
-  };
-
-  const selectCharacter = async (char: AccountCharacter) => {
-    const res = await api.post<{ selectedCharacterId: string }>("/raider/character", {
-      region: char.region,
-      realm: char.realm,
-      name: char.name,
-    });
-    onCharacterSelected(res.data.selectedCharacterId);
-    navigate(redirectPath);
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!deleteConfirmationValid || deleting) return;
-
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      await deleteAccount();
-      onAccountDeleted();
-    } catch {
-      setDeleteError("Unable to delete the account right now. Try again in a moment.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
+function CharactersPageInner({
+  visibleChars,
+  currentPage,
+  totalPages,
+  clampedPage,
+  characters,
+  loading,
+  portraits,
+  loadingPortraits,
+  handlePageChange,
+  selectCharacter,
+  deleteConfirmation,
+  deleteConfirmationValid,
+  deleteError,
+  deleting,
+  setDeleteConfirmation,
+  handleDeleteAccount,
+}: {
+  visibleChars: AccountCharacter[];
+  currentPage: number;
+  totalPages: number;
+  clampedPage: number;
+  characters: AccountCharacter[];
+  loading: boolean;
+  portraits: Record<string, string>;
+  loadingPortraits: boolean;
+  handlePageChange: (page: number) => void;
+  selectCharacter: (char: AccountCharacter) => void;
+  deleteConfirmation: string;
+  deleteConfirmationValid: boolean;
+  deleteError: string | null;
+  deleting: boolean;
+  setDeleteConfirmation: (value: string) => void;
+  handleDeleteAccount: () => void;
+}) {
   if (loading) {
     return (
       <PageContainer>
@@ -269,5 +190,107 @@ export default function CharactersPage() {
         />
       </Stack>
     </PageContainer>
+  );
+}
+
+export default function CharactersPage() {
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { onAccountDeleted, onCharacterSelected } = useAuth();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("sm"));
+  const PAGE_SIZE = isDesktop ? 9 : 3;
+  const deleteConfirmationValid = deleteConfirmation === "FORGET ME";
+
+  const redirectPath = (() => {
+    const requested = searchParams.get("redirect");
+    return requested && requested.startsWith("/") ? requested : "/raids";
+  })();
+
+  const currentPage = parsePageParam(searchParams.get("page"));
+
+  // visibleCharsForPortraits is derived from characters (from hook), then fed back in.
+  // On initial render characters is [], so visibleCharsForPortraits is [].
+  // After characters load, the hook's portrait effect sees the real visible slice.
+  const [charactersForPagination, setCharactersForPagination] = useState<AccountCharacter[]>([]);
+  const totalPagesForPortrait = Math.max(1, Math.ceil(charactersForPagination.length / PAGE_SIZE));
+  const clampedPageForPortrait = Math.min(Math.max(currentPage, 1), totalPagesForPortrait);
+  const visibleCharsForPortraits = useMemo(
+    () => charactersForPagination.slice((clampedPageForPortrait - 1) * PAGE_SIZE, clampedPageForPortrait * PAGE_SIZE),
+    [charactersForPagination, clampedPageForPortrait, PAGE_SIZE]
+  );
+
+  const { characters, loading, portraits, loadingPortraits } = useCharacters(visibleCharsForPortraits);
+
+  // Sync characters into pagination state after each render
+  useMemo(() => {
+    setCharactersForPagination(characters);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characters]);
+
+  const totalPages = Math.max(1, Math.ceil(characters.length / PAGE_SIZE));
+  const clampedPage = Math.min(Math.max(currentPage, 1), totalPages);
+  const visibleChars = useMemo(
+    () => characters.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE),
+    [characters, clampedPage, PAGE_SIZE]
+  );
+
+  const handlePageChange = (page: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (page <= 1) {
+      next.delete("page");
+    } else {
+      next.set("page", String(page));
+    }
+    setSearchParams(next);
+  };
+
+  const selectCharacter = async (char: AccountCharacter) => {
+    const res = await api.post<{ selectedCharacterId: string }>("/raider/character", {
+      region: char.region,
+      realm: char.realm,
+      name: char.name,
+    });
+    onCharacterSelected(res.data.selectedCharacterId);
+    navigate(redirectPath);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirmationValid || deleting) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount();
+      onAccountDeleted();
+    } catch {
+      setDeleteError("Unable to delete the account right now. Try again in a moment.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <CharactersPageInner
+      visibleChars={visibleChars}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      clampedPage={clampedPage}
+      characters={characters}
+      loading={loading}
+      portraits={portraits}
+      loadingPortraits={loadingPortraits}
+      handlePageChange={handlePageChange}
+      selectCharacter={selectCharacter}
+      deleteConfirmation={deleteConfirmation}
+      deleteConfirmationValid={deleteConfirmationValid}
+      deleteError={deleteError}
+      deleting={deleting}
+      setDeleteConfirmation={setDeleteConfirmation}
+      handleDeleteAccount={handleDeleteAccount}
+    />
   );
 }
