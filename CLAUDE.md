@@ -98,17 +98,21 @@ Playwright coverage lives in `frontend/e2e/`. Add or update e2e tests when a cha
 
 Available E2E scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each scenario seeds the database differently; scenario-specific specs only pass under their matching scenario.
 
+Perf specs live in `frontend/e2e/perf/`. They are excluded from default discovery and do not gate ordinary `e2e.sh` runs. They run as part of `verify-local.sh full`.
+
 Useful commands:
 - list the default-discovered specs: `npm --prefix frontend run e2e:list`
 - run a focused default-scenario spec: `./scripts/dev-env.mjs test signup` (bare names like `signup` are expanded to `e2e/signup.spec.ts` automatically)
 - run a scenario-specific spec: `./scripts/e2e.sh raids-empty raids-empty.spec.ts`
 - run the full all-scenarios suite: `./scripts/e2e-all.sh`
+- local verification: `./scripts/verify-local.sh fast` (lint/type-check only), `browser` (fast + all e2e scenarios), `full` (browser + perf specs)
 
 Rules for agents:
 - Do not claim "full e2e suite passed" unless you ran `./scripts/e2e-all.sh`.
-- Default Playwright discovery excludes the scenario-specific files listed in `frontend/playwright.config.ts`.
+- Default Playwright discovery excludes both scenario-specific files (`SCENARIO_SPECS`) and perf files (`PERF_SPECS`) listed in `frontend/playwright.config.ts`.
 - Default Playwright runs are intentionally single-worker because the local Docker-backed seed state is shared across specs. Do not raise worker parallelism unless the affected specs are made state-isolated first.
 - If you add a new scenario-only spec, update three places: the `E2E_SCENARIOS` set in `scripts/dev-env.mjs`, the `SCENARIO_SPECS` array in `frontend/playwright.config.ts`, and `scripts/e2e-all.sh`.
+- If you add a new perf spec, update two places: the `PERF_SPECS` array in `frontend/playwright.config.ts` and the `run_perf` function in `scripts/verify-local.sh`.
 - Keep e2e coverage deterministic and local-first. Do not add routine real Battle.net dependencies to the normal Playwright workflow.
 
 ## Infrastructure Development
