@@ -8,12 +8,10 @@ import {
 import { findModeByKey, getModePlayers } from "../lib/wow-instance-modes.js";
 import type {
   Character,
-  EntitySyncMeta,
   RaiderDocument,
   RaidCharacter,
   RaidDocument,
   WowInstance,
-  WowSpecialization,
 } from "../types/index.js";
 import type { E2eScenario, RaidSeedDefinition } from "./e2e-test-data.js";
 
@@ -43,7 +41,7 @@ export interface RaiderSeed {
   primary: SeedCharacterMeta;
 }
 
-interface SeedOptions {
+export interface SeedOptions {
   now: string;
   region: string;
   instances: WowInstance[];

@@ -25,6 +25,7 @@ import {
   createRaidDefinitions,
   requireMode,
   selectRaiders,
+  type SeedOptions,
 } from "./e2e-seed-builders.js";
 
 export interface ReferenceDataBundle {
@@ -75,14 +76,6 @@ export function assertLocalSeedEnvironment(env: Record<string, string | undefine
   if (!isLocalTestMode(env)) {
     throw new Error("seed-test-data only supports local TEST_MODE with an allowed local HTTP Cosmos endpoint");
   }
-}
-
-interface SeedOptions {
-  now: string;
-  region: string;
-  instances: WowInstance[];
-  raidDefinitions?: RaidSeedDefinition[];
-  scenario?: E2eScenario;
 }
 
 export interface RaidSeedDefinition {

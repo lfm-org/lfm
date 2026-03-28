@@ -33,8 +33,6 @@ export interface UseRaidsResult {
   charactersError: string | null;
   expandedRaids: Record<string, boolean>;
   requestedRaidId: string | null;
-  requestedPage: number;
-  targetIndex: number;
   totalPages: number;
   currentPage: number;
   visibleRaids: Raid[];
@@ -218,8 +216,6 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     charactersError,
     expandedRaids,
     requestedRaidId,
-    requestedPage,
-    targetIndex,
     totalPages,
     currentPage,
     visibleRaids,
