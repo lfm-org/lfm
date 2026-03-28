@@ -3,12 +3,12 @@ import { parseCreateRaidBody, buildRaidDocument } from "./raids-create.js";
 
 describe("parseCreateRaidBody", () => {
   it("rejects requests missing required fields", () => {
-    expect(() => parseCreateRaidBody({})).toThrow("Missing required fields");
+    expect(() => parseCreateRaidBody({})).toThrow();
     expect(() => parseCreateRaidBody({ startTime: "2026-04-01T20:00:00Z", modeKey: "NORMAL:10", instanceId: 631 })).toThrow();
   });
 
-  it("rejects legacy mode field", () => {
-    expect(() => parseCreateRaidBody({ mode: "normal", startTime: "2026-04-01T20:00:00Z", modeKey: "NORMAL:10", instanceId: 631, visibility: "PUBLIC" })).toThrow("Legacy mode is not supported");
+  it("rejects unrecognized fields via strict schema", () => {
+    expect(() => parseCreateRaidBody({ mode: "normal", startTime: "2026-04-01T20:00:00Z", modeKey: "NORMAL:10", instanceId: 631, visibility: "PUBLIC" })).toThrow("Unrecognized key");
   });
 });
 

@@ -11,16 +11,19 @@ import {
 } from "../lib/raidResponseSanitizer.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { z } from "zod";
 import type { GuildDocument, RaidDocument, RaiderDocument, RaidCharacter, AttendanceStatus } from "../types/index.js";
 
 const MAX_OCC_RETRIES = 3;
 export const VALID_ATTENDANCE: AttendanceStatus[] = ["IN", "OUT", "BENCH", "LATE", "AWAY"];
 
-interface SignupBody {
-  characterId: string;
-  desiredAttendance: AttendanceStatus;
-  specId: number | null;
-}
+const signupSchema = z.object({
+  characterId: z.string().min(1),
+  desiredAttendance: z.enum(["IN", "OUT", "BENCH", "LATE", "AWAY"]),
+  specId: z.number().nullable().optional().default(null),
+});
+
+type SignupBody = z.infer<typeof signupSchema>;
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -29,13 +32,12 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const raidId = request.params.id;
   if (!raidId) return errorResponse(400, "Missing raid ID");
 
-  const body = (await request.json()) as SignupBody;
-  if (!body.characterId || !body.desiredAttendance) {
-    return errorResponse(400, "Missing required fields");
+  const parsed = signupSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return errorResponse(400, first?.message ?? "Invalid request body");
   }
-  if (!VALID_ATTENDANCE.includes(body.desiredAttendance)) {
-    return errorResponse(400, "Invalid desiredAttendance value");
-  }
+  const body = parsed.data;
 
   const { resource: raider } = await getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
@@ -46,7 +48,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const character = toSelectedCharacterView(storedCharacter, staticSpecs);
 
   // Resolve spec info
-  let specId: number | null = body.specId ?? null;
+  let specId: number | null = body.specId;
   let specName: string | null = null;
   let role: "TANK" | "HEALER" | "DPS" | null = null;
 

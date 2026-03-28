@@ -80,7 +80,7 @@ describe("parseCreateRaidBody", () => {
         visibility: "PUBLIC",
         instanceId: 631,
       })
-    ).toThrowError("Legacy mode is not supported");
+    ).toThrowError("Unrecognized key");
   });
 
   it("requires modeKey for raid creation", () => {
@@ -93,7 +93,7 @@ describe("parseCreateRaidBody", () => {
         instanceId: 631,
         instanceName: "Icecrown Citadel",
       })
-    ).toThrowError("Missing required fields");
+    ).toThrowError(); // Zod reports specific missing field
   });
 
   it("builds a raid document with modeKey as the source of truth", () => {

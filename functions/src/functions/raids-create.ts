@@ -8,58 +8,32 @@ import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { writeLimiter, getClientIp, rateLimitResponse } from "../middleware/rate-limit.js";
+import { z } from "zod";
 import type { BattleNetIdentity, GuildDocument, RaidDocument, RaidVisibility, RaiderDocument, WowInstance } from "../types/index.js";
 
-export interface CreateRaidBody {
-  startTime: string;
-  signupCloseTime?: string;
-  description?: string;
-  modeKey: string;
-  visibility: RaidVisibility;
-  instanceId: number;
-  instanceName?: string;
-}
+const createRaidSchema = z.object({
+  startTime: z.string(),
+  signupCloseTime: z.string().optional(),
+  description: z.string().optional(),
+  modeKey: z.string(),
+  visibility: z.enum(["PUBLIC", "GUILD"]),
+  instanceId: z.number(),
+  instanceName: z.string().optional(),
+}).strict();
 
-const VALID_VISIBILITY: RaidVisibility[] = ["PUBLIC", "GUILD"];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+export type CreateRaidBody = z.infer<typeof createRaidSchema>;
 
 function findInstance(instances: WowInstance[], instanceId: number): WowInstance | undefined {
   return instances.find(instance => instance.id === instanceId);
 }
 
 export function parseCreateRaidBody(body: unknown): CreateRaidBody {
-  if (!isRecord(body)) {
-    throw new Error("Missing required fields");
+  const result = createRaidSchema.safeParse(body);
+  if (!result.success) {
+    const first = result.error.issues[0];
+    throw new Error(first?.message ?? "Invalid request body");
   }
-
-  if ("mode" in body) {
-    throw new Error("Legacy mode is not supported");
-  }
-
-  if (
-    typeof body.startTime !== "string" ||
-    typeof body.modeKey !== "string" ||
-    typeof body.instanceId !== "number" ||
-    !VALID_VISIBILITY.includes(body.visibility as RaidVisibility)
-  ) {
-    if (!VALID_VISIBILITY.includes(body.visibility as RaidVisibility) && body.visibility !== undefined) {
-      throw new Error("Invalid visibility value");
-    }
-    throw new Error("Missing required fields");
-  }
-
-  return {
-    startTime: body.startTime,
-    signupCloseTime: typeof body.signupCloseTime === "string" ? body.signupCloseTime : undefined,
-    description: typeof body.description === "string" ? body.description : undefined,
-    modeKey: body.modeKey,
-    visibility: body.visibility as RaidVisibility,
-    instanceId: body.instanceId,
-    instanceName: typeof body.instanceName === "string" ? body.instanceName : undefined,
-  };
+  return result.data;
 }
 
 export function validateCreateRaidBody(body: CreateRaidBody, instances: WowInstance[]): CreateRaidBody {
