@@ -8,6 +8,7 @@ import SurfaceCard from "../../../components/SurfaceCard";
 import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
+import { normalizePortraitMap, normalizePortraitUrlField } from "../../../lib/portraitUrls";
 
 interface AccountCharacter {
   name: string;
@@ -72,10 +73,14 @@ export default function CharactersPage() {
         const res = await api.get<AccountCharacter[]>("/battlenet/characters");
         if (res.status === 204 || !res.data) {
           const refreshRes = await api.post<AccountCharacter[]>("/battlenet/characters/refresh");
-          const sorted = [...refreshRes.data].sort((a, b) => b.level - a.level);
+          const sorted = refreshRes.data
+            .map((character) => normalizePortraitUrlField(character))
+            .sort((a, b) => b.level - a.level);
           setCharacters(sorted);
         } else {
-          const sorted = [...res.data].sort((a, b) => b.level - a.level);
+          const sorted = res.data
+            .map((character) => normalizePortraitUrlField(character))
+            .sort((a, b) => b.level - a.level);
           setCharacters(sorted);
         }
       } catch {
@@ -103,7 +108,7 @@ export default function CharactersPage() {
       "/battlenet/character-portraits",
       missing.map(c => ({ region: c.region, realm: c.realm, name: c.name }))
     ).then(res => {
-      setPortraits(prev => ({ ...prev, ...res.data }));
+      setPortraits(prev => ({ ...prev, ...normalizePortraitMap(res.data) }));
     }).catch(() => {
       ids.forEach(id => fetchedPortraitIds.current.delete(id));
     }).finally(() => {

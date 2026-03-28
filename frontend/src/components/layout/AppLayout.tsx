@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
 import { useAuth } from "../../features/auth";
 import api from "../../lib/api";
+import { normalizePortraitUrlField } from "../../lib/portraitUrls";
 
 interface CharacterInfo {
   id: string;
@@ -27,7 +28,8 @@ export default function AppLayout({ children }: Props) {
     if (user?.selectedCharacterId) {
       api.get<{ characters: CharacterInfo[]; selectedCharacterId: string }>("/raider/characters")
         .then(res => {
-          const selected = res.data.characters.find(
+          const characters = res.data.characters.map((character) => normalizePortraitUrlField(character));
+          const selected = characters.find(
             (c: CharacterInfo) => c.id === res.data.selectedCharacterId
           );
           if (selected) setCharacter({ name: selected.name, portraitUrl: selected.portraitUrl });

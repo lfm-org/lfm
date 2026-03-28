@@ -1,4 +1,5 @@
 import { normalizeLocalizedString } from "../../../lib/localizedStrings";
+import { normalizePortraitUrlField } from "../../../lib/portraitUrls";
 
 export interface RaidSignupCharacter {
   id: string;
@@ -11,7 +12,7 @@ export interface RaidSignupCharacter {
 }
 
 export function normalizeRaidSignupCharacter(character: RaidSignupCharacter): RaidSignupCharacter {
-  return {
+  return normalizePortraitUrlField({
     ...character,
     name: normalizeLocalizedString(character.name),
     realm: normalizeLocalizedString(character.realm),
@@ -20,5 +21,5 @@ export function normalizeRaidSignupCharacter(character: RaidSignupCharacter): Ra
       name: normalizeLocalizedString(specialization.name),
       role: normalizeLocalizedString(specialization.role),
     })),
-  };
+  });
 }
