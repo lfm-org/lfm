@@ -7,6 +7,7 @@ import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { writeLimiter, getClientIp, rateLimitResponse } from "../middleware/rate-limit.js";
 import type { BattleNetIdentity, GuildDocument, RaidDocument, RaidVisibility, RaiderDocument, WowInstance } from "../types/index.js";
 
 export interface CreateRaidBody {
@@ -104,6 +105,8 @@ export function buildRaidDocument(
 }
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  if (!writeLimiter.check(getClientIp(request)).allowed) return rateLimitResponse();
+
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
 

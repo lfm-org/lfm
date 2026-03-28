@@ -1,11 +1,14 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { battlenet } from "../lib/battlenet.js";
 import { redirectResponse } from "../middleware/security-headers.js";
+import { authLimiter, getClientIp, rateLimitResponse } from "../middleware/rate-limit.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
 const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
 
 async function handler(request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+  if (!authLimiter.check(getClientIp(request)).allowed) return rateLimitResponse();
+
   const redirect = request.query.get("redirect") ?? undefined;
   const testAuthScenario = request.query.get("testAuthScenario") ?? undefined;
   const { authUrl, loginStateCookie } = await battlenet.buildAuthorizationUrl(redirect, testAuthScenario);

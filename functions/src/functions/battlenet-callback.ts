@@ -4,6 +4,7 @@ import { verifyLoginState, sealSession } from "../lib/crypto.js";
 import { isLocalTestMode } from "../lib/test-mode.js";
 import { auditLog } from "../lib/audit.js";
 import { redirectResponse } from "../middleware/security-headers.js";
+import { authLimiter, getClientIp, rateLimitResponse } from "../middleware/rate-limit.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
 const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
@@ -43,6 +44,8 @@ function rejectWithClearedCookie(): HttpResponseInit {
 }
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  if (!authLimiter.check(getClientIp(request)).allowed) return rateLimitResponse();
+
   const code = request.query.get("code") ?? undefined;
   const urlState = request.query.get("state") ?? undefined;
 
