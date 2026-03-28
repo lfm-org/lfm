@@ -57,7 +57,7 @@ describe("handler", () => {
     } as never);
     vi.mocked(syncCharacterPortrait).mockResolvedValue({
       portraitBlobName: "character-portraits/eu-test-realm-aelrin.jpg",
-      portraitUrl: "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+      portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
     });
 
     const response = await handler({
@@ -73,7 +73,7 @@ describe("handler", () => {
     );
     expect(replace).toHaveBeenCalledTimes(1);
     expect(JSON.parse(response.body as string)).toEqual({
-      "eu-test-realm-aelrin": "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+      "eu-test-realm-aelrin": "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
     });
   });
 });

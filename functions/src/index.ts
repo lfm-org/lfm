@@ -18,6 +18,7 @@ import "./functions/raids-delete.js";
 import "./functions/raids-signup.js";
 import "./functions/raids-cancel-signup.js";
 import "./functions/raider-character.js";
+import "./functions/raider-character-portrait.js";
 import "./functions/battlenet-characters.js";
 import "./functions/battlenet-character-portraits.js";
 import "./functions/battlenet-characters-refresh.js";

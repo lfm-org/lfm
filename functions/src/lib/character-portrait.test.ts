@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { syncCharacterPortrait } from "./character-portrait.js";
+import { getCharacterPortraitUrl, syncCharacterPortrait } from "./character-portrait.js";
+
+describe("getCharacterPortraitUrl", () => {
+  it("builds an app-served portrait route from a mirrored blob name", () => {
+    expect(getCharacterPortraitUrl("eu-test-realm-aelrin", "character-portraits/eu-test-realm-aelrin.jpg")).toBe(
+      "/api/raider/character-portrait/eu-test-realm-aelrin/jpg"
+    );
+  });
+});
 
 describe("syncCharacterPortrait", () => {
   it("mirrors an avatar asset into blob storage and returns the local portrait URL", async () => {
@@ -15,7 +23,6 @@ describe("syncCharacterPortrait", () => {
       {
         fetchBinaryAsset,
         writeBinaryBlob,
-        getPublicBlobUrl: (blobName) => `https://lfmstore.blob.core.windows.net/wow/${blobName}`,
       }
     );
 
@@ -29,7 +36,7 @@ describe("syncCharacterPortrait", () => {
     );
     expect(result).toEqual({
       portraitBlobName: "character-portraits/eu-test-realm-aelrin.jpg",
-      portraitUrl: "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+      portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
     });
   });
 });

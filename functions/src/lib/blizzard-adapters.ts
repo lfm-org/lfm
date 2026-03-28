@@ -1,7 +1,7 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
 import { getGuildCrestUrl } from "./guild-crest.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
-import { isBlizzardRenderUrl } from "./character-portrait.js";
+import { getServedCharacterPortraitUrl, isBlizzardRenderUrl } from "./character-portrait.js";
 import type {
   BlizzardAccountProfileSummary,
   BlizzardCharacterProfileSummary,
@@ -121,8 +121,10 @@ export function toAccountCharacterViews(
       const className = localizeName(stored?.profileSummary?.character_class?.name) || undefined;
       const cachedId = `${region}-${character.realm.slug}-${character.name.toLowerCase()}`;
       const cachedPortraitUrl = portraitCache?.[cachedId];
-      const portraitUrl = stored?.portraitUrl
-        || (cachedPortraitUrl && !isBlizzardRenderUrl(cachedPortraitUrl) ? cachedPortraitUrl : undefined);
+      const portraitUrl = stored
+        ? getServedCharacterPortraitUrl(stored.id, stored.portraitUrl, stored.portraitBlobName)
+        : (cachedPortraitUrl ? getServedCharacterPortraitUrl(cachedId, cachedPortraitUrl) : "");
+      const safePortraitUrl = portraitUrl && !isBlizzardRenderUrl(portraitUrl) ? portraitUrl : undefined;
       const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
       const activeSpec = stored?.specializationsSummary?.specializations?.find(
         s => s.specialization.id === activeSpecId
@@ -135,7 +137,7 @@ export function toAccountCharacterViews(
         region,
         ...(classId !== undefined ? { classId } : {}),
         ...(className ? { className } : {}),
-        ...(portraitUrl ? { portraitUrl } : {}),
+        ...(safePortraitUrl ? { portraitUrl: safePortraitUrl } : {}),
         ...(activeSpecId !== null ? { activeSpecId } : {}),
         ...(activeSpec ? { specName: localizeName(activeSpec.specialization.name) || null } : {}),
       };
@@ -300,7 +302,11 @@ export function toSelectedCharacterView(
     level: profile.level,
     classId: profile.character_class.id,
     raceId: profile.race.id,
-    portraitUrl: storedCharacter.portraitUrl ?? "",
+    portraitUrl: getServedCharacterPortraitUrl(
+      storedCharacter.id,
+      storedCharacter.portraitUrl,
+      storedCharacter.portraitBlobName
+    ),
     fetchedAt: storedCharacter.fetchedAt,
     specializations,
     activeSpecId: storedCharacter.specializationsSummary?.active_specialization?.id ?? null,

@@ -3,7 +3,7 @@ import { getRaidersContainer } from "../lib/cosmos.js";
 import { requireAuth, requireAuthWithToken } from "../lib/auth.js";
 import { toSelectedCharacterView } from "../lib/blizzard-adapters.js";
 import { writeBinaryBlob } from "../lib/blob.js";
-import { getLegacyPortraitSourceUrl, syncCharacterPortrait } from "../lib/character-portrait.js";
+import { getLegacyPortraitSourceUrl, getServedCharacterPortraitUrl, syncCharacterPortrait } from "../lib/character-portrait.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
 import { getTestModeIdentity } from "../lib/test-mode.js";
@@ -53,6 +53,14 @@ async function fetchBinaryAsset(url: string): Promise<{ bytes: Uint8Array; conte
 }
 
 async function ensureMirroredCharacterPortrait(character: StoredSelectedCharacter): Promise<StoredSelectedCharacter> {
+  const servedPortraitUrl = getServedCharacterPortraitUrl(character.id, character.portraitUrl, character.portraitBlobName);
+  if (servedPortraitUrl && servedPortraitUrl !== character.portraitUrl) {
+    return {
+      ...character,
+      portraitUrl: servedPortraitUrl,
+    };
+  }
+
   const portraitSourceUrl = getLegacyPortraitSourceUrl(character);
   if (!portraitSourceUrl) return character;
 

@@ -1,7 +1,13 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuthWithToken } from "../lib/auth.js";
 import { writeBinaryBlob } from "../lib/blob.js";
-import { findAvatarUrl, getLegacyPortraitSourceUrl, isBlizzardRenderUrl, syncCharacterPortrait } from "../lib/character-portrait.js";
+import {
+  findAvatarUrl,
+  getLegacyPortraitSourceUrl,
+  getServedCharacterPortraitUrl,
+  isBlizzardRenderUrl,
+  syncCharacterPortrait,
+} from "../lib/character-portrait.js";
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaiderDocument } from "../types/index.js";
@@ -64,10 +70,17 @@ export async function handler(request: HttpRequest, context: InvocationContext):
     // Check fully stored characters first (selected characters with cached media)
     const storedIndex = characters.findIndex((candidate) => candidate.id === characterId);
     const stored = storedIndex >= 0 ? characters[storedIndex] : undefined;
-    if (stored?.portraitUrl && !isBlizzardRenderUrl(stored.portraitUrl)) {
-      result[characterId] = stored.portraitUrl;
-      if (portraitCache[characterId] !== stored.portraitUrl) {
-        portraitCache[characterId] = stored.portraitUrl;
+    const storedPortraitUrl = stored
+      ? getServedCharacterPortraitUrl(characterId, stored.portraitUrl, stored.portraitBlobName)
+      : "";
+    if (storedPortraitUrl && !isBlizzardRenderUrl(storedPortraitUrl)) {
+      result[characterId] = storedPortraitUrl;
+      if (stored && stored.portraitUrl !== storedPortraitUrl) {
+        characters[storedIndex] = { ...stored, portraitUrl: storedPortraitUrl };
+        cacheUpdated = true;
+      }
+      if (portraitCache[characterId] !== storedPortraitUrl) {
+        portraitCache[characterId] = storedPortraitUrl;
         cacheUpdated = true;
       }
       continue;
@@ -88,10 +101,15 @@ export async function handler(request: HttpRequest, context: InvocationContext):
     }
 
     const cachedUrl = portraitCache[characterId];
-    if (cachedUrl && !isBlizzardRenderUrl(cachedUrl)) {
-      result[characterId] = cachedUrl;
-      if (stored && stored.portraitUrl !== cachedUrl) {
-        characters[storedIndex] = { ...stored, portraitUrl: cachedUrl };
+    const resolvedCachedUrl = getServedCharacterPortraitUrl(characterId, cachedUrl);
+    if (resolvedCachedUrl && !isBlizzardRenderUrl(resolvedCachedUrl)) {
+      result[characterId] = resolvedCachedUrl;
+      if (portraitCache[characterId] !== resolvedCachedUrl) {
+        portraitCache[characterId] = resolvedCachedUrl;
+        cacheUpdated = true;
+      }
+      if (stored && stored.portraitUrl !== resolvedCachedUrl) {
+        characters[storedIndex] = { ...stored, portraitUrl: resolvedCachedUrl };
         cacheUpdated = true;
       }
       continue;

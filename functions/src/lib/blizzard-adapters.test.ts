@@ -196,7 +196,7 @@ describe("blizzard-adapters", () => {
       level: 80,
       classId: 2,
       raceId: 11,
-      portraitUrl: "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.png",
+      portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/png",
       fetchedAt: "2026-03-20T10:00:00.000Z",
       specializations: [
         { id: 65, name: "Holy", role: "HEALER" },
@@ -214,9 +214,47 @@ describe("blizzard-adapters", () => {
         region: "eu",
         classId: 2,
         className: "Paladin",
-        portraitUrl: "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.png",
+        portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/png",
         activeSpecId: 65,
         specName: "Holy",
+      },
+    ]);
+  });
+
+  it("normalizes mirrored blob portrait URLs into app-served portrait routes", () => {
+    const accountProfileSummary = {
+      wow_accounts: [
+        {
+          id: 1,
+          characters: [
+            {
+              id: 101,
+              name: "Aelrin",
+              level: 80,
+              realm: { id: 1305, slug: "test-realm", name: { en_US: "Test Realm" } },
+              playable_class: { id: 2, name: "Paladin" },
+              playable_race: { id: 11, name: "Draenei" },
+              faction: { type: "ALLIANCE", name: "Alliance" },
+              gender: { type: "FEMALE", name: "Female" },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      toAccountCharacterViews(accountProfileSummary, "eu", [], {
+        "eu-test-realm-aelrin": "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+      })
+    ).toEqual([
+      {
+        name: "Aelrin",
+        realm: "test-realm",
+        realmName: "Test Realm",
+        level: 80,
+        region: "eu",
+        classId: 2,
+        portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
       },
     ]);
   });

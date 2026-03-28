@@ -94,7 +94,7 @@ describe("listHandler", () => {
     ]));
     vi.mocked(syncCharacterPortrait).mockResolvedValue({
       portraitBlobName: "character-portraits/eu-test-realm-aelrin.jpg",
-      portraitUrl: "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+      portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
     });
 
     const response = await listHandler({} as never, { log: vi.fn() } as never);
@@ -115,7 +115,7 @@ describe("listHandler", () => {
           level: 80,
           classId: 2,
           raceId: 11,
-          portraitUrl: "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+          portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
           fetchedAt: "2026-03-28T00:00:00.000Z",
           specializations: [{ id: 65, name: "Holy", role: "HEALER" }],
           activeSpecId: 65,
