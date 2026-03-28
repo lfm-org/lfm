@@ -9,6 +9,7 @@ import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
 import { getTestModeIdentity } from "../lib/test-mode.js";
 import { readWowSpecializationMap } from "../lib/reference-data.js";
 import type {
+  BlizzardAccountProfileSummary,
   BlizzardCharacterMediaSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
@@ -23,6 +24,20 @@ export function canReuseCachedCharacter(
 ): boolean {
   if (!existing?.specializationsSummary) return false;
   return isFresh(existing.fetchedAt, CHARACTER_PROFILE_TTL_MS) || Boolean(getTestModeIdentity(accessToken, env));
+}
+
+export function isCharacterOwnedByAccount(
+  characterId: string,
+  region: string,
+  accountProfileSummary: BlizzardAccountProfileSummary | undefined | null
+): boolean {
+  if (!accountProfileSummary) return true;
+  const normalizedId = characterId.toLowerCase();
+  return (accountProfileSummary.wow_accounts ?? []).some((account) =>
+    (account.characters ?? []).some(
+      (char) => `${region}-${char.realm.slug}-${char.name}`.toLowerCase() === normalizedId
+    )
+  );
 }
 
 async function fetchCharacterSpecializationsSummary(
@@ -103,6 +118,9 @@ export async function handler(request: HttpRequest, context: InvocationContext):
   if (!raider) return errorResponse(404, "Raider not found");
 
   const characterId = `${validRegion}-${validRealm}-${validName}`;
+  if (!isCharacterOwnedByAccount(characterId, validRegion, raider.accountProfileSummary)) {
+    return errorResponse(403, "Character not found in your Battle.net account");
+  }
   const existingIdx = raider.characters.findIndex(c => c.id === characterId);
   const existing = existingIdx >= 0 ? raider.characters[existingIdx] : undefined;
 
