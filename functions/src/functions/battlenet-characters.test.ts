@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ACCOUNT_CHARS_COOLDOWN_MS } from "../lib/cache.js";
+import { TEST_MODE_ACCESS_TOKEN } from "../lib/test-mode.js";
 import { shouldServeCachedAccountProfile } from "./battlenet-characters.js";
 import type { RaiderDocument } from "../types/index.js";
 
@@ -54,5 +55,19 @@ describe("shouldServeCachedAccountProfile", () => {
         })
       )
     ).toBe(false);
+  });
+
+  it("returns true in local test mode even when the cooldown has expired", () => {
+    const staleRefresh = new Date(Date.now() - (ACCOUNT_CHARS_COOLDOWN_MS + 10_000)).toISOString();
+    expect(
+      shouldServeCachedAccountProfile(
+        buildRaider({
+          accountProfileSummary: { wow_accounts: [{ id: 1, characters: [] }] },
+          accountProfileRefreshedAt: staleRefresh,
+        }),
+        TEST_MODE_ACCESS_TOKEN,
+        { TEST_MODE: "true", COSMOS_ENDPOINT: "http://localhost:8081" }
+      )
+    ).toBe(true);
   });
 });
