@@ -18,41 +18,7 @@ import {
 import PageContainer from "../../../components/layout/PageContainer";
 import DateTimeInput from "../../../components/DateTimeInput";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
-
-type FormField = "instance" | "mode" | "startTime" | "signupCloseTime" | "description";
-
-function validate(fields: {
-  instanceId: number | "";
-  selectedModeKey: string;
-  startTime: DateTime | null;
-  signupCloseTime: DateTime | null;
-  description: string;
-}): Partial<Record<FormField, string>> {
-  const errors: Partial<Record<FormField, string>> = {};
-
-  if (!fields.instanceId) errors.instance = "Instance is required";
-  if (!fields.selectedModeKey) errors.mode = "Mode is required";
-
-  if (!fields.startTime || !fields.startTime.isValid) {
-    errors.startTime = "Start time is required";
-  } else if (fields.startTime <= DateTime.now()) {
-    errors.startTime = "Start time must be in the future";
-  }
-
-  if (fields.signupCloseTime?.isValid) {
-    if (fields.signupCloseTime <= DateTime.now()) {
-      errors.signupCloseTime = "Signup close time must be in the future";
-    } else if (fields.startTime?.isValid && fields.signupCloseTime >= fields.startTime) {
-      errors.signupCloseTime = "Signup close time must be before start time";
-    }
-  }
-
-  if (fields.description.trim().length > 500) {
-    errors.description = "Description must be 500 characters or fewer";
-  }
-
-  return errors;
-}
+import { validateCreateRaid, type FormField } from "../lib/createRaidValidation";
 
 const MAX_DESCRIPTION = 500;
 
@@ -111,13 +77,13 @@ export default function CreateRaidPage() {
   const handleStartTimeChange = (value: DateTime | null) => {
     setStartTime(value);
     // Re-validate both startTime and signupCloseTime — the cross-field rule references both
-    const fieldErrors = validate({ instanceId, selectedModeKey, startTime: value, signupCloseTime, description });
+    const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime: value, signupCloseTime, description });
     setErrors((e) => ({ ...e, startTime: fieldErrors.startTime, signupCloseTime: fieldErrors.signupCloseTime }));
   };
 
   const handleSignupCloseTimeChange = (value: DateTime | null) => {
     setSignupCloseTime(value);
-    const fieldErrors = validate({ instanceId, selectedModeKey, startTime, signupCloseTime: value, description });
+    const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime, signupCloseTime: value, description });
     setErrors((e) => ({ ...e, signupCloseTime: fieldErrors.signupCloseTime }));
   };
 
@@ -129,7 +95,7 @@ export default function CreateRaidPage() {
   };
 
   const handleSubmit = async () => {
-    const fieldErrors = validate({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
+    const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       return;
@@ -229,7 +195,7 @@ export default function CreateRaidPage() {
         value={description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
         onBlur={() => {
-          const fieldErrors = validate({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
+          const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
           setErrors((e) => ({ ...e, description: fieldErrors.description }));
         }}
         error={!!errors.description}
