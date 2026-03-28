@@ -31,6 +31,7 @@ export function isCharacterOwnedByAccount(
   region: string,
   accountProfileSummary: BlizzardAccountProfileSummary | undefined | null
 ): boolean {
+  // No profile yet — new raiders haven't completed the account-profile sync flow; allow through.
   if (!accountProfileSummary) return true;
   const normalizedId = characterId.toLowerCase();
   return (accountProfileSummary.wow_accounts ?? []).some((account) =>
