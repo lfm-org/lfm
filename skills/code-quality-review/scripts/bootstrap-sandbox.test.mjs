@@ -27,6 +27,8 @@ function readPlan(repoDir) {
     });
     return JSON.parse(stdout);
   } catch (error) {
+    // Claude Code's sandbox may throw EPERM even when the script exits 0.
+    // The stdout still contains valid output in this case.
     if (error?.code === "EPERM" && error?.status === 0 && typeof error?.stdout === "string" && error.stdout) {
       return JSON.parse(error.stdout);
     }
