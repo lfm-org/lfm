@@ -1,0 +1,54 @@
+#
+# PSRule for Azure configuration
+#
+
+# See: https://aka.ms/ps-rule/options
+#      https://aka.ms/ps-rule-azure/options
+
+# Do not warn on resources with no matching rules.
+execution:
+  unprocessedObject: Ignore
+
+# Require minimum version of PSRule for Azure.
+requires:
+  PSRule.Rules.Azure: ">=1.34.2"
+
+include:
+  module:
+    - PSRule.Rules.Azure
+
+output:
+  culture:
+    - "en-US"
+
+input:
+  pathIgnore:
+    # Ignore everything by default.
+    - "**"
+    # Include infrastructure templates.
+    - "!infra/**/*.bicep"
+    - "!infra/**/*.json"
+
+configuration:
+  # Enable expansion of Bicep source files.
+  AZURE_BICEP_FILE_EXPANSION: true
+  AZURE_BICEP_FILE_EXPANSION_TIMEOUT: 10
+
+  # Enable expansion of ARM parameter files.
+  AZURE_PARAMETER_FILE_EXPANSION: true
+
+  # Placeholder resource group for analysis.
+  AZURE_RESOURCE_GROUP:
+    name: lfm
+    location: westeurope
+
+# Suppress rules for known, documented trade-offs.
+suppression: {}
+
+# Exclude rules that don't apply to Consumption plan architecture.
+rule:
+  exclude:
+    # Consumption Functions require network access from all Azure services
+    # to Key Vault and Storage — private endpoints aren't supported on Y1.
+    - Azure.KeyVault.Firewall
+    - Azure.Storage.Firewall
