@@ -56,13 +56,16 @@ append_adapter_if_detected() {
   fi
 
   ADAPTER_IDS+=("$adapter_id")
-  local adapter_reasons_var="ADAPTER_REASONS_${adapter_id//-/_}"
-  # shellcheck disable=SC2178
-  declare -g -a "$adapter_reasons_var=()"
+  local joined=""
   local reason
   for reason in "${reasons[@]}"; do
-    eval "$adapter_reasons_var+=(\"\$reason\")"
+    if [[ -n "$joined" ]]; then
+      joined="$joined|$reason"
+    else
+      joined="$reason"
+    fi
   done
+  ADAPTER_REASONS["$adapter_id"]="$joined"
 }
 
 print_json_array_of_strings() {
@@ -135,16 +138,13 @@ adapter_tools_for() {
 print_adapters_json() {
   local index
   local adapter_id
-  local reasons_var
   local tools
   local reasons
 
   printf '['
   for index in "${!ADAPTER_IDS[@]}"; do
     adapter_id="${ADAPTER_IDS[$index]}"
-    reasons_var="ADAPTER_REASONS_${adapter_id//-/_}[@]"
-    # shellcheck disable=SC2206
-    reasons=(${!reasons_var})
+    IFS='|' read -ra reasons <<< "${ADAPTER_REASONS[$adapter_id]}"
     mapfile -t tools < <(adapter_tools_for "$adapter_id")
 
     if [[ "$index" -gt 0 ]]; then
@@ -165,7 +165,6 @@ print_adapters_json() {
 print_summary() {
   local tool
   local adapter_id
-  local reasons_var
   local reasons
 
   printf 'repo: %s\n' "$REPO_DIR"
@@ -182,9 +181,7 @@ print_summary() {
 
   printf 'adapters:\n'
   for adapter_id in "${ADAPTER_IDS[@]}"; do
-    reasons_var="ADAPTER_REASONS_${adapter_id//-/_}[@]"
-    # shellcheck disable=SC2206
-    reasons=(${!reasons_var})
+    IFS='|' read -ra reasons <<< "${ADAPTER_REASONS[$adapter_id]}"
     printf '  - %s (%s)\n' "$adapter_id" "$(IFS=', '; echo "${reasons[*]}")"
   done
 }
@@ -266,6 +263,7 @@ declare -A BASE_TOOL_SOURCE=(
 )
 
 declare -a ADAPTER_IDS=()
+declare -A ADAPTER_REASONS=()
 
 append_adapter_if_detected "javascript-typescript" "package.json"
 append_adapter_if_detected "python" "pyproject.toml" "requirements.txt" "setup.py" "Pipfile"

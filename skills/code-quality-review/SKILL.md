@@ -1,19 +1,87 @@
 ---
 name: code-quality-review
-description: Use when assessing the quality of an entire codebase, identifying systemic engineering risks, or producing a prioritized remediation plan for a repository-wide audit.
+description: Use when assessing the quality of an entire codebase, identifying systemic engineering risks, or producing a prioritized remediation plan for a repository-wide audit. Supports both light checks and comprehensive deep analysis.
 ---
 
 # Code Quality Review
 
 ## Overview
 
-Assess repository-wide code quality with a metric-driven audit and produce a prioritized remediation plan.
+Assess repository-wide code quality and produce findings scaled to the requested depth.
 Optimize for agentic development: prefer code that is easy to understand, modify in small units, and verify cheaply.
 
-Read `references/browserstack-metrics.md` before scoring. It contains the approved metric order, tier weights, and assessment rules derived from the BrowserStack article and adapted for agentic workflows.
-Then read `references/tooling-evidence.md` and use it to choose the evidence stack and fallback path.
+Read `references/browserstack-metrics.md` before scoring. It contains the approved metric order, tier model, gate rule, and assessment criteria adapted for agentic workflows.
 
-## Workflow
+## Review Mode
+
+This skill supports two modes. Choose based on the request:
+
+### Light mode
+
+Use for: quick health pulse, pre-work orientation, spot-checking after changes.
+
+- Assess **Tier 1 metrics only** (5 metrics)
+- Evidence: repo-native tools (build, test, lint) plus manual inspection
+- No external tooling required — skip the bootstrap script
+- Output: summary, Tier 1 scores, top risks, confidence note
+
+Trigger phrases: "quick check", "how's the code quality", "health check", "light review", or any request that does not ask for remediation or a full audit.
+
+### Deep mode
+
+Use for: formal audit, planning a quality improvement program, onboarding a codebase for sustained agentic work.
+
+- Assess **all 15 metrics** across all three tiers
+- Evidence: full tooling stack from `references/tooling-evidence.md` where available
+- Produce a prioritized remediation plan
+- Output: full metric assessment, findings, remediation roadmap, residual unknowns
+
+Trigger phrases: "full audit", "comprehensive review", "remediation plan", "deep analysis", or any request that explicitly asks for a prioritized improvement plan.
+
+**Default:** If the request is ambiguous, ask the user which mode they want.
+
+---
+
+## Light Mode Workflow
+
+### 1. Identify the codebase
+
+- Note the main languages, frameworks, and services.
+- Identify repo-native validation commands (build, test, lint).
+- If repo-native commands exist and are practical to run, run them.
+
+### 2. Assess Tier 1 metrics
+
+Read `references/browserstack-metrics.md` for the Tier 1 list and assessment criteria.
+
+For each Tier 1 metric:
+
+- Inspect representative code, not just one file.
+- Use repo-native tool output as evidence where available.
+- Rate as `strong`, `adequate`, `weak`, or `not assessed`.
+- Write one sentence of evidence per metric.
+
+Also note any supplementary agentic signals (type safety, change isolation, feedback loop speed) from `references/browserstack-metrics.md` that stand out during inspection.
+
+### 3. Write the light report
+
+#### Summary
+
+- Overall Tier 1 assessment (apply the gate: cannot be `good` if 2+ Tier 1 metrics are weak)
+- Top risks (up to 3)
+- Confidence note (what evidence was available, what was missing)
+
+#### Tier 1 Scores
+
+List each Tier 1 metric with rating and one-sentence evidence.
+
+#### Notable Agentic Signals
+
+Only include if something stood out during inspection (type safety gaps, high blast radius, slow feedback loop). Omit this section if nothing notable was found.
+
+---
+
+## Deep Mode Workflow
 
 ### 1. Establish review scope
 
@@ -25,8 +93,13 @@ Then read `references/tooling-evidence.md` and use it to choose the evidence sta
 
 Use concrete repository signals before making judgments.
 
-- Prefer a Docker Sandbox when available, then official Docker images, then local installation.
-- Start evidence gathering with `scripts/bootstrap-sandbox.sh --json --repo "$PWD"` to identify the base toolkit and any language adapter packs the repository needs.
+Read `references/tooling-evidence.md` and follow its execution order and fallback path:
+
+- If external tools are available (Docker Sandbox, local install), use the bootstrap planner and full toolkit.
+- If external tools are not available, follow the no-tools fallback: rely on repo-native commands plus manual inspection, and mark direct-metric scores as `not assessed` or note reduced confidence.
+
+Evidence gathering checklist:
+
 - Read top-level docs, package manifests, build scripts, and test configuration.
 - Inspect representative modules, not just one hotspot.
 - Run available validation commands when practical.
@@ -49,22 +122,16 @@ Look for evidence in these areas:
 - security-sensitive code paths, secrets handling, auth, and validation
 - maintenance signals such as churn hotspots, debt markers, TODO clusters, and fragile workarounds
 
-### 3. Score with the weighted metric model
+### 3. Score with the tier model
 
 Use the metric order and tiering from `references/browserstack-metrics.md`.
 
-- Tier 1 metrics carry the most weight and determine whether the codebase is safe for repeated agentic edits.
+- Tier 1 metrics are the primary gates and determine whether the codebase is safe for repeated agentic edits.
 - Tier 2 metrics strengthen or weaken the assessment but should not override severe Tier 1 weakness.
 - Tier 3 metrics are supporting signals and must not dominate the conclusion.
-- Tool output is evidence only. Do not invent numeric rollups beyond the approved tier model.
+- Tool output is evidence only. Do not invent numeric rollups.
 
-Apply these weights:
-
-- Tier 1: `5x`
-- Tier 2: `3x`
-- Tier 3: `1x`
-
-Apply this gate:
+Apply the gate:
 
 - Do not rate the overall codebase as `good` if two or more assessed Tier 1 metrics are weak.
 
@@ -77,6 +144,8 @@ Prefer qualitative ratings backed by evidence:
 
 Use `not assessed` when the repository or environment does not provide enough trustworthy evidence to score a metric.
 Do not invent numeric precision or certainty when the repository does not expose trustworthy measurements.
+
+Also note any supplementary agentic signals (type safety, change isolation, feedback loop speed) that materially affect the assessment.
 
 ### 4. Write findings
 
@@ -94,6 +163,7 @@ Prefer findings that connect multiple signals, for example:
 - high complexity plus weak tests
 - poor documentation plus high coupling
 - efficiency issues in code that also changes frequently
+- weak type safety plus high blast radius
 
 ### 5. Produce a remediation roadmap
 
@@ -115,18 +185,18 @@ Prioritize work that improves multiple top-tier metrics at once, such as:
 - removing performance bottlenecks from frequently touched paths
 - documenting architecture and extension points for core subsystems
 
-## Output Format
+### Deep mode output format
 
 Use this structure unless the user asks for something else:
 
-### Summary
+#### Summary
 
 - overall assessment
 - major strengths
 - major risks
 - verification limits
 
-### Metric Assessment
+#### Metric Assessment
 
 List all fifteen metrics in the approved order with:
 
@@ -135,17 +205,19 @@ List all fifteen metrics in the approved order with:
 
 If a metric cannot be scored credibly, mark it `not assessed` and say what evidence is missing.
 
-### Top Findings
+#### Top Findings
 
 List the highest-impact issues first.
 
-### Prioritized Remediation Plan
+#### Prioritized Remediation Plan
 
 List actionable work items in priority order.
 
-### Residual Unknowns
+#### Residual Unknowns
 
 Call out missing evidence, skipped commands, or areas that need deeper inspection.
+
+---
 
 ## Review Rules
 
@@ -164,3 +236,5 @@ Call out missing evidence, skipped commands, or areas that need deeper inspectio
 - Treating documentation as optional when agents must navigate the code repeatedly.
 - Ignoring efficiency until late, even when hot paths are obvious and materially affect safe iteration.
 - Giving a positive overall rating despite multiple weak Tier 1 metrics.
+- Running the full deep-mode workflow when the user only asked for a quick check.
+- Inventing numeric scores or weighted rollups when the evidence is qualitative.

@@ -21,6 +21,24 @@ Why:
 Do not use floating tags such as `latest` or `master`.
 Prefer pinned versions and first-party distribution channels.
 
+## No-Tools Fallback
+
+When Docker Sandbox and external tools are not available (common in sandboxed agentic environments like Claude Code):
+
+1. Skip the bootstrap planner script entirely.
+2. Use only repo-native commands as evidence sources:
+   - Build/type-check commands from package manifests
+   - Test commands and their output
+   - Lint commands and their output
+   - `git log` and `git blame` for churn and hotspot analysis
+3. For direct metrics that require external tools (Cyclomatic Complexity, Code Security scanners, Code Coverage):
+   - Rate as `not assessed` if repo-native equivalents do not exist
+   - Note reduced confidence explicitly in findings
+4. For derived and inspection-dominant metrics, proceed normally — these rely primarily on code reading and repo-native tool output.
+5. State the tooling gap in the Residual Unknowns section of the report.
+
+This fallback produces a valid review with reduced confidence on direct metrics. It does not reduce the rigor of Tier 1 assessment, which is primarily inspection-driven.
+
 ## Sandbox Bootstrap
 
 Use the planner before choosing tools:
