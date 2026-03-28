@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import api from "../../../lib/api";
@@ -31,7 +31,6 @@ function parsePageParam(value: string | null): number {
 
 function CharactersPageInner({
   visibleChars,
-  currentPage,
   totalPages,
   clampedPage,
   characters,
@@ -48,7 +47,6 @@ function CharactersPageInner({
   handleDeleteAccount,
 }: {
   visibleChars: AccountCharacter[];
-  currentPage: number;
   totalPages: number;
   clampedPage: number;
   characters: AccountCharacter[];
@@ -225,10 +223,8 @@ export default function CharactersPage() {
 
   const { characters, loading, portraits, loadingPortraits } = useCharacters(visibleCharsForPortraits);
 
-  // Sync characters into pagination state after each render
-  useMemo(() => {
+  useEffect(() => {
     setCharactersForPagination(characters);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characters]);
 
   const totalPages = Math.max(1, Math.ceil(characters.length / PAGE_SIZE));
@@ -276,7 +272,6 @@ export default function CharactersPage() {
   return (
     <CharactersPageInner
       visibleChars={visibleChars}
-      currentPage={currentPage}
       totalPages={totalPages}
       clampedPage={clampedPage}
       characters={characters}
