@@ -1,9 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TEST_MODE_IDENTITY } from "./test-mode.js";
+import {
+  TEST_MODE_IDENTITY,
+  TEST_MODE_SITE_ADMIN_ACCESS_TOKEN,
+  TEST_MODE_SITE_ADMIN_IDENTITY,
+} from "./test-mode.js";
 
+const getSecret = vi.fn();
 const unsealSession = vi.fn();
 const resolveIdentity = vi.fn();
 const isSiteAdmin = vi.fn();
+
+vi.mock("@azure/keyvault-secrets", () => ({
+  SecretClient: vi.fn(function SecretClient() {
+    return { getSecret };
+  }),
+}));
+
+vi.mock("@azure/identity", () => ({
+  DefaultAzureCredential: vi.fn(function DefaultAzureCredential() {}),
+}));
 
 vi.mock("./crypto.js", () => ({
   unsealSession,
@@ -98,5 +113,35 @@ describe("requireSiteAdminAuthWithToken", () => {
     } as never;
 
     await expect(requireSiteAdminAuthWithToken(request)).resolves.toBeNull();
+  });
+
+  it("accepts the local test-mode site-admin cookie without consulting Key Vault", async () => {
+    vi.doUnmock("./site-admin-config.js");
+    const originalTestMode = process.env.TEST_MODE;
+    const originalCosmosEndpoint = process.env.COSMOS_ENDPOINT;
+    process.env.TEST_MODE = "true";
+    process.env.COSMOS_ENDPOINT = "http://localhost:8081";
+
+    const { requireSiteAdminAuthWithToken } = await import("./auth.js");
+
+    try {
+      const request = {
+        headers: {
+          get: vi.fn(
+            () => `battlenet_token=${encodeURIComponent(TEST_MODE_SITE_ADMIN_ACCESS_TOKEN)}`,
+          ),
+        },
+      } as never;
+
+      await expect(requireSiteAdminAuthWithToken(request)).resolves.toEqual({
+        accessToken: TEST_MODE_SITE_ADMIN_ACCESS_TOKEN,
+        identity: TEST_MODE_SITE_ADMIN_IDENTITY,
+        isSiteAdmin: true,
+      });
+      expect(getSecret).not.toHaveBeenCalled();
+    } finally {
+      process.env.TEST_MODE = originalTestMode;
+      process.env.COSMOS_ENDPOINT = originalCosmosEndpoint;
+    }
   });
 });

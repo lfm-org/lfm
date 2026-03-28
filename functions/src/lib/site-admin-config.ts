@@ -1,5 +1,6 @@
 import { DefaultAzureCredential } from "@azure/identity";
 import { SecretClient } from "@azure/keyvault-secrets";
+import { isLocalTestMode, TEST_MODE_SITE_ADMIN_IDENTITY } from "./test-mode.js";
 
 const SITE_ADMIN_SECRET_NAME = "site-admin-battle-net-ids";
 export const CACHE_TTL_MS = 60_000;
@@ -37,6 +38,7 @@ export async function isSiteAdmin(
   now = Date.now(),
 ): Promise<boolean> {
   if (!battleNetId) return false;
+  if (isLocalTestMode(env) && battleNetId === TEST_MODE_SITE_ADMIN_IDENTITY.battleNetId) return true;
 
   if (!cache || now - cache.loadedAt > CACHE_TTL_MS) {
     try {

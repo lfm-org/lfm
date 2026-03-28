@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TEST_MODE_SITE_ADMIN_IDENTITY } from "./test-mode.js";
 
 const getSecret = vi.fn();
 const SecretClient = vi.fn(function SecretClient() {
@@ -39,6 +40,20 @@ describe("site-admin-config", () => {
     await expect(isSiteAdmin("beta")).resolves.toBe(true);
     await expect(isSiteAdmin("gamma")).resolves.toBe(false);
     expect(getSecret).toHaveBeenCalledWith("site-admin-battle-net-ids");
+  });
+
+  it("allows the local test-mode site-admin identity without consulting Key Vault", async () => {
+    const { isSiteAdmin, resetSiteAdminCacheForTests } = await import("./site-admin-config.js");
+    resetSiteAdminCacheForTests();
+
+    await expect(
+      isSiteAdmin(TEST_MODE_SITE_ADMIN_IDENTITY.battleNetId, {
+        TEST_MODE: "true",
+        COSMOS_ENDPOINT: "http://localhost:8081",
+        KEY_VAULT_URL: "https://lfm-kv.vault.azure.net/",
+      }),
+    ).resolves.toBe(true);
+    expect(getSecret).not.toHaveBeenCalled();
   });
 
   it("uses the cached allowlist until the ttl expires", async () => {
