@@ -24,6 +24,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
+    DisableLocalAuth: true
     WorkspaceResourceId: logAnalyticsWorkspaceId
   }
 }
@@ -51,6 +52,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   properties: {
     serverFarmId: hostingPlan.id
     httpsOnly: true
+    clientAffinityEnabled: false
     siteConfig: {
       linuxFxVersion: 'NODE|22'
       ftpsState: 'Disabled'

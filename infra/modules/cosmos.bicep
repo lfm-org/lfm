@@ -17,6 +17,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     locations: [{ locationName: location, failoverPriority: 0 }]
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
     capabilities: []
+    minimalTlsVersion: 'Tls12'
     disableLocalAuth: true
     disableKeyBasedMetadataWriteAccess: true
   }
