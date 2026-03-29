@@ -49,10 +49,22 @@ configuration:
 # Suppress rules for known, documented trade-offs.
 suppression: {}
 
-# Exclude rules that don't apply to Consumption plan architecture.
+# Exclude rules incompatible with hobby-project free/Consumption tiers.
 rule:
   exclude:
     # Consumption Functions require network access from all Azure services
     # to Key Vault and Storage — private endpoints aren't supported on Y1.
     - Azure.KeyVault.Firewall
     - Azure.Storage.Firewall
+    # Free-tier Cosmos DB: no SLA, no availability zones, no continuous backup,
+    # and public access required (Consumption plan has no VNet integration).
+    - Azure.Cosmos.SLA
+    - Azure.Cosmos.AvailabilityZone
+    - Azure.Cosmos.PublicAccess
+    - Azure.Cosmos.ContinuousBackup
+    # Consumption plan (Y1): availability zones not supported.
+    - Azure.AppService.AvailabilityZone
+    # LRS is sufficient for hobby data; GRS/ZRS adds cost with no benefit here.
+    - Azure.Storage.UseReplication
+    # Workspace replication adds cost; single-region is fine for hobby use.
+    - Azure.Log.Replication
