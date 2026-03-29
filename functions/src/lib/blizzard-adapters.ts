@@ -3,6 +3,7 @@ import { getGuildCrestUrl } from "./guild-crest.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
 import { getServedCharacterPortraitUrl, isBlizzardRenderUrl } from "./character-portrait.js";
 import type {
+  BlizzardAccountGuildsSummary,
   BlizzardAccountProfileSummary,
   BlizzardCharacterProfileSummary,
   BlizzardCharacterSpecializationsSummary,
@@ -148,8 +149,9 @@ export function toAccountCharacterViews(
 export function toBattleNetIdentity(
   battleNetId: string,
   selectedCharacter?: StoredSelectedCharacter | null,
+  accountGuildsSummary?: BlizzardAccountGuildsSummary | null,
 ): BattleNetIdentity {
-  const guild = selectedCharacter?.profileSummary?.guild;
+  const guild = selectedCharacter?.profileSummary?.guild ?? accountGuildsSummary?.guilds?.[0]?.guild;
   return {
     battleNetId,
     guildId: guild?.id ?? null,

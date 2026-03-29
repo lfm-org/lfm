@@ -324,7 +324,7 @@ export class BattlenetService {
 
       const selectedCharacter = raider.characters.find(c => c.id === raider.selectedCharacterId) ?? null;
       return {
-        identity: toBattleNetIdentity(testIdentity.battleNetId, selectedCharacter),
+        identity: toBattleNetIdentity(testIdentity.battleNetId, selectedCharacter, raider.accountGuildsSummary),
         selectedCharacterId: raider.selectedCharacterId,
       };
     }
@@ -361,7 +361,7 @@ export class BattlenetService {
 
     const selectedCharacter = raider.characters.find(c => c.id === raider.selectedCharacterId) ?? null;
     return {
-      identity: toBattleNetIdentity(battleNetId, selectedCharacter),
+      identity: toBattleNetIdentity(battleNetId, selectedCharacter, raider.accountGuildsSummary),
       selectedCharacterId: raider.selectedCharacterId,
     };
   }

@@ -232,4 +232,59 @@ describe("BattlenetService raider document privacy", () => {
     expect(capturedDoc).toBeDefined();
     expect(capturedDoc).not.toHaveProperty("userInfo");
   });
+
+  it("falls back to legacy account guild data when selected character guild data is missing", async () => {
+    process.env.BATTLE_NET_REGION = "eu";
+    process.env.HMAC_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    delete process.env.TEST_MODE;
+    delete process.env.COSMOS_ENDPOINT;
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 33333, battletag: "UserC#0003" }),
+    }) as typeof fetch;
+
+    const existingDoc = {
+      id: "legacy-hash",
+      battleNetId: "legacy-hash",
+      selectedCharacterId: "eu-test-realm-aelrin",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      lastSeenAt: "2026-01-01T00:00:00.000Z",
+      accountGuildsSummary: {
+        guilds: [{ guild: { id: 12345, name: "Test Guild" } }],
+      },
+      characters: [
+        {
+          id: "eu-test-realm-aelrin",
+          region: "eu",
+          realm: "test-realm",
+          name: "Aelrin",
+          fetchedAt: "2026-01-01T00:00:00.000Z",
+          profileSummary: {
+            name: "Aelrin",
+            level: 80,
+            realm: { slug: "test-realm", name: { en_US: "Test Realm" } },
+            character_class: { id: 2, name: "Paladin" },
+            race: { id: 11, name: "Draenei" },
+          },
+        },
+      ],
+    };
+
+    vi.mocked(getRaidersContainer).mockReturnValue({
+      item: () => ({
+        read: () => Promise.resolve({ resource: existingDoc }),
+        replace: vi.fn().mockImplementation(async (doc: Record<string, unknown>) => ({ resource: doc })),
+      }),
+      items: { create: vi.fn() },
+    } as ReturnType<typeof getRaidersContainer>);
+
+    const service = new BattlenetService();
+    await expect(service.resolveIdentity("legacy_access_token")).resolves.toEqual(
+      expect.objectContaining({
+        guildId: 12345,
+        guildName: "Test Guild",
+      }),
+    );
+  });
 });
