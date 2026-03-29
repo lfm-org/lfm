@@ -11,6 +11,12 @@
     "functionAppName": { "value": "lfm-functions" },
     "swaName": { "value": "lfm-swa" },
     "keyVaultName": { "value": "lfm-kv-prot" },
-    "logAnalyticsWorkspaceName": { "value": "lfm-logs" }
+    "logAnalyticsWorkspaceName": { "value": "lfm-logs" },
+    "tags": {
+      "value": {
+        "project": "lfm",
+        "environment": "production"
+      }
+    }
   }
 }

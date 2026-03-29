@@ -9,9 +9,12 @@ param swaName string
 param keyVaultName string
 param logAnalyticsWorkspaceName string
 
+@description('Tags applied to all resources')
+param tags object
+
 module logAnalytics 'modules/loganalytics.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-loganalytics'
-  params: { location: location, workspaceName: logAnalyticsWorkspaceName }
+  params: { location: location, workspaceName: logAnalyticsWorkspaceName, tags: tags }
 }
 
 module keyVault 'modules/keyvault.bicep' = {
@@ -20,6 +23,7 @@ module keyVault 'modules/keyvault.bicep' = {
     location: location
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    tags: tags
   }
 }
 
@@ -29,6 +33,7 @@ module cosmos 'modules/cosmos.bicep' = {
     location: location
     accountName: cosmosAccountName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    tags: tags
   }
 }
 
@@ -38,6 +43,7 @@ module storage 'modules/storage.bicep' = {
     location: location
     storageAccountName: storageAccountName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    tags: tags
   }
 }
 
@@ -51,10 +57,11 @@ module functions 'modules/functions.bicep' = {
     cosmosAccountName: cosmosAccountName
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    tags: tags
   }
 }
 
 module swa 'modules/swa.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-swa'
-  params: { location: location, swaName: swaName }
+  params: { location: location, swaName: swaName, tags: tags }
 }

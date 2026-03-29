@@ -7,9 +7,13 @@ param keyVaultName string
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
+@description('Resource tags')
+param tags object
+
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
+  tags: tags
   properties: {
     sku: { family: 'A', name: 'standard' }
     tenantId: subscription().tenantId

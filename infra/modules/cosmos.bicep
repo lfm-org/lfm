@@ -7,9 +7,13 @@ param accountName string
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
+@description('Resource tags')
+param tags object
+
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: accountName
   location: location
+  tags: tags
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'

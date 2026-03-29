@@ -16,11 +16,15 @@ param keyVaultName string
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
+@description('Resource tags')
+param tags object
+
 var appInsightsName = '${functionAppName}-insights'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
+  tags: tags
   kind: 'web'
   properties: {
     Application_Type: 'web'
@@ -32,6 +36,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: '${functionAppName}-plan'
   location: location
+  tags: tags
   sku: { name: 'Y1', tier: 'Dynamic' }
   properties: { reserved: true }
 }
@@ -47,6 +52,7 @@ var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
   location: location
+  tags: tags
   kind: 'functionapp,linux'
   identity: { type: 'SystemAssigned' }
   properties: {
