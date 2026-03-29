@@ -8,11 +8,13 @@ describe("GuildSettingsEditor", () => {
     const markup = renderToStaticMarkup(
       createElement(GuildSettingsEditor, {
         timezone: "Europe/Helsinki",
+        locale: "fi",
         slogan: "",
         rankPermissions: [],
         saving: false,
         rankDataFresh: true,
         onTimezoneChange: () => {},
+        onLocaleChange: () => {},
         onSloganChange: () => {},
         onPermissionChange: () => {},
         onSave: () => {},
@@ -26,11 +28,13 @@ describe("GuildSettingsEditor", () => {
     const markup = renderToStaticMarkup(
       createElement(GuildSettingsEditor, {
         timezone: "Europe/Helsinki",
+        locale: "fi",
         slogan: "Victory or Lunch",
         rankPermissions: [],
         saving: false,
         rankDataFresh: true,
         onTimezoneChange: () => {},
+        onLocaleChange: () => {},
         onSloganChange: () => {},
         onPermissionChange: () => {},
         onSave: () => {},

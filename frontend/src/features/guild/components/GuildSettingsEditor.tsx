@@ -10,16 +10,18 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { GUILD_TIMEZONE_OPTIONS } from "../../../lib/guildConfig";
+import { GUILD_LOCALE_OPTIONS, GUILD_TIMEZONE_OPTIONS } from "../../../lib/guildConfig";
 import type { GuildRankPermission } from "../lib/guildSettingsForm";
 
 interface GuildSettingsEditorProps {
   timezone: string;
+  locale: string;
   slogan: string;
   rankPermissions: GuildRankPermission[];
   saving: boolean;
   rankDataFresh: boolean;
   onTimezoneChange: (value: string) => void;
+  onLocaleChange: (value: string) => void;
   onSloganChange: (value: string) => void;
   onPermissionChange: (
     rank: number,
@@ -43,6 +45,22 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
           {GUILD_TIMEZONE_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option}
+            </option>
+          ))}
+        </NativeSelect>
+      </FormControl>
+
+      <FormControl fullWidth sx={{ maxWidth: 320 }}>
+        <InputLabel htmlFor="guild-locale">Locale</InputLabel>
+        <NativeSelect
+          value={props.locale}
+          onChange={(event) => props.onLocaleChange(event.target.value)}
+          inputProps={{ id: "guild-locale", name: "locale" }}
+          disabled={!props.rankDataFresh || props.saving}
+        >
+          {GUILD_LOCALE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </NativeSelect>

@@ -10,7 +10,7 @@ describe("createGuildSettingsDraft", () => {
     expect(
       createGuildSettingsDraft({
         guild: { slogan: "Victory or Lunch" },
-        setup: { timezone: "Europe/Helsinki" },
+        setup: { timezone: "Europe/Helsinki", locale: "fi" },
         settings: {
           rankPermissions: [
             {
@@ -23,6 +23,7 @@ describe("createGuildSettingsDraft", () => {
       } as never),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: "Victory or Lunch",
       rankPermissions: [
         {
@@ -38,11 +39,12 @@ describe("createGuildSettingsDraft", () => {
     expect(
       createGuildSettingsDraft({
         guild: { slogan: null },
-        setup: { timezone: "Europe/Helsinki" },
+        setup: { timezone: "Europe/Helsinki", locale: "fi" },
         settings: { rankPermissions: [] },
       } as never),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: "",
       rankPermissions: [],
     });
@@ -67,6 +69,7 @@ describe("toGuildSettingsPayload", () => {
     expect(
       toGuildSettingsPayload({
         timezone: "Europe/Helsinki",
+        locale: "fi",
         slogan: "Victory or Lunch",
         rankPermissions: [
           {
@@ -78,6 +81,7 @@ describe("toGuildSettingsPayload", () => {
       }),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: "Victory or Lunch",
       rankPermissions: [
         {

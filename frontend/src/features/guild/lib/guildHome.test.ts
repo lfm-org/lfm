@@ -23,6 +23,7 @@ function createResponse(crestUrl: string | null): GuildHomeResponse {
       rankDataFresh: true,
       rankDataFetchedAt: "2026-03-28T00:00:00.000Z",
       timezone: "Europe/Helsinki",
+      locale: "fi",
     },
     settings: null,
     editor: {

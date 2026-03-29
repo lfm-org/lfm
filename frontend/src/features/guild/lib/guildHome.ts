@@ -20,6 +20,7 @@ export interface GuildHomeResponse {
     rankDataFresh: boolean;
     rankDataFetchedAt: string | null;
     timezone: string;
+    locale: string;
   };
   settings: {
     rankPermissions: Array<{

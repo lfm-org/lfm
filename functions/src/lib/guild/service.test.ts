@@ -154,6 +154,7 @@ describe("saveCurrentGuildSettings", () => {
       setup: {
         initializedAt: "2026-03-20T10:00:00.000Z",
         timezone: "America/New_York",
+        locale: "fi",
       },
     }));
     expect(result.kind).toBe("ok");

@@ -97,6 +97,7 @@ export interface GuildDocument {
   setup?: {
     initializedAt?: string;
     timezone?: string;
+    locale?: string;
   };
 }
 

@@ -5,6 +5,7 @@ export type GuildRankPermission =
 
 export interface GuildSettingsDraft {
   timezone: string;
+  locale: string;
   slogan: string;
   rankPermissions: GuildRankPermission[];
 }
@@ -12,6 +13,7 @@ export interface GuildSettingsDraft {
 export function createGuildSettingsDraft(data: GuildHomeResponse | null): GuildSettingsDraft {
   return {
     timezone: data?.setup.timezone ?? "Europe/Helsinki",
+    locale: data?.setup.locale ?? "fi",
     slogan: data?.guild?.slogan ?? "",
     rankPermissions: data?.settings?.rankPermissions ?? [],
   };
@@ -31,6 +33,7 @@ export function updateGuildRankPermission(
 export function toGuildSettingsPayload(draft: GuildSettingsDraft) {
   return {
     timezone: draft.timezone,
+    locale: draft.locale,
     slogan: draft.slogan,
     rankPermissions: draft.rankPermissions,
   };

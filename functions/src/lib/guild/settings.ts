@@ -4,24 +4,42 @@ import type { GuildDocument } from "../../types/index.js";
 
 export interface ParsedGuildSettingsInput {
   timezone: string;
+  locale: string;
   slogan: string | null;
   rankPermissions: NonNullable<GuildDocument["rankPermissions"]>;
 }
+
+const ALLOWED_LOCALES = [
+  "fi",
+  "en-gb",
+  "de",
+  "fr",
+  "es",
+  "sv",
+  "da",
+  "nb",
+] as const;
 
 export function parseGuildSettingsInput(
   input: unknown,
   allowedRanks: number[],
   fallbackRankPermissions: GuildDocument["rankPermissions"],
 ): ParsedGuildSettingsInput {
-  const body = (input ?? {}) as { timezone?: unknown; slogan?: unknown; rankPermissions?: unknown };
+  const body = (input ?? {}) as { timezone?: unknown; locale?: unknown; slogan?: unknown; rankPermissions?: unknown };
   const timezone = typeof body.timezone === "string" ? body.timezone.trim() : "";
 
   if (!timezone || !IANAZone.isValidZone(timezone)) {
     throw new Error("Invalid timezone");
   }
 
+  const locale = typeof body.locale === "string" ? body.locale.trim().toLowerCase() : "fi";
+  if (!(ALLOWED_LOCALES as readonly string[]).includes(locale)) {
+    throw new Error("Invalid locale");
+  }
+
   return {
     timezone,
+    locale,
     slogan: parseSlogan(body.slogan),
     rankPermissions:
       body.rankPermissions === undefined
@@ -39,6 +57,7 @@ export function applyGuildSettings(
     ...guildDoc.setup,
     initializedAt: guildDoc.setup?.initializedAt ?? initializedAt,
     timezone: settings.timezone,
+    locale: settings.locale,
   };
   guildDoc.slogan = settings.slogan;
   guildDoc.rankPermissions = settings.rankPermissions;

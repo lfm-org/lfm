@@ -9,7 +9,7 @@ export default function ThemeRegistry({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterLuxon}>
+      <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale="fi">
         {children}
       </LocalizationProvider>
     </ThemeProvider>

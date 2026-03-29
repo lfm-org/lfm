@@ -12,6 +12,7 @@ describe("parseGuildSettingsInput", () => {
       ),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: null,
       rankPermissions: [
         { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
@@ -29,6 +30,7 @@ describe("parseGuildSettingsInput", () => {
       ),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: null,
       rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
     });
@@ -41,6 +43,7 @@ describe("parseGuildSettingsInput", () => {
       ),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: null,
       rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
     });
@@ -55,6 +58,7 @@ describe("parseGuildSettingsInput", () => {
       ),
     ).toEqual({
       timezone: "Europe/Helsinki",
+      locale: "fi",
       slogan: "Victory or Lunch",
       rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
     });
@@ -132,6 +136,7 @@ describe("parseGuildSettingsInput", () => {
       setup: {
         initializedAt: "2026-03-27T10:00:00.000Z",
         timezone: "Europe/Helsinki",
+        locale: "fi",
       },
       rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true }],
     });

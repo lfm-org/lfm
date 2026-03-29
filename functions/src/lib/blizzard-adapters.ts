@@ -190,6 +190,7 @@ export interface GuildHomeView {
     rankDataFresh: boolean;
     rankDataFetchedAt: string | null;
     timezone: string;
+    locale: string;
   };
   settings: {
     rankPermissions: Array<{
@@ -242,6 +243,7 @@ export function toGuildHomeView(
         rankDataFresh,
         rankDataFetchedAt: guildDoc?.blizzardRosterFetchedAt ?? null,
         timezone: guildDoc?.setup?.timezone ?? "Europe/Helsinki",
+        locale: guildDoc?.setup?.locale ?? "fi",
       },
       settings: null,
       editor: {
@@ -272,6 +274,7 @@ export function toGuildHomeView(
       rankDataFresh,
       rankDataFetchedAt: guildDoc.blizzardRosterFetchedAt ?? null,
       timezone: guildDoc.setup?.timezone ?? "Europe/Helsinki",
+      locale: guildDoc.setup?.locale ?? "fi",
     },
     settings: editor.canEdit
       ? {

@@ -189,12 +189,16 @@ export default function GuildAdminPage() {
 
               <GuildSettingsEditor
                 timezone={draft.timezone}
+                locale={draft.locale}
                 slogan={draft.slogan}
                 rankPermissions={draft.rankPermissions}
                 saving={saving}
                 rankDataFresh={data.setup.rankDataFresh}
                 onTimezoneChange={(timezone) =>
                   setDraft((current) => ({ ...current, timezone }))
+                }
+                onLocaleChange={(locale) =>
+                  setDraft((current) => ({ ...current, locale }))
                 }
                 onSloganChange={(slogan) => setDraft((current) => ({ ...current, slogan }))}
                 onPermissionChange={handlePermissionChange}
