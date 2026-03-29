@@ -117,11 +117,17 @@ Rules for agents:
 
 ## Infrastructure Development
 
-`az` CLI commands are acceptable for **exploration and debugging** during infra development (e.g. inspecting resource state, testing a hypothesis). However:
+All Bicep changes must follow Azure Well-Architected Framework best practices. Use the `microsoft-docs` skill to verify resource configurations against current WAF guidance before committing.
+
+`az` CLI commands are acceptable for **exploration and debugging** (e.g. inspecting resource state). However:
 
 1. Any `az` CLI change to Azure resources is **temporary and must be reverted** once the investigation is done.
 2. The fix must be captured in Bicep templates (`infra/`) or the `deploy-infra.yml` workflow.
-3. Production state is always defined by `deploy-infra.yml` — never by ad-hoc CLI commands. All infrastructure changes ship through that workflow.
+3. Production state is always defined by `deploy-infra.yml` — never by ad-hoc CLI commands.
+
+**Validation:** The `analyze-infra.yml` workflow runs PSRule for Azure on every push/PR touching `infra/`. Configuration is in `ps-rule.yaml`. After modifying infra, push to a branch and verify the `Analyze Infrastructure` check passes before merging. If a rule must be suppressed (e.g. Consumption plan limitations), add it to `ps-rule.yaml` `rule.exclude` with a justifying comment.
+
+**Structure:** `infra/main.bicep` orchestrates modules in `infra/modules/`. New params must be added to both `main.bicep` and `infra/parameters.prod.lfm.json`. Module params are required with no defaults — they are expanded through `main.bicep` via parameter-file expansion, not standalone.
 
 ## Database Migrations
 
