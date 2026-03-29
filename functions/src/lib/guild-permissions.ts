@@ -1,5 +1,6 @@
 import type { BlizzardGuildRosterResponse } from "../types/blizzard.js";
-import type { GuildDocument, RaiderDocument, StoredSelectedCharacter } from "../types/index.js";
+import type { GuildDocument, RaiderDocument } from "../types/index.js";
+import { resolveMatchedGuildRanks } from "./guild-member-match.js";
 
 export const GUILD_ROSTER_TTL_MS = 60 * 60 * 1000;
 
@@ -14,10 +15,6 @@ export interface EffectiveGuildPermissions {
   canCreateGuildRaids: boolean;
   canSignupGuildRaids: boolean;
   rankDataFresh: boolean;
-}
-
-function normalizeRosterKey(realmSlug: string, name: string): string {
-  return `${realmSlug.toLowerCase()}:${name.toLowerCase()}`;
 }
 
 export function getGuildRanksFromRoster(roster?: BlizzardGuildRosterResponse): number[] {
@@ -63,18 +60,7 @@ function resolveMatchedRank(
   raider: RaiderDocument | undefined,
   roster: BlizzardGuildRosterResponse | undefined
 ): number | null {
-  if (!raider || !roster) return null;
-
-  const rosterRanks = new Map<string, number>();
-  for (const member of roster.members) {
-    rosterRanks.set(normalizeRosterKey(member.character.realm.slug, member.character.name), member.rank);
-  }
-
-  const matchedRanks = raider.characters.flatMap((character: StoredSelectedCharacter) => {
-    const rank = rosterRanks.get(normalizeRosterKey(character.realm, character.name));
-    return rank === undefined ? [] : [rank];
-  });
-
+  const matchedRanks = resolveMatchedGuildRanks(raider, roster);
   return matchedRanks.length > 0 ? Math.min(...matchedRanks) : null;
 }
 

@@ -76,6 +76,7 @@ function createRaider(name: string): RaiderDocument {
         name,
         fetchedAt: "2026-03-25T10:00:00.000Z",
         profileSummary: {
+          id: name === "Highlord" ? 201 : name === "Aelrin" ? 101 : name === "Brakka" ? 102 : undefined,
           name,
           level: 80,
           realm: { slug: "test-realm", name: { en_US: "Test Realm" } },
@@ -137,6 +138,24 @@ describe("guild permissions", () => {
     const permissions = getEffectiveGuildPermissions(createGuildDoc(), createRaider("Aelrin"), Date.parse("2026-03-25T10:30:00.000Z"));
     expect(permissions.matchedRank).toBe(2);
     expect(permissions.canCreateGuildRaids).toBe(false);
+    expect(permissions.canSignupGuildRaids).toBe(true);
+  });
+
+  it("matches a member by canonical profile data when stored top-level fields drift", () => {
+    const raider = createRaider("Aelrin");
+    raider.characters[0].realm = "old-realm";
+    raider.characters[0].name = "Aelrinn";
+
+    const permissions = getEffectiveGuildPermissions(
+      createGuildDoc({
+        rankPermissions: [{ rank: 2, canCreateGuildRaids: true, canSignupGuildRaids: true }],
+      }),
+      raider,
+      Date.parse("2026-03-25T10:30:00.000Z"),
+    );
+
+    expect(permissions.matchedRank).toBe(2);
+    expect(permissions.canCreateGuildRaids).toBe(true);
     expect(permissions.canSignupGuildRaids).toBe(true);
   });
 

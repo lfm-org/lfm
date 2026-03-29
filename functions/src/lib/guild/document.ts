@@ -63,6 +63,7 @@ export async function refreshGuildDocument(args: RefreshGuildDocumentArgs): Prom
     id: args.guildDocId,
     guildId: args.guildId,
     realmSlug: args.realmSlug,
+    slogan: args.cached?.slogan,
     profileSummary,
     profileFetchedAt: fetchedAt,
     blizzardProfileRaw: profileSummary,

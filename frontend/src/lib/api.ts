@@ -8,6 +8,21 @@ export function resolveApiAssetUrl(url: string, apiBaseUrl = API_BASE_URL): stri
   return new URL(url, apiBaseUrl).toString();
 }
 
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const responseData = error.response?.data;
+    if (
+      typeof responseData === "object" &&
+      responseData !== null &&
+      typeof (responseData as { error?: unknown }).error === "string"
+    ) {
+      return (responseData as { error: string }).error;
+    }
+  }
+
+  return fallback;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,

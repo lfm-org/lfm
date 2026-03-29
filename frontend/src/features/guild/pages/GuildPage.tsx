@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 import SurfaceCard from "../../../components/SurfaceCard";
-import api from "../../../lib/api";
+import api, { getApiErrorMessage } from "../../../lib/api";
 import GuildIdentityCard from "../components/GuildIdentityCard";
 import GuildRouteShell from "../components/GuildRouteShell";
 import GuildSettingsEditor from "../components/GuildSettingsEditor";
@@ -48,8 +48,8 @@ export default function GuildPage() {
       );
       setData(normalizeGuildHomeResponse(response.data));
       setSaveSuccess("Guild settings saved");
-    } catch {
-      setSaveError("Failed to save guild settings");
+    } catch (error) {
+      setSaveError(getApiErrorMessage(error, "Failed to save guild settings"));
     } finally {
       setSaving(false);
     }

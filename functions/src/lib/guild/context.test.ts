@@ -57,11 +57,36 @@ describe("resolveGuildEditor", () => {
   it("returns member access for non-guild-master matches", () => {
     const resolution = resolveGuildEditor(
       {
-        characters: [{ id: "a", realm: "test-realm", name: "Aelrin" }],
+        characters: [{
+          id: "a",
+          realm: "test-realm",
+          name: "Aelrin",
+          profileSummary: { id: 101, name: "Aelrin", realm: { slug: "test-realm", name: { en_US: "Test Realm" } } },
+        }],
       } as never,
       {
         members: [
           { rank: 2, character: { name: "Aelrin", realm: { slug: "test-realm" } } },
+        ],
+      } as never,
+    );
+
+    expect(resolution).toEqual({ canEdit: false, mode: "member", matchedRank: 2 });
+  });
+
+  it("uses canonical profile data when stored top-level fields drift", () => {
+    const resolution = resolveGuildEditor(
+      {
+        characters: [{
+          id: "a",
+          realm: "old-realm",
+          name: "Aelrinn",
+          profileSummary: { id: 101, name: "Aelrin", realm: { slug: "test-realm", name: { en_US: "Test Realm" } } },
+        }],
+      } as never,
+      {
+        members: [
+          { rank: 2, character: { id: 101, name: "Aelrin", realm: { slug: "test-realm" } } },
         ],
       } as never,
     );

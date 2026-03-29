@@ -268,6 +268,7 @@ export interface BlizzardGuildRosterResponse {
 }
 
 export interface BlizzardCharacterProfileSummary {
+  id?: number;
   name: string;
   level: number;
   realm: {
