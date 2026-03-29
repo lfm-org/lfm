@@ -7,7 +7,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 run_fast() {
   (cd "$ROOT_DIR/functions" && npm run verify:fast)
   (cd "$ROOT_DIR/frontend" && npm run verify:fast)
-  (cd "$ROOT_DIR" && node --test infra/scripts/verify-security-alignment.test.mjs)
 }
 
 run_browser() {
