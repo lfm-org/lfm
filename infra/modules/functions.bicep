@@ -54,6 +54,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       linuxFxVersion: 'NODE|22'
       ftpsState: 'Disabled'
+      http20Enabled: true
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
       cors: {

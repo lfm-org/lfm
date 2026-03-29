@@ -25,16 +25,20 @@ input:
   pathIgnore:
     # Ignore everything by default.
     - "**"
-    # Include infrastructure templates.
+    # Include infrastructure templates and parameter files.
     - "!infra/**/*.bicep"
     - "!infra/**/*.json"
+    # Exclude module files — they are expanded through main.bicep via
+    # the parameter file metadata link, not individually.
+    - "infra/modules/**/*.bicep"
 
 configuration:
-  # Enable expansion of Bicep source files.
-  AZURE_BICEP_FILE_EXPANSION: true
+  # Expand via parameter files only — parameter files carry a metadata.template
+  # link to infra/main.bicep, which resolves all modules with real parameter
+  # values.  Direct Bicep expansion is disabled because module files have no
+  # default parameter values and would fail expansion individually.
+  AZURE_BICEP_FILE_EXPANSION: false
   AZURE_BICEP_FILE_EXPANSION_TIMEOUT: 10
-
-  # Enable expansion of ARM parameter files.
   AZURE_PARAMETER_FILE_EXPANSION: true
 
   # Placeholder resource group for analysis.

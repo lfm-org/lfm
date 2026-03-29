@@ -1,6 +1,9 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
+  "metadata": {
+    "template": "infra/main.bicep"
+  },
   "parameters": {
     "location": { "value": "westeurope" },
     "cosmosAccountName": { "value": "lfm-cosmos" },
