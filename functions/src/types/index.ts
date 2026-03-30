@@ -66,6 +66,7 @@ export interface RaiderDocument {
   accountGuildsSummary?: BlizzardAccountGuildsSummary;
   characters: StoredSelectedCharacter[];
   portraitCache?: Record<string, string>;
+  locale?: string;
 }
 
 // Guild document (Cosmos container: guilds, partition key: /id)

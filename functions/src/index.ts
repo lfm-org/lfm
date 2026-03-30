@@ -6,6 +6,7 @@ import "./functions/cors-preflight.js";
 import "./functions/health.js";
 import "./functions/me.js";
 import "./functions/me-delete.js";
+import "./functions/me-update.js";
 import "./functions/raider-cleanup.js";
 import "./functions/battlenet-login.js";
 import "./functions/battlenet-callback.js";

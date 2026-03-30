@@ -31,7 +31,7 @@ describe("meHandler", () => {
     mockGetRaidersContainer.mockReturnValue({
       item: vi.fn(() => ({
         read: vi.fn().mockResolvedValue({
-          resource: { selectedCharacterId: "char-1" },
+          resource: { selectedCharacterId: "char-1", locale: "fi" },
         }),
       })),
     });
@@ -45,6 +45,7 @@ describe("meHandler", () => {
       guildName: "Test Guild",
       selectedCharacterId: "char-1",
       isSiteAdmin: true,
+      locale: "fi",
     });
     expect(mockIsSiteAdmin).toHaveBeenCalledWith("bnet-1");
   });
@@ -72,6 +73,7 @@ describe("meHandler", () => {
       guildName: "Another Guild",
       selectedCharacterId: null,
       isSiteAdmin: false,
+      locale: null,
     });
     expect(mockIsSiteAdmin).toHaveBeenCalledWith("bnet-2");
   });

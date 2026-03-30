@@ -16,6 +16,7 @@ export async function meHandler(request: HttpRequest, _context: InvocationContex
     guildName: identity.guildName,
     selectedCharacterId: raider?.selectedCharacterId ?? null,
     isSiteAdmin: await isSiteAdmin(identity.battleNetId),
+    locale: raider?.locale ?? null,
   });
 }
 
