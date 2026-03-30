@@ -5,6 +5,7 @@ export interface AuthUser {
   guildName: string | null;
   selectedCharacterId: string | null;
   isSiteAdmin: boolean;
+  locale: string | null;
 }
 
 export async function checkAuth(): Promise<AuthUser | null> {
@@ -14,6 +15,10 @@ export async function checkAuth(): Promise<AuthUser | null> {
   } catch {
     return null;
   }
+}
+
+export async function updateLocale(locale: string): Promise<void> {
+  await api.patch("/me", { locale });
 }
 
 export function getLoginUrl(redirect?: string): string {

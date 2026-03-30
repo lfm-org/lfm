@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { useLocation } from "react-router";
-import { checkAuth, type AuthUser } from "../../../lib/auth";
+import { checkAuth, updateLocale, type AuthUser } from "../../../lib/auth";
 import { AuthContext } from "./context";
+import i18n, { isSupportedLocale } from "../../../i18n/i18n";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -23,8 +24,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const setLocale = useCallback((locale: string) => {
+    if (!isSupportedLocale(locale)) return;
+    i18n.changeLanguage(locale);
+    setUser(u => u ? { ...u, locale } : u);
+    if (user) {
+      updateLocale(locale).catch(() => {});
+    }
+  }, [user]);
+
   useEffect(() => {
-    checkAuth().then(setUser).finally(() => setLoading(false));
+    checkAuth().then((authUser) => {
+      setUser(authUser);
+      if (authUser?.locale && isSupportedLocale(authUser.locale)) {
+        i18n.changeLanguage(authUser.locale);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -34,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, postAuthRedirect]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, onCharacterSelected, clearAuth, onAccountDeleted, postAuthRedirect }}>
+    <AuthContext.Provider value={{ user, loading, onCharacterSelected, clearAuth, onAccountDeleted, postAuthRedirect, setLocale }}>
       {children}
     </AuthContext.Provider>
   );
