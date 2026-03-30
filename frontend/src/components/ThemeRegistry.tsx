@@ -1,15 +1,23 @@
 import { type ReactNode } from "react";
-import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
+import { useTranslation } from "react-i18next";
+import { fiFI as muiFiFI } from "@mui/material/locale";
 import theme from "../theme";
 
+const themeEn = theme;
+const themeFi = createTheme(theme, muiFiFI);
+
 export default function ThemeRegistry({ children }: { children: ReactNode }) {
+  const { i18n } = useTranslation();
+  const activeTheme = i18n.language === "fi" ? themeFi : themeEn;
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={activeTheme}>
       <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale="fi">
+      <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale="en">
         {children}
       </LocalizationProvider>
     </ThemeProvider>
