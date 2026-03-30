@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
+import Footer from "./Footer";
 import { useAuth } from "../../features/auth";
 import api from "../../lib/api";
 import { normalizePortraitUrlField } from "../../lib/portraitUrls";
@@ -78,6 +79,7 @@ export default function AppLayout({ children }: Props) {
       <Box component="main" id="main-content" sx={{ flex: 1 }}>
         {children}
       </Box>
+      <Footer />
     </Box>
   );
 }
