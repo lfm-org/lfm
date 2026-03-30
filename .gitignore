@@ -79,3 +79,6 @@ frontend/dist/
 frontend/e2e/test-results/
 .mcp.json
 .worktrees/
+
+# Superpowers
+.superpowers
