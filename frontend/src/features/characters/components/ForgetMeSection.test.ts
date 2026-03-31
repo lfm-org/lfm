@@ -1,7 +1,12 @@
 import { Box } from "@mui/material";
 import { isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "en" } }),
+}));
+
 import ForgetMeSection from "./ForgetMeSection";
 
 describe("ForgetMeSection", () => {
@@ -24,8 +29,8 @@ describe("ForgetMeSection", () => {
     });
 
     const markup = renderToStaticMarkup(element);
-    expect(markup).toContain("Forget me");
-    expect(markup).toContain("Type FORGET ME to confirm");
-    expect(markup).toContain("This action cannot be undone.");
+    expect(markup).toContain("forgetMe.title");
+    expect(markup).toContain("forgetMe.confirmLabel");
+    expect(markup).toContain("forgetMe.undoWarning");
   });
 });

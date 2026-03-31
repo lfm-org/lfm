@@ -52,7 +52,7 @@ export default function CreateRaidPage() {
   useEffect(() => {
     api.get<WowInstance[]>("/instances")
       .then((res) => setInstances(normalizeWowInstances(res.data)))
-      .catch(() => setError(t("createRaid.loadInstancesFailed")))
+      .catch(() => setError("createRaid.loadInstancesFailed"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -125,7 +125,7 @@ export default function CreateRaidPage() {
       });
       navigate(`/raids?raid=${encodeURIComponent(res.data.id)}`);
     } catch {
-      setError(t("createRaid.createFailed"));
+      setError("createRaid.createFailed");
       setSubmitting(false);
     }
   };
@@ -138,7 +138,7 @@ export default function CreateRaidPage() {
     <PageContainer maxWidth={600}>
       <Typography variant="h5" component="h1" gutterBottom>{t("createRaid.title")}</Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{t(error)}</Alert>}
 
       <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.instance}>
         <InputLabel>{t("createRaid.instance")}</InputLabel>
