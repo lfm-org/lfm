@@ -1,5 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
 import type { GuildHomeResponse } from "../lib/guildHome";
 
@@ -11,6 +12,7 @@ interface GuildIdentityCardProps {
 }
 
 export default function GuildIdentityCard({ guild, metadata }: GuildIdentityCardProps) {
+  const { t } = useTranslation();
   return (
     <SurfaceCard padding={3} sx={{ overflow: "hidden" }}>
       <Stack spacing={2.5}>
@@ -23,7 +25,7 @@ export default function GuildIdentityCard({ guild, metadata }: GuildIdentityCard
             <Box
               component="img"
               src={guild.crestUrl}
-              alt={`${guild.name} crest`}
+              alt={t("guildIdentity.crestAlt", { name: guild.name })}
               sx={{
                 width: 88,
                 height: 88,
@@ -59,7 +61,7 @@ export default function GuildIdentityCard({ guild, metadata }: GuildIdentityCard
 
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.18em" }}>
-              Guild identity
+              {t("guildIdentity.title")}
             </Typography>
             <Typography variant="h4" component="h2" sx={{ lineHeight: 1.1 }}>
               {guild.name}
@@ -79,7 +81,7 @@ export default function GuildIdentityCard({ guild, metadata }: GuildIdentityCard
         {metadata && (
           <Box sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
             <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.18em" }}>
-              Shared metadata
+              {t("guildIdentity.metadata")}
             </Typography>
             <Box sx={{ mt: 1.5 }}>{metadata}</Box>
           </Box>

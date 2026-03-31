@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { GUILD_LOCALE_OPTIONS, GUILD_TIMEZONE_OPTIONS } from "../../../lib/guildConfig";
 import type { GuildRankPermission } from "../lib/guildSettingsForm";
 
@@ -32,10 +33,11 @@ interface GuildSettingsEditorProps {
 }
 
 export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
+  const { t } = useTranslation();
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 640 }}>
       <FormControl fullWidth sx={{ maxWidth: 320 }}>
-        <InputLabel htmlFor="guild-timezone">Time zone</InputLabel>
+        <InputLabel htmlFor="guild-timezone">{t("guildSettings.timezone")}</InputLabel>
         <NativeSelect
           value={props.timezone}
           onChange={(event) => props.onTimezoneChange(event.target.value)}
@@ -51,7 +53,7 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
       </FormControl>
 
       <FormControl fullWidth sx={{ maxWidth: 320 }}>
-        <InputLabel htmlFor="guild-locale">Locale</InputLabel>
+        <InputLabel htmlFor="guild-locale">{t("guildSettings.locale")}</InputLabel>
         <NativeSelect
           value={props.locale}
           onChange={(event) => props.onLocaleChange(event.target.value)}
@@ -67,20 +69,20 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
       </FormControl>
 
       <TextField
-        label="Slogan"
+        label={t("guildSettings.slogan")}
         value={props.slogan}
         onChange={(event) => props.onSloganChange(event.target.value)}
         disabled={!props.rankDataFresh || props.saving}
         multiline
         minRows={2}
-        helperText="Shown beside the guild name."
+        helperText={t("guildSettings.sloganHelper")}
         sx={{ maxWidth: 480 }}
       />
 
       {props.rankPermissions.length > 0 && (
         <Stack spacing={1.5}>
           <Typography variant="h6" component="h3">
-            Rank permissions
+            {t("guildSettings.rankPermissions")}
           </Typography>
           {props.rankPermissions.map((permission) => (
             <Box
@@ -94,7 +96,7 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
                 borderRadius: 2,
               }}
             >
-              <Typography fontWeight={600}>Rank {permission.rank}</Typography>
+              <Typography fontWeight={600}>{t("guildSettings.rank", { rank: permission.rank })}</Typography>
               <FormControlLabel
                 control={(
                   <Checkbox
@@ -108,7 +110,7 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
                     disabled={!props.rankDataFresh || props.saving}
                   />
                 )}
-                label={`Allow guild raid creation for Rank ${permission.rank}`}
+                label={t("guildSettings.allowCreate", { rank: permission.rank })}
               />
               <FormControlLabel
                 control={(
@@ -123,7 +125,7 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
                     disabled={!props.rankDataFresh || props.saving}
                   />
                 )}
-                label={`Allow guild raid signup for Rank ${permission.rank}`}
+                label={t("guildSettings.allowSignup", { rank: permission.rank })}
               />
             </Box>
           ))}
@@ -136,7 +138,7 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
           onClick={props.onSave}
           disabled={props.saving || !props.rankDataFresh}
         >
-          {props.saving ? "Saving..." : "Save guild settings"}
+          {props.saving ? t("guildSettings.saving") : t("guildSettings.saveButton")}
         </Button>
       </Box>
     </Stack>

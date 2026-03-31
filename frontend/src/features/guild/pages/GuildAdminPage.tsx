@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, Stack, TextField, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
 import api, { getApiErrorMessage } from "../../../lib/api";
 import { useAuth } from "../../auth";
@@ -20,6 +21,7 @@ interface ResolveResponse {
 }
 
 export default function GuildAdminPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [guildId, setGuildId] = useState("");
   const [resolving, setResolving] = useState(false);
@@ -51,7 +53,7 @@ export default function GuildAdminPage() {
       setData(normalized);
       setDraft(createGuildSettingsDraft(normalized));
     } catch {
-      setError("Failed to load guild settings");
+      setError(t("guildAdmin.loadFailed"));
       setData(null);
     } finally {
       setLoading(false);
@@ -69,7 +71,7 @@ export default function GuildAdminPage() {
     } catch {
       setResolved(null);
       setData(null);
-      setError("Failed to resolve guild");
+      setError(t("guildAdmin.resolveFailed"));
     } finally {
       setResolving(false);
     }
@@ -88,9 +90,9 @@ export default function GuildAdminPage() {
       const normalized = normalizeGuildHomeResponse(response.data);
       setData(normalized);
       setDraft(createGuildSettingsDraft(normalized));
-      setSuccess("Guild settings saved");
+      setSuccess(t("guild.settingsSaved"));
     } catch (error) {
-      setError(getApiErrorMessage(error, "Failed to save guild settings"));
+      setError(getApiErrorMessage(error, t("guild.settingsSaveFailed")));
     } finally {
       setSaving(false);
     }
@@ -99,11 +101,11 @@ export default function GuildAdminPage() {
   if (!user?.isSiteAdmin) {
     return (
       <GuildRouteShell
-        title="Guild admin"
-        description="Resolve a guild explicitly, then edit the same settings through the site-admin override path."
+        title={t("guildAdmin.title")}
+        description={t("guildAdmin.description")}
       >
         <Stack spacing={3}>
-          <Alert severity="error">Site admin access required.</Alert>
+          <Alert severity="error">{t("guildAdmin.accessRequired")}</Alert>
         </Stack>
       </GuildRouteShell>
     );
@@ -111,8 +113,8 @@ export default function GuildAdminPage() {
 
   return (
     <GuildRouteShell
-      title="Guild admin"
-      description="Resolve a guild explicitly, then edit the same settings through the site-admin override path."
+      title={t("guildAdmin.title")}
+      description={t("guildAdmin.description")}
     >
       <Stack spacing={3}>
         {error && <Alert severity="error">{error}</Alert>}
@@ -121,13 +123,13 @@ export default function GuildAdminPage() {
         <SurfaceCard padding={3}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "flex-end" }}>
             <TextField
-              label="Guild ID"
+              label={t("guildAdmin.guildIdLabel")}
               value={guildId}
               onChange={(event) => setGuildId(event.target.value)}
               sx={{ maxWidth: 240 }}
             />
             <Button variant="contained" onClick={handleResolve} disabled={resolving || !guildId.trim()}>
-              {resolving ? "Loading..." : "Load guild"}
+              {resolving ? t("guildAdmin.loadButtonLoading") : t("guildAdmin.loadButton")}
             </Button>
           </Stack>
         </SurfaceCard>
@@ -135,7 +137,7 @@ export default function GuildAdminPage() {
         {loading && (
           <Stack direction="row" spacing={1.5} alignItems="center">
             <CircularProgress size={20} />
-          <Typography color="text.secondary">Loading guild override data...</Typography>
+          <Typography color="text.secondary">{t("guildAdmin.loading")}</Typography>
         </Stack>
       )}
 
@@ -145,22 +147,22 @@ export default function GuildAdminPage() {
             guild={data.guild}
             metadata={(
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
-                <Chip label={`Guild ID ${resolved.guildId}`} variant="outlined" />
+                <Chip label={t("guildAdmin.guildIdChip", { id: resolved.guildId })} variant="outlined" />
                 <Chip
-                  label={data.setup.rankDataFresh ? "Rank sync fresh" : "Rank sync not configured yet"}
+                  label={data.setup.rankDataFresh ? t("guild.chip.rankSyncFresh") : t("guild.chip.rankSyncNotConfigured")}
                   variant="outlined"
                 />
                 {data.guild.memberCount != null && (
-                  <Chip label={`${data.guild.memberCount} members`} variant="outlined" />
+                  <Chip label={t("guild.chip.members", { count: data.guild.memberCount })} variant="outlined" />
                 )}
                 {data.guild.syncedMemberCount != null && (
-                  <Chip label={`${data.guild.syncedMemberCount} synced roster`} variant="outlined" />
+                  <Chip label={t("guild.chip.syncedRoster", { count: data.guild.syncedMemberCount })} variant="outlined" />
                 )}
                 {data.guild.rankCount != null && (
-                  <Chip label={`${data.guild.rankCount} ranks detected`} variant="outlined" />
+                  <Chip label={t("guild.chip.ranksDetected", { count: data.guild.rankCount })} variant="outlined" />
                 )}
                 {data.guild.achievementPoints != null && (
-                  <Chip label={`${data.guild.achievementPoints} achievement points`} variant="outlined" />
+                  <Chip label={t("guild.chip.achievementPoints", { count: data.guild.achievementPoints })} variant="outlined" />
                 )}
               </Stack>
             )}
@@ -170,20 +172,20 @@ export default function GuildAdminPage() {
             <Stack spacing={2.5}>
               <Box>
                 <Typography variant="h6" component="h2">
-                  Override settings
+                  {t("guildAdmin.overrideSettings")}
                 </Typography>
                 <Typography color="text.secondary">
-                  Editing {resolved.guildName ?? data.guild.name}
+                  {t("guildAdmin.editing", { name: resolved.guildName ?? data.guild.name })}
                 </Typography>
               </Box>
 
               {!data.setup.rankDataFresh && (
-                <Alert severity="error">Rank sync is stale. Guild settings are locked until roster data refreshes.</Alert>
+                <Alert severity="error">{t("guild.rankSyncStale")}</Alert>
               )}
 
               {data.adminOverride?.lastOverrideAt && (
                 <Alert severity="info">
-                  Last override by {data.adminOverride.lastOverrideBy ?? "unknown"} at {data.adminOverride.lastOverrideAt}
+                  {t("guildAdmin.lastOverride", { by: data.adminOverride.lastOverrideBy ?? "unknown", at: data.adminOverride.lastOverrideAt })}
                 </Alert>
               )}
 

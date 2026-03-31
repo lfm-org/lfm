@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
 import api, { getApiErrorMessage } from "../../../lib/api";
 import GuildIdentityCard from "../components/GuildIdentityCard";
@@ -15,6 +16,7 @@ import {
 import { useGuildHome } from "../lib/useGuildHome";
 
 export default function GuildPage() {
+  const { t } = useTranslation();
   const { data, loading, error, setData } = useGuildHome();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -47,9 +49,9 @@ export default function GuildPage() {
         toGuildSettingsPayload(draft),
       );
       setData(normalizeGuildHomeResponse(response.data));
-      setSaveSuccess("Guild settings saved");
+      setSaveSuccess(t("guild.settingsSaved"));
     } catch (error) {
-      setSaveError(getApiErrorMessage(error, "Failed to save guild settings"));
+      setSaveError(getApiErrorMessage(error, t("guild.settingsSaveFailed")));
     } finally {
       setSaving(false);
     }
@@ -58,12 +60,12 @@ export default function GuildPage() {
   if (loading) {
     return (
       <GuildRouteShell
-        title="Guild"
-        description="Review the active guild, keep its slogan current, and manage rank-gated raid settings from one shared surface."
+        title={t("guild.title")}
+        description={t("guild.description")}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
           <CircularProgress size={20} />
-          <Typography color="text.secondary">Loading guild home...</Typography>
+          <Typography color="text.secondary">{t("guild.loading")}</Typography>
         </Stack>
       </GuildRouteShell>
     );
@@ -71,8 +73,8 @@ export default function GuildPage() {
 
   return (
     <GuildRouteShell
-      title="Guild"
-      description="Review the active guild, keep its slogan current, and manage rank-gated raid settings from one shared surface."
+      title={t("guild.title")}
+      description={t("guild.description")}
     >
       <Stack spacing={3}>
         {error && <Alert severity="error">{error}</Alert>}
@@ -81,10 +83,10 @@ export default function GuildPage() {
           <SurfaceCard padding={3}>
             <Stack spacing={1.5}>
               <Typography variant="h6" component="h2">
-                No guild on the active character
+                {t("guild.noGuild.title")}
               </Typography>
               <Typography color="text.secondary">
-                Select a character that belongs to a guild to unlock the shared guild surface.
+                {t("guild.noGuild.body")}
               </Typography>
             </Stack>
           </SurfaceCard>
@@ -97,28 +99,28 @@ export default function GuildPage() {
               metadata={(
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
                   <Chip
-                    label={data.setup.isInitialized ? "Settings live" : "Settings pending"}
+                    label={data.setup.isInitialized ? t("guild.chip.settingsLive") : t("guild.chip.settingsPending")}
                     color={data.setup.isInitialized ? "success" : "warning"}
                   />
                   <Chip
-                    label={data.editor.canEdit ? "Editable" : "Read-only"}
+                    label={data.editor.canEdit ? t("guild.chip.editable") : t("guild.chip.readOnly")}
                     variant="outlined"
                   />
                   <Chip
-                    label={data.setup.rankDataFresh ? "Rank sync fresh" : "Rank sync not configured yet"}
+                    label={data.setup.rankDataFresh ? t("guild.chip.rankSyncFresh") : t("guild.chip.rankSyncNotConfigured")}
                     variant="outlined"
                   />
                   {data.guild.memberCount != null && (
-                    <Chip label={`${data.guild.memberCount} members`} variant="outlined" />
+                    <Chip label={t("guild.chip.members", { count: data.guild.memberCount })} variant="outlined" />
                   )}
                   {data.guild.syncedMemberCount != null && (
-                    <Chip label={`${data.guild.syncedMemberCount} synced roster`} variant="outlined" />
+                    <Chip label={t("guild.chip.syncedRoster", { count: data.guild.syncedMemberCount })} variant="outlined" />
                   )}
                   {data.guild.rankCount != null && (
-                    <Chip label={`${data.guild.rankCount} ranks detected`} variant="outlined" />
+                    <Chip label={t("guild.chip.ranksDetected", { count: data.guild.rankCount })} variant="outlined" />
                   )}
                   {data.guild.achievementPoints != null && (
-                    <Chip label={`${data.guild.achievementPoints} achievement points`} variant="outlined" />
+                    <Chip label={t("guild.chip.achievementPoints", { count: data.guild.achievementPoints })} variant="outlined" />
                   )}
                 </Stack>
               )}
@@ -129,10 +131,10 @@ export default function GuildPage() {
                 {data.editor.canEdit ? (
                   <Stack spacing={2.5}>
                     {data.setup.requiresSetup && (
-                      <Alert severity="warning">Guild master setup required</Alert>
+                      <Alert severity="warning">{t("guild.setupRequired")}</Alert>
                     )}
                     {!data.setup.rankDataFresh && (
-                      <Alert severity="error">Rank sync is stale. Guild settings are locked until roster data refreshes.</Alert>
+                      <Alert severity="error">{t("guild.rankSyncStale")}</Alert>
                     )}
                     {saveError && <Alert severity="error">{saveError}</Alert>}
                     {saveSuccess && <Alert severity="success">{saveSuccess}</Alert>}
@@ -157,16 +159,16 @@ export default function GuildPage() {
                 ) : (
                   <Box>
                     <Typography variant="h6" component="h2" gutterBottom>
-                      Member access
+                      {t("guild.memberAccess")}
                     </Typography>
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
                       <Chip
-                        label={data.memberPermissions.canCreateGuildRaids ? "You can create guild raids" : "Guild raid creation blocked for your rank"}
+                        label={data.memberPermissions.canCreateGuildRaids ? t("guild.chip.canCreate") : t("guild.chip.cannotCreate")}
                         color={data.memberPermissions.canCreateGuildRaids ? "success" : "default"}
                         variant={data.memberPermissions.canCreateGuildRaids ? "filled" : "outlined"}
                       />
                       <Chip
-                        label={data.memberPermissions.canSignupGuildRaids ? "You can sign up to guild raids" : "Guild signup blocked for your rank"}
+                        label={data.memberPermissions.canSignupGuildRaids ? t("guild.chip.canSignup") : t("guild.chip.cannotSignup")}
                         color={data.memberPermissions.canSignupGuildRaids ? "success" : "default"}
                         variant={data.memberPermissions.canSignupGuildRaids ? "filled" : "outlined"}
                       />
