@@ -5,8 +5,8 @@ import { useAuth } from "../../features/auth";
 import { isSupportedLocale } from "../../i18n/i18n";
 
 const locales = [
-  { code: "en", label: "EN" },
-  { code: "fi", label: "FI" },
+  { code: "en", label: "🇬🇧" },
+  { code: "fi", label: "🇫🇮" },
 ] as const;
 
 export default function Footer() {
