@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Box, Chip, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { DateTime } from "luxon";
 import type { Raid } from "../lib/raidTypes";
 import SurfaceCard from "../../../components/SurfaceCard";
@@ -19,6 +20,7 @@ function parseRaidTime(iso: string, zone: string): DateTime | null {
 }
 
 export default function RaidInfoCard({ raid, modeLabel, guildTimezone, children }: RaidInfoCardProps) {
+  const { t } = useTranslation();
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
   const startDt = parseRaidTime(raid.startTime, timezone);
   const closeDt = parseRaidTime(raid.signupCloseTime, timezone);
@@ -45,11 +47,11 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, children 
         &ldquo;{raid.description}&rdquo;
       </Typography>
       <Typography variant="body2" color={startHasPassed ? "text.secondary" : "text.primary"}>
-        {startDisplay}{startHasPassed ? " (passed)" : ""}
+        {startDisplay}{startHasPassed ? ` ${t("raidInfo.passed")}` : ""}
       </Typography>
       {closeDt && (
         <Typography variant="caption" color={isClosed ? "error" : "text.secondary"}>
-          Signups {isClosed ? "closed" : "close"}:{" "}
+          {isClosed ? t("raidInfo.signupsClosed") : t("raidInfo.signupsClose")}:{" "}
           {closeDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)}
         </Typography>
       )}

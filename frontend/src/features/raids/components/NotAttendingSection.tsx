@@ -1,4 +1,5 @@
 import { Box, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { CharacterCard } from "../../characters";
 import type { RaidSignup } from "../lib/raidTypes";
 
@@ -7,6 +8,8 @@ interface NotAttendingSectionProps {
 }
 
 export default function NotAttendingSection({ signups }: NotAttendingSectionProps) {
+  const { t } = useTranslation();
+
   if (signups.length === 0) return null;
 
   return (
@@ -17,7 +20,7 @@ export default function NotAttendingSection({ signups }: NotAttendingSectionProp
         fontWeight={700}
         sx={{ mb: 1, textTransform: "uppercase", letterSpacing: "0.05em", color: "text.secondary" }}
       >
-        Not Attending ({signups.length})
+        {t("notAttending.title", { count: signups.length })}
       </Typography>
       {signups.map(s => (
         <CharacterCard

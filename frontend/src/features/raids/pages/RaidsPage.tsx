@@ -9,6 +9,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import { resolveInstanceModeLabel } from "../../../lib/wow/instances";
 import { useAuth } from "../../auth";
@@ -19,6 +20,7 @@ import { useRaids } from "../lib/useRaids";
 
 export default function RaidsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -50,11 +52,11 @@ export default function RaidsPage() {
   const pagination = !loading && totalPages > 1 && (
     <Box
       component="nav"
-      aria-label="Raid pages"
+      aria-label={t("raids.pagination")}
       sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
     >
       <Button size="small" variant="outlined" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
-        Previous
+        {t("common.previous")}
       </Button>
       {Array.from({ length: totalPages }, (_, index) => {
         const page = index + 1;
@@ -71,7 +73,7 @@ export default function RaidsPage() {
         );
       })}
       <Button size="small" variant="outlined" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
-        Next
+        {t("common.next")}
       </Button>
     </Box>
   );
@@ -79,8 +81,8 @@ export default function RaidsPage() {
   return (
     <PageContainer maxWidth={isDesktop ? 1280 : undefined}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
-        <Typography component="h1" variant="h5">Raids</Typography>
-        <Button variant="contained" onClick={() => navigate("/raids/new")}>Create Raid</Button>
+        <Typography component="h1" variant="h5">{t("raids.title")}</Typography>
+        <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -90,7 +92,7 @@ export default function RaidsPage() {
           <CircularProgress />
         </Box>
       ) : raids.length === 0 ? (
-        <Typography color="text.secondary">No raids found.</Typography>
+        <Typography color="text.secondary">{t("raids.empty")}</Typography>
       ) : isDesktop ? (
         /* Desktop: two-column layout */
         <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
@@ -139,7 +141,7 @@ export default function RaidsPage() {
                 canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
               />
             ) : (
-              <Typography color="text.secondary">Select a raid to view details.</Typography>
+              <Typography color="text.secondary">{t("raids.selectPrompt")}</Typography>
             )}
           </Box>
         </Box>

@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, TextField, Button, Alert,
   FormControl, InputLabel, Select, MenuItem,
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import FormHelperText from "@mui/material/FormHelperText";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import DOMPurify from "dompurify";
 import { DateTime } from "luxon";
 import api from "../../../lib/api";
@@ -24,6 +27,7 @@ const MAX_DESCRIPTION = 500;
 
 export default function CreateRaidPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data: guildHome } = useGuildHome();
 
   const [instances, setInstances] = useState<WowInstance[]>([]);
@@ -48,7 +52,7 @@ export default function CreateRaidPage() {
   useEffect(() => {
     api.get<WowInstance[]>("/instances")
       .then((res) => setInstances(normalizeWowInstances(res.data)))
-      .catch(() => setError("Failed to load instances"))
+      .catch(() => setError(t("createRaid.loadInstancesFailed")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -121,26 +125,26 @@ export default function CreateRaidPage() {
       });
       navigate(`/raids?raid=${encodeURIComponent(res.data.id)}`);
     } catch {
-      setError("Failed to create raid");
+      setError(t("createRaid.createFailed"));
       setSubmitting(false);
     }
   };
 
-  if (loading) return <Typography sx={{ p: 4 }}>Loading...</Typography>;
+  if (loading) return <Typography sx={{ p: 4 }}>{t("createRaid.loading")}</Typography>;
 
   const descriptionCount = description.trim().length;
 
   return (
     <PageContainer maxWidth={600}>
-      <Typography variant="h5" component="h1" gutterBottom>Create Raid</Typography>
+      <Typography variant="h5" component="h1" gutterBottom>{t("createRaid.title")}</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.instance}>
-        <InputLabel>Instance</InputLabel>
+        <InputLabel>{t("createRaid.instance")}</InputLabel>
         <Select
           value={instanceId}
-          label="Instance"
+          label={t("createRaid.instance")}
           onChange={(e) => handleInstanceChange(e.target.value as number)}
         >
           {filteredInstances.map((inst) => (
@@ -151,10 +155,10 @@ export default function CreateRaidPage() {
       </FormControl>
 
       <FormControl fullWidth sx={{ mb: 2 }} disabled={availableModes.length === 0} error={!!errors.mode}>
-        <InputLabel>Mode</InputLabel>
+        <InputLabel>{t("createRaid.mode")}</InputLabel>
         <Select
           value={selectedModeKey}
-          label="Mode"
+          label={t("createRaid.mode")}
           onChange={(e) => handleModeChange(e.target.value)}
         >
           {availableModes.map((mode) => (
@@ -166,28 +170,30 @@ export default function CreateRaidPage() {
         {errors.mode && <FormHelperText>{errors.mode}</FormHelperText>}
       </FormControl>
 
-      <DateTimeInput
-        label="Start Time"
-        value={startTime}
-        onChange={handleStartTimeChange}
-        error={errors.startTime}
-        required
-        disablePast
-        timezone={guildHome?.setup.timezone}
-      />
+      <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale={guildHome?.setup.locale ?? "en"}>
+        <DateTimeInput
+          label={t("createRaid.startTime")}
+          value={startTime}
+          onChange={handleStartTimeChange}
+          error={errors.startTime}
+          required
+          disablePast
+          timezone={guildHome?.setup.timezone}
+        />
 
-      <DateTimeInput
-        label="Signup Close Time"
-        value={signupCloseTime}
-        onChange={handleSignupCloseTimeChange}
-        error={errors.signupCloseTime}
-        disablePast
-        maxDateTime={startTime?.isValid ? startTime : undefined}
-        timezone={guildHome?.setup.timezone}
-      />
+        <DateTimeInput
+          label={t("createRaid.signupCloseTime")}
+          value={signupCloseTime}
+          onChange={handleSignupCloseTimeChange}
+          error={errors.signupCloseTime}
+          disablePast
+          maxDateTime={startTime?.isValid ? startTime : undefined}
+          timezone={guildHome?.setup.timezone}
+        />
+      </LocalizationProvider>
 
       <TextField
-        label="Description"
+        label={t("createRaid.description")}
         multiline
         rows={3}
         fullWidth
@@ -202,13 +208,13 @@ export default function CreateRaidPage() {
         helperText={
           errors.description
             ? errors.description
-            : `${descriptionCount}/${MAX_DESCRIPTION}`
+            : t("createRaid.descriptionCount", { count: descriptionCount, max: MAX_DESCRIPTION })
         }
         slotProps={{ htmlInput: { maxLength: MAX_DESCRIPTION + 100 } }}
       />
 
       <Box sx={{ mb: 3 }}>
-        <Typography variant="body2" sx={{ mb: 1 }}>Visibility</Typography>
+        <Typography variant="body2" sx={{ mb: 1 }}>{t("createRaid.visibility")}</Typography>
         <ToggleButtonGroup
           exclusive
           value={visibility}
@@ -216,9 +222,9 @@ export default function CreateRaidPage() {
             if (newValue) setVisibility(newValue);
           }}
         >
-          <ToggleButton value="PUBLIC">Public</ToggleButton>
+          <ToggleButton value="PUBLIC">{t("createRaid.public")}</ToggleButton>
           {guildHome?.memberPermissions.canCreateGuildRaids && (
-            <ToggleButton value="GUILD">Guild</ToggleButton>
+            <ToggleButton value="GUILD">{t("createRaid.guild")}</ToggleButton>
           )}
         </ToggleButtonGroup>
       </Box>
@@ -229,10 +235,10 @@ export default function CreateRaidPage() {
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? "Creating..." : "Create Raid"}
+          {submitting ? t("createRaid.creating") : t("createRaid.submit")}
         </Button>
         <Button variant="text" onClick={() => navigate("/raids")}>
-          Cancel
+          {t("createRaid.cancel")}
         </Button>
       </Box>
     </PageContainer>

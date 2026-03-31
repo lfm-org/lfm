@@ -1,4 +1,5 @@
 import { Box, Button, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import RaidInfoCard from "./RaidInfoCard";
 import RaidRosterGrid from "./RaidRosterGrid";
 import RaidSignupCard, { type RaidSignupCharacter } from "./RaidSignupCard";
@@ -43,6 +44,7 @@ export default function RaidListCard({
   guildTimezone,
   canSignupToGuildRaids,
 }: RaidListCardProps) {
+  const { t } = useTranslation();
   const roleCounts = getRoleCounts(raid);
   const showDetails = !isMobile || isExpanded;
 
@@ -67,10 +69,15 @@ export default function RaidListCard({
             }}
           >
             <Typography variant="caption" color="text.secondary">
-              {raid.raidCharacters.length} signups · Tanks {roleCounts.TANK} · Healers {roleCounts.HEALER} · DPS {roleCounts.DPS}
+              {[
+                t("raidList.signups", { count: raid.raidCharacters.length }),
+                t("raidList.tanks", { count: roleCounts.TANK }),
+                t("raidList.healers", { count: roleCounts.HEALER }),
+                t("raidList.dps", { count: roleCounts.DPS }),
+              ].join(" · ")}
             </Typography>
             <Button size="small" variant="outlined" onClick={onToggle} sx={{ minHeight: 44 }}>
-              {showDetails ? "Hide details" : "Show details"}
+              {showDetails ? t("raidList.hideDetails") : t("raidList.showDetails")}
             </Button>
           </Box>
         )}

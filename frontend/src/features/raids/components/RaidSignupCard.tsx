@@ -5,6 +5,7 @@ import {
   ToggleButtonGroup, Typography,
 } from "@mui/material";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth";
 import api from "../../../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
@@ -42,6 +43,7 @@ export default function RaidSignupCard({
   guildTimezone,
   canSignupToGuildRaids,
 }: RaidSignupCardProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [characterId, setCharacterId] = useState("");
   const [specId, setSpecId] = useState<number | null>(null);
@@ -67,7 +69,7 @@ export default function RaidSignupCard({
 
   const signupRegionProps = {
     component: "section" as const,
-    "aria-label": `Your Signup for ${raid.description}`,
+    "aria-label": t("raidSignup.signupRegion", { description: raid.description }),
   };
 
   // Default character + spec when characters load
@@ -112,7 +114,7 @@ export default function RaidSignupCard({
       onRaidUpdate(res.data);
       setShowCharEdit(false);
     } catch {
-      setError("Failed to update signup");
+      setError(t("raidSignup.updateFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +128,7 @@ export default function RaidSignupCard({
       onRaidUpdate(res.data);
       setPendingCancel(false);
     } catch {
-      setError("Failed to cancel signup");
+      setError(t("raidSignup.cancelFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +143,7 @@ export default function RaidSignupCard({
         sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
       >
         <CircularProgress size={20} />
-        <Typography variant="body2">Loading characters...</Typography>
+        <Typography variant="body2">{t("raidSignup.loadingCharacters")}</Typography>
       </SurfaceCard>
     );
   }
@@ -158,7 +160,7 @@ export default function RaidSignupCard({
     return (
       <SurfaceCard {...signupRegionProps} sx={{ mb: 2 }}>
         <Typography variant="body2">
-          <Link to="/characters">Add a character</Link> before signing up.
+          <Link to="/characters">{t("raidSignup.addCharacter")}</Link>{t("raidSignup.addCharacterSuffix")}
         </Typography>
       </SurfaceCard>
     );
@@ -167,7 +169,7 @@ export default function RaidSignupCard({
   if (isClosed) {
     return (
       <SurfaceCard {...signupRegionProps} tone="error" sx={{ mb: 2 }}>
-        <Typography variant="body2" color="error">Signups are closed.</Typography>
+        <Typography variant="body2" color="error">{t("raidSignup.signupsClosed")}</Typography>
       </SurfaceCard>
     );
   }
@@ -192,18 +194,18 @@ export default function RaidSignupCard({
               sx={{ p: 0, minWidth: 0, fontSize: "0.75rem" }}
               onClick={() => setShowCharEdit(true)}
             >
-              Change character
+              {t("raidSignup.changeCharacter")}
             </Button>
           </Box>
         ) : (
           <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
             <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id={CHARACTER_LABEL_ID}>Character</InputLabel>
+              <InputLabel id={CHARACTER_LABEL_ID}>{t("raidSignup.character")}</InputLabel>
               <Select
                 id={CHARACTER_SELECT_ID}
                 labelId={CHARACTER_LABEL_ID}
                 value={characterId}
-                label="Character"
+                label={t("raidSignup.character")}
                 onChange={e => handleCharacterChange(e.target.value)}
               >
                 {characters.map(c => (
@@ -212,16 +214,16 @@ export default function RaidSignupCard({
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 140 }} disabled={availableSpecs.length === 0}>
-              <InputLabel id={SPEC_LABEL_ID}>Spec</InputLabel>
+              <InputLabel id={SPEC_LABEL_ID}>{t("raidSignup.spec")}</InputLabel>
               <Select
                 id={SPEC_SELECT_ID}
                 labelId={SPEC_LABEL_ID}
                 value={specId ?? ""}
-                label="Spec"
+                label={t("raidSignup.spec")}
                 onChange={e => setSpecId(Number(e.target.value))}
               >
                 {availableSpecs.length === 0
-                  ? <MenuItem value="" disabled>Unknown spec</MenuItem>
+                  ? <MenuItem value="" disabled>{t("raidSignup.unknownSpec")}</MenuItem>
                   : availableSpecs.map(s => (
                       <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
                     ))
@@ -234,14 +236,14 @@ export default function RaidSignupCard({
                 sx={{ alignSelf: "center" }}
                 onClick={() => setShowCharEdit(false)}
               >
-                Back
+                {t("raidSignup.back")}
               </Button>
             )}
           </Box>
         )}
 
         {guildSignupBlocked && (
-          <Alert severity="info">Guild signup is not enabled for your rank.</Alert>
+          <Alert severity="info">{t("raidSignup.guildRankBlocked")}</Alert>
         )}
 
         {/* Status buttons + cancel */}
@@ -250,7 +252,7 @@ export default function RaidSignupCard({
             <ToggleButtonGroup
               exclusive
               size="small"
-              aria-label="Attendance"
+              aria-label={t("raidSignup.attendance")}
               value={currentStatus ?? null}
               sx={{ flexWrap: "wrap" }}
             >
@@ -288,18 +290,18 @@ export default function RaidSignupCard({
               disabled={submitting}
               onClick={() => setPendingCancel(true)}
             >
-              Cancel
+              {t("raidSignup.cancel")}
             </Button>
           )}
 
           {existingSignup && pendingCancel && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">Cancel signup?</Typography>
+              <Typography variant="body2" color="text.secondary">{t("raidSignup.cancelPrompt")}</Typography>
               <Button size="small" variant="outlined" color="error" onClick={handleCancelSignup} disabled={submitting}>
-                Yes
+                {t("raidSignup.yes")}
               </Button>
               <Button size="small" onClick={() => setPendingCancel(false)} disabled={submitting}>
-                No
+                {t("raidSignup.no")}
               </Button>
             </Box>
           )}

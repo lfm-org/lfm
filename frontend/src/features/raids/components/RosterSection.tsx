@@ -1,11 +1,12 @@
 import { Box, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { CharacterCard } from "../../characters";
 import type { RaidRole, RaidSignup } from "../lib/raidTypes";
 
-const ROLE_LABEL: Record<RaidRole, string> = {
-  TANK: "Tanks",
-  HEALER: "Healers",
-  DPS: "DPS",
+const ROLE_KEY: Record<RaidRole, string> = {
+  TANK: "rosterSection.tanks",
+  HEALER: "rosterSection.healers",
+  DPS: "rosterSection.dps",
 };
 
 interface RosterSectionProps {
@@ -14,6 +15,8 @@ interface RosterSectionProps {
 }
 
 export default function RosterSection({ role, signups }: RosterSectionProps) {
+  const { t } = useTranslation();
+
   return (
     <Box>
       <Typography
@@ -22,11 +25,11 @@ export default function RosterSection({ role, signups }: RosterSectionProps) {
         fontWeight={700}
         sx={{ mb: 1, textTransform: "uppercase", letterSpacing: "0.05em", color: "text.secondary" }}
       >
-        {ROLE_LABEL[role]} ({signups.length})
+        {t(ROLE_KEY[role], { count: signups.length })}
       </Typography>
       {signups.length === 0 ? (
         <Typography variant="body2" color="text.disabled" sx={{ fontStyle: "italic" }}>
-          No signups yet
+          {t("rosterSection.noSignups")}
         </Typography>
       ) : (
         signups.map(s => (

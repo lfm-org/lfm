@@ -1,4 +1,5 @@
 import { Box, Chip, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { DateTime } from "luxon";
 import type { Raid } from "../lib/raidTypes";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
@@ -12,6 +13,7 @@ interface RaidSummaryItemProps {
 }
 
 export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, guildTimezone }: RaidSummaryItemProps) {
+  const { t } = useTranslation();
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
   const startDt = raid.startTime
     ? DateTime.fromISO(raid.startTime, { zone: "UTC" }).setZone(timezone)
@@ -48,14 +50,14 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
         </Typography>
         <Chip label={modeLabel} size="small" variant="outlined" sx={{ flexShrink: 0, height: 20, fontSize: "0.7rem" }} />
         {raid.visibility === "GUILD" && (
-          <Chip label="Guild" size="small" color="primary" variant="outlined" sx={{ flexShrink: 0, height: 20, fontSize: "0.7rem" }} />
+          <Chip label={t("raidSummary.guild")} size="small" color="primary" variant="outlined" sx={{ flexShrink: 0, height: 20, fontSize: "0.7rem" }} />
         )}
       </Box>
       <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
         {startDisplay}
       </Typography>
       <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
-        {inCount} attending · {raid.raidCharacters.length} total
+        {t("raidSummary.attending", { count: inCount })} · {t("raidSummary.total", { count: raid.raidCharacters.length })}
       </Typography>
     </Box>
   );
