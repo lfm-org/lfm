@@ -16,6 +16,9 @@ param keyVaultName string
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
+@description('Privacy contact email address')
+param privacyEmail string
+
 @description('Resource tags')
 param tags object
 
@@ -89,6 +92,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'HMAC_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=hmac-secret)' }
         { name: 'SESSION_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
         { name: 'KEY_VAULT_URL', value: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/' }
+        { name: 'PRIVACY_EMAIL', value: privacyEmail }
       ]
     }
   }

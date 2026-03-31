@@ -12,6 +12,7 @@
     "swaName": { "value": "lfm-swa" },
     "keyVaultName": { "value": "lfm-kv-prot" },
     "logAnalyticsWorkspaceName": { "value": "lfm-logs" },
+    "privacyEmail": { "value": "privacy@dinosauruskeksi.com" },
     "tags": {
       "value": {
         "project": "lfm",

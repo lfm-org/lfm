@@ -186,5 +186,8 @@
   "privacy.rights.heading": "Your rights",
   "privacy.rights.body": "You have the right to access, rectify, and erase your personal data. You may exercise your right to erasure at any time through the \"Forget me\" function. For other requests, contact us using the details below.",
   "privacy.contact.heading": "Contact",
-  "privacy.contact.body": "For questions regarding this notice or your personal data, contact us at {{contactEmail}}."
+  "privacy.contact.body": "For questions regarding this notice or your personal data, use the contact below.",
+  "privacy.contact.reveal": "Show contact email",
+  "privacy.contact.revealing": "Loading\u2026",
+  "privacy.contact.error": "Unable to load contact email. Please try again later."
 }

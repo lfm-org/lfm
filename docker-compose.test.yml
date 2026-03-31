@@ -49,6 +49,7 @@ services:
       SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY}
       HMAC_SECRET: ${HMAC_SECRET}
       KEY_VAULT_URL: ${KEY_VAULT_URL}
+      PRIVACY_EMAIL: ${PRIVACY_EMAIL:-privacy@example.com}
       E2E_SCENARIO: ${E2E_SCENARIO}
     ports:
       - "${FUNCTIONS_PORT:-7072}:80"

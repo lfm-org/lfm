@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
+import ObfuscatedEmail from "../../../components/ObfuscatedEmail";
 
 const sections = [
   { heading: "privacy.controller.heading", bodies: ["privacy.controller.body"] },
@@ -10,11 +12,19 @@ const sections = [
   { heading: "privacy.thirdParty.heading", bodies: ["privacy.thirdParty.body"] },
   { heading: "privacy.retention.heading", bodies: ["privacy.retention.body"] },
   { heading: "privacy.rights.heading", bodies: ["privacy.rights.body"] },
-  { heading: "privacy.contact.heading", bodies: ["privacy.contact.body"] },
 ] as const;
 
 export default function PrivacyPolicyPage() {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, nofollow";
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
+  }, []);
+
   return (
     <PageContainer>
       <SurfaceCard
@@ -42,13 +52,33 @@ export default function PrivacyPolicyPage() {
               </Typography>
               {bodies.map((key) => (
                 <Typography key={key} variant="body1" color="text.secondary">
-                  {t(key, { contactEmail: import.meta.env.VITE_PRIVACY_EMAIL || "privacy@example.com" })}
+                  {t(key)}
                 </Typography>
               ))}
             </Stack>
           ))}
+
+          <Stack spacing={1}>
+            <Typography variant="h6" component="h2">
+              {t("privacy.contact.heading")}
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {t("privacy.contact.body")}
+            </Typography>
+            <ObfuscatedEmail />
+          </Stack>
         </Stack>
       </SurfaceCard>
+
+      {/* Honeypot — invisible decoy to divert email scrapers */}
+      <a
+        href="mailto:contact@example.com"
+        aria-hidden="true"
+        tabIndex={-1}
+        style={{ position: "absolute", left: "-9999px", opacity: 0, pointerEvents: "none" }}
+      >
+        contact@example.com
+      </a>
     </PageContainer>
   );
 }

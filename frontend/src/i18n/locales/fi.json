@@ -186,5 +186,8 @@
   "privacy.rights.heading": "Oikeutesi",
   "privacy.rights.body": "Sinulla on oikeus saada pääsy henkilötietoihisi, oikaista niitä ja poistaa ne. Voit käyttää poisto-oikeuttasi milloin tahansa \"Unohda minut\" -toiminnolla. Muissa pyynnöissä ota yhteyttä alla olevilla tiedoilla.",
   "privacy.contact.heading": "Yhteystiedot",
-  "privacy.contact.body": "Tätä selostetta tai henkilötietojasi koskevissa kysymyksissä ota yhteyttä: {{contactEmail}}."
+  "privacy.contact.body": "Tätä selostetta tai henkilötietojasi koskevissa kysymyksissä käytä alla olevaa yhteystietoa.",
+  "privacy.contact.reveal": "Näytä yhteyssähköposti",
+  "privacy.contact.revealing": "Ladataan\u2026",
+  "privacy.contact.error": "Yhteyssähköpostin lataaminen epäonnistui. Yritä myöhemmin uudelleen."
 }

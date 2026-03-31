@@ -9,6 +9,9 @@ param swaName string
 param keyVaultName string
 param logAnalyticsWorkspaceName string
 
+@description('Privacy contact email address')
+param privacyEmail string
+
 @description('Tags applied to all resources')
 param tags object
 
@@ -57,6 +60,7 @@ module functions 'modules/functions.bicep' = {
     cosmosAccountName: cosmosAccountName
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    privacyEmail: privacyEmail
     tags: tags
   }
 }

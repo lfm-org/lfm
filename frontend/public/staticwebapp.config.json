@@ -1,4 +1,12 @@
 {
+  "routes": [
+    {
+      "route": "/privacy",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      }
+    }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*", "*.{css,js,png,jpg,gif,ico,svg}"]
