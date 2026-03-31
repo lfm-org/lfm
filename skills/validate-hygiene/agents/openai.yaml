@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Hygiene Check"
+  short_description: "Find unused deps, dead exports, stale env vars"
+  default_prompt: "Use $validate-hygiene to scan this repository for unused dependencies, dead exports, stale environment variables, orphaned routes, and other hygiene issues."

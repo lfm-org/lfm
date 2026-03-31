@@ -45,6 +45,7 @@
     "eslint-plugin-react-hooks": "7.1.0-canary-ed69815c-20260323",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^15.15.0",
+    "knip": "^6.1.1",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.26.1",
     "vite": "8.0.1",
