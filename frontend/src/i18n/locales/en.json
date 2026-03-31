@@ -173,14 +173,18 @@
 
   "privacy.title": "Privacy Notice",
   "privacy.lastUpdated": "Last updated: March 31, 2026",
-  "privacy.data.heading": "Your data",
-  "privacy.data.body": "We store your Battle.net ID, guild membership, character data, raid signups, and language preference. This data is used solely to run the raid calendar. We do not use it for analytics, advertising, or profiling, and we never share it with third parties.",
+  "privacy.controller.heading": "Data controller",
+  "privacy.controller.body": "The operator of this website (\"the Service\") is the data controller. Contact details are provided at the end of this notice.",
+  "privacy.data.heading": "Personal data we collect",
+  "privacy.data.body": "When you sign in, we collect and process: your Battle.net account identifier, guild membership, character information, event sign-up records, and language preference. We process this data on the basis of legitimate interest to provide the Service. We do not use your data for analytics, advertising, or profiling, and we do not share it with third parties. All data is encrypted in transit and at rest.",
   "privacy.cookies.heading": "Cookies",
-  "privacy.cookies.body": "One HttpOnly session cookie keeps you signed in. No tracking or third-party cookies.",
-  "privacy.thirdParty.heading": "Third-party services",
-  "privacy.thirdParty.body": "Authentication is handled by Battle.net OAuth (see Blizzard's privacy policy). Hosting and storage are on Microsoft Azure (North Europe).",
+  "privacy.cookies.body": "The Service uses a single strictly necessary HttpOnly session cookie for authentication. No tracking or third-party cookies are used. As this cookie is strictly necessary to provide the Service, consent is not required under the ePrivacy Directive.",
+  "privacy.thirdParty.heading": "Third-party processors",
+  "privacy.thirdParty.body": "Authentication is provided by Blizzard Entertainment via Battle.net OAuth. Blizzard's own privacy policy governs their processing of your data. The Service is hosted on Microsoft Azure, with data stored in the North Europe region.",
   "privacy.retention.heading": "Data retention",
-  "privacy.retention.body": "Raids expire 7 days after their start time. Raider profiles are deleted after 90 days of inactivity. You can delete your data immediately using \"Forget me\" on the character selection page.",
+  "privacy.retention.body": "Event data is automatically deleted 7 days after the event date. User profiles are automatically deleted after 90 days of inactivity. You may delete all your personal data at any time using the \"Forget me\" function within the Service.",
+  "privacy.rights.heading": "Your rights",
+  "privacy.rights.body": "You have the right to access, rectify, and erase your personal data. You may exercise your right to erasure at any time through the \"Forget me\" function. For other requests, contact us using the details below.",
   "privacy.contact.heading": "Contact",
-  "privacy.contact.body": "Questions about your data? Contact us at {{contactEmail}}."
+  "privacy.contact.body": "For questions regarding this notice or your personal data, contact us at {{contactEmail}}."
 }

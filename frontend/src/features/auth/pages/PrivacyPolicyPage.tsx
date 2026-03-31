@@ -4,10 +4,12 @@ import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
 
 const sections = [
+  { heading: "privacy.controller.heading", bodies: ["privacy.controller.body"] },
   { heading: "privacy.data.heading", bodies: ["privacy.data.body"] },
   { heading: "privacy.cookies.heading", bodies: ["privacy.cookies.body"] },
   { heading: "privacy.thirdParty.heading", bodies: ["privacy.thirdParty.body"] },
   { heading: "privacy.retention.heading", bodies: ["privacy.retention.body"] },
+  { heading: "privacy.rights.heading", bodies: ["privacy.rights.body"] },
   { heading: "privacy.contact.heading", bodies: ["privacy.contact.body"] },
 ] as const;
 

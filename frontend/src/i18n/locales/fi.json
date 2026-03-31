@@ -173,14 +173,18 @@
 
   "privacy.title": "Tietosuojaseloste",
   "privacy.lastUpdated": "Päivitetty viimeksi: 31. maaliskuuta 2026",
-  "privacy.data.heading": "Tietosi",
-  "privacy.data.body": "Tallennamme Battle.net-tunnuksesi, guild-jäsenyytesi, hahmotietosi, raid-ilmoittautumisesi ja kieliasetuksesi. Tietoja käytetään ainoastaan raid-kalenterin toimintaan. Emme käytä niitä analytiikkaan, mainontaan tai profilointiin, emmekä koskaan jaa niitä kolmansille osapuolille.",
+  "privacy.controller.heading": "Rekisterinpitäjä",
+  "privacy.controller.body": "Tämän verkkosivuston (\"Palvelu\") ylläpitäjä on rekisterinpitäjä. Yhteystiedot ovat tämän selosteen lopussa.",
+  "privacy.data.heading": "Keräämämme henkilötiedot",
+  "privacy.data.body": "Kirjautuessasi keräämme ja käsittelemme: Battle.net-tilisi tunnisteen, guild-jäsenyyden, hahmotiedot, tapahtumailmoittautumiset ja kieliasetuksen. Käsittelemme tietoja oikeutetun edun perusteella Palvelun tarjoamiseksi. Emme käytä tietojasi analytiikkaan, mainontaan tai profilointiin, emmekä jaa niitä kolmansille osapuolille. Kaikki tiedot on salattu siirron ja tallennuksen aikana.",
   "privacy.cookies.heading": "Evästeet",
-  "privacy.cookies.body": "Yksi HttpOnly-istuntoeväste pitää sinut kirjautuneena. Ei seuranta- tai kolmannen osapuolen evästeitä.",
-  "privacy.thirdParty.heading": "Kolmannen osapuolen palvelut",
-  "privacy.thirdParty.body": "Todennus tapahtuu Battle.net OAuth -palvelun kautta (katso Blizzardin tietosuojakäytäntö). Isännöinti ja tallennus Microsoft Azuressa (Pohjois-Eurooppa).",
+  "privacy.cookies.body": "Palvelu käyttää yhtä välttämätöntä HttpOnly-istuntoevästettä todennukseen. Seuranta- tai kolmannen osapuolen evästeitä ei käytetä. Koska eväste on välttämätön Palvelun toiminnalle, suostumusta ei edellytetä sähköisen viestinnän tietosuojadirektiivin nojalla.",
+  "privacy.thirdParty.heading": "Kolmannen osapuolen käsittelijät",
+  "privacy.thirdParty.body": "Todennuksen tarjoaa Blizzard Entertainment Battle.net OAuth -palvelun kautta. Blizzardin oma tietosuojakäytäntö säätelee heidän suorittamaansa tietojenkäsittelyä. Palvelu on isännöity Microsoft Azuressa, ja tiedot tallennetaan Pohjois-Euroopan alueelle.",
   "privacy.retention.heading": "Tietojen säilytys",
-  "privacy.retention.body": "Raidit vanhenevat 7 päivää alkamisajan jälkeen. Raider-profiilit poistetaan 90 päivän käyttämättömyyden jälkeen. Voit poistaa tietosi välittömästi hahmovalintasivun \"Unohda minut\" -toiminnolla.",
+  "privacy.retention.body": "Tapahtumatiedot poistetaan automaattisesti 7 päivää tapahtuman ajankohdan jälkeen. Käyttäjäprofiilit poistetaan automaattisesti 90 päivän käyttämättömyyden jälkeen. Voit poistaa kaikki henkilötietosi milloin tahansa Palvelun \"Unohda minut\" -toiminnolla.",
+  "privacy.rights.heading": "Oikeutesi",
+  "privacy.rights.body": "Sinulla on oikeus saada pääsy henkilötietoihisi, oikaista niitä ja poistaa ne. Voit käyttää poisto-oikeuttasi milloin tahansa \"Unohda minut\" -toiminnolla. Muissa pyynnöissä ota yhteyttä alla olevilla tiedoilla.",
   "privacy.contact.heading": "Yhteystiedot",
-  "privacy.contact.body": "Kysyttävää tiedoistasi? Ota yhteyttä: {{contactEmail}}."
+  "privacy.contact.body": "Tätä selostetta tai henkilötietojasi koskevissa kysymyksissä ota yhteyttä: {{contactEmail}}."
 }
