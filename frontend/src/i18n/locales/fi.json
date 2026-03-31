@@ -38,5 +38,20 @@
   "goodbye.button": "Kirjaudu uudelleen",
 
   "auth.checkingSession": "Tarkistetaan Battle.net-istuntoa...",
-  "guild.checkingSetup": "Tarkistetaan guild-asetuksia..."
+  "guild.checkingSetup": "Tarkistetaan guild-asetuksia...",
+
+  "characters.loading": "Ladataan hahmoja...",
+  "characters.title": "Valitse hahmosi",
+  "characters.empty": "Battle.net-hahmoja ei löytynyt.",
+  "characters.pagination": "Hahmosivut",
+  "characters.level": "Taso {{level}} {{className}}",
+  "characters.deleteError": "Tilin poistaminen ei onnistu juuri nyt. Yritä hetken kuluttua.",
+
+  "forgetMe.title": "Unohda minut",
+  "forgetMe.description1": "Poista tallennettu raider-profiilisi pysyvästi, tyhjennä Battle.net-istuntosi ja poista raid-ilmoittautumisesi.",
+  "forgetMe.description2": "Olemassa olevat raidit pysyvät näkyvissä, mutta menetät pääsyn poistettuun tiliin ja kaikkeen siihen liittyvään.",
+  "forgetMe.confirmLabel": "Kirjoita FORGET ME vahvistaaksesi",
+  "forgetMe.confirmationMismatch": "Vahvistustekstin on vastattava täsmälleen.",
+  "forgetMe.undoWarning": "Tätä toimintoa ei voi kumota.",
+  "forgetMe.button": "Unohda minut"
 }

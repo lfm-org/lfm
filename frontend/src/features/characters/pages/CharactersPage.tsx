@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
 import PageContainer from "../../../components/layout/PageContainer";
@@ -62,10 +63,12 @@ function CharactersPageInner({
   setDeleteConfirmation: (value: string) => void;
   handleDeleteAccount: () => void;
 }) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <PageContainer>
-        <Typography>Loading characters...</Typography>
+        <Typography>{t("characters.loading")}</Typography>
       </PageContainer>
     );
   }
@@ -75,11 +78,11 @@ function CharactersPageInner({
       <Stack spacing={layout.pageGap}>
         <Box>
           <Typography component="h1" variant="h5" gutterBottom>
-            Select your character
+            {t("characters.title")}
           </Typography>
           {characters.length === 0 && (
             <Typography color="text.secondary">
-              No Battle.net characters found.
+              {t("characters.empty")}
             </Typography>
           )}
         </Box>
@@ -136,7 +139,7 @@ function CharactersPageInner({
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
-                    Level {char.level}{char.className ? ` · ${char.className}` : ""}
+                    {t("characters.level", { level: char.level, className: char.className })}
                   </Typography>
                   {char.specName && (
                     <Typography variant="caption" color="text.secondary" display="block">
@@ -152,11 +155,11 @@ function CharactersPageInner({
         {totalPages > 1 && (
           <Box
             component="nav"
-            aria-label="Character pages"
+            aria-label={t("characters.pagination")}
             sx={{ display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
           >
             <Button size="small" variant="outlined" disabled={clampedPage === 1} onClick={() => handlePageChange(clampedPage - 1)}>
-              Previous
+              {t("common.previous")}
             </Button>
             {Array.from({ length: totalPages }, (_, index) => {
               const page = index + 1;
@@ -173,7 +176,7 @@ function CharactersPageInner({
               );
             })}
             <Button size="small" variant="outlined" disabled={clampedPage === totalPages} onClick={() => handlePageChange(clampedPage + 1)}>
-              Next
+              {t("common.next")}
             </Button>
           </Box>
         )}
@@ -192,6 +195,7 @@ function CharactersPageInner({
 }
 
 export default function CharactersPage() {
+  const { t } = useTranslation();
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -263,7 +267,7 @@ export default function CharactersPage() {
       await deleteAccount();
       onAccountDeleted();
     } catch {
-      setDeleteError("Unable to delete the account right now. Try again in a moment.");
+      setDeleteError(t("characters.deleteError"));
     } finally {
       setDeleting(false);
     }

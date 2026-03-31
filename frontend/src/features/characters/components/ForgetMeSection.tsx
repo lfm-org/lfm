@@ -1,4 +1,5 @@
 import { Box, Button, CircularProgress, Stack, SvgIcon, TextField, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 interface ForgetMeSectionProps {
   deleteConfirmation: string;
@@ -31,6 +32,7 @@ export default function ForgetMeSection({
   onDeleteConfirmationChange,
   onDeleteAccount,
 }: ForgetMeSectionProps) {
+  const { t } = useTranslation();
   return (
     <Box component="section" aria-labelledby="forget-me-heading" sx={forgetMeSectionSx}>
       <Stack spacing={1.5} sx={{ maxWidth: 420 }}>
@@ -43,25 +45,25 @@ export default function ForgetMeSection({
           <Box component="span" sx={{ display: "inline-flex", fontSize: "1rem" }}>
             <TrashBinIcon />
           </Box>
-          Forget me
+          {t("forgetMe.title")}
         </Typography>
 
         <Typography variant="body2" color="text.secondary">
-          Permanently delete your stored raider profile, clear your Battle.net session, and remove your raid signups.
+          {t("forgetMe.description1")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Existing raids stay visible, but you lose access to the deleted account and anything tied to it.
+          {t("forgetMe.description2")}
         </Typography>
 
         <TextField
           size="small"
-          label="Type FORGET ME to confirm"
+          label={t("forgetMe.confirmLabel")}
           value={deleteConfirmation}
           onChange={(event) => onDeleteConfirmationChange(event.target.value)}
           autoComplete="off"
           disabled={deleting}
           error={deleteConfirmation.length > 0 && !deleteConfirmationValid}
-          helperText={deleteConfirmation.length > 0 && !deleteConfirmationValid ? "Confirmation text must match exactly." : "This action cannot be undone."}
+          helperText={deleteConfirmation.length > 0 && !deleteConfirmationValid ? t("forgetMe.confirmationMismatch") : t("forgetMe.undoWarning")}
           sx={{
             maxWidth: 320,
             "& .MuiOutlinedInput-root": {
@@ -88,7 +90,7 @@ export default function ForgetMeSection({
             disabled={!deleteConfirmationValid || deleting}
             onClick={onDeleteAccount}
           >
-            Forget me
+            {t("forgetMe.button")}
           </Button>
         </Box>
       </Stack>
