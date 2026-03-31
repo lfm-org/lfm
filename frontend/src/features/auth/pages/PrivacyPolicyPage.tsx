@@ -3,6 +3,7 @@ import { Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
+import { surface } from "../../../theme";
 import ObfuscatedEmail from "../../../components/ObfuscatedEmail";
 
 const sections = [
@@ -31,8 +32,8 @@ export default function PrivacyPolicyPage() {
         sx={{
           overflow: "hidden",
           borderRadius: 4,
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          backgroundColor: "rgba(255, 255, 255, 0.03)",
+          border: `1px solid ${surface.border}`,
+          backgroundColor: surface.tint,
         }}
       >
         <Stack spacing={3} sx={{ p: { xs: 3, md: 4 } }}>

@@ -1,5 +1,5 @@
 export interface NavRouteItem {
-  label: string;
+  i18nKey: string;
   to: string;
 }
 
@@ -14,23 +14,19 @@ export function getLoginHref(pathname: string, search: string): string {
 
 export function getPrimaryNavItems(isSiteAdmin: boolean): NavRouteItem[] {
   return [
-    { label: "Raids", to: "/raids" },
-    { label: "Guild", to: "/guild" },
+    { i18nKey: "nav.raids", to: "/raids" },
+    { i18nKey: "nav.guild", to: "/guild" },
     ...(isSiteAdmin
-      ? [{ label: "Guild Admin", to: "/guild/admin" }]
+      ? [{ i18nKey: "nav.guildAdmin", to: "/guild/admin" }]
       : []),
   ];
 }
 
-export function getAccountMenuRouteItems({
-  isSiteAdmin,
-  isCompact,
-}: {
-  isSiteAdmin: boolean;
-  isCompact: boolean;
-}): NavRouteItem[] {
+export function getAccountMenuRouteItems(
+  isSiteAdmin: boolean,
+): NavRouteItem[] {
   return [
-    { label: "Characters", to: "/characters" },
-    ...(isCompact ? getPrimaryNavItems(isSiteAdmin) : []),
+    ...getPrimaryNavItems(isSiteAdmin),
+    { i18nKey: "nav.characters", to: "/characters" },
   ];
 }

@@ -14,6 +14,28 @@ const fontFamily = [
   "sans-serif",
 ].join(",");
 
+/** Attendance status colors used by raid signup chips and roster displays. */
+export const attendance = {
+  in:    { bg: "#2e7d32", text: "#fff" },
+  out:   { bg: "#c62828", text: "#fff" },
+  bench: { bg: "#546e7a", text: "#fff" },
+  late:  { bg: "#f57f17", text: "rgba(0, 0, 0, 0.87)" },
+  away:  { bg: "#e65100", text: "rgba(0, 0, 0, 0.87)" },
+  unknown: { bg: "#888", text: "#fff" },
+} as const;
+
+/** Subtle surface overlays for decorative cards (dark-theme only). */
+export const surface = {
+  /** Very faint background tint. */
+  tint: "rgba(255, 255, 255, 0.03)",
+  /** Slightly stronger background tint for nested cards. */
+  tintStrong: "rgba(255, 255, 255, 0.025)",
+  /** Subtle border that's softer than the MUI divider token. */
+  border: "rgba(255, 255, 255, 0.08)",
+  /** Even softer border for nested cards. */
+  borderSubtle: "rgba(255, 255, 255, 0.05)",
+} as const;
+
 /** Reusable layout tokens consumed by PageContainer and page components. */
 export const layout = {
   /** Max content width for standard pages (px). */

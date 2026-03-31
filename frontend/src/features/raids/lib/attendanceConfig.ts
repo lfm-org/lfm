@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from "@mui/material/styles";
+import { attendance } from "../../../theme";
 
 export type AttendanceStatus = "IN" | "OUT" | "BENCH" | "LATE" | "AWAY";
 
@@ -10,11 +11,11 @@ export interface AttendanceConfig {
 }
 
 export const ATTENDANCE_CONFIG: Record<AttendanceStatus, AttendanceConfig> = {
-  IN:    { label: "In",    color: "#2e7d32", textColor: "#fff",                chipSx: { bgcolor: "#2e7d32", color: "#fff" } },
-  OUT:   { label: "Out",   color: "#c62828", textColor: "#fff",                chipSx: { bgcolor: "#c62828", color: "#fff" } },
-  BENCH: { label: "Bench", color: "#546e7a", textColor: "#fff",                chipSx: { bgcolor: "#546e7a", color: "#fff" } },
-  LATE:  { label: "Late",  color: "#f57f17", textColor: "rgba(0,0,0,0.87)",   chipSx: { bgcolor: "#f57f17", color: "rgba(0, 0, 0, 0.87)" } },
-  AWAY:  { label: "Away",  color: "#e65100", textColor: "rgba(0,0,0,0.87)",   chipSx: { bgcolor: "#e65100", color: "rgba(0, 0, 0, 0.87)" } },
+  IN:    { label: "In",    color: attendance.in.bg,    textColor: attendance.in.text,    chipSx: { bgcolor: attendance.in.bg,    color: attendance.in.text } },
+  OUT:   { label: "Out",   color: attendance.out.bg,   textColor: attendance.out.text,   chipSx: { bgcolor: attendance.out.bg,   color: attendance.out.text } },
+  BENCH: { label: "Bench", color: attendance.bench.bg, textColor: attendance.bench.text, chipSx: { bgcolor: attendance.bench.bg, color: attendance.bench.text } },
+  LATE:  { label: "Late",  color: attendance.late.bg,  textColor: attendance.late.text,  chipSx: { bgcolor: attendance.late.bg,  color: attendance.late.text } },
+  AWAY:  { label: "Away",  color: attendance.away.bg,  textColor: attendance.away.text,  chipSx: { bgcolor: attendance.away.bg,  color: attendance.away.text } },
 };
 
 export const ATTENDANCE_OPTIONS = Object.entries(ATTENDANCE_CONFIG).map(
@@ -24,7 +25,7 @@ export const ATTENDANCE_OPTIONS = Object.entries(ATTENDANCE_CONFIG).map(
 export function getAttendanceConfig(status: string): AttendanceConfig {
   return ATTENDANCE_CONFIG[status as AttendanceStatus] ?? {
     label: status,
-    color: "#888",
-    chipSx: { bgcolor: "#888", color: "#fff" },
+    color: attendance.unknown.bg,
+    chipSx: { bgcolor: attendance.unknown.bg, color: attendance.unknown.text },
   };
 }

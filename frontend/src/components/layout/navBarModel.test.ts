@@ -18,51 +18,35 @@ describe("navBarModel", () => {
     );
   });
 
-  it("keeps desktop primary navigation limited to top-level routes", () => {
+  it("keeps primary navigation limited to top-level routes", () => {
     expect(getPrimaryNavItems(false)).toEqual([
-      { label: "Raids", to: "/raids" },
-      { label: "Guild", to: "/guild" },
+      { i18nKey: "nav.raids", to: "/raids" },
+      { i18nKey: "nav.guild", to: "/guild" },
     ]);
   });
 
-  it("adds Guild Admin to desktop primary navigation for site admins", () => {
+  it("adds Guild Admin to primary navigation for site admins", () => {
     expect(getPrimaryNavItems(true)).toEqual([
-      { label: "Raids", to: "/raids" },
-      { label: "Guild", to: "/guild" },
-      { label: "Guild Admin", to: "/guild/admin" },
+      { i18nKey: "nav.raids", to: "/raids" },
+      { i18nKey: "nav.guild", to: "/guild" },
+      { i18nKey: "nav.guildAdmin", to: "/guild/admin" },
     ]);
   });
 
-  it("keeps the desktop account menu scoped to Characters", () => {
-    expect(
-      getAccountMenuRouteItems({ isSiteAdmin: false, isCompact: false })
-    ).toEqual([{ label: "Characters", to: "/characters" }]);
-  });
-
-  it("keeps the desktop account menu scoped to Characters even for site admins", () => {
-    expect(
-      getAccountMenuRouteItems({ isSiteAdmin: true, isCompact: false })
-    ).toEqual([{ label: "Characters", to: "/characters" }]);
-  });
-
-  it("adds compact-only routes to the mobile menu", () => {
-    expect(
-      getAccountMenuRouteItems({ isSiteAdmin: false, isCompact: true })
-    ).toEqual([
-      { label: "Characters", to: "/characters" },
-      { label: "Raids", to: "/raids" },
-      { label: "Guild", to: "/guild" },
+  it("includes nav routes and Characters in the account menu", () => {
+    expect(getAccountMenuRouteItems(false)).toEqual([
+      { i18nKey: "nav.raids", to: "/raids" },
+      { i18nKey: "nav.guild", to: "/guild" },
+      { i18nKey: "nav.characters", to: "/characters" },
     ]);
   });
 
-  it("adds compact-only routes and site-admin access to the mobile menu", () => {
-    expect(
-      getAccountMenuRouteItems({ isSiteAdmin: true, isCompact: true })
-    ).toEqual([
-      { label: "Characters", to: "/characters" },
-      { label: "Raids", to: "/raids" },
-      { label: "Guild", to: "/guild" },
-      { label: "Guild Admin", to: "/guild/admin" },
+  it("includes Guild Admin in the account menu for site admins", () => {
+    expect(getAccountMenuRouteItems(true)).toEqual([
+      { i18nKey: "nav.raids", to: "/raids" },
+      { i18nKey: "nav.guild", to: "/guild" },
+      { i18nKey: "nav.guildAdmin", to: "/guild/admin" },
+      { i18nKey: "nav.characters", to: "/characters" },
     ]);
   });
 });

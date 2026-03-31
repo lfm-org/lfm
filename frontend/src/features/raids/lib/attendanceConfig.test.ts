@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getAttendanceConfig, ATTENDANCE_CONFIG } from "./attendanceConfig";
+import { attendance } from "../../../theme";
 
 describe("getAttendanceConfig", () => {
   it("returns the correct config for a known status", () => {
@@ -12,8 +13,11 @@ describe("getAttendanceConfig", () => {
   it("returns a fallback for an unknown status with the status as label", () => {
     const config = getAttendanceConfig("UNKNOWN_STATUS");
     expect(config.label).toBe("UNKNOWN_STATUS");
-    expect(config.color).toBe("#888");
-    expect(config.chipSx).toEqual({ bgcolor: "#888", color: "#fff" });
+    expect(config.color).toBe(attendance.unknown.bg);
+    expect(config.chipSx).toEqual({
+      bgcolor: attendance.unknown.bg,
+      color: attendance.unknown.text,
+    });
     expect(config.textColor).toBeUndefined();
   });
 

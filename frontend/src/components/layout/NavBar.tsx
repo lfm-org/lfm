@@ -7,10 +7,9 @@ import {
   MenuItem,
   Toolbar,
   Typography,
-  useMediaQuery,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { useState, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../features/auth";
 import { logout } from "../../lib/auth";
@@ -18,7 +17,6 @@ import Logo from "../Logo";
 import {
   getAccountMenuRouteItems,
   getLoginHref,
-  getPrimaryNavItems,
 } from "./navBarModel";
 
 interface NavBarCharacter {
@@ -31,19 +29,14 @@ interface NavBarProps {
 }
 
 export default function NavBar({ character = null }: NavBarProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down("md"));
   const { clearAuth, user } = useAuth();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const isSiteAdmin = Boolean(user?.isSiteAdmin);
-  const primaryNavItems = getPrimaryNavItems(isSiteAdmin);
-  const accountMenuRouteItems = getAccountMenuRouteItems({
-    isSiteAdmin,
-    isCompact,
-  });
+  const accountMenuRouteItems = getAccountMenuRouteItems(isSiteAdmin);
   const loginHref = getLoginHref(location.pathname, location.search);
   const menuOpen = Boolean(menuAnchor);
   const menuButtonLabel = `Open navigation menu for ${character?.name ?? "your account"}`;
@@ -69,33 +62,10 @@ export default function NavBar({ character = null }: NavBarProps) {
   return (
     <AppBar position="static" color="inherit">
       <Toolbar variant="dense">
-        <Logo title="🌀 LFM" />
+        <Logo title={t("nav.logo")} />
 
         {character ? (
           <>
-            {!isCompact && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  ml: 1.5,
-                }}
-              >
-                {primaryNavItems.map((item) => (
-                  <Button
-                    key={item.to}
-                    component={RouterLink}
-                    to={item.to}
-                    color="inherit"
-                    size="small"
-                    sx={{ minWidth: 0, px: 1.5 }}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </Box>
-            )}
-
             <Button
               id="navbar-account-trigger"
               aria-controls={menuOpen ? "navbar-account-menu" : undefined}
@@ -151,37 +121,24 @@ export default function NavBar({ character = null }: NavBarProps) {
                   to={item.to}
                   onClick={closeMenu}
                 >
-                  {item.label}
+                  {t(item.i18nKey)}
                 </MenuItem>
               ))}
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+              <MenuItem onClick={handleLogout}>{t("nav.logout")}</MenuItem>
             </Menu>
           </>
         ) : (
-          <>
-            {!isCompact &&
-              primaryNavItems.map((item) => (
-                <Button
-                  key={item.to}
-                  component={RouterLink}
-                  to={item.to}
-                  color="inherit"
-                  size="small"
-                  sx={{ ml: 1 }}
-                >
-                  {item.label}
-                </Button>
-              ))}
+          <Box sx={{ ml: "auto" }}>
             <Button
               component={RouterLink}
               to={loginHref}
               color="inherit"
               size="small"
-              sx={{ ml: 1, textTransform: "none" }}
+              sx={{ textTransform: "none" }}
             >
-              Login
+              {t("nav.login")}
             </Button>
-          </>
+          </Box>
         )}
       </Toolbar>
     </AppBar>

@@ -2,6 +2,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
+import { surface } from "../../../theme";
 
 const valuePropKeys = [
   "sharedSchedule",
@@ -17,8 +18,8 @@ export default function LandingPage() {
         sx={{
           overflow: "hidden",
           borderRadius: 4,
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          backgroundColor: "rgba(255, 255, 255, 0.03)",
+          border: `1px solid ${surface.border}`,
+          backgroundColor: surface.tint,
         }}
       >
         <Box sx={{ p: { xs: 3, md: 4 } }}>
@@ -60,8 +61,8 @@ export default function LandingPage() {
                   sx={{
                     height: "100%",
                     borderRadius: 3,
-                    backgroundColor: "rgba(255, 255, 255, 0.025)",
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    backgroundColor: surface.tintStrong,
+                    border: `1px solid ${surface.borderSubtle}`,
                   }}
                 >
                   <Stack spacing={1.5}>

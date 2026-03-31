@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import NavBar from "./NavBar";
 import { renderWithProviders } from "../../test/renderWithProviders";
-import { setViewportWidth } from "../../test/setupDomTests";
 
 const memberUser = {
   battleNetId: "bnet-member",
@@ -20,8 +19,7 @@ const siteAdminUser = {
 };
 
 describe("NavBar integration", () => {
-  it("keeps desktop routes inline and exposes Characters plus Logout in the account menu", async () => {
-    setViewportWidth(1280);
+  it("exposes all routes plus Logout in the account menu", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -37,12 +35,8 @@ describe("NavBar integration", () => {
       }
     );
 
-    expect(
-      screen.getByRole("link", { name: "Raids" }).getAttribute("href")
-    ).toBe("/raids");
-    expect(
-      screen.getByRole("link", { name: "Guild" }).getAttribute("href")
-    ).toBe("/guild");
+    expect(screen.queryByRole("link", { name: "Raids" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Guild" })).toBeNull();
 
     const trigger = screen.getByRole("button", {
       name: "Open navigation menu for Aelrin",
@@ -57,18 +51,20 @@ describe("NavBar integration", () => {
 
     const menu = screen.getByRole("menu");
     expect(
+      within(menu).getByRole("menuitem", { name: "Raids" })
+    ).toBeTruthy();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Guild" })
+    ).toBeTruthy();
+    expect(
       within(menu).getByRole("menuitem", { name: "Characters" })
     ).toBeTruthy();
     expect(
       within(menu).getByRole("menuitem", { name: "Logout" })
     ).toBeTruthy();
-    expect(
-      within(menu).queryByRole("menuitem", { name: "Raids" })
-    ).toBeNull();
   });
 
-  it("collapses signed-in mobile routes into the character menu", async () => {
-    setViewportWidth(390);
+  it("includes Guild Admin in the menu for site admins", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -79,9 +75,6 @@ describe("NavBar integration", () => {
       }
     );
 
-    expect(screen.queryByRole("link", { name: "Raids" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Guild" })).toBeNull();
-
     const trigger = screen.getByRole("button", {
       name: "Open navigation menu for Aelrin",
     });
@@ -90,15 +83,6 @@ describe("NavBar integration", () => {
 
     const menu = screen.getByRole("menu");
     expect(
-      within(menu).getByRole("menuitem", { name: "Characters" })
-    ).toBeTruthy();
-    expect(
-      within(menu).getByRole("menuitem", { name: "Raids" })
-    ).toBeTruthy();
-    expect(
-      within(menu).getByRole("menuitem", { name: "Guild" })
-    ).toBeTruthy();
-    expect(
       within(menu).getByRole("menuitem", { name: "Guild Admin" })
     ).toBeTruthy();
     expect(
@@ -106,9 +90,7 @@ describe("NavBar integration", () => {
     ).toBeTruthy();
   });
 
-  it("shows only Login on mobile when signed out", () => {
-    setViewportWidth(390);
-
+  it("shows only Login when signed out", () => {
     renderWithProviders(<NavBar />, { route: "/" });
 
     expect(screen.getByRole("link", { name: "Login" })).toBeTruthy();
