@@ -7,6 +7,8 @@ Project structure has migrated to Azure:
 
 For migration details, see `docs/superpowers/plans/`.
 
+For frontend styling conventions, see `docs/frontend-style-guide.md`.
+
 When working on Azure-related tasks (infrastructure, deployment, Functions, Static Web Apps, Cosmos DB, Bicep, etc.), use the `microsoft-docs` skill to look up official documentation before making changes.
 
 ## Cost Guidance
