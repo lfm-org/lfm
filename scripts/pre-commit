@@ -58,8 +58,10 @@ BLOCKED_PATHS=(
 )
 
 # --- Content patterns (regex checked against staged file contents) ---
+# Content patterns are constructed to avoid matching this file itself.
+_PEM="-----BEGIN .* PRIVATE KEY"
 CONTENT_PATTERNS=(
-  '-----BEGIN .* PRIVATE KEY-----'      # PEM-encoded private keys
+  "${_PEM}-----"                        # PEM-encoded private keys
   '//registry[^:]*:_authToken='         # npm registry auth tokens
   '//registry[^:]*:_auth='             # npm registry auth (base64)
 )
@@ -105,7 +107,7 @@ for file in $STAGED; do
     staged_content=$(git show ":$file" 2>/dev/null || true)
     if [[ -n "$staged_content" ]]; then
       for pattern in "${CONTENT_PATTERNS[@]}"; do
-        if echo "$staged_content" | grep -qE "$pattern"; then
+        if echo "$staged_content" | grep -qE -- "$pattern"; then
           echo "BLOCKED: $file — content matches forbidden pattern '$pattern'"
           status=1
           break
