@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import api from "../../../lib/api";
 import { normalizeRaid, type Raid } from "./raidTypes";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";
 import { normalizeRaidSignupCharacter, type RaidSignupCharacter } from "./raidSignupCharacters";
+import { groupRaidsByTime } from "./raidGrouping";
 
 const PAGE_SIZE = 5;
 
@@ -37,6 +38,9 @@ export interface UseRaidsResult {
   currentPage: number;
   visibleRaids: Raid[];
   selectedRaid: Raid | null;
+  passedRaids: Raid[];
+  showPassed: boolean;
+  handleTogglePassed: () => void;
   handleRaidUpdate: (updatedRaid: Raid) => void;
   handleToggleRaid: (raidId: string) => void;
   handleSelectRaid: (raidId: string) => void;
@@ -54,6 +58,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   const [loadingChars, setLoadingChars] = useState(true);
   const [charactersError, setCharactersError] = useState<string | null>(null);
   const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
+  const [showPassed, setShowPassed] = useState(false);
   const lastFocusedRaidId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -130,24 +135,32 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
 
   const requestedRaidId = searchParams.get("raid");
   const requestedPage = parsePageParam(searchParams.get("page"));
-  const targetIndex = requestedRaidId ? raids.findIndex((raid) => raid.id === requestedRaidId) : -1;
-  const totalPages = Math.max(1, Math.ceil(raids.length / PAGE_SIZE));
+
+  const { upcoming, passed } = useMemo(() => groupRaidsByTime(raids), [raids]);
+
+  const targetIndex = requestedRaidId ? upcoming.findIndex((raid) => raid.id === requestedRaidId) : -1;
+  const targetInPassed = requestedRaidId && targetIndex < 0 ? passed.some((r) => r.id === requestedRaidId) : false;
+  const totalPages = Math.max(1, Math.ceil(upcoming.length / PAGE_SIZE));
   const currentPage = clampPage(
     targetIndex >= 0 ? Math.floor(targetIndex / PAGE_SIZE) + 1 : requestedPage,
     totalPages
   );
-  const visibleRaids = raids.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const visibleRaids = upcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Auto-select first raid on desktop when no raid is selected
   useEffect(() => {
-    if (!isDesktop || loading || visibleRaids.length === 0) return;
-    const isSelected = requestedRaidId && visibleRaids.some(r => r.id === requestedRaidId);
+    if (!isDesktop || loading || (visibleRaids.length === 0 && passed.length === 0)) return;
+    const isSelected = requestedRaidId && (visibleRaids.some(r => r.id === requestedRaidId) || passed.some(r => r.id === requestedRaidId));
     if (!isSelected) {
-      const next = new URLSearchParams(searchParams);
-      next.set("raid", visibleRaids[0].id);
-      setSearchParams(next, { replace: true });
+      const fallback = visibleRaids[0] ?? passed[0];
+      if (fallback) {
+        if (!visibleRaids[0] && passed[0]) setShowPassed(true);
+        const next = new URLSearchParams(searchParams);
+        next.set("raid", fallback.id);
+        setSearchParams(next, { replace: true });
+      }
     }
-  }, [isDesktop, loading, visibleRaids, requestedRaidId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isDesktop, loading, visibleRaids, passed, requestedRaidId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isMobile || !requestedRaidId || targetIndex < 0) return;
@@ -156,6 +169,10 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
       current[requestedRaidId] ? current : { ...current, [requestedRaidId]: true }
     ));
   }, [isMobile, requestedRaidId, targetIndex]);
+
+  useEffect(() => {
+    if (targetInPassed && !showPassed) setShowPassed(true);
+  }, [targetInPassed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isDesktop || !requestedRaidId || targetIndex < 0) return;
@@ -202,7 +219,9 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   };
 
   const selectedRaid = requestedRaidId
-    ? visibleRaids.find(r => r.id === requestedRaidId) ?? null
+    ? (visibleRaids.find(r => r.id === requestedRaidId)
+      ?? passed.find(r => r.id === requestedRaidId)
+      ?? null)
     : null;
 
   return {
@@ -220,6 +239,9 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     currentPage,
     visibleRaids,
     selectedRaid,
+    passedRaids: passed,
+    showPassed,
+    handleTogglePassed: () => setShowPassed(p => !p),
     handleRaidUpdate,
     handleToggleRaid,
     handleSelectRaid,

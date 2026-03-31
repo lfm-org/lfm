@@ -10,9 +10,10 @@ interface RaidSummaryItemProps {
   selected: boolean;
   onClick: () => void;
   guildTimezone?: string;
+  passed?: boolean;
 }
 
-export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, guildTimezone }: RaidSummaryItemProps) {
+export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, guildTimezone, passed }: RaidSummaryItemProps) {
   const { t } = useTranslation();
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
   const startDt = raid.startTime
@@ -28,6 +29,7 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
       component="button"
       onClick={onClick}
       sx={{
+        opacity: passed && !selected ? 0.6 : 1,
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",

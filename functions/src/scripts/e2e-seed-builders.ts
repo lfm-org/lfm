@@ -531,6 +531,30 @@ export function buildRaidDocument(
 export function createRaidDefinitions(): RaidSeedDefinition[] {
   const definitions: RaidSeedDefinition[] = [
     {
+      id: "raid-passed-public-deadmines",
+      instanceId: 63,
+      modeKey: "HEROIC:5",
+      visibility: "PUBLIC",
+      creatorBattleNetId: TEST_MODE_IDENTITY.battleNetId,
+      description: "Completed heroic speed run",
+      startHoursFromNow: -24,
+      signupCloseHoursFromNow: -30,
+      signupCount: 5,
+      pool: "guild",
+    },
+    {
+      id: "raid-passed-guild-icc25",
+      instanceId: 631,
+      modeKey: "HEROIC:25",
+      visibility: "GUILD",
+      creatorBattleNetId: "guild-raider-01",
+      description: "Last week guild progression",
+      startHoursFromNow: -72,
+      signupCloseHoursFromNow: -78,
+      signupCount: 20,
+      pool: "guild",
+    },
+    {
       id: "raid-public-empty-deadmines",
       instanceId: 63,
       modeKey: "NORMAL:5",

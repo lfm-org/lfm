@@ -43,6 +43,9 @@ export default function RaidsPage() {
     currentPage,
     visibleRaids,
     selectedRaid,
+    passedRaids,
+    showPassed,
+    handleTogglePassed,
     handleRaidUpdate,
     handleToggleRaid,
     handleSelectRaid,
@@ -120,6 +123,54 @@ export default function RaidsPage() {
               </Box>
             ))}
             {pagination && <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 1 }}>{pagination}</Box>}
+            {passedRaids.length > 0 && (
+              <>
+                <Divider />
+                <Box
+                  component="button"
+                  onClick={handleTogglePassed}
+                  aria-expanded={showPassed}
+                  aria-controls="passed-raids-section"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    p: 1.5,
+                    border: "none",
+                    borderRadius: 0,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    bgcolor: "transparent",
+                    color: "text.secondary",
+                    "&:hover": { bgcolor: "action.hover" },
+                    transition: "background-color 0.15s",
+                  }}
+                >
+                  <Typography component="span" variant="body2" fontWeight={600}>
+                    {t("raids.passed", { count: passedRaids.length })}
+                  </Typography>
+                  <Typography component="span" variant="body2">{showPassed ? "▾" : "▸"}</Typography>
+                </Box>
+                {showPassed && (
+                  <Box id="passed-raids-section" role="region" aria-label={t("raids.passedToggle")}>
+                    {passedRaids.map((raid, index) => (
+                      <Box key={raid.id}>
+                        {index > 0 && <Divider />}
+                        <RaidSummaryItem
+                          raid={raid}
+                          modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
+                          selected={raid.id === requestedRaidId}
+                          onClick={() => handleSelectRaid(raid.id)}
+                          guildTimezone={guildHome?.setup.timezone}
+                          passed
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </>
+            )}
           </Box>
 
           {/* Right panel: selected raid details */}
@@ -166,6 +217,44 @@ export default function RaidsPage() {
             />
           ))}
           {pagination}
+          {passedRaids.length > 0 && (
+            <>
+              <Button
+                variant="text"
+                fullWidth
+                onClick={handleTogglePassed}
+                aria-expanded={showPassed}
+                aria-controls="passed-raids-mobile"
+                sx={{ color: "text.secondary", justifyContent: "space-between", textTransform: "none" }}
+              >
+                <Typography variant="body2" fontWeight={600}>
+                  {t("raids.passed", { count: passedRaids.length })}
+                </Typography>
+                <Typography component="span" variant="body2">{showPassed ? "▾" : "▸"}</Typography>
+              </Button>
+              {showPassed && (
+                <Box id="passed-raids-mobile" role="region" aria-label={t("raids.passedToggle")} sx={{ display: "grid", gap: 3, opacity: 0.7 }}>
+                  {passedRaids.map((raid) => (
+                    <RaidListCard
+                      key={raid.id}
+                      raid={raid}
+                      modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
+                      isMobile={isMobile}
+                      isExpanded={Boolean(expandedRaids[raid.id])}
+                      onToggle={() => handleToggleRaid(raid.id)}
+                      onRaidUpdate={handleRaidUpdate}
+                      characters={characters}
+                      selectedCharacterId={selectedCharacterId}
+                      loadingChars={loadingChars}
+                      charactersError={charactersError}
+                      guildTimezone={guildHome?.setup.timezone}
+                      canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+                    />
+                  ))}
+                </Box>
+              )}
+            </>
+          )}
         </Box>
       )}
     </PageContainer>
