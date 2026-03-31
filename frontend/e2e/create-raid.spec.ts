@@ -9,14 +9,12 @@ async function fillDateTimeGroup(
     year,
     hours,
     minutes,
-    meridiem,
   }: {
     month: string;
     day: string;
     year: string;
     hours: string;
     minutes: string;
-    meridiem: string;
   }
 ) {
   await group.getByRole("spinbutton", { name: "Month" }).fill(month);
@@ -24,7 +22,6 @@ async function fillDateTimeGroup(
   await group.getByRole("spinbutton", { name: "Year" }).fill(year);
   await group.getByRole("spinbutton", { name: "Hours" }).fill(hours);
   await group.getByRole("spinbutton", { name: "Minutes" }).fill(minutes);
-  await group.getByRole("spinbutton", { name: "Meridiem" }).fill(meridiem);
 }
 
 test("authenticated raider can create a raid with modeKey and land on the new raid card", async ({ page }) => {
@@ -45,17 +42,15 @@ test("authenticated raider can create a raid with modeKey and land on the new ra
     month: "03",
     day: "25",
     year: "2030",
-    hours: "07",
+    hours: "19",
     minutes: "30",
-    meridiem: "PM",
   });
   await fillDateTimeGroup(page.getByRole("group", { name: "Signup Close Time" }), {
     month: "03",
     day: "25",
     year: "2030",
-    hours: "06",
+    hours: "18",
     minutes: "00",
-    meridiem: "PM",
   });
   await page.getByLabel("Description").fill("Harness create raid");
 
