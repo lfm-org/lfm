@@ -11,6 +11,7 @@ const LoginPage = lazy(() => import("./features/auth/pages/LoginPage"));
 const LoginFailedPage = lazy(() => import("./features/auth/pages/LoginFailedPage"));
 const LoginSuccessPage = lazy(() => import("./features/auth/pages/LoginSuccessPage"));
 const GoodbyePage = lazy(() => import("./features/auth/pages/GoodbyePage"));
+const PrivacyPolicyPage = lazy(() => import("./features/auth/pages/PrivacyPolicyPage"));
 const CharactersPage = lazy(() => import("./features/characters/pages/CharactersPage"));
 const GuildPage = lazy(() => import("./features/guild/pages/GuildPage"));
 const GuildAdminPage = lazy(() => import("./features/guild/pages/GuildAdminPage"));
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/login/failed" element={withRouteFallback(<LoginFailedPage />)} />
         <Route path="/login/success" element={withRouteFallback(<LoginSuccessPage />)} />
         <Route path="/goodbye" element={withRouteFallback(<GoodbyePage />)} />
+        <Route path="/privacy" element={withRouteFallback(<PrivacyPolicyPage />)} />
         <Route path="/characters" element={withRouteFallback(<AuthGuard><CharactersPage /></AuthGuard>)} />
         <Route path="/guild" element={withRouteFallback(<AuthGuard><GuildPage /></AuthGuard>)} />
         <Route path="/guild/admin" element={withRouteFallback(<AuthGuard><GuildAdminPage /></AuthGuard>)} />
