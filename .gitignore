@@ -43,9 +43,9 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# dotenv environment variables file (all variants)
 .env
-.env.test
+.env.*
 
 # Next.js build output
 .next
@@ -82,3 +82,49 @@ frontend/e2e/test-results/
 
 # Superpowers
 .superpowers
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# SSH and crypto keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.der
+*.cer
+*.pkcs12
+*.jks
+*.keystore
+*.gpg
+*.pgp
+*.kdbx
+*.secret
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+
+# Database files and backups
+*.sqlite
+*.sqlite3
+*.dump
+*.bak
+
+# Terraform state
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Docker local overrides
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# IDE credential stores
+.idea/dataSources.local.xml
+.idea/webServers.xml
+
+# Azure CLI cached credentials
+.azure/
