@@ -50,22 +50,27 @@ Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g.
 
 | Tool | Config file approach (preferred) |
 |------|----------------------------------|
-| npm | `cache=.cache/npm` in `frontend/.npmrc` |
+| npm (via fnm exec) | `cache=.cache/npm` in `frontend/.npmrc` |
 | ESLint | `cacheLocation: ".cache/eslint"` in `eslint.config.js` |
 
 `.cache/` is git-ignored (contents only; `.cache/.gitkeep` is tracked so the directory exists in fresh checkouts).
 
+### Node.js via fnm
+
+This project uses **fnm** (Fast Node Manager) with `.node-version` to pin the Node version. Never call `node`, `npm`, or `npx` directly — always prefix with `fnm exec`. This ensures the correct Node version is used and keeps sandbox allow-list entries simple (e.g. `fnm exec:*`).
+
 ### Running tools in subdirectories
 
-Prefer `--prefix` / `-C` flags over `cd dir &&` to run tools in subdirectories. The sandbox allow-list is keyed on command prefixes like `git -C /absolute/path:*` and `npm --prefix /absolute/path/subdir:*` — using `cd` first produces a different command string that won't match, triggering an unnecessary permission prompt even for an already-allowed operation.
+Prefer `--prefix` / `-C` flags over `cd dir &&` to run tools in subdirectories. The sandbox allow-list is keyed on command prefixes like `git -C /absolute/path:*` and `fnm exec npm --prefix /absolute/path/subdir:*` — using `cd` first produces a different command string that won't match, triggering an unnecessary permission prompt even for an already-allowed operation.
 
 ```bash
-# Good — matches sandbox allow-list
+# Good — fnm exec with --prefix, matches sandbox allow-list
 git -C /absolute/path/to/repo status
-npm --prefix /absolute/path/to/repo/frontend install
-npx --prefix /absolute/path/to/repo/frontend tsc --noEmit
+fnm exec npm --prefix /absolute/path/to/repo/frontend install
+fnm exec npx --prefix /absolute/path/to/repo/frontend tsc --noEmit
 
-# Avoid — cd changes the command string, bypasses allow-list match
+# Avoid — direct calls bypass fnm; cd bypasses allow-list match
+npm --prefix /absolute/path/to/repo/frontend install
 cd frontend && npm install
 cd frontend && npx tsc --noEmit
 ```
@@ -75,7 +80,7 @@ cd frontend && npx tsc --noEmit
 When checking a command's exit code in Bash, use the format `echo "EXIT:$?"` (uppercase, colon, no spaces). One consistent format keeps the sandbox allow-list clean:
 
 ```bash
-npm --prefix frontend run build 2>&1; echo "EXIT:$?"
+fnm exec npm --prefix frontend run build 2>&1; echo "EXIT:$?"
 ```
 
 ### JSON processing
@@ -101,7 +106,7 @@ Available E2E scenarios: `default`, `raids-empty`, `raids-error`, `characters-em
 Perf specs live in `frontend/e2e/perf/`. They are excluded from default discovery and do not gate ordinary `e2e.sh` runs. They run as part of `verify-local.sh full`.
 
 Useful commands:
-- list the default-discovered specs: `npm --prefix frontend run e2e:list`
+- list the default-discovered specs: `fnm exec npm --prefix frontend run e2e:list`
 - run a focused default-scenario spec: `./scripts/dev-env.mjs test signup` (bare names like `signup` are expanded to `e2e/signup.spec.ts` automatically)
 - run a scenario-specific spec: `./scripts/e2e.sh raids-empty raids-empty.spec.ts`
 - run the full all-scenarios suite: `./scripts/e2e-all.sh`
@@ -143,7 +148,7 @@ Follow the expand/contract pattern for breaking changes:
 
 To run migrations manually:
 ```bash
-COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm npx tsx functions/src/scripts/run-migrations.ts
+COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm fnm exec npx tsx functions/src/scripts/run-migrations.ts
 ```
 
 ## LSP Tool
