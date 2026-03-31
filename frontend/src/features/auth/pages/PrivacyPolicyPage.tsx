@@ -42,7 +42,7 @@ export default function PrivacyPolicyPage() {
               </Typography>
               {bodies.map((key) => (
                 <Typography key={key} variant="body1" color="text.secondary">
-                  {t(key, { contactEmail: "lfmprivacy.catwalk113@passmail.net" })}
+                  {t(key, { contactEmail: import.meta.env.VITE_PRIVACY_EMAIL || "privacy@example.com" })}
                 </Typography>
               ))}
             </Stack>
