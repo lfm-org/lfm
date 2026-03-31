@@ -24,6 +24,7 @@ This is a hobby project. Prefer free tiers where available — Cosmos DB free ti
 7. PR descriptions: explain the change, list env/schema changes, include screenshots for UI work.
 8. Do not add `Co-Authored-By` trailers. AI usage is acknowledged in `README.md`.
 9. Document any guidance changes in the same task's guidance files.
+10. **Pre-commit hook:** `scripts/pre-commit` blocks `.env`, `.pem`, `.key`, and similar sensitive files. Install with `cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`.
 
 ## Configuration & Secrets
 
@@ -38,33 +39,27 @@ Do not commit populated `.env` files or real Blizzard or database credentials. U
 
 ## Tool Configuration
 
-When configuring any tool (linters, bundlers, test runners, package managers, etc.) prefer configuration methods in this order:
-
-1. **Config file** — use the tool's dedicated config file (`eslint.config.js`, `tsconfig.json`, `jest.config.ts`, `.npmrc`, etc.) where supported. Config files are version-controlled, discoverable, and IDE-aware.
-2. **CLI argument** — use flags when the option isn't supported in a config file, or for one-off overrides (e.g. `--cache-dir`).
-3. **Environment variable** — use env vars only when config files and CLI arguments are unavailable for the option.
-
-### Sandbox cache root
-
-Claude Code runs in a sandboxed environment where writes to `~/` locations (e.g. `~/.npm`, `~/.cache`, `~/.config`) are blocked. Use `.cache/` (project-local, git-ignored) as the cache root for any tool that cannot use its default location:
-
-| Tool | Config file approach (preferred) |
-|------|----------------------------------|
-| npm (via fnm exec) | `cache=.cache/npm` in `frontend/.npmrc` |
-| ESLint | `cacheLocation: ".cache/eslint"` in `eslint.config.js` |
-
-`.cache/` is git-ignored (contents only; `.cache/.gitkeep` is tracked so the directory exists in fresh checkouts).
-
 ### Node.js via fnm
 
-This project uses **fnm** (Fast Node Manager) with `.node-version` to pin the Node version. Never call `node`, `npm`, or `npx` directly — always prefix with `fnm exec`. This ensures the correct Node version is used and keeps sandbox allow-list entries simple (e.g. `fnm exec:*`).
+This project uses **fnm** (Fast Node Manager) with `.node-version` to pin the Node version. Never call `node`, `npm`, or `npx` directly — always prefix with `fnm exec`. This keeps sandbox allow-list entries simple (e.g. `fnm exec:*`).
 
-### Running tools in subdirectories
+### Config file preference
 
-Prefer `--prefix` / `-C` flags over `cd dir &&` to run tools in subdirectories. The sandbox allow-list is keyed on command prefixes like `git -C /absolute/path:*` and `fnm exec npm --prefix /absolute/path/subdir:*` — using `cd` first produces a different command string that won't match, triggering an unnecessary permission prompt even for an already-allowed operation.
+When configuring any tool, prefer: **config file** (version-controlled, IDE-aware) > **CLI argument** (for unsupported or one-off options) > **environment variable** (only if no other option).
+
+### Sandbox & commands
+
+Claude Code's sandbox blocks writes to `~/` locations. Use `.cache/` (project-local, git-ignored) as the cache root:
+
+| Tool | Config file approach |
+|------|---------------------|
+| npm | `cache=.cache/npm` in `frontend/.npmrc` |
+| ESLint | `cacheLocation: ".cache/eslint"` in `eslint.config.mjs` |
+
+Prefer `--prefix` / `-C` flags over `cd dir &&` — the sandbox allow-list is keyed on command prefixes:
 
 ```bash
-# Good — fnm exec with --prefix, matches sandbox allow-list
+# Good — matches sandbox allow-list
 git -C /absolute/path/to/repo status
 fnm exec npm --prefix /absolute/path/to/repo/frontend install
 fnm exec npx --prefix /absolute/path/to/repo/frontend tsc --noEmit
@@ -72,12 +67,9 @@ fnm exec npx --prefix /absolute/path/to/repo/frontend tsc --noEmit
 # Avoid — direct calls bypass fnm; cd bypasses allow-list match
 npm --prefix /absolute/path/to/repo/frontend install
 cd frontend && npm install
-cd frontend && npx tsc --noEmit
 ```
 
-### Script exit codes
-
-When checking a command's exit code in Bash, use the format `echo "EXIT:$?"` (uppercase, colon, no spaces). One consistent format keeps the sandbox allow-list clean:
+Exit codes: use `echo "EXIT:$?"` (uppercase, colon, no spaces) for consistent sandbox allow-list matching:
 
 ```bash
 fnm exec npm --prefix frontend run build 2>&1; echo "EXIT:$?"
@@ -85,40 +77,58 @@ fnm exec npm --prefix frontend run build 2>&1; echo "EXIT:$?"
 
 ### JSON processing
 
-Use `jq` for any JSON processing in shell, not Python. Python one-liners for JSON are verbose, often require multiple iterations to produce the expected output, and are harder to read at a glance. `jq` is purpose-built, composable, and produces correct results first try.
+Use `jq` for JSON processing in shell, not Python one-liners.
 
 ```bash
-# Good
 jq '.raids[] | select(.visibility == "PUBLIC") | .id' raids.json
-
-# Avoid
-python3 -c "import json,sys; data=json.load(open('raids.json')); print([r['id'] for r in data['raids'] if r['visibility']=='PUBLIC'])"
 ```
+
+## Verification
+
+Run `./scripts/verify-local.sh` before claiming work is complete:
+
+| Level | Command | What it runs |
+|-------|---------|-------------|
+| Fast | `./scripts/verify-local.sh fast` | lint + unit tests + build + bundle check (both packages) |
+| Browser | `./scripts/verify-local.sh browser` | fast + all E2E scenarios |
+| Full | `./scripts/verify-local.sh full` | browser + perf specs |
+
+Per-package shortcuts:
+- `fnm exec npm --prefix frontend run verify:fast` — lint, unit tests, build, bundle check
+- `fnm exec npm --prefix functions run verify:fast` — lint, build, unit tests
+
+Run `fnm exec npm --prefix <package> audit` after adding or upgrading dependencies — deploy workflows run `npm audit` and will fail on vulnerabilities.
+
+**Knip** is installed in both packages for unused export/file detection: `fnm exec npx --prefix frontend knip` / `fnm exec npx --prefix functions knip`.
+
+## Unit Testing
+
+Both packages use **Vitest**. Write unit tests for pure logic, utilities, and data transformations. Use E2E for user journeys.
+
+- `fnm exec npm --prefix frontend run test:unit` — run frontend tests
+- `fnm exec npm --prefix functions test` — run functions tests
+- Watch mode: `test:unit:watch` (frontend) / `test:watch` (functions)
 
 ## E2E Testing
 
-Playwright coverage lives in `frontend/e2e/`. Add or update e2e tests when a change affects auth/login/logout behavior, protected routes, seeded `TEST_MODE` flows, multi-step create/update/cancel journeys, public entry pages, accessibility-critical interactions, or a regression that escaped unit/type-level coverage.
+Playwright coverage lives in `frontend/e2e/`. Add or update e2e tests when a change affects auth/login/logout behaviour, protected routes, seeded `TEST_MODE` flows, multi-step create/update/cancel journeys, public entry pages, or accessibility-critical interactions.
 
-`scripts/dev-env.mjs` is the primary test runner. It manages the full Docker stack lifecycle (start, seed, run Playwright, teardown) — you do not need to start or stop Docker manually.
+`scripts/dev-env.mjs` manages the full Docker stack lifecycle (start, seed, run Playwright, teardown).
 
-Available E2E scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each scenario seeds the database differently; scenario-specific specs only pass under their matching scenario.
+Available scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each seeds the database differently; scenario-specific specs only pass under their matching scenario. Perf specs live in `frontend/e2e/perf/` and are excluded from default discovery.
 
-Perf specs live in `frontend/e2e/perf/`. They are excluded from default discovery and do not gate ordinary `e2e.sh` runs. They run as part of `verify-local.sh full`.
+Commands:
+- `fnm exec npm --prefix frontend run e2e:list` — list default-discovered specs
+- `./scripts/dev-env.mjs test signup` — run a focused spec (bare names expanded to `e2e/*.spec.ts`)
+- `./scripts/e2e.sh raids-empty raids-empty.spec.ts` — run a scenario-specific spec
+- `./scripts/e2e-all.sh` — full all-scenarios suite
 
-Useful commands:
-- list the default-discovered specs: `fnm exec npm --prefix frontend run e2e:list`
-- run a focused default-scenario spec: `./scripts/dev-env.mjs test signup` (bare names like `signup` are expanded to `e2e/signup.spec.ts` automatically)
-- run a scenario-specific spec: `./scripts/e2e.sh raids-empty raids-empty.spec.ts`
-- run the full all-scenarios suite: `./scripts/e2e-all.sh`
-- local verification: `./scripts/verify-local.sh fast` (lint/type-check only), `browser` (fast + all e2e scenarios), `full` (browser + perf specs)
-
-Rules for agents:
+Rules:
 - Do not claim "full e2e suite passed" unless you ran `./scripts/e2e-all.sh`.
-- Default Playwright discovery excludes both scenario-specific files (`SCENARIO_SPECS`) and perf files (`PERF_SPECS`) listed in `frontend/playwright.config.ts`.
-- Default Playwright runs are intentionally single-worker because the local Docker-backed seed state is shared across specs. Do not raise worker parallelism unless the affected specs are made state-isolated first.
-- If you add a new scenario-only spec, update three places: the `E2E_SCENARIOS` set in `scripts/dev-env.mjs`, the `SCENARIO_SPECS` array in `frontend/playwright.config.ts`, and `scripts/e2e-all.sh`.
-- If you add a new perf spec, update two places: the `PERF_SPECS` array in `frontend/playwright.config.ts` and the `run_perf` function in `scripts/verify-local.sh`.
-- Keep e2e coverage deterministic and local-first. Do not add routine real Battle.net dependencies to the normal Playwright workflow.
+- Default Playwright runs are single-worker (shared Docker seed state). Do not raise parallelism unless specs are state-isolated.
+- New scenario spec → update `E2E_SCENARIOS` in `scripts/dev-env.mjs`, `SCENARIO_SPECS` in `frontend/playwright.config.ts`, and `scripts/e2e-all.sh`.
+- New perf spec → update `PERF_SPECS` in `frontend/playwright.config.ts` and `run_perf` in `scripts/verify-local.sh`.
+- Keep coverage deterministic and local-first. No routine real Battle.net dependencies in the Playwright workflow.
 
 ## Infrastructure Development
 
@@ -150,16 +160,6 @@ To run migrations manually:
 ```bash
 COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm fnm exec npx tsx functions/src/scripts/run-migrations.ts
 ```
-
-## LSP Tool
-
-The LSP tool provides TypeScript language server intelligence. Use it for **code navigation and type inspection** — it does not surface diagnostics (use `tsc --noEmit` for that).
-
-Prefer LSP over reading files when:
-- **Resolving a type** — `hover` on an expression to see its inferred type without reading surrounding declarations
-- **Tracing a call** — `incomingCalls`/`outgoingCalls` to map where a function is called or what it calls
-- **Finding usages before renaming or deleting** — `findReferences` to ensure nothing is missed
-- **Jumping to a definition across packages** — `goToDefinition` when a symbol comes from a dependency
 
 ## Documentation Separation
 
