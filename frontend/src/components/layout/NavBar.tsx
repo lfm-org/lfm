@@ -1,9 +1,25 @@
-import { AppBar, Box, Button, Toolbar } from "@mui/material";
+import {
+  AppBar,
+  Avatar,
+  Box,
+  Button,
+  Menu,
+  MenuItem,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { useState, type MouseEvent } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router";
-import { useTranslation } from "react-i18next";
-import { logout } from "../../lib/auth";
 import { useAuth } from "../../features/auth";
+import { logout } from "../../lib/auth";
 import Logo from "../Logo";
+import {
+  getAccountMenuRouteItems,
+  getLoginHref,
+  getPrimaryNavItems,
+} from "./navBarModel";
 
 interface NavBarCharacter {
   name: string;
@@ -17,98 +33,155 @@ interface NavBarProps {
 export default function NavBar({ character = null }: NavBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down("md"));
   const { clearAuth, user } = useAuth();
-  const { t } = useTranslation();
-  const handleLogout = async () => {
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const isSiteAdmin = Boolean(user?.isSiteAdmin);
+  const primaryNavItems = getPrimaryNavItems(isSiteAdmin);
+  const accountMenuRouteItems = getAccountMenuRouteItems({
+    isSiteAdmin,
+    isCompact,
+  });
+  const loginHref = getLoginHref(location.pathname, location.search);
+  const menuOpen = Boolean(menuAnchor);
+  const menuButtonLabel = `Open navigation menu for ${character?.name ?? "your account"}`;
+
+  function openMenu(event: MouseEvent<HTMLButtonElement>) {
+    setMenuAnchor(event.currentTarget);
+  }
+
+  function closeMenu() {
+    setMenuAnchor(null);
+  }
+
+  async function handleLogout() {
+    closeMenu();
     try {
       await logout();
     } finally {
       clearAuth();
       navigate("/login");
     }
-  };
-  const redirectPath = location.pathname === "/" || location.pathname.startsWith("/login")
-    ? "/raids"
-    : `${location.pathname}${location.search}`;
-  const loginHref = `/login?redirect=${encodeURIComponent(redirectPath)}`;
+  }
 
   return (
     <AppBar position="static" color="inherit">
       <Toolbar variant="dense">
-        <Logo title={t("nav.logo")} />
-        <Button
-          component={RouterLink}
-          to="/raids"
-          color="inherit"
-          size="small"
-          sx={{ ml: 2 }}
-        >
-          {t("nav.raids")}
-        </Button>
-        <Button
-          component={RouterLink}
-          to="/guild"
-          color="inherit"
-          size="small"
-          sx={{ ml: 0.5 }}
-        >
-          {t("nav.guild")}
-        </Button>
+        <Logo title="🌀 LFM" />
+
         {character ? (
           <>
-            {user?.isSiteAdmin && (
-              <Button
-                component={RouterLink}
-                to="/guild/admin"
-                color="inherit"
-                size="small"
-                sx={{ ml: 0.5 }}
-              >
-                {t("nav.guildAdmin")}
-              </Button>
-            )}
-            {character.portraitUrl && (
+            {!isCompact && (
               <Box
-                component="img"
-                src={character.portraitUrl}
-                alt={character.name}
                 sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  ml: 1,
-                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  ml: 1.5,
                 }}
-              />
+              >
+                {primaryNavItems.map((item) => (
+                  <Button
+                    key={item.to}
+                    component={RouterLink}
+                    to={item.to}
+                    color="inherit"
+                    size="small"
+                    sx={{ minWidth: 0, px: 1.5 }}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </Box>
             )}
+
             <Button
-              component={RouterLink}
-              to="/characters"
+              id="navbar-account-trigger"
+              aria-controls={menuOpen ? "navbar-account-menu" : undefined}
+              aria-expanded={menuOpen ? "true" : "false"}
+              aria-haspopup="menu"
+              aria-label={menuButtonLabel}
               color="inherit"
-              size="small"
-              sx={{ ml: 0.5 }}
+              onClick={openMenu}
+              sx={{
+                ml: "auto",
+                minWidth: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1,
+                textTransform: "none",
+              }}
             >
-              {character.name}
+              {character.portraitUrl ? (
+                <Avatar
+                  alt=""
+                  src={character.portraitUrl}
+                  sx={{ width: 32, height: 32 }}
+                />
+              ) : (
+                <Avatar sx={{ width: 32, height: 32 }}>
+                  {character.name.slice(0, 1).toUpperCase()}
+                </Avatar>
+              )}
+              <Typography
+                component="span"
+                noWrap
+                sx={{ maxWidth: { xs: 88, sm: 148 } }}
+              >
+                {character.name}
+              </Typography>
             </Button>
-            <Button
-              onClick={handleLogout}
-              color="inherit"
-              size="small"
-              sx={{ ml: 0.5 }}
+
+            <Menu
+              id="navbar-account-menu"
+              anchorEl={menuAnchor}
+              open={menuOpen}
+              onClose={closeMenu}
+              MenuListProps={{
+                "aria-labelledby": "navbar-account-trigger",
+              }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
             >
-              {t("nav.logout")}
-            </Button>
+              {accountMenuRouteItems.map((item) => (
+                <MenuItem
+                  key={item.to}
+                  component={RouterLink}
+                  to={item.to}
+                  onClick={closeMenu}
+                >
+                  {item.label}
+                </MenuItem>
+              ))}
+              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+            </Menu>
           </>
         ) : (
-          <Button
-            component={RouterLink}
-            to={loginHref}
-            color="inherit"
-            size="small"
-            sx={{ ml: 1 }}
-          >
-            {t("nav.login")}
-          </Button>
+          <>
+            {!isCompact &&
+              primaryNavItems.map((item) => (
+                <Button
+                  key={item.to}
+                  component={RouterLink}
+                  to={item.to}
+                  color="inherit"
+                  size="small"
+                  sx={{ ml: 1 }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            <Button
+              component={RouterLink}
+              to={loginHref}
+              color="inherit"
+              size="small"
+              sx={{ ml: 1, textTransform: "none" }}
+            >
+              Login
+            </Button>
+          </>
         )}
       </Toolbar>
     </AppBar>
