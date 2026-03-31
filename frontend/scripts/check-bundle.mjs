@@ -1,7 +1,10 @@
 import fs from "node:fs";
 
-const ENTRY_BUDGET_BYTES = 300_000;
-const INITIAL_JS_BUDGET_BYTES = 650_000;
+const ENTRY_BUDGET_BYTES = 95_000;
+// Covers all modulepreloaded chunks (vendor-react, vendor-mui, entry).
+// Higher than the pre-split budget because vendor chunks that previously
+// loaded as separate auto-split chunks are now modulepreloaded.
+const INITIAL_JS_BUDGET_BYTES = 780_000;
 
 const html = fs.readFileSync(new URL("../dist/index.html", import.meta.url), "utf8");
 const entryChunkMatch = html.match(/<script[^>]+src="\/?(assets\/[^"' ]+\.js)"/);
