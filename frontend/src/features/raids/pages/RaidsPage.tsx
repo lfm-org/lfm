@@ -56,7 +56,7 @@ export default function RaidsPage() {
     <Box
       component="nav"
       aria-label={t("raids.pagination")}
-      sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1 }}
+      sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
     >
       <Button size="small" variant="outlined" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} aria-label={t("common.previous")} sx={{ minWidth: 36 }}>
         ‹
