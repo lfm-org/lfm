@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
 import { useAuth } from "../../features/auth";
@@ -23,6 +24,7 @@ interface Props {
 
 export default function AppLayout({ children }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [character, setCharacter] = useState<CharacterData | null>(null);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function AppLayout({ children }: Props) {
           },
         }}
       >
-        Skip to main content
+        {t("a11y.skipToContent")}
       </Box>
       <NavBar character={character} />
       <Box component="main" id="main-content" sx={{ flex: 1 }}>

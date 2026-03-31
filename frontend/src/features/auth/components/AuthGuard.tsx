@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { Navigate, useLocation } from "react-router";
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/useAuth";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 export default function AuthGuard({ children }: Props) {
   const { user, loading, postAuthRedirect } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
   const redirectPath = `${location.pathname}${location.search}`;
 
   if (loading) {
@@ -25,7 +27,7 @@ export default function AuthGuard({ children }: Props) {
       >
         <Box sx={{ display: "grid", justifyItems: "center", gap: 2 }}>
           <CircularProgress />
-          <Typography color="text.secondary">Checking Battle.net session...</Typography>
+          <Typography color="text.secondary">{t("auth.checkingSession")}</Typography>
         </Box>
       </Box>
     );

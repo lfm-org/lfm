@@ -1,23 +1,16 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
 
-const valueProps = [
-  {
-    title: "Shared schedule",
-    body: "Keep upcoming raids and signups in one place.",
-  },
-  {
-    title: "Role coverage",
-    body: "See tank, healer, and DPS coverage at a glance.",
-  },
-  {
-    title: "Battle.net sign-in",
-    body: "Players sign in with Battle.net and use their saved characters.",
-  },
-];
+const valuePropKeys = [
+  "sharedSchedule",
+  "roleCoverage",
+  "battleNetSignIn",
+] as const;
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   return (
     <PageContainer>
       <SurfaceCard
@@ -35,7 +28,7 @@ export default function LandingPage() {
                 variant="overline"
                 sx={{ letterSpacing: "0.2em", color: "text.secondary" }}
               >
-                🌀 LFM
+                {t("landing.logo")}
               </Typography>
               <Typography
                 variant="h3"
@@ -46,10 +39,10 @@ export default function LandingPage() {
                   fontWeight: 600,
                 }}
               >
-                Plan raids in one place
+                {t("landing.title")}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640 }}>
-                Create raids, collect signups, and check roster coverage before invite time.
+                {t("landing.subtitle")}
               </Typography>
             </Stack>
 
@@ -60,9 +53,9 @@ export default function LandingPage() {
                 gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" },
               }}
             >
-              {valueProps.map((valueProp) => (
+              {valuePropKeys.map((key) => (
                 <SurfaceCard
-                  key={valueProp.title}
+                  key={key}
                   padding={3}
                   sx={{
                     height: "100%",
@@ -73,10 +66,10 @@ export default function LandingPage() {
                 >
                   <Stack spacing={1.5}>
                     <Typography variant="h6" component="h2">
-                      {valueProp.title}
+                      {t(`landing.valueProps.${key}.title`)}
                     </Typography>
                     <Typography color="text.secondary">
-                      {valueProp.body}
+                      {t(`landing.valueProps.${key}.body`)}
                     </Typography>
                   </Stack>
                 </SurfaceCard>

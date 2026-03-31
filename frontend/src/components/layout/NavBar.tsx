@@ -1,5 +1,6 @@
 import { AppBar, Box, Button, Toolbar } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { logout } from "../../lib/auth";
 import { useAuth } from "../../features/auth";
 import Logo from "../Logo";
@@ -17,6 +18,7 @@ export default function NavBar({ character = null }: NavBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { clearAuth, user } = useAuth();
+  const { t } = useTranslation();
   const handleLogout = async () => {
     try {
       await logout();
@@ -33,7 +35,7 @@ export default function NavBar({ character = null }: NavBarProps) {
   return (
     <AppBar position="static" color="inherit">
       <Toolbar variant="dense">
-        <Logo title="🌀 LFM" />
+        <Logo title={t("nav.logo")} />
         <Button
           component={RouterLink}
           to="/raids"
@@ -41,7 +43,7 @@ export default function NavBar({ character = null }: NavBarProps) {
           size="small"
           sx={{ ml: 2 }}
         >
-          Raids
+          {t("nav.raids")}
         </Button>
         <Button
           component={RouterLink}
@@ -50,7 +52,7 @@ export default function NavBar({ character = null }: NavBarProps) {
           size="small"
           sx={{ ml: 0.5 }}
         >
-          Guild
+          {t("nav.guild")}
         </Button>
         {character ? (
           <>
@@ -62,7 +64,7 @@ export default function NavBar({ character = null }: NavBarProps) {
                 size="small"
                 sx={{ ml: 0.5 }}
               >
-                Guild Admin
+                {t("nav.guildAdmin")}
               </Button>
             )}
             {character.portraitUrl && (
@@ -94,7 +96,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               size="small"
               sx={{ ml: 0.5 }}
             >
-              Logout
+              {t("nav.logout")}
             </Button>
           </>
         ) : (
@@ -105,7 +107,7 @@ export default function NavBar({ character = null }: NavBarProps) {
             size="small"
             sx={{ ml: 1 }}
           >
-            Login
+            {t("nav.login")}
           </Button>
         )}
       </Toolbar>

@@ -1,24 +1,26 @@
 import { Button, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router";
+import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
 
 export default function GoodbyePage() {
+  const { t } = useTranslation();
   return (
     <PageContainer>
       <SurfaceCard sx={{ maxWidth: 560, mx: "auto" }}>
         <Stack spacing={2} textAlign="center" alignItems="center">
           <Typography variant="h4" component="h1">
-            Account deleted
+            {t("goodbye.title")}
           </Typography>
           <Typography color="text.secondary">
-            Your stored raider profile has been removed and your Battle.net session has been cleared.
+            {t("goodbye.body1")}
           </Typography>
           <Typography color="text.secondary">
-            Existing raids stay in place, but you no longer have access to the deleted account.
+            {t("goodbye.body2")}
           </Typography>
           <Button component={RouterLink} to="/login" variant="contained">
-            Sign in again
+            {t("goodbye.button")}
           </Button>
         </Stack>
       </SurfaceCard>

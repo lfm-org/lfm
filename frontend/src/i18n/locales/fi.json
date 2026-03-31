@@ -1,5 +1,42 @@
 {
   "common.loading": "Ladataan...",
+  "common.previous": "Edellinen",
+  "common.next": "Seuraava",
+
+  "a11y.skipToContent": "Siirry pääsisältöön",
+
+  "nav.logo": "🌀 LFM",
   "nav.raids": "Raids",
-  "nav.guild": "Guild"
+  "nav.guild": "Guild",
+  "nav.guildAdmin": "Guild Admin",
+  "nav.login": "Kirjaudu",
+  "nav.logout": "Kirjaudu ulos",
+
+  "landing.logo": "🌀 LFM",
+  "landing.title": "Suunnittele raidit yhdessä paikassa",
+  "landing.subtitle": "Luo raideja, kerää ilmoittautumisia ja tarkista kokoonpano ennen kutsuja.",
+  "landing.valueProps.sharedSchedule.title": "Yhteinen aikataulu",
+  "landing.valueProps.sharedSchedule.body": "Pidä tulevat raidit ja ilmoittautumiset yhdessä paikassa.",
+  "landing.valueProps.roleCoverage.title": "Roolikattavuus",
+  "landing.valueProps.roleCoverage.body": "Näe tank-, healer- ja DPS-kattavuus yhdellä silmäyksellä.",
+  "landing.valueProps.battleNetSignIn.title": "Battle.net-kirjautuminen",
+  "landing.valueProps.battleNetSignIn.body": "Pelaajat kirjautuvat Battle.netillä ja käyttävät tallennettuja hahmojaan.",
+
+  "login.title": "Kirjaudu Battle.netillä",
+  "login.subtitle": "Jatka Battle.net-tililläsi seurataksesi raid-ilmoittautumisia.",
+  "login.button": "Jatka Battle.netillä",
+
+  "loginFailed.title": "Kirjautuminen epäonnistui",
+  "loginFailed.subtitle": "Jokin meni pieleen Battle.net-todennuksessa. Yritä uudelleen.",
+  "loginFailed.button": "Yritä uudelleen",
+
+  "loginSuccess.signingIn": "Kirjaudutaan sisään...",
+
+  "goodbye.title": "Tili poistettu",
+  "goodbye.body1": "Tallennettu raider-profiilisi on poistettu ja Battle.net-istuntosi on tyhjennetty.",
+  "goodbye.body2": "Olemassa olevat raidit pysyvät paikoillaan, mutta sinulla ei ole enää pääsyä poistettuun tiliin.",
+  "goodbye.button": "Kirjaudu uudelleen",
+
+  "auth.checkingSession": "Tarkistetaan Battle.net-istuntoa...",
+  "guild.checkingSetup": "Tarkistetaan guild-asetuksia..."
 }

@@ -1,5 +1,42 @@
 {
   "common.loading": "Loading...",
+  "common.previous": "Previous",
+  "common.next": "Next",
+
+  "a11y.skipToContent": "Skip to main content",
+
+  "nav.logo": "🌀 LFM",
   "nav.raids": "Raids",
-  "nav.guild": "Guild"
+  "nav.guild": "Guild",
+  "nav.guildAdmin": "Guild Admin",
+  "nav.login": "Login",
+  "nav.logout": "Logout",
+
+  "landing.logo": "🌀 LFM",
+  "landing.title": "Plan raids in one place",
+  "landing.subtitle": "Create raids, collect signups, and check roster coverage before invite time.",
+  "landing.valueProps.sharedSchedule.title": "Shared schedule",
+  "landing.valueProps.sharedSchedule.body": "Keep upcoming raids and signups in one place.",
+  "landing.valueProps.roleCoverage.title": "Role coverage",
+  "landing.valueProps.roleCoverage.body": "See tank, healer, and DPS coverage at a glance.",
+  "landing.valueProps.battleNetSignIn.title": "Battle.net sign-in",
+  "landing.valueProps.battleNetSignIn.body": "Players sign in with Battle.net and use their saved characters.",
+
+  "login.title": "Sign in with Battle.net",
+  "login.subtitle": "Continue with your Battle.net account to keep track of raid signups.",
+  "login.button": "Continue with Battle.net",
+
+  "loginFailed.title": "Sign in failed",
+  "loginFailed.subtitle": "Something went wrong during Battle.net authentication. Please try again.",
+  "loginFailed.button": "Retry login",
+
+  "loginSuccess.signingIn": "Signing you in...",
+
+  "goodbye.title": "Account deleted",
+  "goodbye.body1": "Your stored raider profile has been removed and your Battle.net session has been cleared.",
+  "goodbye.body2": "Existing raids stay in place, but you no longer have access to the deleted account.",
+  "goodbye.button": "Sign in again",
+
+  "auth.checkingSession": "Checking Battle.net session...",
+  "guild.checkingSetup": "Checking guild setup..."
 }

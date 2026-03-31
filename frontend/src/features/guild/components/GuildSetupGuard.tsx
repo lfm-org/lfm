@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useGuildHome } from "../lib/useGuildHome";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 export default function GuildSetupGuard({ children }: Props) {
   const { data, loading, error } = useGuildHome();
   const location = useLocation();
+  const { t } = useTranslation();
 
   if (loading) {
     return (
@@ -24,7 +26,7 @@ export default function GuildSetupGuard({ children }: Props) {
       >
         <Box sx={{ display: "grid", justifyItems: "center", gap: 2 }}>
           <CircularProgress />
-          <Typography color="text.secondary">Checking guild setup...</Typography>
+          <Typography color="text.secondary">{t("guild.checkingSetup")}</Typography>
         </Box>
       </Box>
     );

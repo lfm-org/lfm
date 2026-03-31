@@ -1,10 +1,12 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useSearchParams } from "react-router";
+import { useTranslation } from "react-i18next";
 import { getLoginUrl } from "../../../lib/auth";
 import SurfaceCard from "../../../components/SurfaceCard";
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const redirectPath = searchParams.get("redirect") || "/raids";
 
   return (
@@ -12,10 +14,10 @@ export default function LoginPage() {
       <SurfaceCard sx={{ width: "min(100%, 480px)" }}>
         <Stack spacing={2} alignItems="center" textAlign="center">
           <Typography variant="h4" component="h1">
-            Sign in with Battle.net
+            {t("login.title")}
           </Typography>
           <Typography color="text.secondary">
-            Continue with your Battle.net account to keep track of raid signups.
+            {t("login.subtitle")}
           </Typography>
           <Button
             variant="contained"
@@ -24,7 +26,7 @@ export default function LoginPage() {
             disableElevation
             href={getLoginUrl(redirectPath)}
           >
-            Continue with Battle.net
+            {t("login.button")}
           </Button>
         </Stack>
       </SurfaceCard>
