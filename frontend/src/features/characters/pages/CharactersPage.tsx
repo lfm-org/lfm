@@ -156,10 +156,10 @@ function CharactersPageInner({
           <Box
             component="nav"
             aria-label={t("characters.pagination")}
-            sx={{ display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
+            sx={{ display: "flex", justifyContent: "center", gap: 1 }}
           >
-            <Button size="small" variant="outlined" disabled={clampedPage === 1} onClick={() => handlePageChange(clampedPage - 1)}>
-              {t("common.previous")}
+            <Button size="small" variant="outlined" disabled={clampedPage === 1} onClick={() => handlePageChange(clampedPage - 1)} aria-label={t("common.previous")} sx={{ minWidth: 36 }}>
+              ‹
             </Button>
             {Array.from({ length: totalPages }, (_, index) => {
               const page = index + 1;
@@ -175,8 +175,8 @@ function CharactersPageInner({
                 </Button>
               );
             })}
-            <Button size="small" variant="outlined" disabled={clampedPage === totalPages} onClick={() => handlePageChange(clampedPage + 1)}>
-              {t("common.next")}
+            <Button size="small" variant="outlined" disabled={clampedPage === totalPages} onClick={() => handlePageChange(clampedPage + 1)} aria-label={t("common.next")} sx={{ minWidth: 36 }}>
+              ›
             </Button>
           </Box>
         )}

@@ -53,10 +53,10 @@ export default function RaidsPage() {
     <Box
       component="nav"
       aria-label={t("raids.pagination")}
-      sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
+      sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1 }}
     >
-      <Button size="small" variant="outlined" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
-        {t("common.previous")}
+      <Button size="small" variant="outlined" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} aria-label={t("common.previous")} sx={{ minWidth: 36 }}>
+        ‹
       </Button>
       {Array.from({ length: totalPages }, (_, index) => {
         const page = index + 1;
@@ -72,8 +72,8 @@ export default function RaidsPage() {
           </Button>
         );
       })}
-      <Button size="small" variant="outlined" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
-        {t("common.next")}
+      <Button size="small" variant="outlined" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} aria-label={t("common.next")} sx={{ minWidth: 36 }}>
+        ›
       </Button>
     </Box>
   );

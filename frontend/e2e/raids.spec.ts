@@ -29,6 +29,18 @@ test("authenticated raids page shows five full raid cards with pagination", asyn
   await page.getByRole("button", { name: "2", exact: true }).click();
   await expect(page.getByText("Guild ten-player alt run")).toBeVisible();
   await expect(page.getByText("Closed heroic cleanup")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "1", exact: true }).click();
+  await expect(page.getByText("Closed heroic cleanup")).toBeVisible();
+  await expect(page.getByText("Guild ten-player alt run")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByText("Guild ten-player alt run")).toBeVisible();
+  await expect(page.getByText("Closed heroic cleanup")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Previous" }).click();
+  await expect(page.getByText("Closed heroic cleanup")).toBeVisible();
+  await expect(page.getByText("Guild ten-player alt run")).toHaveCount(0);
 });
 
 test("raids page focuses the requested raid query on the correct page", async ({ page }) => {
