@@ -89,33 +89,88 @@ Run `./scripts/verify-local.sh` before claiming work is complete:
 
 | Level | Command | What it runs |
 |-------|---------|-------------|
-| Fast | `./scripts/verify-local.sh fast` | lint + unit tests + build + bundle check (both packages) |
+| Fast | `./scripts/verify-local.sh fast` | lint + unit tests + integration tests + build + bundle check (both packages) |
 | Browser | `./scripts/verify-local.sh browser` | fast + all E2E scenarios |
 | Full | `./scripts/verify-local.sh full` | browser + perf specs |
 
 Per-package shortcuts:
-- `fnm exec npm --prefix frontend run verify:fast` — lint, unit tests, build, bundle check
+- `fnm exec npm --prefix frontend run verify:fast` — lint, unit + integration tests, build, bundle check
 - `fnm exec npm --prefix functions run verify:fast` — lint, build, unit tests
 
 Run `fnm exec npm --prefix <package> audit` after adding or upgrading dependencies — deploy workflows run `npm audit` and will fail on vulnerabilities.
 
 **Knip** is installed in both packages for unused export/file detection: `fnm exec npx --prefix frontend knip` / `fnm exec npx --prefix functions knip`.
 
-## Unit Testing
+## Testing
 
-Both packages use **Vitest**. Write unit tests for pure logic, utilities, and data transformations. Use E2E for user journeys.
+Three test lanes, each with a distinct purpose, environment, and file convention. Choosing the wrong lane wastes time and produces brittle coverage.
 
-- `fnm exec npm --prefix frontend run test:unit` — run frontend tests
-- `fnm exec npm --prefix functions test` — run functions tests
+| Lane | Runner | Environment | File pattern | Location | Docker? |
+|------|--------|-------------|--------------|----------|---------|
+| Unit | Vitest | Node (no DOM) | `*.test.ts` | `frontend/src/`, `functions/src/` | No |
+| Integration | Vitest | jsdom | `*.integration.test.tsx` | `frontend/src/` | No |
+| E2E | Playwright | Chromium | `*.spec.ts` | `frontend/e2e/` | Yes |
+
+### Choosing the right lane
+
+| What you're testing | Lane | Why |
+|---------------------|------|-----|
+| Pure function, utility, data transform, validation | Unit | No DOM needed; fastest feedback |
+| Component structure via `renderToStaticMarkup` | Unit | Server render works in Node; no interaction needed |
+| Backend handler logic with mocked deps | Unit | Isolate from real services |
+| Component interactive behavior (clicks, menus, state) | Integration | Needs DOM + React event system; too slow/fragile for E2E |
+| Responsive breakpoints, media queries | Integration | `matchMedia` shim in jsdom; Playwright for visual confirmation |
+| Accessible markup (`aria-*`, roles, focus management) | Integration | Fast structural checks; pair with E2E axe audit |
+| Auth/login/logout flows | E2E | Requires real cookie + redirect handling |
+| Multi-step user journeys (create → edit → delete) | E2E | Needs full stack + seeded database |
+| Protected routes, permission boundaries | E2E | Middleware + backend auth required |
+| Accessibility compliance (axe audit) | E2E | Real browser rendering required |
+| Performance budgets | E2E (perf) | Real browser timing required |
+
+### Unit tests
+
+Both packages use **Vitest** in Node environment (`environment: "node"`). No DOM, no jsdom.
+
+**What belongs here:** Pure logic, utilities, data transformations, validation rules, mocked backend handlers. Frontend component tests that only need structure (use `renderToStaticMarkup`, not `@testing-library/react`).
+
+**What does NOT belong:** Anything requiring click handlers, state changes, DOM events, `useMediaQuery`, or interactive behavior — use integration tests instead.
+
+Commands:
+- `fnm exec npm --prefix frontend run test:unit` — frontend unit tests
+- `fnm exec npm --prefix functions test` — functions unit tests
 - Watch mode: `test:unit:watch` (frontend) / `test:watch` (functions)
 
-## E2E Testing
+Config: `frontend/vitest.config.ts` (includes `src/**/*.test.ts`), `functions/vitest.config.ts`.
 
-Playwright coverage lives in `frontend/e2e/`. Add or update e2e tests when a change affects auth/login/logout behaviour, protected routes, seeded `TEST_MODE` flows, multi-step create/update/cancel journeys, public entry pages, or accessibility-critical interactions.
+### Integration tests
 
-`scripts/dev-env.mjs` manages the full Docker stack lifecycle (start, seed, run Playwright, teardown).
+Frontend-only. Vitest with **jsdom** environment, `@testing-library/react`, and `userEvent`.
 
-Available scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each seeds the database differently; scenario-specific specs only pass under their matching scenario. Perf specs live in `frontend/e2e/perf/` and are excluded from default discovery.
+**What belongs here:** Component behavior that requires a DOM — click handlers, menu open/close, keyboard navigation, responsive layout changes via `matchMedia`, `aria-expanded` toggling, focus management. These tests render components with `renderWithProviders` (wraps MemoryRouter + ThemeRegistry + AuthContext) and assert on interactive behavior.
+
+**What does NOT belong:** Pure logic (use unit tests). Full user journeys that need a real backend, cookies, or database (use E2E).
+
+Commands:
+- `fnm exec npm --prefix frontend run test:integration` — run integration tests
+- `fnm exec npm --prefix frontend test` — run both unit + integration
+
+Config: `frontend/vitest.integration.config.ts` (includes `src/**/*.integration.test.tsx`). Setup file: `src/test/setupDomTests.ts` (cleanup + `matchMedia` shim).
+
+Shared helpers in `frontend/src/test/`:
+- `renderWithProviders.tsx` — render with MemoryRouter, ThemeRegistry, AuthContext
+- `setupDomTests.ts` — `afterEach(cleanup)`, `matchMedia` shim, `setViewportWidth()`
+
+### E2E tests
+
+Playwright against the full Docker stack (Cosmos, Azurite, Functions, frontend preview server).
+
+**What belongs here:** Auth flows, protected routes, multi-step journeys, form submissions with real backend, accessibility audits (axe), scenario-dependent state.
+
+`scripts/dev-env.mjs` manages the Docker stack lifecycle (start, seed, run Playwright, teardown).
+
+Available scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each seeds the database differently; scenario-specific specs only pass under their matching scenario.
+
+Perf specs live in `frontend/e2e/perf/` and are excluded from default discovery.
 
 Commands:
 - `fnm exec npm --prefix frontend run e2e:list` — list default-discovered specs
