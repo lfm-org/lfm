@@ -95,8 +95,6 @@
   "guildAdmin.loadFailed": "Failed to load guild settings",
   "guildAdmin.resolveFailed": "Failed to resolve guild",
 
-  "guildIdentity.title": "Guild identity",
-  "guildIdentity.metadata": "Shared metadata",
   "guildIdentity.crestAlt": "{{name}} crest",
 
   "guildSettings.timezone": "Time zone",
@@ -171,6 +169,8 @@
   "notAttending.title": "Not Attending ({{count}})",
 
   "footer.privacyPolicy": "Privacy Notice",
+  "footer.switchToEnglish": "Switch to English",
+  "footer.switchToFinnish": "Switch to Finnish",
 
   "privacy.title": "Privacy Notice",
   "privacy.lastUpdated": "Last updated: March 31, 2026",

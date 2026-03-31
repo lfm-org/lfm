@@ -5,8 +5,8 @@ import { useAuth } from "../../features/auth";
 import { isSupportedLocale } from "../../i18n/i18n";
 
 const locales = [
-  { code: "en", label: "🇬🇧" },
-  { code: "fi", label: "🇫🇮" },
+  { code: "en", label: "🇬🇧", i18nKey: "footer.switchToEnglish" },
+  { code: "fi", label: "🇫🇮", i18nKey: "footer.switchToFinnish" },
 ] as const;
 
 export default function Footer() {
@@ -47,18 +47,19 @@ export default function Footer() {
       <Typography variant="caption" color="text.secondary" sx={{ mx: 0.5 }}>
         ·
       </Typography>
-      {locales.map(({ code, label }) => (
+      {locales.map(({ code, label, i18nKey }) => (
         <Button
           key={code}
           size="small"
+          aria-label={t(i18nKey)}
           onClick={() => handleLocaleChange(code)}
           disabled={i18n.language === code}
           sx={{
-            minWidth: "auto",
-            px: 1,
+            minWidth: 44,
+            minHeight: 44,
             color: i18n.language === code ? "text.primary" : "text.secondary",
             fontWeight: i18n.language === code ? 700 : 400,
-            fontSize: "0.75rem",
+            fontSize: "1rem",
           }}
         >
           {label}

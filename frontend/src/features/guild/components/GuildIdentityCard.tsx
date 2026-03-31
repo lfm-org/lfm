@@ -60,9 +60,6 @@ export default function GuildIdentityCard({ guild, metadata }: GuildIdentityCard
           )}
 
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.18em" }}>
-              {t("guildIdentity.title")}
-            </Typography>
             <Typography variant="h4" component="h2" sx={{ lineHeight: 1.1 }}>
               {guild.name}
             </Typography>
@@ -80,10 +77,7 @@ export default function GuildIdentityCard({ guild, metadata }: GuildIdentityCard
 
         {metadata && (
           <Box sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.18em" }}>
-              {t("guildIdentity.metadata")}
-            </Typography>
-            <Box sx={{ mt: 1.5 }}>{metadata}</Box>
+            {metadata}
           </Box>
         )}
       </Stack>
