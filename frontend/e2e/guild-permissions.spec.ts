@@ -18,7 +18,8 @@ test("guild masters can change rank permissions and blocked ranks lose guild sig
   await page.getByRole("button", { name: "Save guild settings" }).click();
   await expect(page.getByText("Guild settings saved")).toBeVisible();
 
-  await page.getByRole("button", { name: "Logout" }).click();
+  await page.getByRole("button", { name: /Open navigation menu for/i }).click();
+  await page.getByRole("menuitem", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\/login$/);
 
   await page.goto("/api/battlenet/login?redirect=%2Fraids%2Fnew");
