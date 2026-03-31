@@ -4,12 +4,10 @@ import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
 
 const sections = [
-  { heading: "privacy.whatWeCollect.heading", bodies: ["privacy.whatWeCollect.body"] },
-  { heading: "privacy.howWeUseIt.heading", bodies: ["privacy.howWeUseIt.body"] },
+  { heading: "privacy.data.heading", bodies: ["privacy.data.body"] },
   { heading: "privacy.cookies.heading", bodies: ["privacy.cookies.body"] },
-  { heading: "privacy.thirdParty.heading", bodies: ["privacy.thirdParty.body1", "privacy.thirdParty.body2"] },
-  { heading: "privacy.retention.heading", bodies: ["privacy.retention.body1", "privacy.retention.body2", "privacy.retention.body3"] },
-  { heading: "privacy.yourRights.heading", bodies: ["privacy.yourRights.body1", "privacy.yourRights.body2", "privacy.yourRights.body3"] },
+  { heading: "privacy.thirdParty.heading", bodies: ["privacy.thirdParty.body"] },
+  { heading: "privacy.retention.heading", bodies: ["privacy.retention.body"] },
   { heading: "privacy.contact.heading", bodies: ["privacy.contact.body"] },
 ] as const;
 
