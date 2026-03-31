@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAttendanceConfig, ATTENDANCE_CONFIG } from "./attendanceConfig";
+import { getAttendanceConfig, ATTENDANCE_CONFIG, isAttending } from "./attendanceConfig";
 import { attendance } from "../../../theme";
 
 describe("getAttendanceConfig", () => {
@@ -26,5 +26,18 @@ describe("getAttendanceConfig", () => {
       const config = getAttendanceConfig(status);
       expect(config.textColor).toBeDefined();
     }
+  });
+});
+
+describe("isAttending", () => {
+  it("returns true for IN and LATE", () => {
+    expect(isAttending("IN")).toBe(true);
+    expect(isAttending("LATE")).toBe(true);
+  });
+
+  it("returns false for OUT, BENCH, and AWAY", () => {
+    expect(isAttending("OUT")).toBe(false);
+    expect(isAttending("BENCH")).toBe(false);
+    expect(isAttending("AWAY")).toBe(false);
   });
 });

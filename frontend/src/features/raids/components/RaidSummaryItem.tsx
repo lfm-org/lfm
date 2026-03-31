@@ -2,6 +2,7 @@ import { Box, Chip, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { DateTime } from "luxon";
 import type { Raid } from "../lib/raidTypes";
+import { isAttending } from "../lib/attendanceConfig";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 
 interface RaidSummaryItemProps {
@@ -22,7 +23,7 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
     : "—";
-  const inCount = raid.raidCharacters.filter(rc => rc.desiredAttendance === "IN").length;
+  const inCount = raid.raidCharacters.filter(rc => isAttending(rc.desiredAttendance)).length;
 
   return (
     <Box

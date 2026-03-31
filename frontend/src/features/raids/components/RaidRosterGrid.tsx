@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import RosterSection from "./RosterSection";
 import NotAttendingSection from "./NotAttendingSection";
 import type { RaidRole, RaidSignup } from "../lib/raidTypes";
+import { isAttending } from "../lib/attendanceConfig";
 
 const ROLES: RaidRole[] = ["TANK", "HEALER", "DPS"];
 
@@ -12,8 +13,8 @@ interface RaidRosterGridProps {
 
 export default function RaidRosterGrid({ signups }: RaidRosterGridProps) {
   const { t } = useTranslation();
-  const attending = signups.filter(s => s.desiredAttendance === "IN");
-  const notAttending = signups.filter(s => s.desiredAttendance !== "IN");
+  const attending = signups.filter(s => isAttending(s.desiredAttendance));
+  const notAttending = signups.filter(s => !isAttending(s.desiredAttendance));
 
   if (signups.length === 0) {
     return (

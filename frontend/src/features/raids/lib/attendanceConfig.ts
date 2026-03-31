@@ -22,6 +22,12 @@ export const ATTENDANCE_OPTIONS = Object.entries(ATTENDANCE_CONFIG).map(
   ([value, cfg]) => ({ value: value as AttendanceStatus, label: cfg.label })
 );
 
+const ATTENDING_STATUSES: ReadonlySet<AttendanceStatus> = new Set(["IN", "LATE"]);
+
+export function isAttending(status: AttendanceStatus): boolean {
+  return ATTENDING_STATUSES.has(status);
+}
+
 export function getAttendanceConfig(status: string): AttendanceConfig {
   return ATTENDANCE_CONFIG[status as AttendanceStatus] ?? {
     label: status,
