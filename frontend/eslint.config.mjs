@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import noUnsanitized from "eslint-plugin-no-unsanitized";
@@ -16,6 +17,7 @@ export default tseslint.config(
       globals: globals.node,
     },
   },
+  jsxA11y.flatConfigs.recommended,
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: {

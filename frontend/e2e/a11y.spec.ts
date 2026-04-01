@@ -3,8 +3,10 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { test as authenticatedTest } from "./fixtures/auth";
 import { test as unauthenticatedTest } from "@playwright/test";
 
-async function expectNoSeriousA11yViolations(page: Parameters<typeof AxeBuilder>[0]["page"]) {
-  const results = await new AxeBuilder({ page }).analyze();
+async function expectNoA11yViolations(page: Parameters<typeof AxeBuilder>[0]["page"]) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+    .analyze();
   expect(results.violations).toEqual([]);
 }
 
@@ -19,6 +21,14 @@ async function tabUntilFocused(page: Page, locator: Locator, maxTabs = 8) {
   await expect(locator).toBeFocused();
 }
 
+// --- Unauthenticated pages ---
+
+unauthenticatedTest("landing page is axe-clean", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
 unauthenticatedTest("login page is keyboard reachable and axe-clean", async ({ page }) => {
   await page.goto("/login");
   const battleNetLink = page.getByRole("link", { name: "Continue with Battle.net" });
@@ -27,8 +37,28 @@ unauthenticatedTest("login page is keyboard reachable and axe-clean", async ({ p
   await expect(battleNetLink).toBeVisible();
 
   await tabUntilFocused(page, battleNetLink);
-  await expectNoSeriousA11yViolations(page);
+  await expectNoA11yViolations(page);
 });
+
+unauthenticatedTest("login failed page is axe-clean", async ({ page }) => {
+  await page.goto("/login/failed");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
+unauthenticatedTest("goodbye page is axe-clean", async ({ page }) => {
+  await page.goto("/goodbye");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
+unauthenticatedTest("privacy policy page is axe-clean", async ({ page }) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
+// --- Authenticated pages ---
 
 authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ page }) => {
   await page.goto("/raids");
@@ -36,7 +66,7 @@ authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ pag
 
   await expect(createRaidButton).toBeVisible();
   await tabUntilFocused(page, createRaidButton);
-  await expectNoSeriousA11yViolations(page);
+  await expectNoA11yViolations(page);
 });
 
 authenticatedTest("combined raid card detail is keyboard reachable and axe-clean", async ({ page }) => {
@@ -50,5 +80,23 @@ authenticatedTest("combined raid card detail is keyboard reachable and axe-clean
   await expect(signupRegion).toBeVisible();
   await expect(signupAction).toBeVisible();
   await tabUntilFocused(page, signupAction, 40);
-  await expectNoSeriousA11yViolations(page);
+  await expectNoA11yViolations(page);
+});
+
+authenticatedTest("characters page is axe-clean", async ({ page }) => {
+  await page.goto("/characters");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
+authenticatedTest("guild page is axe-clean", async ({ page }) => {
+  await page.goto("/guild");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
+authenticatedTest("create raid page is axe-clean", async ({ page }) => {
+  await page.goto("/raids/new");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoA11yViolations(page);
 });
