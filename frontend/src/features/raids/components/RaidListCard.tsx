@@ -1,4 +1,5 @@
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTranslation } from "react-i18next";
 import RaidInfoCard from "./RaidInfoCard";
 import RaidRosterGrid from "./RaidRosterGrid";
@@ -69,13 +70,28 @@ export default function RaidListCard({
       <RaidInfoCard raid={raid} modeLabel={modeLabel} guildTimezone={guildTimezone} currentBattleNetId={currentBattleNetId} canDeleteGuildRaids={canDeleteGuildRaids} canCreateGuildRaids={canCreateGuildRaids} onRaidDelete={onRaidDelete} onRaidEdit={onRaidEdit}>
         {isMobile && (
           <Box
+            onClick={onToggle}
+            role="button"
+            tabIndex={0}
+            aria-expanded={isExpanded}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggle();
+              }
+            }}
             sx={{
               mt: 1.5,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 1,
-              flexWrap: "wrap",
+              cursor: "pointer",
+              borderRadius: 1,
+              p: 0.5,
+              mx: -0.5,
+              "&:hover": { bgcolor: "action.hover" },
+              "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 },
             }}
           >
             <Typography variant="caption" color="text.secondary">
@@ -84,11 +100,15 @@ export default function RaidListCard({
                 t("raidList.tanks", { count: roleCounts.TANK }),
                 t("raidList.healers", { count: roleCounts.HEALER }),
                 t("raidList.dps", { count: roleCounts.DPS }),
-              ].join(" · ")}
+              ].join(" \u00b7 ")}
             </Typography>
-            <Button size="small" variant="outlined" onClick={onToggle} sx={{ minHeight: 44 }}>
-              {showDetails ? t("raidList.hideDetails") : t("raidList.showDetails")}
-            </Button>
+            <ExpandMoreIcon
+              sx={{
+                transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+                color: "text.secondary",
+              }}
+            />
           </Box>
         )}
       </RaidInfoCard>
