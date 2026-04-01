@@ -2,6 +2,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { surface } from "../../../theme";
 
 const valuePropKeys = [
@@ -12,6 +13,7 @@ const valuePropKeys = [
 
 export default function LandingPage() {
   const { t } = useTranslation();
+  useDocumentTitle("LFM");
   return (
     <PageContainer>
       <SurfaceCard

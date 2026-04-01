@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
 import PageContainer from "../../../components/layout/PageContainer";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
@@ -200,6 +201,7 @@ function CharactersPageInner({
 
 export default function CharactersPage() {
   const { t } = useTranslation();
+  useDocumentTitle(`${t("characters.title")} — LFM`);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);

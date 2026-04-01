@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, Stack, TextField, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import api, { getApiErrorMessage } from "../../../lib/api";
 import { useAuth } from "../../auth";
 import GuildIdentityCard from "../components/GuildIdentityCard";
@@ -22,6 +23,7 @@ interface ResolveResponse {
 
 export default function GuildAdminPage() {
   const { t } = useTranslation();
+  useDocumentTitle(`${t("guildAdmin.title")} — LFM`);
   const { user } = useAuth();
   const [guildId, setGuildId] = useState("");
   const [resolving, setResolving] = useState(false);

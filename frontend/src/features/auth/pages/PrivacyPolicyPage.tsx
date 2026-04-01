@@ -3,6 +3,7 @@ import { Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { surface } from "../../../theme";
 import ObfuscatedEmail from "../../../components/ObfuscatedEmail";
 
@@ -17,6 +18,7 @@ const sections = [
 
 export default function PrivacyPolicyPage() {
   const { t } = useTranslation();
+  useDocumentTitle(`${t("privacy.title")} — LFM`);
 
   useEffect(() => {
     const meta = document.createElement("meta");

@@ -7,6 +7,7 @@ import { DateTime } from "luxon";
 import api from "../../../lib/api";
 import { normalizeWowInstances, toModeKey, type WowInstance } from "../../../lib/wow/instances";
 import PageContainer from "../../../components/layout/PageContainer";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
 import { getLockedFields } from "../lib/raidEditability";
 import RaidForm, { type EditRaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
@@ -16,6 +17,7 @@ export default function EditRaidPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  useDocumentTitle(`${t("editRaid.title")} — LFM`);
   const { data: guildHome } = useGuildHome();
 
   const [raid, setRaid] = useState<Raid | null>(null);

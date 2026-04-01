@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { resolveInstanceModeLabel } from "../../../lib/wow/instances";
 import { useAuth } from "../../auth";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
@@ -21,6 +22,7 @@ import { useRaids } from "../lib/useRaids";
 export default function RaidsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  useDocumentTitle(`${t("raids.title")} — LFM`);
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));

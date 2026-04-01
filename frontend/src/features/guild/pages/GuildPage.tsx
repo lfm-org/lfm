@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import api, { getApiErrorMessage } from "../../../lib/api";
 import GuildIdentityCard from "../components/GuildIdentityCard";
 import GuildRouteShell from "../components/GuildRouteShell";
@@ -17,6 +18,7 @@ import { useGuildHome } from "../lib/useGuildHome";
 
 export default function GuildPage() {
   const { t } = useTranslation();
+  useDocumentTitle(`${t("guild.title")} — LFM`);
   const { data, loading, error, setData } = useGuildHome();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);

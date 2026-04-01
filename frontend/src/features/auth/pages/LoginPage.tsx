@@ -3,10 +3,12 @@ import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { getLoginUrl } from "../../../lib/auth";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  useDocumentTitle(`${t("login.title")} — LFM`);
   const redirectPath = searchParams.get("redirect") || "/raids";
 
   return (

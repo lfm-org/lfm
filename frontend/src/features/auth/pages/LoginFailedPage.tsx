@@ -2,9 +2,11 @@ import { Box, Button, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router";
 import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 
 export default function LoginFailedPage() {
   const { t } = useTranslation();
+  useDocumentTitle(`${t("loginFailed.title")} — LFM`);
   return (
     <Box sx={{ minHeight: "100%", display: "grid", placeItems: "center", px: 2, py: 4 }}>
       <SurfaceCard sx={{ width: "min(100%, 480px)" }}>

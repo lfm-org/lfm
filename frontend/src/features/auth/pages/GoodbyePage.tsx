@@ -3,9 +3,11 @@ import { Link as RouterLink } from "react-router";
 import { useTranslation } from "react-i18next";
 import PageContainer from "../../../components/layout/PageContainer";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 
 export default function GoodbyePage() {
   const { t } = useTranslation();
+  useDocumentTitle(`${t("goodbye.title")} — LFM`);
   return (
     <PageContainer>
       <SurfaceCard sx={{ maxWidth: 560, mx: "auto" }}>

@@ -3,11 +3,13 @@ import { useSearchParams, useNavigate } from "react-router";
 import { Box, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 
 export default function LoginSuccessPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  useDocumentTitle(`${t("loginSuccess.signingIn")} — LFM`);
 
   useEffect(() => {
     const redirect = searchParams.get("redirect") || "/raids";

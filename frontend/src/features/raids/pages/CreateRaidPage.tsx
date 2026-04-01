@@ -6,6 +6,7 @@ import DOMPurify from "dompurify";
 import api from "../../../lib/api";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";
 import PageContainer from "../../../components/layout/PageContainer";
+import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
 import RaidForm, { type CreateRaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
 
@@ -21,6 +22,7 @@ const EMPTY_INITIAL: RaidFormInitialValues = {
 export default function CreateRaidPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  useDocumentTitle(`${t("createRaid.title")} — LFM`);
   const { data: guildHome } = useGuildHome();
   const [instances, setInstances] = useState<WowInstance[]>([]);
   const [loading, setLoading] = useState(true);
