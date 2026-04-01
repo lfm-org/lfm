@@ -8,6 +8,7 @@ import {
   Menu,
   MenuItem,
   Toolbar,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useState, type MouseEvent } from "react";
@@ -19,6 +20,7 @@ import Logo from "../Logo";
 import {
   getAccountMenuRouteItems,
   getLoginHref,
+  getPrimaryNavItems,
 } from "./navBarModel";
 
 interface NavBarCharacter {
@@ -40,7 +42,12 @@ export default function NavBar({ character = null }: NavBarProps) {
 
   const isSiteAdmin = Boolean(user?.isSiteAdmin);
   const accountMenuRouteItems = getAccountMenuRouteItems(isSiteAdmin);
+  const primaryNavItems = getPrimaryNavItems();
   const loginHref = getLoginHref(location.pathname, location.search);
+
+  function isActive(path: string): boolean {
+    return location.pathname === path || location.pathname.startsWith(path + "/");
+  }
   const menuOpen = Boolean(menuAnchor);
   const menuButtonLabel = t("nav.menuLabel", { name: character?.name ?? t("nav.yourAccount") });
 
@@ -70,6 +77,30 @@ export default function NavBar({ character = null }: NavBarProps) {
 
         {character ? (
           <>
+            <Box
+              component="nav"
+              aria-label={t("nav.primaryNav")}
+              sx={{ display: "flex", ml: 2 }}
+            >
+              {primaryNavItems.map((item) => (
+                <Button
+                  key={item.to}
+                  component={RouterLink}
+                  to={item.to}
+                  sx={{
+                    color: isActive(item.to) ? "primary.main" : "text.secondary",
+                    borderBottom: isActive(item.to) ? "2px solid" : "2px solid transparent",
+                    borderColor: isActive(item.to) ? "primary.main" : "transparent",
+                    borderRadius: 0,
+                    px: 1.5,
+                  }}
+                >
+                  {t(item.i18nKey)}
+                </Button>
+              ))}
+            </Box>
+
+            <Tooltip title={character.name} enterDelay={300}>
             <Button
               id="navbar-account-trigger"
               aria-controls={menuOpen ? "navbar-account-menu" : undefined}
@@ -105,6 +136,7 @@ export default function NavBar({ character = null }: NavBarProps) {
                 {character.name}
               </Typography>
             </Button>
+            </Tooltip>
 
             <Menu
               id="navbar-account-menu"

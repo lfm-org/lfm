@@ -20,6 +20,7 @@
   "nav.characters": "Hahmot",
   "nav.login": "Kirjaudu",
   "nav.logout": "Kirjaudu ulos",
+  "nav.primaryNav": "Päänavigaatio",
   "nav.menuLabel": "Avaa navigointivalikko käyttäjälle {{name}}",
   "nav.yourAccount": "tilisi",
 
