@@ -133,7 +133,6 @@ export default function NavBar({ character = null }: NavBarProps) {
               component={RouterLink}
               to={loginHref}
               color="inherit"
-              size="small"
               sx={{ textTransform: "none" }}
             >
               {t("nav.login")}
