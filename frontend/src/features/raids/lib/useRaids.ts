@@ -45,6 +45,7 @@ export interface UseRaidsResult {
   handleToggleRaid: (raidId: string) => void;
   handleSelectRaid: (raidId: string) => void;
   handlePageChange: (page: number) => void;
+  handleRaidDelete: (raidId: string) => void;
 }
 
 export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRaidsResult {
@@ -218,6 +219,10 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     setSearchParams(next);
   };
 
+  const handleRaidDelete = (raidId: string) => {
+    setRaids((current) => current.filter((raid) => raid.id !== raidId));
+  };
+
   const selectedRaid = requestedRaidId
     ? (visibleRaids.find(r => r.id === requestedRaidId)
       ?? passed.find(r => r.id === requestedRaidId)
@@ -246,5 +251,6 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     handleToggleRaid,
     handleSelectRaid,
     handlePageChange,
+    handleRaidDelete,
   };
 }

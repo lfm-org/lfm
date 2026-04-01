@@ -1,15 +1,19 @@
-import type { ReactNode } from "react";
-import { Box, Chip, Typography } from "@mui/material";
+import { useState, type ReactNode } from "react";
+import { Box, Button, Chip, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { DateTime } from "luxon";
 import type { Raid } from "../lib/raidTypes";
 import SurfaceCard from "../../../components/SurfaceCard";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
+import RaidDeleteDialog from "./RaidDeleteDialog";
 
 interface RaidInfoCardProps {
   raid: Raid;
   modeLabel: string;
   guildTimezone?: string;
+  currentBattleNetId?: string | null;
+  canDeleteGuildRaids?: boolean;
+  onRaidDelete?: (raidId: string) => void;
   children?: ReactNode;
 }
 
@@ -19,11 +23,17 @@ function parseRaidTime(iso: string, zone: string): DateTime | null {
   return dt.isValid ? dt : null;
 }
 
-export default function RaidInfoCard({ raid, modeLabel, guildTimezone, children }: RaidInfoCardProps) {
+export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBattleNetId, canDeleteGuildRaids, onRaidDelete, children }: RaidInfoCardProps) {
   const { t } = useTranslation();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
   const startDt = parseRaidTime(raid.startTime, timezone);
   const closeDt = parseRaidTime(raid.signupCloseTime, timezone);
+
+  const canDelete = currentBattleNetId != null && onRaidDelete != null && (
+    raid.creatorBattleNetId === currentBattleNetId ||
+    (raid.visibility === "GUILD" && canDeleteGuildRaids === true)
+  );
 
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
@@ -56,6 +66,29 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, children 
         </Typography>
       )}
       {children}
+      {canDelete && (
+        <>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => setDeleteDialogOpen(true)}
+            sx={{ mt: 1.5, alignSelf: "flex-start" }}
+          >
+            {t("raidInfo.deleteButton")}
+          </Button>
+          <RaidDeleteDialog
+            open={deleteDialogOpen}
+            raidId={raid.id}
+            raidName={raid.instanceName}
+            onClose={() => setDeleteDialogOpen(false)}
+            onDeleted={(deletedId) => {
+              setDeleteDialogOpen(false);
+              onRaidDelete(deletedId);
+            }}
+          />
+        </>
+      )}
     </SurfaceCard>
   );
 }

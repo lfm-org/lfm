@@ -18,6 +18,9 @@ interface RaidListCardProps {
   charactersError: string | null;
   guildTimezone?: string;
   canSignupToGuildRaids: boolean;
+  currentBattleNetId?: string | null;
+  canDeleteGuildRaids?: boolean;
+  onRaidDelete?: (raidId: string) => void;
 }
 
 function getRoleCounts(raid: Raid) {
@@ -43,6 +46,9 @@ export default function RaidListCard({
   charactersError,
   guildTimezone,
   canSignupToGuildRaids,
+  currentBattleNetId,
+  canDeleteGuildRaids,
+  onRaidDelete,
 }: RaidListCardProps) {
   const { t } = useTranslation();
   const roleCounts = getRoleCounts(raid);
@@ -56,7 +62,7 @@ export default function RaidListCard({
       data-testid="raid-card"
       sx={{ display: "grid", gap: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}
     >
-      <RaidInfoCard raid={raid} modeLabel={modeLabel} guildTimezone={guildTimezone}>
+      <RaidInfoCard raid={raid} modeLabel={modeLabel} guildTimezone={guildTimezone} currentBattleNetId={currentBattleNetId} canDeleteGuildRaids={canDeleteGuildRaids} onRaidDelete={onRaidDelete}>
         {isMobile && (
           <Box
             sx={{

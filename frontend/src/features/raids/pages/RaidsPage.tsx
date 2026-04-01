@@ -50,6 +50,7 @@ export default function RaidsPage() {
     handleToggleRaid,
     handleSelectRaid,
     handlePageChange,
+    handleRaidDelete,
   } = useRaids(battleNetId, isDesktop, isMobile);
 
   const pagination = !loading && totalPages > 1 && (
@@ -190,6 +191,9 @@ export default function RaidsPage() {
                 charactersError={charactersError}
                 guildTimezone={guildHome?.setup.timezone}
                 canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+                currentBattleNetId={battleNetId}
+                canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
+                onRaidDelete={handleRaidDelete}
               />
             ) : (
               <Typography color="text.secondary">{t("raids.selectPrompt")}</Typography>
@@ -214,6 +218,9 @@ export default function RaidsPage() {
               charactersError={charactersError}
               guildTimezone={guildHome?.setup.timezone}
               canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+              currentBattleNetId={battleNetId}
+              canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
+              onRaidDelete={handleRaidDelete}
             />
           ))}
           {pagination}
@@ -249,6 +256,9 @@ export default function RaidsPage() {
                       charactersError={charactersError}
                       guildTimezone={guildHome?.setup.timezone}
                       canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+                      currentBattleNetId={battleNetId}
+                      canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
+                      onRaidDelete={handleRaidDelete}
                     />
                   ))}
                 </Box>
