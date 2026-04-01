@@ -1,8 +1,6 @@
 import {
-  Alert,
   Box,
   Button,
-  CircularProgress,
   Divider,
   FormControl,
   IconButton,
@@ -14,9 +12,13 @@ import {
   useTheme,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/ToastContext";
+import LoadingState from "../../../components/LoadingState";
+import ErrorState from "../../../components/ErrorState";
+import EmptyState from "../../../components/EmptyState";
 import PageContainer from "../../../components/layout/PageContainer";
 import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { resolveInstanceModeLabel } from "../../../lib/wow/instances";
@@ -128,14 +130,16 @@ export default function RaidsPage() {
         </Box>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <ErrorState message={error} onRetry={refresh} />}
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress aria-label={t("common.loading")} />
-        </Box>
+        <LoadingState />
       ) : raids.length === 0 ? (
-        <Typography color="text.secondary">{t("raids.empty")}</Typography>
+        <EmptyState
+          icon={<EventBusyIcon />}
+          message={t("raids.empty")}
+          action={{ label: t("raids.emptyCta"), onClick: () => navigate("/raids/new") }}
+        />
       ) : isDesktop ? (
         /* Desktop: two-column layout */
         <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>

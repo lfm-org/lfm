@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Alert, CircularProgress, Typography } from "@mui/material";
+import { Alert, Typography } from "@mui/material";
+import LoadingState from "../../../components/LoadingState";
 import DOMPurify from "dompurify";
 import { DateTime } from "luxon";
 import api from "../../../lib/api";
@@ -68,7 +69,7 @@ export default function EditRaidPage() {
   if (loading) {
     return (
       <PageContainer maxWidth={600}>
-        <CircularProgress aria-label={t("common.loading")} />
+        <LoadingState />
       </PageContainer>
     );
   }
