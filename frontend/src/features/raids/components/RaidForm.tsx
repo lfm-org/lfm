@@ -20,12 +20,12 @@ import { validateRaidForm, type FormField } from "../lib/raidValidation";
 const MAX_DESCRIPTION = 500;
 
 export interface RaidFormValues {
-  instanceId: number;
-  instanceName: string;
-  startTime: string;
+  instanceId?: number;
+  instanceName?: string;
+  startTime?: string;
   signupCloseTime?: string;
   description: string;
-  modeKey: string;
+  modeKey?: string;
   visibility: "GUILD" | "PUBLIC";
 }
 
@@ -151,12 +151,10 @@ export default function RaidForm({
     }
 
     onSubmit({
-      instanceId: instanceId as number,
-      instanceName: selectedInstance!.name,
-      startTime: startTime!.toUTC().toISO()!,
+      ...(instanceLocked ? {} : { instanceId: instanceId as number, instanceName: selectedInstance!.name, modeKey: selectedModeKey }),
+      ...(startTimeLocked ? {} : { startTime: startTime!.toUTC().toISO()! }),
       ...(signupCloseTime?.isValid ? { signupCloseTime: signupCloseTime.toUTC().toISO()! } : {}),
       description: description.trim(),
-      modeKey: selectedModeKey,
       visibility,
     });
   };
