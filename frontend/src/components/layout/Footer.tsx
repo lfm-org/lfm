@@ -1,4 +1,5 @@
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { useAuth } from "../../features/auth";
@@ -12,10 +13,16 @@ const locales = [
 export default function Footer() {
   const { i18n, t } = useTranslation();
   const { setLocale } = useAuth();
+  const [changingLocale, setChangingLocale] = useState(false);
 
-  const handleLocaleChange = (code: string) => {
+  const handleLocaleChange = async (code: string) => {
     if (!isSupportedLocale(code)) return;
-    setLocale(code);
+    setChangingLocale(true);
+    try {
+      await setLocale(code);
+    } finally {
+      setChangingLocale(false);
+    }
   };
 
   return (
@@ -53,7 +60,8 @@ export default function Footer() {
           size="small"
           aria-label={t(i18nKey)}
           onClick={() => handleLocaleChange(code)}
-          disabled={i18n.language === code}
+          disabled={i18n.language === code || changingLocale}
+          startIcon={changingLocale && i18n.language !== code ? <CircularProgress size={16} color="inherit" /> : undefined}
           sx={{
             minWidth: 44,
             minHeight: 44,

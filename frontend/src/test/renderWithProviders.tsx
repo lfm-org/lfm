@@ -11,7 +11,7 @@ const defaultAuthValue: AuthContextValue = {
   clearAuth: () => {},
   onAccountDeleted: () => {},
   postAuthRedirect: null,
-  setLocale: () => {},
+  setLocale: () => Promise.resolve(),
 };
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, "wrapper"> {

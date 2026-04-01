@@ -3,6 +3,8 @@ import {
   Avatar,
   Box,
   Button,
+  CircularProgress,
+  ListItemIcon,
   Menu,
   MenuItem,
   Toolbar,
@@ -34,6 +36,7 @@ export default function NavBar({ character = null }: NavBarProps) {
   const navigate = useNavigate();
   const { clearAuth, user } = useAuth();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const isSiteAdmin = Boolean(user?.isSiteAdmin);
   const accountMenuRouteItems = getAccountMenuRouteItems(isSiteAdmin);
@@ -50,10 +53,11 @@ export default function NavBar({ character = null }: NavBarProps) {
   }
 
   async function handleLogout() {
-    closeMenu();
+    setLoggingOut(true);
     try {
       await logout();
     } finally {
+      closeMenu();
       clearAuth();
       navigate("/login");
     }
@@ -123,7 +127,14 @@ export default function NavBar({ character = null }: NavBarProps) {
                   {t(item.i18nKey)}
                 </MenuItem>
               ))}
-              <MenuItem onClick={handleLogout}>{t("nav.logout")}</MenuItem>
+              <MenuItem onClick={handleLogout} disabled={loggingOut}>
+                {loggingOut && (
+                  <ListItemIcon sx={{ minWidth: 28 }}>
+                    <CircularProgress size={16} color="inherit" />
+                  </ListItemIcon>
+                )}
+                {t("nav.logout")}
+              </MenuItem>
             </Menu>
           </>
         ) : (

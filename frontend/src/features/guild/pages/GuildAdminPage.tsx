@@ -128,8 +128,13 @@ export default function GuildAdminPage() {
               onChange={(event) => setGuildId(event.target.value)}
               sx={{ maxWidth: 240 }}
             />
-            <Button variant="contained" onClick={handleResolve} disabled={resolving || !guildId.trim()}>
-              {resolving ? t("guildAdmin.loadButtonLoading") : t("guildAdmin.loadButton")}
+            <Button
+              variant="contained"
+              onClick={handleResolve}
+              disabled={resolving || !guildId.trim()}
+              startIcon={resolving ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              {t("guildAdmin.loadButton")}
             </Button>
           </Stack>
         </SurfaceCard>

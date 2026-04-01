@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   FormControl,
   FormControlLabel,
   InputLabel,
@@ -152,8 +153,9 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
           variant="contained"
           onClick={props.onSave}
           disabled={props.saving || !props.rankDataFresh}
+          startIcon={props.saving ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {props.saving ? t("guildSettings.saving") : t("guildSettings.saveButton")}
+          {t("guildSettings.saveButton")}
         </Button>
       </Box>
     </Stack>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Typography, TextField, Button, Alert,
+  Box, Typography, TextField, Button, Alert, CircularProgress,
   FormControl, InputLabel, Select, MenuItem,
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
@@ -234,8 +234,9 @@ export default function CreateRaidPage() {
           variant="contained"
           onClick={handleSubmit}
           disabled={submitting}
+          startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {submitting ? t("createRaid.creating") : t("createRaid.submit")}
+          {t("createRaid.submit")}
         </Button>
         <Button variant="text" onClick={() => navigate("/raids")}>
           {t("createRaid.cancel")}

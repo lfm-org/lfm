@@ -40,6 +40,7 @@ function CharactersPageInner({
   loadingPortraits,
   handlePageChange,
   selectCharacter,
+  selectingId,
   deleteConfirmation,
   deleteConfirmationValid,
   deleteError,
@@ -56,6 +57,7 @@ function CharactersPageInner({
   loadingPortraits: boolean;
   handlePageChange: (page: number) => void;
   selectCharacter: (char: AccountCharacter) => void;
+  selectingId: string | null;
   deleteConfirmation: string;
   deleteConfirmationValid: boolean;
   deleteError: string | null;
@@ -102,11 +104,13 @@ function CharactersPageInner({
             const charId = `${char.region}-${char.realm}-${char.name.toLowerCase()}`;
             const portraitSrc = char.portraitUrl || portraits[charId];
             const awaitingPortrait = !portraitSrc && loadingPortraits;
+            const isSelecting = selectingId === charId;
             return (
               <Button
                 key={`${char.realm}-${char.name}`}
                 variant="outlined"
                 onClick={() => selectCharacter(char)}
+                disabled={selectingId !== null}
                 sx={{
                   p: 2,
                   minHeight: 120,
@@ -126,7 +130,7 @@ function CharactersPageInner({
                     alt={char.name}
                     sx={{ width: 40, height: 40, flexShrink: 0, bgcolor: color ?? "action.selected" }}
                   >
-                    {awaitingPortrait && <CircularProgress size={20} color="inherit" />}
+                    {(awaitingPortrait || isSelecting) && <CircularProgress size={20} color="inherit" />}
                   </Avatar>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body1" component="span" display="block" noWrap>
@@ -199,6 +203,7 @@ export default function CharactersPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectingId, setSelectingId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { onAccountDeleted, onCharacterSelected } = useAuth();
@@ -249,13 +254,19 @@ export default function CharactersPage() {
   };
 
   const selectCharacter = async (char: AccountCharacter) => {
-    const res = await api.post<{ selectedCharacterId: string }>("/raider/character", {
-      region: char.region,
-      realm: char.realm,
-      name: char.name,
-    });
-    onCharacterSelected(res.data.selectedCharacterId);
-    navigate(redirectPath);
+    const charId = `${char.region}-${char.realm}-${char.name.toLowerCase()}`;
+    setSelectingId(charId);
+    try {
+      const res = await api.post<{ selectedCharacterId: string }>("/raider/character", {
+        region: char.region,
+        realm: char.realm,
+        name: char.name,
+      });
+      onCharacterSelected(res.data.selectedCharacterId);
+      navigate(redirectPath);
+    } finally {
+      setSelectingId(null);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -284,6 +295,7 @@ export default function CharactersPage() {
       loadingPortraits={loadingPortraits}
       handlePageChange={handlePageChange}
       selectCharacter={selectCharacter}
+      selectingId={selectingId}
       deleteConfirmation={deleteConfirmation}
       deleteConfirmationValid={deleteConfirmationValid}
       deleteError={deleteError}

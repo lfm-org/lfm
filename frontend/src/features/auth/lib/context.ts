@@ -8,7 +8,7 @@ export interface AuthContextValue {
   clearAuth: () => void;
   onAccountDeleted: () => void;
   postAuthRedirect: string | null;
-  setLocale: (locale: string) => void;
+  setLocale: (locale: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -18,5 +18,5 @@ export const AuthContext = createContext<AuthContextValue>({
   clearAuth: () => {},
   onAccountDeleted: () => {},
   postAuthRedirect: null,
-  setLocale: () => {},
+  setLocale: () => Promise.resolve(),
 });

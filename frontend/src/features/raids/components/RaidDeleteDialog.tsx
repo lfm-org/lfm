@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import api from "../../../lib/api";
 
@@ -41,8 +41,14 @@ export default function RaidDeleteDialog({ open, raidId, raidName, onClose, onDe
         <Button onClick={onClose} disabled={deleting}>
           {t("raidInfo.deleteConfirmCancel")}
         </Button>
-        <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}>
-          {deleting ? t("raidInfo.deleting") : t("raidInfo.deleteConfirmDelete")}
+        <Button
+          onClick={handleDelete}
+          color="error"
+          variant="contained"
+          disabled={deleting}
+          startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : undefined}
+        >
+          {t("raidInfo.deleteConfirmDelete")}
         </Button>
       </DialogActions>
     </Dialog>

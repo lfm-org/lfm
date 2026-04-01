@@ -24,12 +24,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  const setLocale = useCallback((locale: string) => {
+  const setLocale = useCallback(async (locale: string) => {
     if (!isSupportedLocale(locale)) return;
     i18n.changeLanguage(locale);
     setUser(u => u ? { ...u, locale } : u);
     if (user) {
-      updateLocale(locale).catch(() => {});
+      await updateLocale(locale).catch(() => {});
     }
   }, [user]);
 
