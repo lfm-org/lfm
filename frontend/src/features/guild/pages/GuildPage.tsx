@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import LoadingState from "../../../components/LoadingState";
 import ErrorState from "../../../components/ErrorState";
@@ -23,6 +24,8 @@ import { useToast } from "../../../components/ToastContext";
 export default function GuildPage() {
   const { t } = useTranslation();
   useDocumentTitle(`${t("guild.title")} — LFM`);
+  const [searchParams] = useSearchParams();
+  const showSetupExplanation = searchParams.get("setup") === "required";
   const { data, loading, error, reload, setData } = useGuildHome();
   const { showSuccess } = useToast();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -89,6 +92,9 @@ export default function GuildPage() {
       description={t("guild.description")}
     >
       <Stack spacing={3}>
+        {showSetupExplanation && (
+          <Alert severity="info">{t("guild.setupRequiredExplanation")}</Alert>
+        )}
         {error && <ErrorState message={error} onRetry={reload} />}
 
         {!error && !data?.guild && (
