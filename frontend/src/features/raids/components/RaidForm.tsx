@@ -19,7 +19,17 @@ import { validateRaidForm, type FormField } from "../lib/raidValidation";
 
 const MAX_DESCRIPTION = 500;
 
-export interface RaidFormValues {
+export interface CreateRaidFormValues {
+  instanceId: number;
+  instanceName: string;
+  startTime: string;
+  signupCloseTime?: string;
+  description: string;
+  modeKey: string;
+  visibility: "GUILD" | "PUBLIC";
+}
+
+export interface EditRaidFormValues {
   instanceId?: number;
   instanceName?: string;
   startTime?: string;
@@ -38,21 +48,22 @@ export interface RaidFormInitialValues {
   visibility: "GUILD" | "PUBLIC";
 }
 
-interface RaidFormProps {
+interface RaidFormBaseProps {
   initialValues: RaidFormInitialValues;
   instances: WowInstance[];
   locale?: string;
   timezone?: string;
   canCreateGuildRaids: boolean;
-  onSubmit: (values: RaidFormValues) => void;
   submitting: boolean;
   error: string | null;
   onCancel: () => void;
   submitLabel: string;
-  mode: "create" | "edit";
-  lockedFields?: Set<string>;
-  lockReason?: string;
 }
+
+type RaidFormProps = RaidFormBaseProps & (
+  | { mode: "create"; onSubmit: (values: CreateRaidFormValues) => void; lockedFields?: undefined; lockReason?: undefined }
+  | { mode: "edit"; onSubmit: (values: EditRaidFormValues) => void; lockedFields?: Set<string>; lockReason?: string }
+);
 
 export default function RaidForm({
   initialValues,
@@ -150,13 +161,27 @@ export default function RaidForm({
       return;
     }
 
-    onSubmit({
-      ...(instanceLocked ? {} : { instanceId: instanceId as number, instanceName: selectedInstance!.name, modeKey: selectedModeKey }),
-      ...(startTimeLocked ? {} : { startTime: startTime!.toUTC().toISO()! }),
+    const common = {
       ...(signupCloseTime?.isValid ? { signupCloseTime: signupCloseTime.toUTC().toISO()! } : {}),
       description: description.trim(),
       visibility,
-    });
+    };
+
+    if (mode === "create") {
+      onSubmit({
+        instanceId: instanceId as number,
+        instanceName: selectedInstance!.name,
+        modeKey: selectedModeKey,
+        startTime: startTime!.toUTC().toISO()!,
+        ...common,
+      });
+    } else {
+      onSubmit({
+        ...(instanceLocked ? {} : { instanceId: instanceId as number, instanceName: selectedInstance!.name, modeKey: selectedModeKey }),
+        ...(startTimeLocked ? {} : { startTime: startTime!.toUTC().toISO()! }),
+        ...common,
+      });
+    }
   };
 
   const descriptionCount = description.trim().length;

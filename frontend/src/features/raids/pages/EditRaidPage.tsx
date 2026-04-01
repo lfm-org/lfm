@@ -9,7 +9,7 @@ import { normalizeWowInstances, toModeKey, type WowInstance } from "../../../lib
 import PageContainer from "../../../components/layout/PageContainer";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
 import { getLockedFields } from "../lib/raidEditability";
-import RaidForm, { type RaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
+import RaidForm, { type EditRaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
 import type { Raid } from "../lib/raidTypes";
 
 export default function EditRaidPage() {
@@ -38,7 +38,7 @@ export default function EditRaidPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleSubmit = async (values: RaidFormValues) => {
+  const handleSubmit = async (values: EditRaidFormValues) => {
     if (!id) return;
     const sanitizedDescription = DOMPurify.sanitize(values.description, {
       ALLOWED_TAGS: [],

@@ -7,7 +7,7 @@ import api from "../../../lib/api";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";
 import PageContainer from "../../../components/layout/PageContainer";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
-import RaidForm, { type RaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
+import RaidForm, { type CreateRaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
 
 const EMPTY_INITIAL: RaidFormInitialValues = {
   instanceId: "",
@@ -34,7 +34,7 @@ export default function CreateRaidPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSubmit = async (values: RaidFormValues) => {
+  const handleSubmit = async (values: CreateRaidFormValues) => {
     const sanitizedDescription = DOMPurify.sanitize(values.description, {
       ALLOWED_TAGS: [],
       ALLOWED_ATTR: [],
