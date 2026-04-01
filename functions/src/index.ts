@@ -27,3 +27,4 @@ import "./functions/wow-update.js";
 import "./functions/instances-list.js";
 import "./functions/guild.js";
 import "./functions/guild-crest.js";
+import "./functions/privacy-contact.js";
