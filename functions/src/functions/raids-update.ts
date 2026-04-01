@@ -2,6 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuth } from "../lib/auth.js";
 import { getGuildsContainer, getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
 import { getEffectiveGuildPermissions } from "../lib/guild-permissions.js";
+import { isEditingClosed, getLockedFields } from "../lib/raid-editability.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { auditLog } from "../lib/audit.js";
@@ -93,8 +94,22 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   try {
     const { resource: existing } = await getRaidsContainer().item(id, id).read<RaidDocument>();
     if (!existing) return errorResponse(404, "Raid not found");
-    if (existing.creatorBattleNetId !== identity.battleNetId) {
-      return errorResponse(403, "Only the raid creator can update this raid");
+    const isCreator = existing.creatorBattleNetId === identity.battleNetId;
+
+    if (!isCreator) {
+      if (existing.visibility !== "GUILD" || !existing.creatorGuildId || identity.guildId !== existing.creatorGuildId) {
+        return errorResponse(403, "Only the raid creator can update this raid");
+      }
+
+      const [{ resource: guildDoc }, { resource: raider }] = await Promise.all([
+        getGuildsContainer().item(String(existing.creatorGuildId), String(existing.creatorGuildId)).read<GuildDocument>(),
+        getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>(),
+      ]);
+
+      const permissions = getEffectiveGuildPermissions(guildDoc ?? null, raider ?? undefined);
+      if (!permissions.canCreateGuildRaids) {
+        return errorResponse(403, "Your guild rank does not have permission to edit guild raids");
+      }
     }
 
     let body: UpdateRaidBody;
@@ -106,6 +121,18 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
     const instances = await readWowInstances();
     if (!instances) return errorResponse(503, "Instance data not available");
+
+    if (isEditingClosed(existing.signupCloseTime, new Date().toISOString())) {
+      return errorResponse(403, "Editing is closed for this raid");
+    }
+
+    const lockedFields = getLockedFields(existing.raidCharacters.length);
+    if (lockedFields.has("startTime") && body.startTime !== undefined) {
+      return errorResponse(400, "Cannot change start time after signups");
+    }
+    if (lockedFields.has("instanceId") && body.instanceId !== undefined) {
+      return errorResponse(400, "Cannot change instance after signups");
+    }
 
     // Guard: visibility change to GUILD requires guild membership + permissions
     if (isGuildVisibilityPromotion(body.visibility, existing.visibility)) {
