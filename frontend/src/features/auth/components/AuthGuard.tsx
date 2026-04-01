@@ -26,7 +26,7 @@ export default function AuthGuard({ children }: Props) {
         }}
       >
         <Box sx={{ display: "grid", justifyItems: "center", gap: 2 }}>
-          <CircularProgress />
+          <CircularProgress aria-label={t("auth.checkingSession")} />
           <Typography color="text.secondary">{t("auth.checkingSession")}</Typography>
         </Box>
       </Box>

@@ -44,6 +44,7 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
         bgcolor: selected ? "action.selected" : "transparent",
         color: "text.primary",
         "&:hover": { bgcolor: selected ? "action.selected" : "action.hover" },
+        "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 },
         transition: "background-color 0.15s",
       }}
     >

@@ -142,7 +142,7 @@ export default function RaidSignupCard({
         {...signupRegionProps}
         sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
       >
-        <CircularProgress size={20} />
+        <CircularProgress size={20} aria-label={t("raidSignup.loadingCharacters")} />
         <Typography variant="body2">{t("raidSignup.loadingCharacters")}</Typography>
       </SurfaceCard>
     );

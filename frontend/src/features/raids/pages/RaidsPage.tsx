@@ -99,7 +99,7 @@ export default function RaidsPage() {
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label={t("common.loading")} />
         </Box>
       ) : raids.length === 0 ? (
         <Typography color="text.secondary">{t("raids.empty")}</Typography>
@@ -151,6 +151,7 @@ export default function RaidsPage() {
                     bgcolor: "transparent",
                     color: "text.secondary",
                     "&:hover": { bgcolor: "action.hover" },
+                    "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 },
                     transition: "background-color 0.15s",
                   }}
                 >

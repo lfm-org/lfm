@@ -63,7 +63,7 @@ export default function EditRaidPage() {
   if (loading) {
     return (
       <PageContainer maxWidth={600}>
-        <CircularProgress />
+        <CircularProgress aria-label={t("common.loading")} />
       </PageContainer>
     );
   }

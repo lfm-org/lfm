@@ -66,7 +66,7 @@ export default function GuildPage() {
         description={t("guild.description")}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={20} />
+          <CircularProgress size={20} aria-label={t("guild.loading")} />
           <Typography color="text.secondary">{t("guild.loading")}</Typography>
         </Stack>
       </GuildRouteShell>

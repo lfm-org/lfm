@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
 import { useAuth } from "../../features/auth";
@@ -25,7 +26,18 @@ interface Props {
 export default function AppLayout({ children }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  const isFirstRender = useRef(true);
   const [character, setCharacter] = useState<CharacterData | null>(null);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    mainRef.current?.focus();
+  }, [location.pathname]);
 
   useEffect(() => {
     if (user?.selectedCharacterId) {
@@ -78,7 +90,7 @@ export default function AppLayout({ children }: Props) {
         {t("a11y.skipToContent")}
       </Box>
       <NavBar character={character} />
-      <Box component="main" id="main-content" sx={{ flex: 1 }}>
+      <Box component="main" id="main-content" ref={mainRef} tabIndex={-1} sx={{ flex: 1, outline: "none" }}>
         {children}
       </Box>
       <Footer />

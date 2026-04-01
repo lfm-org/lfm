@@ -25,7 +25,7 @@ export default function GuildSetupGuard({ children }: Props) {
         }}
       >
         <Box sx={{ display: "grid", justifyItems: "center", gap: 2 }}>
-          <CircularProgress />
+          <CircularProgress aria-label={t("guild.checkingSetup")} />
           <Typography color="text.secondary">{t("guild.checkingSetup")}</Typography>
         </Box>
       </Box>

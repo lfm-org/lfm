@@ -143,7 +143,7 @@ export default function GuildAdminPage() {
 
         {loading && (
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <CircularProgress size={20} />
+            <CircularProgress size={20} aria-label={t("guildAdmin.loading")} />
           <Typography color="text.secondary">{t("guildAdmin.loading")}</Typography>
         </Stack>
       )}

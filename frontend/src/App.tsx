@@ -1,6 +1,7 @@
 import { Suspense, lazy, type ReactNode } from "react";
 import { Routes, Route } from "react-router";
 import { CircularProgress, Stack } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import AppLayout from "./components/layout/AppLayout";
 import PageContainer from "./components/layout/PageContainer";
 import AuthGuard from "./features/auth/components/AuthGuard";
@@ -20,10 +21,11 @@ const CreateRaidPage = lazy(() => import("./features/raids/pages/CreateRaidPage"
 const EditRaidPage = lazy(() => import("./features/raids/pages/EditRaidPage"));
 
 function RouteFallback() {
+  const { t } = useTranslation();
   return (
     <PageContainer>
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <CircularProgress size={20} />
+        <CircularProgress size={20} aria-label={t("common.loading")} />
       </Stack>
     </PageContainer>
   );
