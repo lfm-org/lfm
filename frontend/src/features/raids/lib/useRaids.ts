@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import api from "../../../lib/api";
 import { normalizeRaid, type Raid } from "./raidTypes";
@@ -46,6 +46,7 @@ export interface UseRaidsResult {
   handleSelectRaid: (raidId: string) => void;
   handlePageChange: (page: number) => void;
   handleRaidDelete: (raidId: string) => void;
+  refresh: () => void;
 }
 
 export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRaidsResult {
@@ -61,7 +62,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
   const lastFocusedRaidId = useRef<string | null>(null);
 
-  useEffect(() => {
+  const loadRaids = useCallback(() => {
     let active = true;
     setLoading(true);
     setError(null);
@@ -96,6 +97,10 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    return loadRaids();
+  }, [loadRaids]);
 
   useEffect(() => {
     if (!battleNetId) {
@@ -265,5 +270,6 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     handleSelectRaid,
     handlePageChange,
     handleRaidDelete,
+    refresh: loadRaids,
   };
 }

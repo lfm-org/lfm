@@ -4,12 +4,15 @@ import {
   Button,
   CircularProgress,
   Divider,
+  IconButton,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../../../components/ToastContext";
 import PageContainer from "../../../components/layout/PageContainer";
 import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { resolveInstanceModeLabel } from "../../../lib/wow/instances";
@@ -53,7 +56,11 @@ export default function RaidsPage() {
     handleSelectRaid,
     handlePageChange,
     handleRaidDelete,
+    refresh,
   } = useRaids(battleNetId, isDesktop, isMobile);
+
+  const { showSuccess } = useToast();
+  const handleRefresh = () => { refresh(); showSuccess(t("common.refreshed")); };
 
   const handleRaidEdit = (raidId: string) => {
     const params = new URLSearchParams();
@@ -95,7 +102,12 @@ export default function RaidsPage() {
     <PageContainer maxWidth={isDesktop ? 1280 : undefined}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
         <Typography component="h1" variant="h5">{t("raids.title")}</Typography>
-        <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <IconButton onClick={handleRefresh} disabled={loading} aria-label={t("common.refresh")}>
+            <RefreshIcon />
+          </IconButton>
+          <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
+        </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

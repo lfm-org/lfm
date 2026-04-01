@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Avatar, Box, Button, CircularProgress, IconButton, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useTranslation } from "react-i18next";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
@@ -11,6 +12,7 @@ import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
 import ErrorState from "../../../components/ErrorState";
 import LoadingState from "../../../components/LoadingState";
+import { useToast } from "../../../components/ToastContext";
 import ForgetMeSection from "../components/ForgetMeSection";
 import { useCharacters } from "../lib/useCharacters";
 
@@ -43,6 +45,7 @@ function CharactersPageInner({
   loadingPortraits,
   error,
   onRetry,
+  onRefresh,
   handlePageChange,
   selectCharacter,
   selectingId,
@@ -62,6 +65,7 @@ function CharactersPageInner({
   loadingPortraits: boolean;
   error: string | null;
   onRetry: () => void;
+  onRefresh: () => void;
   handlePageChange: (page: number) => void;
   selectCharacter: (char: AccountCharacter) => void;
   selectingId: string | null;
@@ -86,9 +90,12 @@ function CharactersPageInner({
     <PageContainer>
       <Stack spacing={layout.pageGap}>
         <Box>
-          <Typography component="h1" variant="h5" gutterBottom>
-            {t("characters.title")}
-          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography component="h1" variant="h5">{t("characters.title")}</Typography>
+            <IconButton onClick={onRefresh} disabled={loading} aria-label={t("common.refresh")}>
+              <RefreshIcon />
+            </IconButton>
+          </Box>
           {error && <ErrorState message={t(error)} onRetry={onRetry} />}
           {characters.length === 0 && !error && (
             <Typography color="text.secondary">
@@ -209,6 +216,7 @@ function CharactersPageInner({
 export default function CharactersPage() {
   const { t } = useTranslation();
   useDocumentTitle(`${t("characters.title")} — LFM`);
+  const { showSuccess } = useToast();
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -240,6 +248,7 @@ export default function CharactersPage() {
   );
 
   const { characters, loading, portraits, loadingPortraits, error, retry } = useCharacters(visibleCharsForPortraits);
+  const handleRefresh = () => { retry(); showSuccess(t("common.refreshed")); };
 
   useEffect(() => {
     setCharactersForPagination(characters);
@@ -304,6 +313,7 @@ export default function CharactersPage() {
       loadingPortraits={loadingPortraits}
       error={error}
       onRetry={retry}
+      onRefresh={handleRefresh}
       handlePageChange={handlePageChange}
       selectCharacter={selectCharacter}
       selectingId={selectingId}
