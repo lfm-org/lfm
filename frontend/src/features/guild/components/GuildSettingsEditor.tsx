@@ -26,7 +26,7 @@ interface GuildSettingsEditorProps {
   onSloganChange: (value: string) => void;
   onPermissionChange: (
     rank: number,
-    field: "canCreateGuildRaids" | "canSignupGuildRaids",
+    field: "canCreateGuildRaids" | "canSignupGuildRaids" | "canDeleteGuildRaids",
     checked: boolean,
   ) => void;
   onSave: () => void;
@@ -126,6 +126,21 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
                   />
                 )}
                 label={t("guildSettings.allowSignup", { rank: permission.rank })}
+              />
+              <FormControlLabel
+                control={(
+                  <Checkbox
+                    checked={permission.canDeleteGuildRaids}
+                    onChange={(event) =>
+                      props.onPermissionChange(
+                        permission.rank,
+                        "canDeleteGuildRaids",
+                        event.target.checked,
+                      )}
+                    disabled={!props.rankDataFresh || props.saving}
+                  />
+                )}
+                label={t("guildSettings.allowDelete", { rank: permission.rank })}
               />
             </Box>
           ))}

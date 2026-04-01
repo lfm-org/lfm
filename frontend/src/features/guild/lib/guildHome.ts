@@ -27,6 +27,7 @@ export interface GuildHomeResponse {
       rank: number;
       canCreateGuildRaids: boolean;
       canSignupGuildRaids: boolean;
+      canDeleteGuildRaids: boolean;
     }>;
   } | null;
   editor: {
@@ -38,6 +39,7 @@ export interface GuildHomeResponse {
     matchedRank: number | null;
     canCreateGuildRaids: boolean;
     canSignupGuildRaids: boolean;
+    canDeleteGuildRaids: boolean;
     rankDataFresh: boolean;
   };
   adminOverride: {

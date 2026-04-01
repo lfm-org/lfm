@@ -22,7 +22,7 @@ export function createGuildSettingsDraft(data: GuildHomeResponse | null): GuildS
 export function updateGuildRankPermission(
   current: GuildRankPermission[],
   rank: number,
-  field: "canCreateGuildRaids" | "canSignupGuildRaids",
+  field: "canCreateGuildRaids" | "canSignupGuildRaids" | "canDeleteGuildRaids",
   checked: boolean,
 ): GuildRankPermission[] {
   return current.map((permission) =>

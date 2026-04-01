@@ -35,6 +35,7 @@ function createResponse(crestUrl: string | null): GuildHomeResponse {
       matchedRank: 3,
       canCreateGuildRaids: false,
       canSignupGuildRaids: true,
+      canDeleteGuildRaids: false,
       rankDataFresh: true,
     },
     adminOverride: null,

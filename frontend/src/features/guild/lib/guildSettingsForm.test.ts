@@ -55,12 +55,12 @@ describe("updateGuildRankPermission", () => {
   it("updates only the targeted rank and field", () => {
     expect(
       updateGuildRankPermission(
-        [{ rank: 1, canCreateGuildRaids: false, canSignupGuildRaids: false }],
+        [{ rank: 1, canCreateGuildRaids: false, canSignupGuildRaids: false, canDeleteGuildRaids: false }],
         1,
         "canCreateGuildRaids",
         true,
       ),
-    ).toEqual([{ rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false }]);
+    ).toEqual([{ rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: false }]);
   });
 });
 
@@ -76,6 +76,7 @@ describe("toGuildSettingsPayload", () => {
             rank: 1,
             canCreateGuildRaids: true,
             canSignupGuildRaids: false,
+            canDeleteGuildRaids: false,
           },
         ],
       }),
@@ -88,6 +89,7 @@ describe("toGuildSettingsPayload", () => {
           rank: 1,
           canCreateGuildRaids: true,
           canSignupGuildRaids: false,
+          canDeleteGuildRaids: false,
         },
       ],
     });
