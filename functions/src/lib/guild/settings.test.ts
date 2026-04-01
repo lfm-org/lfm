@@ -103,7 +103,7 @@ describe("parseGuildSettingsInput", () => {
     expect(() => parseGuildSettingsInput(
       {
         timezone: "Europe/Helsinki",
-        rankPermissions: [{ rank: 9, canCreateGuildRaids: true, canSignupGuildRaids: true }],
+        rankPermissions: [{ rank: 9, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: false }],
       },
       [0, 1],
       [],
@@ -123,7 +123,7 @@ describe("parseGuildSettingsInput", () => {
         {
           timezone: "Europe/Helsinki",
           slogan: "Victory or Lunch",
-          rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true }],
+          rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
         },
         [0],
         [],

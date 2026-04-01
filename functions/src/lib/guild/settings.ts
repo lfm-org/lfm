@@ -81,7 +81,8 @@ function parseRankPermissions(
     if (
       typeof candidate.rank !== "number" ||
       typeof candidate.canCreateGuildRaids !== "boolean" ||
-      typeof candidate.canSignupGuildRaids !== "boolean"
+      typeof candidate.canSignupGuildRaids !== "boolean" ||
+      typeof candidate.canDeleteGuildRaids !== "boolean"
     ) {
       throw new Error("Invalid rank permissions");
     }
@@ -94,6 +95,7 @@ function parseRankPermissions(
       rank: candidate.rank,
       canCreateGuildRaids: candidate.canCreateGuildRaids,
       canSignupGuildRaids: candidate.canSignupGuildRaids,
+      canDeleteGuildRaids: candidate.canDeleteGuildRaids === true,
     };
   });
 
