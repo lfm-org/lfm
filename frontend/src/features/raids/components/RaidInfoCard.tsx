@@ -52,7 +52,7 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
 
   return (
     <SurfaceCard sx={{ mb: 2 }}>
-      <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
         <Typography component="h2" variant="h6" fontWeight={700}>
           {raid.instanceName}
         </Typography>
@@ -60,38 +60,38 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
         {raid.visibility === "GUILD" && (
           <Chip label={raid.creatorGuild || "Guild"} size="small" color="primary" variant="outlined" />
         )}
-        {canEdit && (
-          editDisabled ? (
-            <Tooltip title={t("raidInfo.editingClosed")}>
-              <span style={{ marginLeft: "auto" }}>
+        {(canEdit || canDelete) && (
+          <Box sx={{ display: "flex", gap: 0.5, ml: "auto" }}>
+            {canEdit && (
+              editDisabled ? (
+                <Tooltip title={t("raidInfo.editingClosed")}>
+                  <span>
+                    <Button size="small" disabled sx={{ minWidth: 0, py: 0, px: 1 }}>
+                      {t("raidInfo.editButton")}
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : (
                 <Button
                   size="small"
-                  disabled
+                  onClick={() => onRaidEdit(raid.id)}
                   sx={{ minWidth: 0, py: 0, px: 1 }}
                 >
                   {t("raidInfo.editButton")}
                 </Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button
-              size="small"
-              onClick={() => onRaidEdit(raid.id)}
-              sx={{ ml: canDelete ? 0 : "auto", minWidth: 0, py: 0, px: 1 }}
-            >
-              {t("raidInfo.editButton")}
-            </Button>
-          )
-        )}
-        {canDelete && (
-          <Button
-            size="small"
-            color="error"
-            onClick={() => setDeleteDialogOpen(true)}
-            sx={{ ml: canEdit ? 0 : "auto", alignSelf: "center", minWidth: 0, py: 0, px: 1 }}
-          >
-            {t("raidInfo.deleteButton")}
-          </Button>
+              )
+            )}
+            {canDelete && (
+              <Button
+                size="small"
+                color="error"
+                onClick={() => setDeleteDialogOpen(true)}
+                sx={{ minWidth: 0, py: 0, px: 1 }}
+              >
+                {t("raidInfo.deleteButton")}
+              </Button>
+            )}
+          </Box>
         )}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: "italic" }}>
