@@ -53,6 +53,10 @@ export default function RaidsPage() {
     handleRaidDelete,
   } = useRaids(battleNetId, isDesktop, isMobile);
 
+  const handleRaidEdit = (raidId: string) => {
+    navigate(`/raids/${encodeURIComponent(raidId)}/edit`);
+  };
+
   const pagination = !loading && totalPages > 1 && (
     <Box
       component="nav"
@@ -193,7 +197,9 @@ export default function RaidsPage() {
                 canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
                 currentBattleNetId={battleNetId}
                 canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
+                canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
                 onRaidDelete={handleRaidDelete}
+                onRaidEdit={handleRaidEdit}
               />
             ) : (
               <Typography color="text.secondary">{t("raids.selectPrompt")}</Typography>
@@ -220,7 +226,9 @@ export default function RaidsPage() {
               canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
               currentBattleNetId={battleNetId}
               canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
+              canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
               onRaidDelete={handleRaidDelete}
+              onRaidEdit={handleRaidEdit}
             />
           ))}
           {pagination}
@@ -258,7 +266,9 @@ export default function RaidsPage() {
                       canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
                       currentBattleNetId={battleNetId}
                       canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
+                      canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
                       onRaidDelete={handleRaidDelete}
+                      onRaidEdit={handleRaidEdit}
                     />
                   ))}
                 </Box>
