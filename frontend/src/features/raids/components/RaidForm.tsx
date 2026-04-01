@@ -89,9 +89,14 @@ export default function RaidForm({
     ? Math.max(...instances.map((i) => i.expansionId))
     : null;
 
-  const filteredInstances = currentExpansionId !== null
+  const expansionInstances = currentExpansionId !== null
     ? instances.filter((i) => i.expansionId === currentExpansionId)
     : [];
+
+  // In edit mode, ensure the raid's instance is always in the list (it may be from a prior expansion)
+  const filteredInstances = instanceId && !expansionInstances.some((i) => i.id === instanceId)
+    ? [...expansionInstances, ...instances.filter((i) => i.id === instanceId)]
+    : expansionInstances;
 
   const selectedInstance = filteredInstances.find((i) => i.id === instanceId);
   const availableModes = selectedInstance?.modes ?? [];

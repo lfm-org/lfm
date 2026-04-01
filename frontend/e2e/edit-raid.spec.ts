@@ -33,9 +33,10 @@ test("creator sees locked instance and start time when raid has signups", async 
   await expect(page).toHaveURL(/\/raids\/raid-guild-sparse-icc10\/edit$/);
   await expect(page.getByRole("heading", { name: "Edit Raid" })).toBeVisible();
 
-  // Instance select should be disabled (locked after signups)
-  const instanceSelect = page.getByLabel("Instance");
-  await expect(instanceSelect).toBeDisabled();
+  // Instance and mode selects should be disabled (locked after signups)
+  // MUI Select renders as a div[role=combobox] — use the first combobox (Instance)
+  const instanceCombobox = page.getByRole("combobox").first();
+  await expect(instanceCombobox).toHaveAttribute("aria-disabled", "true");
 
   // Description should be editable
   await expect(page.getByLabel("Description")).toBeEnabled();
@@ -65,8 +66,11 @@ test("creator can edit own raid with no signups and save changes", async ({ page
 });
 
 test("guild master can edit guild raid created by another member", async ({ page }) => {
-  await page.goto("/api/battlenet/login?redirect=%2Fraids%3Fraid%3Draid-guild-dense-molten-core&testAuthScenario=guild-master");
-  await expect(page).toHaveURL(/\/raids/);
+  await page.goto("/api/battlenet/login?redirect=%2Fraids&testAuthScenario=guild-master");
+  await expect(page).toHaveURL(/\/raids$/);
+
+  // Navigate to the specific raid
+  await page.goto("/raids?raid=raid-guild-dense-molten-core");
 
   const raidCard = page.getByTestId("raid-card").filter({ hasText: "Guild retro forty-player night" });
   await expect(raidCard).toBeVisible();
