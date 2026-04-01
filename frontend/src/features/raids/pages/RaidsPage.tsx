@@ -232,7 +232,7 @@ export default function RaidsPage() {
                 onClick={handleTogglePassed}
                 aria-expanded={showPassed}
                 aria-controls="passed-raids-mobile"
-                sx={{ color: "text.secondary", justifyContent: "space-between", textTransform: "none" }}
+                sx={{ color: "text.secondary", justifyContent: "space-between" }}
               >
                 <Typography variant="body2" fontWeight={600}>
                   {t("raids.passed", { count: passedRaids.length })}

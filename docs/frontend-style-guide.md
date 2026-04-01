@@ -9,7 +9,8 @@ Authoritative reference for AI agents building UI in this codebase. All patterns
   - `attendance` — status colors for raid signups (in/out/bench/late/away/unknown)
   - `surface` — subtle rgba overlays for decorative cards (`tint`, `tintStrong`, `border`, `borderSubtle`)
   - `layout` — spacing constants (`maxWidth: 1100`, `px: 2`, `py: 3`, `pageGap: 3`, `componentGap: 2`)
-- System font stack (Segoe UI, Roboto, etc.). Buttons: weight 600, no text transform.
+- System font stack (Segoe UI, Roboto, etc.). Buttons: weight 600, `textTransform: "none"` (set globally in theme — do not re-declare in sx).
+- Small chips: weight 600, font-size `0.7rem` (theme override).
 - CSS variables enabled (`cssVariables: true`).
 - MUI locale adapts to language (Finnish via `muiFiFI`).
 
@@ -49,6 +50,7 @@ sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
 | Metadata / helpers | `caption` | — | default |
 
 - Section headings often use `textTransform: "uppercase"` and `letterSpacing: "0.05em"`.
+- Inside `<Button>`, wrap visible text in `<Typography component="span">` so it uses `body1` styling instead of the button typography variant.
 - Always set `component` to maintain semantic heading hierarchy for accessibility.
 
 ## Colors
@@ -81,7 +83,7 @@ const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 ## Forms
 
 - `TextField` with `fullWidth`, `label={t("key")}`, `error`, `helperText`.
-- Selects: `FormControl` + `InputLabel` + `Select` + `FormHelperText` for errors.
+- Selects: `FormControl` + `InputLabel` + `Select` + `FormHelperText` for errors. Simple selects (e.g. timezone, locale) may use `NativeSelect`.
 - Date/time: `DateTimePicker` with `slotProps.textField` for error/helper props.
 - Toggle groups: `ToggleButtonGroup` with `exclusive`, `size="small"`.
 - Spacing between fields: `sx={{ mb: 2 }}`.
@@ -99,10 +101,15 @@ const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
 - **Errors:** `<Alert severity="error" sx={{ mb: 2 }}>{message}</Alert>`.
 
-## Icons
+## Icons & Avatars
 
 - **No icon library.** Use emoji (e.g. flag emoji for language switcher) or text/Avatar fallbacks.
 - Do not add Material Icons or any other icon package.
+- `Avatar` for character portraits; use first-letter fallback when no image URL is available.
+
+## Sanitization
+
+- Sanitize user-supplied HTML with `DOMPurify` before rendering (`ALLOWED_TAGS: []` for plain text).
 
 ## i18n
 

@@ -80,7 +80,6 @@ export default function NavBar({ character = null }: NavBarProps) {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 1,
-                textTransform: "none",
               }}
             >
               {character.portraitUrl ? (
@@ -133,7 +132,6 @@ export default function NavBar({ character = null }: NavBarProps) {
               component={RouterLink}
               to={loginHref}
               color="inherit"
-              sx={{ textTransform: "none" }}
             >
               <Typography component="span">{t("nav.login")}</Typography>
             </Button>
