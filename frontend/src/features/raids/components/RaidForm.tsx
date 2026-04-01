@@ -277,7 +277,7 @@ export default function RaidForm({
             ? errors.description
             : t("createRaid.descriptionCount", { count: descriptionCount, max: MAX_DESCRIPTION })
         }
-        slotProps={{ htmlInput: { maxLength: MAX_DESCRIPTION + 100 } }}
+        slotProps={{ htmlInput: { maxLength: MAX_DESCRIPTION } }}
       />
 
       <Box sx={{ mb: 3 }}>

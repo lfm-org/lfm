@@ -12,6 +12,8 @@
   "nav.characters": "Hahmot",
   "nav.login": "Kirjaudu",
   "nav.logout": "Kirjaudu ulos",
+  "nav.menuLabel": "Avaa navigointivalikko käyttäjälle {{name}}",
+  "nav.yourAccount": "tilisi",
 
   "landing.logo": "🌀 LFM",
   "landing.title": "Suunnittele raidit yhdessä paikassa",

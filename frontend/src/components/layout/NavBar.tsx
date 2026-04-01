@@ -42,7 +42,7 @@ export default function NavBar({ character = null }: NavBarProps) {
   const accountMenuRouteItems = getAccountMenuRouteItems(isSiteAdmin);
   const loginHref = getLoginHref(location.pathname, location.search);
   const menuOpen = Boolean(menuAnchor);
-  const menuButtonLabel = `Open navigation menu for ${character?.name ?? "your account"}`;
+  const menuButtonLabel = t("nav.menuLabel", { name: character?.name ?? t("nav.yourAccount") });
 
   function openMenu(event: MouseEvent<HTMLButtonElement>) {
     setMenuAnchor(event.currentTarget);

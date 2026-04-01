@@ -12,6 +12,8 @@
   "nav.characters": "Characters",
   "nav.login": "Login",
   "nav.logout": "Logout",
+  "nav.menuLabel": "Open navigation menu for {{name}}",
+  "nav.yourAccount": "your account",
 
   "landing.logo": "🌀 LFM",
   "landing.title": "Plan raids in one place",
