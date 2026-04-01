@@ -52,6 +52,16 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
         {raid.visibility === "GUILD" && (
           <Chip label={raid.creatorGuild || "Guild"} size="small" color="primary" variant="outlined" />
         )}
+        {canDelete && (
+          <Button
+            size="small"
+            color="error"
+            onClick={() => setDeleteDialogOpen(true)}
+            sx={{ ml: "auto", alignSelf: "center", minWidth: 0, py: 0, px: 1 }}
+          >
+            {t("raidInfo.deleteButton")}
+          </Button>
+        )}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: "italic" }}>
         &ldquo;{raid.description}&rdquo;
@@ -67,27 +77,16 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
       )}
       {children}
       {canDelete && (
-        <>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            onClick={() => setDeleteDialogOpen(true)}
-            sx={{ mt: 1.5, alignSelf: "flex-start" }}
-          >
-            {t("raidInfo.deleteButton")}
-          </Button>
-          <RaidDeleteDialog
-            open={deleteDialogOpen}
-            raidId={raid.id}
-            raidName={raid.instanceName}
-            onClose={() => setDeleteDialogOpen(false)}
-            onDeleted={(deletedId) => {
-              setDeleteDialogOpen(false);
-              onRaidDelete(deletedId);
-            }}
-          />
-        </>
+        <RaidDeleteDialog
+          open={deleteDialogOpen}
+          raidId={raid.id}
+          raidName={raid.instanceName}
+          onClose={() => setDeleteDialogOpen(false)}
+          onDeleted={(deletedId) => {
+            setDeleteDialogOpen(false);
+            onRaidDelete(deletedId);
+          }}
+        />
       )}
     </SurfaceCard>
   );
