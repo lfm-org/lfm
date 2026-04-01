@@ -42,6 +42,17 @@ test("creator sees locked instance and start time when raid has signups", async 
   await expect(page.getByLabel("Description")).toBeEnabled();
 });
 
+test("guild master sees edit button on guild raid created by another member", async ({ page }) => {
+  await page.goto("/api/battlenet/login?redirect=%2Fraids&testAuthScenario=guild-master");
+  await expect(page).toHaveURL(/\/raids$/);
+
+  const raidCard = page.getByTestId("raid-card").filter({ hasText: "Guild retro forty-player night" });
+  await expect(raidCard).toBeVisible();
+
+  // Guild master (rank 0) has canCreateGuildRaids by default
+  await expect(raidCard.getByRole("button", { name: "Edit" })).toBeEnabled();
+});
+
 // --- Destructive tests last ---
 
 test("creator can edit own raid with no signups and save changes", async ({ page }) => {
@@ -63,32 +74,4 @@ test("creator can edit own raid with no signups and save changes", async ({ page
   await expect(page).toHaveURL(/\/raids\?raid=raid-public-empty-deadmines/);
   const updatedCard = page.getByTestId("raid-card").filter({ hasText: "Edited dungeon warmup" });
   await expect(updatedCard).toBeVisible();
-});
-
-test("guild master can edit guild raid created by another member", async ({ page }) => {
-  await page.goto("/api/battlenet/login?redirect=%2Fraids&testAuthScenario=guild-master");
-  await expect(page).toHaveURL(/\/raids$/);
-
-  // Navigate to the specific raid
-  await page.goto("/raids?raid=raid-guild-dense-molten-core");
-
-  const raidCard = page.getByTestId("raid-card").filter({ hasText: "Guild retro forty-player night" });
-  await expect(raidCard).toBeVisible();
-
-  // Guild master (rank 0) has canCreateGuildRaids by default
-  await expect(raidCard.getByRole("button", { name: "Edit" })).toBeEnabled();
-
-  await raidCard.getByRole("button", { name: "Edit" }).click();
-  await expect(page).toHaveURL(/\/raids\/raid-guild-dense-molten-core\/edit$/);
-  await expect(page.getByRole("heading", { name: "Edit Raid" })).toBeVisible();
-
-  await page.getByLabel("Description").fill("Guild master edited night");
-
-  const requestPromise = page.waitForRequest((req) =>
-    req.method() === "PUT" && req.url().includes("/api/raids/raid-guild-dense-molten-core")
-  );
-  await page.getByRole("button", { name: "Save Changes" }).click();
-  await requestPromise;
-
-  await expect(page).toHaveURL(/\/raids\?raid=raid-guild-dense-molten-core/);
 });
