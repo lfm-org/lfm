@@ -18,13 +18,14 @@ import {
 } from "../lib/guildSettingsForm";
 import { useGuildHome } from "../lib/useGuildHome";
 import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
+import { useToast } from "../../../components/ToastContext";
 
 export default function GuildPage() {
   const { t } = useTranslation();
   useDocumentTitle(`${t("guild.title")} — LFM`);
   const { data, loading, error, reload, setData } = useGuildHome();
+  const { showSuccess } = useToast();
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState(() => createGuildSettingsDraft(data ?? null));
 
@@ -56,7 +57,6 @@ export default function GuildPage() {
   const handleSaveSettings = async () => {
     setSaving(true);
     setSaveError(null);
-    setSaveSuccess(null);
 
     try {
       const response = await api.put<GuildHomeResponse>(
@@ -64,7 +64,7 @@ export default function GuildPage() {
         toGuildSettingsPayload(draft),
       );
       setData(normalizeGuildHomeResponse(response.data));
-      setSaveSuccess(t("guild.settingsSaved"));
+      showSuccess(t("guild.settingsSaved"));
     } catch (error) {
       setSaveError(getApiErrorMessage(error, t("guild.settingsSaveFailed")));
     } finally {
@@ -149,7 +149,6 @@ export default function GuildPage() {
                       <Alert severity="error">{t("guild.rankSyncStale")}</Alert>
                     )}
                     {saveError && <Alert severity="error">{saveError}</Alert>}
-                    {saveSuccess && <Alert severity="success">{saveSuccess}</Alert>}
                     <GuildSettingsEditor
                       timezone={draft.timezone}
                       locale={draft.locale}
