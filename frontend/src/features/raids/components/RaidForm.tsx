@@ -158,6 +158,9 @@ export default function RaidForm({
     );
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      });
       return;
     }
 
@@ -190,7 +193,7 @@ export default function RaidForm({
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{t(error)}</Alert>}
 
-      <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.instance} disabled={instanceLocked}>
+      <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.instance} disabled={instanceLocked} required>
         <InputLabel>{t("createRaid.instance")}</InputLabel>
         <Select
           value={instanceId}
@@ -212,6 +215,7 @@ export default function RaidForm({
         sx={{ mb: 2 }}
         disabled={availableModes.length === 0 || instanceLocked}
         error={!!errors.mode}
+        required
       >
         <InputLabel>{t("createRaid.mode")}</InputLabel>
         <Select
@@ -281,6 +285,7 @@ export default function RaidForm({
         <ToggleButtonGroup
           exclusive
           value={visibility}
+          aria-label={t("createRaid.visibility")}
           onChange={(_, newValue: "GUILD" | "PUBLIC" | null) => {
             if (newValue) setVisibility(newValue);
           }}

@@ -66,7 +66,7 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
               editDisabled ? (
                 <Tooltip title={t("raidInfo.editingClosed")}>
                   <span>
-                    <Button size="small" disabled sx={{ minWidth: 0, py: 0, px: 1 }}>
+                    <Button size="small" disabled sx={{ minWidth: 0, minHeight: 32, py: 0.5, px: 1 }}>
                       {t("raidInfo.editButton")}
                     </Button>
                   </span>
@@ -75,7 +75,7 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
                 <Button
                   size="small"
                   onClick={() => onRaidEdit(raid.id)}
-                  sx={{ minWidth: 0, py: 0, px: 1 }}
+                  sx={{ minWidth: 0, minHeight: 32, py: 0.5, px: 1 }}
                 >
                   {t("raidInfo.editButton")}
                 </Button>
@@ -86,7 +86,7 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
                 size="small"
                 color="error"
                 onClick={() => setDeleteDialogOpen(true)}
-                sx={{ minWidth: 0, py: 0, px: 1 }}
+                sx={{ minWidth: 0, minHeight: 32, py: 0.5, px: 1 }}
               >
                 {t("raidInfo.deleteButton")}
               </Button>

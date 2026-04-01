@@ -29,6 +29,7 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
     <Box
       component="button"
       onClick={onClick}
+      aria-current={selected ? "true" : undefined}
       sx={{
         opacity: passed && !selected ? 0.6 : 1,
         display: "flex",

@@ -20,8 +20,8 @@ export const attendance = {
   out:   { bg: "#c62828", text: "#fff" },
   bench: { bg: "#546e7a", text: "#fff" },
   late:  { bg: "#f57f17", text: "rgba(0, 0, 0, 0.87)" },
-  away:  { bg: "#e65100", text: "rgba(0, 0, 0, 0.87)" },
-  unknown: { bg: "#888", text: "#fff" },
+  away:  { bg: "#bf4400", text: "#fff" },
+  unknown: { bg: "#757575", text: "#fff" },
 } as const;
 
 /** Subtle surface overlays for decorative cards (dark-theme only). */
