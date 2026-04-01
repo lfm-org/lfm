@@ -53,7 +53,12 @@ export default function EditRaidPage() {
         ...values,
         description: sanitizedDescription,
       });
-      navigate(`/raids?raid=${encodeURIComponent(id)}`);
+      const params = new URLSearchParams(window.location.search);
+      const returnPage = params.get("page");
+      const returnParams = new URLSearchParams();
+      returnParams.set("raid", id);
+      if (returnPage) returnParams.set("page", returnPage);
+      navigate(`/raids?${returnParams.toString()}`);
     } catch {
       setError("editRaid.saveFailed");
       setSubmitting(false);

@@ -56,7 +56,10 @@ export default function RaidsPage() {
   } = useRaids(battleNetId, isDesktop, isMobile);
 
   const handleRaidEdit = (raidId: string) => {
-    navigate(`/raids/${encodeURIComponent(raidId)}/edit`);
+    const params = new URLSearchParams();
+    if (currentPage > 1) params.set("page", String(currentPage));
+    const query = params.toString();
+    navigate(`/raids/${encodeURIComponent(raidId)}/edit${query ? `?${query}` : ""}`);
   };
 
   const pagination = !loading && totalPages > 1 && (

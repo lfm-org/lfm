@@ -59,7 +59,6 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   const [loadingChars, setLoadingChars] = useState(true);
   const [charactersError, setCharactersError] = useState<string | null>(null);
   const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
-  const [showPassed, setShowPassed] = useState(false);
   const lastFocusedRaidId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -136,6 +135,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
 
   const requestedRaidId = searchParams.get("raid");
   const requestedPage = parsePageParam(searchParams.get("page"));
+  const showPassed = searchParams.get("passed") === "1";
 
   const { upcoming, passed } = useMemo(() => groupRaidsByTime(raids), [raids]);
 
@@ -155,8 +155,8 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     if (!isSelected) {
       const fallback = visibleRaids[0] ?? passed[0];
       if (fallback) {
-        if (!visibleRaids[0] && passed[0]) setShowPassed(true);
         const next = new URLSearchParams(searchParams);
+        if (!visibleRaids[0] && passed[0]) next.set("passed", "1");
         next.set("raid", fallback.id);
         setSearchParams(next, { replace: true });
       }
@@ -172,7 +172,11 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   }, [isMobile, requestedRaidId, targetIndex]);
 
   useEffect(() => {
-    if (targetInPassed && !showPassed) setShowPassed(true);
+    if (targetInPassed && !showPassed) {
+      const next = new URLSearchParams(searchParams);
+      next.set("passed", "1");
+      setSearchParams(next, { replace: true });
+    }
   }, [targetInPassed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -208,6 +212,16 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     setSearchParams(next);
   };
 
+  const handleTogglePassed = () => {
+    const next = new URLSearchParams(searchParams);
+    if (showPassed) {
+      next.delete("passed");
+    } else {
+      next.set("passed", "1");
+    }
+    setSearchParams(next);
+  };
+
   const handlePageChange = (page: number) => {
     const next = new URLSearchParams(searchParams);
     if (page <= 1) {
@@ -215,7 +229,6 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     } else {
       next.set("page", String(page));
     }
-    next.delete("raid");
     setSearchParams(next);
   };
 
@@ -246,7 +259,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     selectedRaid,
     passedRaids: passed,
     showPassed,
-    handleTogglePassed: () => setShowPassed(p => !p),
+    handleTogglePassed,
     handleRaidUpdate,
     handleToggleRaid,
     handleSelectRaid,
