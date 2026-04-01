@@ -11,8 +11,10 @@ import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
 import ErrorState from "../../../components/ErrorState";
+import EmptyState from "../../../components/EmptyState";
 import LoadingState from "../../../components/LoadingState";
 import { useToast } from "../../../components/ToastContext";
+import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import ForgetMeSection from "../components/ForgetMeSection";
 import { useCharacters } from "../lib/useCharacters";
 
@@ -116,9 +118,11 @@ function CharactersPageInner({
           </Box>
           {error && <ErrorState message={t(error)} onRetry={onRetry} />}
           {characters.length === 0 && !error && (
-            <Typography color="text.secondary">
-              {t("characters.empty")}
-            </Typography>
+            <EmptyState
+              icon={<PersonSearchIcon />}
+              message={t("characters.empty")}
+              action={{ label: t("characters.emptyCta"), onClick: onRefresh }}
+            />
           )}
         </Box>
 

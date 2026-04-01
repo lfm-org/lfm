@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
+import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
+import LoadingState from "../../../components/LoadingState";
+import ErrorState from "../../../components/ErrorState";
 import { useTranslation } from "react-i18next";
 import SurfaceCard from "../../../components/SurfaceCard";
 import useDocumentTitle from "../../../hooks/useDocumentTitle";
@@ -19,7 +21,7 @@ import { useGuildHome } from "../lib/useGuildHome";
 export default function GuildPage() {
   const { t } = useTranslation();
   useDocumentTitle(`${t("guild.title")} — LFM`);
-  const { data, loading, error, setData } = useGuildHome();
+  const { data, loading, error, reload, setData } = useGuildHome();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -65,10 +67,7 @@ export default function GuildPage() {
         title={t("guild.title")}
         description={t("guild.description")}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={20} aria-label={t("guild.loading")} />
-          <Typography color="text.secondary">{t("guild.loading")}</Typography>
-        </Stack>
+        <LoadingState label={t("guild.loading")} />
       </GuildRouteShell>
     );
   }
@@ -79,7 +78,7 @@ export default function GuildPage() {
       description={t("guild.description")}
     >
       <Stack spacing={3}>
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <ErrorState message={error} onRetry={reload} />}
 
         {!error && !data?.guild && (
           <SurfaceCard padding={3}>
