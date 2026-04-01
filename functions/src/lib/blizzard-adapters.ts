@@ -197,6 +197,7 @@ export interface GuildHomeView {
       rank: number;
       canCreateGuildRaids: boolean;
       canSignupGuildRaids: boolean;
+      canDeleteGuildRaids: boolean;
     }>;
   } | null;
   editor: {
@@ -226,6 +227,7 @@ export function toGuildHomeView(
     matchedRank: null,
     canCreateGuildRaids: false,
     canSignupGuildRaids: false,
+    canDeleteGuildRaids: false,
     rankDataFresh: false,
   },
   adminOverride: GuildHomeView["adminOverride"] = null

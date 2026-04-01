@@ -92,6 +92,7 @@ export interface GuildDocument {
     rank: number;
     canCreateGuildRaids: boolean;
     canSignupGuildRaids: boolean;
+    canDeleteGuildRaids?: boolean;
   }>;
   lastOverrideBy?: string;
   lastOverrideAt?: string;

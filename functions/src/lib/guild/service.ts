@@ -123,6 +123,7 @@ function buildAdminGuildHomeView(guildDoc: GuildDocument) {
       matchedRank: null,
       canCreateGuildRaids: false,
       canSignupGuildRaids: false,
+      canDeleteGuildRaids: false,
       rankDataFresh: false,
     },
     {

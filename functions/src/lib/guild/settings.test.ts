@@ -15,8 +15,8 @@ describe("parseGuildSettingsInput", () => {
       locale: "fi",
       slogan: null,
       rankPermissions: [
-        { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
-        { rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false },
+        { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
+        { rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: false },
       ],
     });
   });
@@ -32,7 +32,7 @@ describe("parseGuildSettingsInput", () => {
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: null,
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
     });
 
     expect(
@@ -45,7 +45,7 @@ describe("parseGuildSettingsInput", () => {
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: null,
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
     });
   });
 
@@ -60,7 +60,7 @@ describe("parseGuildSettingsInput", () => {
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: "Victory or Lunch",
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
     });
   });
 

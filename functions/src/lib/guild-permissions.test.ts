@@ -116,9 +116,9 @@ function createGuildDoc(overrides: Partial<GuildDocument> = {}): GuildDocument {
 describe("guild permissions", () => {
   it("builds default permissions with signup enabled for every rank and create enabled only for rank 0", () => {
     expect(buildDefaultRankPermissions([0, 2, 5])).toEqual([
-      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
-      { rank: 2, canCreateGuildRaids: false, canSignupGuildRaids: true },
-      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true },
+      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
+      { rank: 2, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
+      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
     ]);
   });
 
@@ -128,9 +128,9 @@ describe("guild permissions", () => {
         { rank: 2, canCreateGuildRaids: true, canSignupGuildRaids: false },
       ])
     ).toEqual([
-      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
-      { rank: 2, canCreateGuildRaids: true, canSignupGuildRaids: false },
-      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true },
+      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
+      { rank: 2, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: false },
+      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
     ]);
   });
 
@@ -168,5 +168,37 @@ describe("guild permissions", () => {
     const permissions = getEffectiveGuildPermissions(staleDoc, createRaider("Highlord"), Date.parse("2026-03-25T10:30:00.000Z"));
     expect(permissions.canCreateGuildRaids).toBe(false);
     expect(permissions.canSignupGuildRaids).toBe(false);
+  });
+
+  it("includes canDeleteGuildRaids defaulting to true only for rank 0", () => {
+    expect(buildDefaultRankPermissions([0, 2, 5])).toEqual([
+      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
+      { rank: 2, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
+      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
+    ]);
+  });
+
+  it("merges stored canDeleteGuildRaids onto roster ranks", () => {
+    expect(
+      mergeRankPermissions([0, 2, 5], [
+        { rank: 2, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: true },
+      ])
+    ).toEqual([
+      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
+      { rank: 2, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: true },
+      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
+    ]);
+  });
+
+  it("resolves canDeleteGuildRaids in effective permissions for rank 0", () => {
+    const permissions = getEffectiveGuildPermissions(createGuildDoc(), createRaider("Highlord"), Date.parse("2026-03-25T10:30:00.000Z"));
+    expect(permissions.matchedRank).toBe(0);
+    expect(permissions.canDeleteGuildRaids).toBe(true);
+  });
+
+  it("resolves canDeleteGuildRaids as false for non-zero rank by default", () => {
+    const permissions = getEffectiveGuildPermissions(createGuildDoc(), createRaider("Aelrin"), Date.parse("2026-03-25T10:30:00.000Z"));
+    expect(permissions.matchedRank).toBe(2);
+    expect(permissions.canDeleteGuildRaids).toBe(false);
   });
 });

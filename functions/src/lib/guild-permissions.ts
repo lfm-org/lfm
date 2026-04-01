@@ -8,12 +8,14 @@ export interface GuildRankPermission {
   rank: number;
   canCreateGuildRaids: boolean;
   canSignupGuildRaids: boolean;
+  canDeleteGuildRaids: boolean;
 }
 
 export interface EffectiveGuildPermissions {
   matchedRank: number | null;
   canCreateGuildRaids: boolean;
   canSignupGuildRaids: boolean;
+  canDeleteGuildRaids: boolean;
   rankDataFresh: boolean;
 }
 
@@ -27,6 +29,7 @@ export function buildDefaultRankPermissions(ranks: number[]): GuildRankPermissio
     rank,
     canCreateGuildRaids: rank === 0,
     canSignupGuildRaids: true,
+    canDeleteGuildRaids: rank === 0,
   }));
 }
 
@@ -42,6 +45,7 @@ export function mergeRankPermissions(
           rank: permission.rank,
           canCreateGuildRaids: storedPermission.canCreateGuildRaids,
           canSignupGuildRaids: storedPermission.canSignupGuildRaids,
+          canDeleteGuildRaids: storedPermission.canDeleteGuildRaids ?? permission.canDeleteGuildRaids,
         }
       : permission;
   });
@@ -74,6 +78,7 @@ export function getEffectiveGuildPermissions(
       matchedRank: null,
       canCreateGuildRaids: false,
       canSignupGuildRaids: false,
+      canDeleteGuildRaids: false,
       rankDataFresh: false,
     };
   }
@@ -84,6 +89,7 @@ export function getEffectiveGuildPermissions(
       matchedRank: null,
       canCreateGuildRaids: false,
       canSignupGuildRaids: false,
+      canDeleteGuildRaids: false,
       rankDataFresh: true,
     };
   }
@@ -95,6 +101,7 @@ export function getEffectiveGuildPermissions(
     matchedRank,
     canCreateGuildRaids: permission?.canCreateGuildRaids ?? false,
     canSignupGuildRaids: permission?.canSignupGuildRaids ?? false,
+    canDeleteGuildRaids: permission?.canDeleteGuildRaids ?? false,
     rankDataFresh: true,
   };
 }
