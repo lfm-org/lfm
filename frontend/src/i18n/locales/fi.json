@@ -148,6 +148,7 @@
   "raidInfo.deleteConfirmCancel": "Peruuta",
   "raidInfo.deleteConfirmDelete": "Poista",
   "raidInfo.deleting": "Poistetaan...",
+  "raidInfo.deleteFailed": "Raidin poistaminen epäonnistui. Yritä uudelleen.",
   "raidSignup.loadingCharacters": "Ladataan hahmoja...",
   "raidSignup.addCharacter": "Lisää hahmo",
   "raidSignup.addCharacterSuffix": " ennen ilmoittautumista.",

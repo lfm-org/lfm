@@ -148,6 +148,7 @@
   "raidInfo.deleteConfirmCancel": "Cancel",
   "raidInfo.deleteConfirmDelete": "Delete",
   "raidInfo.deleting": "Deleting...",
+  "raidInfo.deleteFailed": "Failed to delete raid. Please try again.",
   "raidSignup.loadingCharacters": "Loading characters...",
   "raidSignup.addCharacter": "Add a character",
   "raidSignup.addCharacterSuffix": " before signing up.",
