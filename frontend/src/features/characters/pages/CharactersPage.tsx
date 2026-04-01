@@ -9,6 +9,8 @@ import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
+import ErrorState from "../../../components/ErrorState";
+import LoadingState from "../../../components/LoadingState";
 import ForgetMeSection from "../components/ForgetMeSection";
 import { useCharacters } from "../lib/useCharacters";
 
@@ -39,6 +41,8 @@ function CharactersPageInner({
   loading,
   portraits,
   loadingPortraits,
+  error,
+  onRetry,
   handlePageChange,
   selectCharacter,
   selectingId,
@@ -56,6 +60,8 @@ function CharactersPageInner({
   loading: boolean;
   portraits: Record<string, string>;
   loadingPortraits: boolean;
+  error: string | null;
+  onRetry: () => void;
   handlePageChange: (page: number) => void;
   selectCharacter: (char: AccountCharacter) => void;
   selectingId: string | null;
@@ -71,7 +77,7 @@ function CharactersPageInner({
   if (loading) {
     return (
       <PageContainer>
-        <Typography>{t("characters.loading")}</Typography>
+        <LoadingState label={t("characters.loading")} />
       </PageContainer>
     );
   }
@@ -83,7 +89,8 @@ function CharactersPageInner({
           <Typography component="h1" variant="h5" gutterBottom>
             {t("characters.title")}
           </Typography>
-          {characters.length === 0 && (
+          {error && <ErrorState message={t(error)} onRetry={onRetry} />}
+          {characters.length === 0 && !error && (
             <Typography color="text.secondary">
               {t("characters.empty")}
             </Typography>
@@ -232,7 +239,7 @@ export default function CharactersPage() {
     [charactersForPagination, clampedPageForPortrait, PAGE_SIZE]
   );
 
-  const { characters, loading, portraits, loadingPortraits } = useCharacters(visibleCharsForPortraits);
+  const { characters, loading, portraits, loadingPortraits, error, retry } = useCharacters(visibleCharsForPortraits);
 
   useEffect(() => {
     setCharactersForPagination(characters);
@@ -295,6 +302,8 @@ export default function CharactersPage() {
       loading={loading}
       portraits={portraits}
       loadingPortraits={loadingPortraits}
+      error={error}
+      onRetry={retry}
       handlePageChange={handlePageChange}
       selectCharacter={selectCharacter}
       selectingId={selectingId}
