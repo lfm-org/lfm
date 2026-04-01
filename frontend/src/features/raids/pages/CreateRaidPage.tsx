@@ -21,7 +21,7 @@ import {
 import PageContainer from "../../../components/layout/PageContainer";
 import DateTimeInput from "../../../components/DateTimeInput";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
-import { validateCreateRaid, type FormField } from "../lib/createRaidValidation";
+import { validateRaidForm, type FormField } from "../lib/raidValidation";
 
 const MAX_DESCRIPTION = 500;
 
@@ -81,13 +81,13 @@ export default function CreateRaidPage() {
   const handleStartTimeChange = (value: DateTime | null) => {
     setStartTime(value);
     // Re-validate both startTime and signupCloseTime — the cross-field rule references both
-    const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime: value, signupCloseTime, description });
+    const fieldErrors = validateRaidForm({ instanceId, selectedModeKey, startTime: value, signupCloseTime, description });
     setErrors((e) => ({ ...e, startTime: fieldErrors.startTime, signupCloseTime: fieldErrors.signupCloseTime }));
   };
 
   const handleSignupCloseTimeChange = (value: DateTime | null) => {
     setSignupCloseTime(value);
-    const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime, signupCloseTime: value, description });
+    const fieldErrors = validateRaidForm({ instanceId, selectedModeKey, startTime, signupCloseTime: value, description });
     setErrors((e) => ({ ...e, signupCloseTime: fieldErrors.signupCloseTime }));
   };
 
@@ -99,7 +99,7 @@ export default function CreateRaidPage() {
   };
 
   const handleSubmit = async () => {
-    const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
+    const fieldErrors = validateRaidForm({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       return;
@@ -201,7 +201,7 @@ export default function CreateRaidPage() {
         value={description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
         onBlur={() => {
-          const fieldErrors = validateCreateRaid({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
+          const fieldErrors = validateRaidForm({ instanceId, selectedModeKey, startTime, signupCloseTime, description });
           setErrors((e) => ({ ...e, description: fieldErrors.description }));
         }}
         error={!!errors.description}
