@@ -135,7 +135,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               color="inherit"
               sx={{ textTransform: "none" }}
             >
-              {t("nav.login")}
+              <Typography component="span">{t("nav.login")}</Typography>
             </Button>
           </Box>
         )}
