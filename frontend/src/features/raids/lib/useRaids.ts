@@ -47,6 +47,8 @@ export interface UseRaidsResult {
   handlePageChange: (page: number) => void;
   handleRaidDelete: (raidId: string) => void;
   refresh: () => void;
+  sortOrder: "asc" | "desc";
+  handleSortChange: (order: "asc" | "desc") => void;
 }
 
 export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRaidsResult {
@@ -141,17 +143,24 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   const requestedRaidId = searchParams.get("raid");
   const requestedPage = parsePageParam(searchParams.get("page"));
   const showPassed = searchParams.get("passed") === "1";
+  const sortOrder = (searchParams.get("sort") === "asc" ? "asc" : "desc") as "asc" | "desc";
 
   const { upcoming, passed } = useMemo(() => groupRaidsByTime(raids), [raids]);
 
-  const targetIndex = requestedRaidId ? upcoming.findIndex((raid) => raid.id === requestedRaidId) : -1;
+  const sortedUpcoming = useMemo(() => {
+    const sorted = [...upcoming];
+    if (sortOrder === "asc") sorted.reverse();
+    return sorted;
+  }, [upcoming, sortOrder]);
+
+  const targetIndex = requestedRaidId ? sortedUpcoming.findIndex((raid) => raid.id === requestedRaidId) : -1;
   const targetInPassed = requestedRaidId && targetIndex < 0 ? passed.some((r) => r.id === requestedRaidId) : false;
-  const totalPages = Math.max(1, Math.ceil(upcoming.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedUpcoming.length / PAGE_SIZE));
   const currentPage = clampPage(
     targetIndex >= 0 ? Math.floor(targetIndex / PAGE_SIZE) + 1 : requestedPage,
     totalPages
   );
-  const visibleRaids = upcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const visibleRaids = sortedUpcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Auto-select first raid on desktop when no raid is selected
   useEffect(() => {
@@ -241,6 +250,17 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     setRaids((current) => current.filter((raid) => raid.id !== raidId));
   };
 
+  const handleSortChange = (order: "asc" | "desc") => {
+    const next = new URLSearchParams(searchParams);
+    if (order === "desc") {
+      next.delete("sort");
+    } else {
+      next.set("sort", order);
+    }
+    next.delete("page");
+    setSearchParams(next);
+  };
+
   const selectedRaid = requestedRaidId
     ? (visibleRaids.find(r => r.id === requestedRaidId)
       ?? passed.find(r => r.id === requestedRaidId)
@@ -271,5 +291,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     handlePageChange,
     handleRaidDelete,
     refresh: loadRaids,
+    sortOrder,
+    handleSortChange,
   };
 }

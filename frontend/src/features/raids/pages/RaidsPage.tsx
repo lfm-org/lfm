@@ -4,7 +4,11 @@ import {
   Button,
   CircularProgress,
   Divider,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Typography,
   useMediaQuery,
   useTheme,
@@ -57,6 +61,8 @@ export default function RaidsPage() {
     handlePageChange,
     handleRaidDelete,
     refresh,
+    sortOrder,
+    handleSortChange,
   } = useRaids(battleNetId, isDesktop, isMobile);
 
   const { showSuccess } = useToast();
@@ -106,6 +112,18 @@ export default function RaidsPage() {
           <IconButton onClick={handleRefresh} disabled={loading} aria-label={t("common.refresh")}>
             <RefreshIcon />
           </IconButton>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="raids-sort-label">{t("raids.sort")}</InputLabel>
+            <Select
+              labelId="raids-sort-label"
+              value={sortOrder}
+              label={t("raids.sort")}
+              onChange={(e) => handleSortChange(e.target.value as "asc" | "desc")}
+            >
+              <MenuItem value="desc">{t("raids.sortNewest")}</MenuItem>
+              <MenuItem value="asc">{t("raids.sortOldest")}</MenuItem>
+            </Select>
+          </FormControl>
           <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
         </Box>
       </Box>
