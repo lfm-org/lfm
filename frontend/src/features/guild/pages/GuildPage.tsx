@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import LoadingState from "../../../components/LoadingState";
 import ErrorState from "../../../components/ErrorState";
@@ -17,6 +17,7 @@ import {
   updateGuildRankPermission,
 } from "../lib/guildSettingsForm";
 import { useGuildHome } from "../lib/useGuildHome";
+import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 
 export default function GuildPage() {
   const { t } = useTranslation();
@@ -30,6 +31,16 @@ export default function GuildPage() {
   useEffect(() => {
     setDraft(createGuildSettingsDraft(data ?? null));
   }, [data]);
+
+  const savedDraft = useMemo(() => createGuildSettingsDraft(data ?? null), [data]);
+  const isDirty = !saving && (
+    draft.timezone !== savedDraft.timezone ||
+    draft.locale !== savedDraft.locale ||
+    draft.slogan !== savedDraft.slogan ||
+    JSON.stringify(draft.rankPermissions) !== JSON.stringify(savedDraft.rankPermissions)
+  );
+
+  const { dialog: unsavedDialog } = useUnsavedChanges(isDirty);
 
   const handlePermissionChange = (
     rank: number,
@@ -181,6 +192,7 @@ export default function GuildPage() {
           </Stack>
         )}
       </Stack>
+      {unsavedDialog}
     </GuildRouteShell>
   );
 }

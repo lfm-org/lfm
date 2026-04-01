@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import { useTranslation } from "react-i18next";
 import {
   Box, Typography, TextField, Button, Alert, CircularProgress,
@@ -89,6 +90,17 @@ export default function RaidForm({
   const [selectedModeKey, setSelectedModeKey] = useState(initialValues.selectedModeKey);
   const [visibility, setVisibility] = useState<"GUILD" | "PUBLIC">(initialValues.visibility);
   const [errors, setErrors] = useState<Partial<Record<FormField, string>>>({});
+
+  const isDirty = !submitting && (
+    instanceId !== initialValues.instanceId ||
+    description !== initialValues.description ||
+    selectedModeKey !== initialValues.selectedModeKey ||
+    visibility !== initialValues.visibility ||
+    startTime?.toISO() !== initialValues.startTime?.toISO() ||
+    signupCloseTime?.toISO() !== initialValues.signupCloseTime?.toISO()
+  );
+
+  const { dialog: unsavedDialog } = useUnsavedChanges(isDirty);
 
   useEffect(() => {
     if (!canCreateGuildRaids && visibility === "GUILD") {
@@ -310,6 +322,7 @@ export default function RaidForm({
           {t("createRaid.cancel")}
         </Button>
       </Box>
+      {unsavedDialog}
     </Box>
   );
 }
