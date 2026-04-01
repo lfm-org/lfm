@@ -95,6 +95,10 @@ describe("editability enforcement with applyRaidUpdate", () => {
   });
 
   it("editing is closed when signupCloseTime passed", () => {
-    expect(isEditingClosed("2026-04-01T10:00:00Z", "2026-04-01T12:00:00Z")).toBe(true);
+    expect(isEditingClosed("2026-04-01T10:00:00Z", "2026-04-10T19:00:00Z", "2026-04-01T12:00:00Z")).toBe(true);
+  });
+
+  it("editing is closed when startTime passed", () => {
+    expect(isEditingClosed("", "2026-04-01T10:00:00Z", "2026-04-01T12:00:00Z")).toBe(true);
   });
 });

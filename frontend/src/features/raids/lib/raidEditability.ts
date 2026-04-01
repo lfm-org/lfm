@@ -3,7 +3,9 @@ export function getLockedFields(signupCount: number): Set<string> {
   return new Set(["instanceId", "startTime"]);
 }
 
-export function isEditingClosed(signupCloseTime: string): boolean {
-  if (!signupCloseTime) return false;
-  return new Date(signupCloseTime).getTime() <= Date.now();
+export function isEditingClosed(signupCloseTime: string, startTime: string): boolean {
+  const now = Date.now();
+  if (signupCloseTime && new Date(signupCloseTime).getTime() <= now) return true;
+  if (startTime && new Date(startTime).getTime() <= now) return true;
+  return false;
 }

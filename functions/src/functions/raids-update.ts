@@ -122,7 +122,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     const instances = await readWowInstances();
     if (!instances) return errorResponse(503, "Instance data not available");
 
-    if (isEditingClosed(existing.signupCloseTime, new Date().toISOString())) {
+    if (isEditingClosed(existing.signupCloseTime, existing.startTime, new Date().toISOString())) {
       return errorResponse(403, "Editing is closed for this raid");
     }
 

@@ -41,7 +41,7 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
     raid.creatorBattleNetId === currentBattleNetId ||
     (raid.visibility === "GUILD" && canCreateGuildRaids === true)
   );
-  const editDisabled = canEdit && isEditingClosed(raid.signupCloseTime);
+  const editDisabled = canEdit && isEditingClosed(raid.signupCloseTime, raid.startTime);
 
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
