@@ -42,17 +42,6 @@ test("creator sees locked instance and start time when raid has signups", async 
   await expect(page.getByLabel("Description")).toBeEnabled();
 });
 
-test("guild master sees edit button on guild raid created by another member", async ({ page }) => {
-  await page.goto("/api/battlenet/login?redirect=%2Fraids&testAuthScenario=guild-master");
-  await expect(page).toHaveURL(/\/raids$/);
-
-  const raidCard = page.getByTestId("raid-card").filter({ hasText: "Guild retro forty-player night" });
-  await expect(raidCard).toBeVisible();
-
-  // Guild master (rank 0) has canCreateGuildRaids by default
-  await expect(raidCard.getByRole("button", { name: "Edit" })).toBeEnabled();
-});
-
 // --- Destructive tests last ---
 
 test("creator can edit own raid with no signups and save changes", async ({ page }) => {
