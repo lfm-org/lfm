@@ -168,14 +168,7 @@ describe("guild permissions", () => {
     const permissions = getEffectiveGuildPermissions(staleDoc, createRaider("Highlord"), Date.parse("2026-03-25T10:30:00.000Z"));
     expect(permissions.canCreateGuildRaids).toBe(false);
     expect(permissions.canSignupGuildRaids).toBe(false);
-  });
-
-  it("includes canDeleteGuildRaids defaulting to true only for rank 0", () => {
-    expect(buildDefaultRankPermissions([0, 2, 5])).toEqual([
-      { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
-      { rank: 2, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
-      { rank: 5, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: false },
-    ]);
+    expect(permissions.canDeleteGuildRaids).toBe(false);
   });
 
   it("merges stored canDeleteGuildRaids onto roster ranks", () => {

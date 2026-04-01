@@ -138,7 +138,7 @@ describe("parseGuildSettingsInput", () => {
         timezone: "Europe/Helsinki",
         locale: "fi",
       },
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
     });
   });
 });
