@@ -38,7 +38,7 @@ export interface RaidFormInitialValues {
   visibility: "GUILD" | "PUBLIC";
 }
 
-export interface RaidFormProps {
+interface RaidFormProps {
   initialValues: RaidFormInitialValues;
   instances: WowInstance[];
   locale?: string;
