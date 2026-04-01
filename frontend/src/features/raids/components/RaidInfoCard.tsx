@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { Box, Button, Chip, Typography } from "@mui/material";
+import { Box, Button, Chip, Tooltip, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { DateTime } from "luxon";
 import type { Raid } from "../lib/raidTypes";
 import SurfaceCard from "../../../components/SurfaceCard";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 import RaidDeleteDialog from "./RaidDeleteDialog";
+import { isEditingClosed } from "../lib/raidEditability";
 
 interface RaidInfoCardProps {
   raid: Raid;
@@ -13,7 +14,9 @@ interface RaidInfoCardProps {
   guildTimezone?: string;
   currentBattleNetId?: string | null;
   canDeleteGuildRaids?: boolean;
+  canCreateGuildRaids?: boolean;
   onRaidDelete?: (raidId: string) => void;
+  onRaidEdit?: (raidId: string) => void;
   children?: ReactNode;
 }
 
@@ -23,7 +26,7 @@ function parseRaidTime(iso: string, zone: string): DateTime | null {
   return dt.isValid ? dt : null;
 }
 
-export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBattleNetId, canDeleteGuildRaids, onRaidDelete, children }: RaidInfoCardProps) {
+export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBattleNetId, canDeleteGuildRaids, canCreateGuildRaids, onRaidDelete, onRaidEdit, children }: RaidInfoCardProps) {
   const { t } = useTranslation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
@@ -34,6 +37,11 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
     raid.creatorBattleNetId === currentBattleNetId ||
     (raid.visibility === "GUILD" && canDeleteGuildRaids === true)
   );
+  const canEdit = currentBattleNetId != null && onRaidEdit != null && (
+    raid.creatorBattleNetId === currentBattleNetId ||
+    (raid.visibility === "GUILD" && canCreateGuildRaids === true)
+  );
+  const editDisabled = canEdit && isEditingClosed(raid.signupCloseTime);
 
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
@@ -52,12 +60,35 @@ export default function RaidInfoCard({ raid, modeLabel, guildTimezone, currentBa
         {raid.visibility === "GUILD" && (
           <Chip label={raid.creatorGuild || "Guild"} size="small" color="primary" variant="outlined" />
         )}
+        {canEdit && (
+          editDisabled ? (
+            <Tooltip title={t("raidInfo.editingClosed")}>
+              <span style={{ marginLeft: "auto" }}>
+                <Button
+                  size="small"
+                  disabled
+                  sx={{ minWidth: 0, py: 0, px: 1 }}
+                >
+                  {t("raidInfo.editButton")}
+                </Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button
+              size="small"
+              onClick={() => onRaidEdit(raid.id)}
+              sx={{ ml: canDelete ? 0 : "auto", minWidth: 0, py: 0, px: 1 }}
+            >
+              {t("raidInfo.editButton")}
+            </Button>
+          )
+        )}
         {canDelete && (
           <Button
             size="small"
             color="error"
             onClick={() => setDeleteDialogOpen(true)}
-            sx={{ ml: "auto", alignSelf: "center", minWidth: 0, py: 0, px: 1 }}
+            sx={{ ml: canEdit ? 0 : "auto", alignSelf: "center", minWidth: 0, py: 0, px: 1 }}
           >
             {t("raidInfo.deleteButton")}
           </Button>

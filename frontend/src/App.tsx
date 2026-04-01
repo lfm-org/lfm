@@ -17,6 +17,7 @@ const GuildPage = lazy(() => import("./features/guild/pages/GuildPage"));
 const GuildAdminPage = lazy(() => import("./features/guild/pages/GuildAdminPage"));
 const RaidsPage = lazy(() => import("./features/raids/pages/RaidsPage"));
 const CreateRaidPage = lazy(() => import("./features/raids/pages/CreateRaidPage"));
+const EditRaidPage = lazy(() => import("./features/raids/pages/EditRaidPage"));
 
 function RouteFallback() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/guild/admin" element={withRouteFallback(<AuthGuard><GuildAdminPage /></AuthGuard>)} />
         <Route path="/raids" element={withRouteFallback(<AuthGuard><GuildSetupGuard><RaidsPage /></GuildSetupGuard></AuthGuard>)} />
         <Route path="/raids/new" element={withRouteFallback(<AuthGuard><GuildSetupGuard><CreateRaidPage /></GuildSetupGuard></AuthGuard>)} />
+        <Route path="/raids/:id/edit" element={withRouteFallback(<AuthGuard><GuildSetupGuard><EditRaidPage /></GuildSetupGuard></AuthGuard>)} />
       </Routes>
     </AppLayout>
   );
