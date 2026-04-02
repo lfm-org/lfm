@@ -1,5 +1,4 @@
 import { battlenet } from "../battlenet.js";
-import { readBinaryBlob, writeBinaryBlob } from "../blob.js";
 import { syncGuildCrest } from "../guild-crest.js";
 import { getEffectiveGuildPermissions, getGuildRanksFromRoster, isGuildRosterFresh } from "../guild-permissions.js";
 import { toGuildHomeView } from "../blizzard-adapters.js";
@@ -55,19 +54,6 @@ function toAdminEditorView() {
   };
 }
 
-async function fetchBinaryAsset(url: string): Promise<{ bytes: Uint8Array; contentType: string }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    const body = await response.text().catch(() => "(unreadable)");
-    throw new Error(`fetchBinaryAsset failed: ${response.status} ${body}`);
-  }
-
-  return {
-    bytes: new Uint8Array(await response.arrayBuffer()),
-    contentType: response.headers.get("content-type") ?? "application/octet-stream",
-  };
-}
-
 async function syncGuildCrestForDocument(
   guildDocId: string,
   profileSummary: BlizzardGuildProfileResponse,
@@ -75,8 +61,6 @@ async function syncGuildCrestForDocument(
 ) {
   return syncGuildCrest(guildDocId, profileSummary, {
     fetchMediaDocument: (href) => battlenet.fetchMediaDocument(href, accessToken),
-    fetchBinaryAsset,
-    writeBinaryBlob,
   });
 }
 
@@ -90,13 +74,10 @@ async function ensureMirroredGuildCrest(args: {
   const profileSummary = args.cached.blizzardProfileRaw;
   if (!profileSummary?.crest) return args.cached;
 
-  if (args.cached.crestBlobName) {
-    const asset = await readBinaryBlob(args.cached.crestBlobName);
-    if (asset) return args.cached;
-    args.log?.(`guild: mirrored crest blob missing for guild ${args.guildDocId}; re-syncing`);
-  } else {
-    args.log?.(`guild: mirrored crest metadata missing for guild ${args.guildDocId}; re-syncing`);
+  if (args.cached.crestEmblemUrl && args.cached.crestBorderUrl) {
+    return args.cached;
   }
+  args.log?.(`guild: crest CDN URLs missing for guild ${args.guildDocId}; re-syncing`);
 
   const crest = await syncGuildCrestForDocument(args.guildDocId, profileSummary, args.accessToken);
   if (!crest) return args.cached;

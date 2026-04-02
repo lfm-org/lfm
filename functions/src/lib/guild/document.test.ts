@@ -11,7 +11,10 @@ describe("refreshGuildDocument", () => {
     const rosterSummary = {
       members: [{ rank: 0, character: { name: "Aelrin", realm: { slug: "test-realm" } } }],
     } as never;
-    const crest = { crestUrl: "https://blob.test/crest.png" };
+    const crest = {
+      crestEmblemUrl: "https://cdn.test/emblem.png",
+      crestBorderUrl: "https://cdn.test/border.png",
+    };
     const fetchGuildProfile = vi.fn().mockResolvedValue(profileSummary);
     const fetchGuildRoster = vi.fn().mockResolvedValue(rosterSummary);
     const syncGuildCrestForDocument = vi.fn().mockResolvedValue(crest);
@@ -54,7 +57,8 @@ describe("refreshGuildDocument", () => {
       blizzardProfileFetchedAt: expect.any(String),
       blizzardRosterRaw: rosterSummary,
       blizzardRosterFetchedAt: expect.any(String),
-      crestUrl: "https://blob.test/crest.png",
+      crestEmblemUrl: "https://cdn.test/emblem.png",
+      crestBorderUrl: "https://cdn.test/border.png",
       rankPermissions: [{ rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false }],
       setup: { timezone: "Europe/Helsinki", initializedAt: "2026-03-20T00:00:00.000Z" },
       lastOverrideAt: "2026-03-21T12:00:00.000Z",
@@ -71,7 +75,8 @@ describe("refreshGuildDocument", () => {
       blizzardProfileFetchedAt: expect.any(String),
       blizzardRosterRaw: rosterSummary,
       blizzardRosterFetchedAt: expect.any(String),
-      crestUrl: "https://blob.test/crest.png",
+      crestEmblemUrl: "https://cdn.test/emblem.png",
+      crestBorderUrl: "https://cdn.test/border.png",
       rankPermissions: [{ rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false }],
       setup: { timezone: "Europe/Helsinki", initializedAt: "2026-03-20T00:00:00.000Z" },
       lastOverrideAt: "2026-03-21T12:00:00.000Z",
@@ -145,7 +150,10 @@ describe("ensureGuildDocumentForAdmin", () => {
       realm: { slug: "test-realm", name: "Test Realm" },
     } as never;
     const rosterSummary = { members: [] } as never;
-    const crest = { crestUrl: "https://blob.test/crest.png" };
+    const crest = {
+      crestEmblemUrl: "https://cdn.test/emblem.png",
+      crestBorderUrl: "https://cdn.test/border.png",
+    };
     const readGuildDocument = vi.fn().mockResolvedValue(null);
     const listRaiders = vi.fn().mockResolvedValue([
       {
@@ -193,7 +201,8 @@ describe("ensureGuildDocumentForAdmin", () => {
       blizzardProfileFetchedAt: expect.any(String),
       blizzardRosterRaw: rosterSummary,
       blizzardRosterFetchedAt: expect.any(String),
-      crestUrl: "https://blob.test/crest.png",
+      crestEmblemUrl: "https://cdn.test/emblem.png",
+      crestBorderUrl: "https://cdn.test/border.png",
       rankPermissions: undefined,
       setup: undefined,
       lastOverrideAt: undefined,
@@ -209,7 +218,8 @@ describe("ensureGuildDocumentForAdmin", () => {
       blizzardProfileFetchedAt: expect.any(String),
       blizzardRosterRaw: rosterSummary,
       blizzardRosterFetchedAt: expect.any(String),
-      crestUrl: "https://blob.test/crest.png",
+      crestEmblemUrl: "https://cdn.test/emblem.png",
+      crestBorderUrl: "https://cdn.test/border.png",
       rankPermissions: undefined,
       setup: undefined,
       lastOverrideAt: undefined,

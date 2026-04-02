@@ -84,6 +84,8 @@ export interface GuildDocument {
   blizzardCrestEmblemMediaRaw?: BlizzardMediaSummary;
   blizzardCrestBorderMediaRaw?: BlizzardMediaSummary;
   blizzardCrestMediaFetchedAt?: string;
+  crestEmblemUrl?: string;
+  crestBorderUrl?: string;
   crestBlobName?: string;
   crestEmblemBlobName?: string;
   crestBorderBlobName?: string;

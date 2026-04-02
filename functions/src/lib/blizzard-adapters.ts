@@ -1,5 +1,4 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
-import { getGuildCrestUrl } from "./guild-crest.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
 import { getServedCharacterPortraitUrl, isBlizzardRenderUrl } from "./character-portrait.js";
 import type {
@@ -182,7 +181,8 @@ export interface GuildHomeView {
     achievementPoints: number | null;
     syncedMemberCount: number | null;
     rankCount: number | null;
-    crestUrl: string | null;
+    crestEmblemUrl: string | null;
+    crestBorderUrl: string | null;
   } | null;
   setup: {
     isInitialized: boolean;
@@ -268,7 +268,8 @@ export function toGuildHomeView(
       achievementPoints: profile.achievement_points ?? null,
       syncedMemberCount: roster?.members.length ?? null,
       rankCount: roster ? new Set(roster.members.map((member) => member.rank)).size : null,
-      crestUrl: guildDoc.crestBlobName ? getGuildCrestUrl(guildDoc.id) : guildDoc.crestUrl ?? null,
+      crestEmblemUrl: guildDoc.crestEmblemUrl ?? null,
+      crestBorderUrl: guildDoc.crestBorderUrl ?? null,
     },
     setup: {
       isInitialized: Boolean(guildDoc.setup?.initializedAt),

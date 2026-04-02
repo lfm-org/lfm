@@ -11,11 +11,6 @@ import {
   saveCurrentGuildSettings,
 } from "./service.js";
 
-vi.mock("../blob.js", () => ({
-  readBinaryBlob: vi.fn(),
-  writeBinaryBlob: vi.fn(),
-}));
-
 vi.mock("../guild-crest.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../guild-crest.js")>();
   return {
@@ -29,7 +24,6 @@ vi.mock("./document.js", () => ({
   refreshGuildDocument: vi.fn(),
 }));
 
-const { readBinaryBlob } = await import("../blob.js");
 const { syncGuildCrest } = await import("../guild-crest.js");
 
 afterEach(() => {
@@ -380,10 +374,8 @@ describe("loadAdminGuildHome", () => {
 });
 
 describe("loadCurrentGuildHome", () => {
-  it("re-syncs mirrored crest assets when a fresh cached guild doc points to a missing crest blob", async () => {
+  it("re-syncs crest CDN URLs when a fresh cached guild doc is missing them", async () => {
     const cachedGuild = createGuildDoc({
-      crestBlobName: "guild-crests/12345/crest.svg",
-      crestUrl: "/api/guild/12345/crest",
       blizzardProfileRaw: {
         ...createGuildDoc().blizzardProfileRaw!,
         crest: {
@@ -400,19 +392,14 @@ describe("loadCurrentGuildHome", () => {
     });
     const refreshedGuild = {
       ...cachedGuild,
-      crestBlobName: "guild-crests/12345/crest.svg",
-      crestEmblemBlobName: "guild-crests/12345/emblem.png",
-      crestBorderBlobName: "guild-crests/12345/border.png",
-      crestUrl: "/api/guild/12345/crest",
+      crestEmblemUrl: "https://cdn.example.test/emblem-50.png",
+      crestBorderUrl: "https://cdn.example.test/border-1.png",
     };
     const upsertGuildDocument = vi.fn().mockResolvedValue(refreshedGuild);
 
-    vi.mocked(readBinaryBlob).mockResolvedValue(null);
     vi.mocked(syncGuildCrest).mockResolvedValue({
-      crestBlobName: "guild-crests/12345/crest.svg",
-      crestEmblemBlobName: "guild-crests/12345/emblem.png",
-      crestBorderBlobName: "guild-crests/12345/border.png",
-      crestUrl: "/api/guild/12345/crest",
+      crestEmblemUrl: "https://cdn.example.test/emblem-50.png",
+      crestBorderUrl: "https://cdn.example.test/border-1.png",
       blizzardCrestEmblemMediaRaw: { assets: [] },
       blizzardCrestBorderMediaRaw: { assets: [] },
       blizzardCrestMediaFetchedAt: "2026-03-28T00:00:00.000Z",
@@ -429,25 +416,22 @@ describe("loadCurrentGuildHome", () => {
       log: vi.fn(),
     });
 
-    expect(readBinaryBlob).toHaveBeenCalledWith("guild-crests/12345/crest.svg");
     expect(syncGuildCrest).toHaveBeenCalledWith(
       "12345",
       cachedGuild.blizzardProfileRaw,
       expect.objectContaining({
         fetchMediaDocument: expect.any(Function),
-        fetchBinaryAsset: expect.any(Function),
-        writeBinaryBlob: expect.any(Function),
       }),
     );
     expect(upsertGuildDocument).toHaveBeenCalledWith(expect.objectContaining({
       id: "12345",
-      crestBlobName: "guild-crests/12345/crest.svg",
-      crestEmblemBlobName: "guild-crests/12345/emblem.png",
-      crestBorderBlobName: "guild-crests/12345/border.png",
+      crestEmblemUrl: "https://cdn.example.test/emblem-50.png",
+      crestBorderUrl: "https://cdn.example.test/border-1.png",
     }));
     expect(result.guild).toMatchObject({
       id: 12345,
-      crestUrl: "/api/guild/12345/crest",
+      crestEmblemUrl: "https://cdn.example.test/emblem-50.png",
+      crestBorderUrl: "https://cdn.example.test/border-1.png",
     });
   });
 
