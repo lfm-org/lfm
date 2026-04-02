@@ -1,37 +1,14 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuthWithToken } from "../lib/auth.js";
-import { writeBinaryBlob } from "../lib/blob.js";
 import {
   findAvatarUrl,
-  getLegacyPortraitSourceUrl,
-  getServedCharacterPortraitUrl,
   isBlizzardRenderUrl,
-  syncCharacterPortrait,
 } from "../lib/character-portrait.js";
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaiderDocument } from "../types/index.js";
 import { validateRegion, validateRealmSlug, validateCharacterName, encodeBlizzardPathSegments } from "../lib/blizzard-validation.js";
 import type { BlizzardCharacterMediaSummary } from "../types/blizzard.js";
-
-async function fetchBinaryAsset(url: string): Promise<{ bytes: Uint8Array; contentType: string }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to mirror character portrait: ${response.status}`);
-  }
-
-  return {
-    bytes: new Uint8Array(await response.arrayBuffer()),
-    contentType: response.headers.get("content-type") ?? "application/octet-stream",
-  };
-}
-
-async function mirrorPortrait(characterId: string, avatarUrl: string) {
-  return syncCharacterPortrait(characterId, avatarUrl, {
-    fetchBinaryAsset,
-    writeBinaryBlob,
-  });
-}
 
 export async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await requireAuthWithToken(request);
@@ -70,10 +47,13 @@ export async function handler(request: HttpRequest, context: InvocationContext):
     // Check fully stored characters first (selected characters with cached media)
     const storedIndex = characters.findIndex((candidate) => candidate.id === characterId);
     const stored = storedIndex >= 0 ? characters[storedIndex] : undefined;
-    const storedPortraitUrl = stored
-      ? getServedCharacterPortraitUrl(characterId, stored.portraitUrl, stored.portraitBlobName)
-      : "";
-    if (storedPortraitUrl && !isBlizzardRenderUrl(storedPortraitUrl)) {
+
+    // Use stored portraitUrl if it's a CDN URL; fall back to mediaSummary avatar
+    const storedPortraitUrl = stored?.portraitUrl && isBlizzardRenderUrl(stored.portraitUrl)
+      ? stored.portraitUrl
+      : (stored ? findAvatarUrl(stored.mediaSummary) : "");
+
+    if (storedPortraitUrl) {
       result[characterId] = storedPortraitUrl;
       if (stored && stored.portraitUrl !== storedPortraitUrl) {
         characters[storedIndex] = { ...stored, portraitUrl: storedPortraitUrl };
@@ -86,48 +66,15 @@ export async function handler(request: HttpRequest, context: InvocationContext):
       continue;
     }
 
-    const storedLegacyUrl = stored ? getLegacyPortraitSourceUrl(stored) : "";
-    if (stored && storedLegacyUrl) {
-      try {
-        const mirrored = await mirrorPortrait(characterId, storedLegacyUrl);
-        characters[storedIndex] = { ...stored, ...mirrored };
-        portraitCache[characterId] = mirrored.portraitUrl;
-        result[characterId] = mirrored.portraitUrl;
-        cacheUpdated = true;
-        continue;
-      } catch {
-        // Fall through to the next cache layer or a Blizzard refetch.
-      }
-    }
-
+    // Check portrait cache
     const cachedUrl = portraitCache[characterId];
-    const resolvedCachedUrl = getServedCharacterPortraitUrl(characterId, cachedUrl);
-    if (resolvedCachedUrl && !isBlizzardRenderUrl(resolvedCachedUrl)) {
-      result[characterId] = resolvedCachedUrl;
-      if (portraitCache[characterId] !== resolvedCachedUrl) {
-        portraitCache[characterId] = resolvedCachedUrl;
-        cacheUpdated = true;
-      }
-      if (stored && stored.portraitUrl !== resolvedCachedUrl) {
-        characters[storedIndex] = { ...stored, portraitUrl: resolvedCachedUrl };
+    if (cachedUrl) {
+      result[characterId] = cachedUrl;
+      if (stored && stored.portraitUrl !== cachedUrl) {
+        characters[storedIndex] = { ...stored, portraitUrl: cachedUrl };
         cacheUpdated = true;
       }
       continue;
-    }
-
-    if (cachedUrl) {
-      try {
-        const mirrored = await mirrorPortrait(characterId, cachedUrl);
-        portraitCache[characterId] = mirrored.portraitUrl;
-        result[characterId] = mirrored.portraitUrl;
-        if (stored) {
-          characters[storedIndex] = { ...stored, ...mirrored };
-        }
-        cacheUpdated = true;
-        continue;
-      } catch {
-        // Fall through to the Blizzard media endpoint.
-      }
     }
 
     toFetch.push({ region: validRegion, realm: validRealm, name: validName, id: characterId });
@@ -144,15 +91,7 @@ export async function handler(request: HttpRequest, context: InvocationContext):
         if (!res.ok) return { id: char.id, url: "" };
         const media = await res.json() as BlizzardCharacterMediaSummary;
         const url = findAvatarUrl(media);
-        if (!url) return { id: char.id, url: "" };
-        if (!isBlizzardRenderUrl(url)) return { id: char.id, url };
-
-        try {
-          const mirrored = await mirrorPortrait(char.id, url);
-          return { id: char.id, url: mirrored.portraitUrl };
-        } catch {
-          return { id: char.id, url: "" };
-        }
+        return { id: char.id, url };
       })
     );
 

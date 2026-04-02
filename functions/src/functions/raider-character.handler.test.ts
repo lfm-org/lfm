@@ -15,18 +15,9 @@ vi.mock("../lib/reference-data.js", () => ({
   readWowSpecializationMap: vi.fn(),
 }));
 
-vi.mock("../lib/character-portrait.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../lib/character-portrait.js")>();
-  return {
-    ...actual,
-    syncCharacterPortrait: vi.fn(),
-  };
-});
-
 const { requireAuth } = await import("../lib/auth.js");
 const { getRaidersContainer } = await import("../lib/cosmos.js");
 const { readWowSpecializationMap } = await import("../lib/reference-data.js");
-const { syncCharacterPortrait } = await import("../lib/character-portrait.js");
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -75,7 +66,7 @@ function makeRaiderDoc(overrides: Partial<RaiderDocument> = {}): RaiderDocument 
 }
 
 describe("listHandler", () => {
-  it("repairs legacy selected-character portraits into mirrored local URLs before returning them", async () => {
+  it("extracts CDN portrait URL from mediaSummary and stores it without blob mirroring", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       battleNetId: "bnet-1",
       guildId: null,
@@ -92,18 +83,10 @@ describe("listHandler", () => {
     vi.mocked(readWowSpecializationMap).mockResolvedValue(new Map([
       [65, { id: 65, name: "Holy", classId: 2, role: "HEALER" }],
     ]));
-    vi.mocked(syncCharacterPortrait).mockResolvedValue({
-      portraitBlobName: "character-portraits/eu-test-realm-aelrin.jpg",
-      portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
-    });
 
     const response = await listHandler({} as never, { log: vi.fn() } as never);
 
-    expect(syncCharacterPortrait).toHaveBeenCalledWith(
-      "eu-test-realm-aelrin",
-      "https://render.worldofwarcraft.com/eu/character/stormreaver/69/172412997-avatar.jpg",
-      expect.any(Object)
-    );
+    // Portrait URL comes directly from mediaSummary avatar — no blob mirroring
     expect(replace).toHaveBeenCalledTimes(1);
     expect(JSON.parse(response.body as string)).toEqual({
       characters: [
@@ -115,7 +98,7 @@ describe("listHandler", () => {
           level: 80,
           classId: 2,
           raceId: 11,
-          portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
+          portraitUrl: "https://render.worldofwarcraft.com/eu/character/stormreaver/69/172412997-avatar.jpg",
           fetchedAt: "2026-03-28T00:00:00.000Z",
           specializations: [{ id: 65, name: "Holy", role: "HEALER" }],
           activeSpecId: 65,
@@ -123,5 +106,34 @@ describe("listHandler", () => {
       ],
       selectedCharacterId: "eu-test-realm-aelrin",
     });
+  });
+
+  it("does not update the database when portraits are already up to date", async () => {
+    const cdnUrl = "https://render.worldofwarcraft.com/eu/character/stormreaver/69/172412997-avatar.jpg";
+    vi.mocked(requireAuth).mockResolvedValue({
+      battleNetId: "bnet-1",
+      guildId: null,
+      guildName: null,
+    });
+
+    const replace = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(getRaidersContainer).mockReturnValue({
+      item: vi.fn(() => ({
+        read: vi.fn().mockResolvedValue({
+          resource: makeRaiderDoc({
+            characters: [makeStoredCharacter({ portraitUrl: cdnUrl })],
+            portraitCache: { "eu-test-realm-aelrin": cdnUrl },
+          }),
+        }),
+        replace,
+      })),
+    } as never);
+    vi.mocked(readWowSpecializationMap).mockResolvedValue(new Map([
+      [65, { id: 65, name: "Holy", classId: 2, role: "HEALER" }],
+    ]));
+
+    await listHandler({} as never, { log: vi.fn() } as never);
+
+    expect(replace).not.toHaveBeenCalled();
   });
 });

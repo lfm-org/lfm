@@ -1,42 +1,57 @@
-import { describe, expect, it, vi } from "vitest";
-import { getCharacterPortraitUrl, syncCharacterPortrait } from "./character-portrait.js";
+import { describe, expect, it } from "vitest";
+import { getServedCharacterPortraitUrl, findAvatarUrl, isBlizzardRenderUrl } from "./character-portrait.js";
 
-describe("getCharacterPortraitUrl", () => {
-  it("builds an app-served portrait route from a mirrored blob name", () => {
-    expect(getCharacterPortraitUrl("eu-test-realm-aelrin", "character-portraits/eu-test-realm-aelrin.jpg")).toBe(
-      "/api/raider/character-portrait/eu-test-realm-aelrin/jpg"
-    );
+describe("isBlizzardRenderUrl", () => {
+  it("returns true for Blizzard CDN URLs", () => {
+    expect(isBlizzardRenderUrl("https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg")).toBe(true);
+  });
+
+  it("returns false for other URLs", () => {
+    expect(isBlizzardRenderUrl("https://example.com/portrait.jpg")).toBe(false);
+    expect(isBlizzardRenderUrl(null)).toBe(false);
+    expect(isBlizzardRenderUrl(undefined)).toBe(false);
   });
 });
 
-describe("syncCharacterPortrait", () => {
-  it("mirrors an avatar asset into blob storage and returns the local portrait URL", async () => {
-    const fetchBinaryAsset = vi.fn(async () => ({
-      bytes: new Uint8Array([0xff, 0xd8, 0xff]),
-      contentType: "image/jpeg",
-    }));
-    const writeBinaryBlob = vi.fn(async () => {});
+describe("findAvatarUrl", () => {
+  it("returns the avatar asset value from a media summary", () => {
+    expect(
+      findAvatarUrl({
+        assets: [
+          { key: "main", value: "https://render.worldofwarcraft.com/eu/character/test-realm/101/main.jpg" },
+          { key: "avatar", value: "https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg" },
+        ],
+      })
+    ).toBe("https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg");
+  });
 
-    const result = await syncCharacterPortrait(
-      "eu-test-realm-aelrin",
+  it("returns empty string when no avatar asset is present", () => {
+    expect(findAvatarUrl({ assets: [{ key: "main", value: "https://example.com/main.jpg" }] })).toBe("");
+    expect(findAvatarUrl(null)).toBe("");
+    expect(findAvatarUrl(undefined)).toBe("");
+  });
+});
+
+describe("getServedCharacterPortraitUrl", () => {
+  it("prefers the avatar URL from mediaSummary over portraitUrl", () => {
+    const result = getServedCharacterPortraitUrl(
+      "https://render.worldofwarcraft.com/eu/character/test-realm/101/old.jpg",
+      { assets: [{ key: "avatar", value: "https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg" }] }
+    );
+    expect(result).toBe("https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg");
+  });
+
+  it("falls back to portraitUrl when mediaSummary has no avatar", () => {
+    const result = getServedCharacterPortraitUrl(
       "https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg",
-      {
-        fetchBinaryAsset,
-        writeBinaryBlob,
-      }
+      null
     );
+    expect(result).toBe("https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg");
+  });
 
-    expect(fetchBinaryAsset).toHaveBeenCalledWith(
-      "https://render.worldofwarcraft.com/eu/character/test-realm/101/avatar.jpg"
-    );
-    expect(writeBinaryBlob).toHaveBeenCalledWith(
-      "character-portraits/eu-test-realm-aelrin.jpg",
-      new Uint8Array([0xff, 0xd8, 0xff]),
-      "image/jpeg"
-    );
-    expect(result).toEqual({
-      portraitBlobName: "character-portraits/eu-test-realm-aelrin.jpg",
-      portraitUrl: "/api/raider/character-portrait/eu-test-realm-aelrin/jpg",
-    });
+  it("returns empty string when neither source has a CDN URL", () => {
+    expect(getServedCharacterPortraitUrl(null, null)).toBe("");
+    expect(getServedCharacterPortraitUrl(undefined, undefined)).toBe("");
+    expect(getServedCharacterPortraitUrl("https://not-a-blizzard-url.com/avatar.jpg", null)).toBe("");
   });
 });

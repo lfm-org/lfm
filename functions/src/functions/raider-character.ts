@@ -2,8 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { requireAuth, requireAuthWithToken } from "../lib/auth.js";
 import { toSelectedCharacterView } from "../lib/blizzard-adapters.js";
-import { writeBinaryBlob } from "../lib/blob.js";
-import { getLegacyPortraitSourceUrl, getServedCharacterPortraitUrl, syncCharacterPortrait } from "../lib/character-portrait.js";
+import { getServedCharacterPortraitUrl } from "../lib/character-portrait.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
 import { getTestModeIdentity } from "../lib/test-mode.js";
@@ -56,39 +55,10 @@ async function fetchCharacterSpecializationsSummary(
   return res.json() as Promise<BlizzardCharacterSpecializationsSummary>;
 }
 
-async function fetchBinaryAsset(url: string): Promise<{ bytes: Uint8Array; contentType: string }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to mirror character portrait: ${response.status}`);
-  }
-
-  return {
-    bytes: new Uint8Array(await response.arrayBuffer()),
-    contentType: response.headers.get("content-type") ?? "application/octet-stream",
-  };
-}
-
-async function ensureMirroredCharacterPortrait(character: StoredSelectedCharacter): Promise<StoredSelectedCharacter> {
-  const servedPortraitUrl = getServedCharacterPortraitUrl(character.id, character.portraitUrl, character.portraitBlobName);
-  if (servedPortraitUrl && servedPortraitUrl !== character.portraitUrl) {
-    return {
-      ...character,
-      portraitUrl: servedPortraitUrl,
-    };
-  }
-
-  const portraitSourceUrl = getLegacyPortraitSourceUrl(character);
-  if (!portraitSourceUrl) return character;
-
-  try {
-    const mirrored = await syncCharacterPortrait(character.id, portraitSourceUrl, {
-      fetchBinaryAsset,
-      writeBinaryBlob,
-    });
-    return { ...character, ...mirrored };
-  } catch {
-    return character;
-  }
+function ensurePortraitUrl(character: StoredSelectedCharacter): StoredSelectedCharacter {
+  const cdnUrl = getServedCharacterPortraitUrl(character.portraitUrl, character.mediaSummary);
+  if (!cdnUrl || cdnUrl === character.portraitUrl) return character;
+  return { ...character, portraitUrl: cdnUrl };
 }
 
 // POST /api/raider/character — add/upsert a character and set as selected
@@ -172,7 +142,7 @@ export async function handler(request: HttpRequest, context: InvocationContext):
       };
     }
   }
-  character = await ensureMirroredCharacterPortrait(character);
+  character = ensurePortraitUrl(character);
 
   // Always update characters array and selectedCharacterId, even on cache hit
   if (existingIdx >= 0) {
@@ -212,17 +182,14 @@ export async function listHandler(request: HttpRequest, context: InvocationConte
   const container = getRaidersContainer();
   const { resource: raider } = await container.item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>();
   if (!raider) return errorResponse(404, "Raider not found");
-  const repairedCharacters = await Promise.all(raider.characters.map((character) => ensureMirroredCharacterPortrait(character)));
+  const repairedCharacters = raider.characters.map((character) => ensurePortraitUrl(character));
   const portraitCache = { ...(raider.portraitCache ?? {}) };
   let repaired = false;
 
   for (let index = 0; index < repairedCharacters.length; index += 1) {
     const before = raider.characters[index];
     const after = repairedCharacters[index];
-    if (
-      before?.portraitUrl !== after?.portraitUrl
-      || before?.portraitBlobName !== after?.portraitBlobName
-    ) {
+    if (before?.portraitUrl !== after?.portraitUrl) {
       repaired = true;
     }
     if (after?.portraitUrl && portraitCache[after.id] !== after.portraitUrl) {

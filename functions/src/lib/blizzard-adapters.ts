@@ -1,6 +1,6 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
-import { getServedCharacterPortraitUrl, isBlizzardRenderUrl } from "./character-portrait.js";
+import { getServedCharacterPortraitUrl } from "./character-portrait.js";
 import type {
   BlizzardAccountGuildsSummary,
   BlizzardAccountProfileSummary,
@@ -122,9 +122,9 @@ export function toAccountCharacterViews(
       const cachedId = `${region}-${character.realm.slug}-${character.name.toLowerCase()}`;
       const cachedPortraitUrl = portraitCache?.[cachedId];
       const portraitUrl = stored
-        ? getServedCharacterPortraitUrl(stored.id, stored.portraitUrl, stored.portraitBlobName)
-        : (cachedPortraitUrl ? getServedCharacterPortraitUrl(cachedId, cachedPortraitUrl) : "");
-      const safePortraitUrl = portraitUrl && !isBlizzardRenderUrl(portraitUrl) ? portraitUrl : undefined;
+        ? getServedCharacterPortraitUrl(stored.portraitUrl, stored.mediaSummary)
+        : (cachedPortraitUrl ?? "");
+      const safePortraitUrl = portraitUrl || undefined;
       const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
       const activeSpec = stored?.specializationsSummary?.specializations?.find(
         s => s.specialization.id === activeSpecId
@@ -310,11 +310,7 @@ export function toSelectedCharacterView(
     level: profile.level,
     classId: profile.character_class.id,
     raceId: profile.race.id,
-    portraitUrl: getServedCharacterPortraitUrl(
-      storedCharacter.id,
-      storedCharacter.portraitUrl,
-      storedCharacter.portraitBlobName
-    ),
+    portraitUrl: getServedCharacterPortraitUrl(storedCharacter.portraitUrl, storedCharacter.mediaSummary),
     fetchedAt: storedCharacter.fetchedAt,
     specializations,
     activeSpecId: storedCharacter.specializationsSummary?.active_specialization?.id ?? null,
