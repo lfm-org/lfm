@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 
-async function loginViaTestMode(page: Page, redirect = "/raids") {
+async function loginViaTestMode(page: Page, redirect = "/runs") {
   await page.goto(`/api/battlenet/login?redirect=${encodeURIComponent(redirect)}`);
   await expect(page).toHaveURL(new RegExp(`${redirect.replace("/", "\\/")}$`));
 }

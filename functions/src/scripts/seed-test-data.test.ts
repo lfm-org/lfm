@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   GUILDS_CONTAINER_DEFINITION,
   RAIDERS_CONTAINER_DEFINITION,
-  RAIDS_CONTAINER_DEFINITION,
-  getRaidsContainerDefinitionForScenario,
+  RUNS_CONTAINER_DEFINITION,
+  getRunsContainerDefinitionForScenario,
 } from "./seed-test-data.js";
 
 describe("seed-test-data container definitions", () => {
@@ -15,8 +15,8 @@ describe("seed-test-data container definitions", () => {
         kind: "Hash",
       },
     });
-    expect(RAIDS_CONTAINER_DEFINITION).toEqual({
-      id: "raids",
+    expect(RUNS_CONTAINER_DEFINITION).toEqual({
+      id: "runs",
       partitionKey: {
         paths: ["/id"],
         kind: "Hash",
@@ -31,9 +31,9 @@ describe("seed-test-data container definitions", () => {
     });
   });
 
-  it("skips the raids container bootstrap for the raids-error scenario", () => {
-    expect(getRaidsContainerDefinitionForScenario("default")).toEqual(RAIDS_CONTAINER_DEFINITION);
-    expect(getRaidsContainerDefinitionForScenario("raids-empty")).toEqual(RAIDS_CONTAINER_DEFINITION);
-    expect(getRaidsContainerDefinitionForScenario("raids-error")).toBeNull();
+  it("skips the runs container bootstrap for the raids-error scenario", () => {
+    expect(getRunsContainerDefinitionForScenario("default")).toEqual(RUNS_CONTAINER_DEFINITION);
+    expect(getRunsContainerDefinitionForScenario("raids-empty")).toEqual(RUNS_CONTAINER_DEFINITION);
+    expect(getRunsContainerDefinitionForScenario("raids-error")).toBeNull();
   });
 });

@@ -21,7 +21,7 @@ test("authenticated raiders can permanently delete their account from the charac
   await expect(page).toHaveURL(/\/goodbye$/);
   await expect(page.getByRole("heading", { name: "Account deleted" })).toBeVisible();
 
-  await page.goto("/raids", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/\/login\?redirect=%2Fraids$/);
+  await page.goto("/runs", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/login\?redirect=%2Fruns$/);
   await expect(page.getByRole("heading", { name: "Sign in with Battle.net" })).toBeVisible();
 });

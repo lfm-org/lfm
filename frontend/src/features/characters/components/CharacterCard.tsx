@@ -1,6 +1,6 @@
 import { Box, Chip, Typography } from "@mui/material";
 import { classColor } from "../../../lib/wow/classColors";
-import { getAttendanceConfig } from "../../raids/lib/attendanceConfig";
+import { getAttendanceConfig } from "../../runs/lib/attendanceConfig";
 
 interface CharacterCardProps {
   characterName: string;

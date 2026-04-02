@@ -8,19 +8,19 @@ import {
 import { ACK_BUDGET, COMPLETION_BUDGET } from "./helpers/flowBudgets";
 
 test.describe("Navigation responsiveness", () => {
-  test("raids list loads within budget", async ({ page }) => {
-    // Auth fixture already navigated to /raids. Navigate away first so the
-    // measured goto("/raids") is a cold navigation, not a warm reload.
+  test("runs list loads within budget", async ({ page }) => {
+    // Auth fixture already navigated to /runs. Navigate away first so the
+    // measured goto("/runs") is a cold navigation, not a warm reload.
     await page.goto("/");
-    await page.getByRole("heading", { name: "Plan raids in one place" }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Plan runs in one place" }).waitFor({ state: "visible" });
 
-    const heading = page.getByRole("heading", { name: "Raids" });
+    const heading = page.getByRole("heading", { name: "Runs" });
     const main = page.getByRole("main");
-    const firstCard = page.getByTestId("raid-card").first();
+    const firstCard = page.getByTestId("run-card").first();
 
     const result = await measureInteraction(
       page,
-      () => page.goto("/raids", { waitUntil: "commit" }).then(() => undefined),
+      () => page.goto("/runs", { waitUntil: "commit" }).then(() => undefined),
       { ackMarker: main, completionMarker: firstCard },
     );
 
@@ -29,10 +29,10 @@ test.describe("Navigation responsiveness", () => {
     expectStableInteraction(result);
   });
 
-  test("selecting a different raid updates the detail panel within budget", async ({ page }) => {
-    await page.goto("/raids");
-    // Wait for initial load to settle — first raid auto-selected on desktop
-    await page.getByTestId("raid-card").first().waitFor({ state: "visible" });
+  test("selecting a different run updates the detail panel within budget", async ({ page }) => {
+    await page.goto("/runs");
+    // Wait for initial load to settle — first run auto-selected on desktop
+    await page.getByTestId("run-card").first().waitFor({ state: "visible" });
 
     // Click a different raid summary in the left panel
     const targetButton = page.getByRole("button", { name: /Deadmines Normal/ });
@@ -49,9 +49,9 @@ test.describe("Navigation responsiveness", () => {
     expectStableInteraction(result);
   });
 
-  test("pagination updates raid list within budget", async ({ page }) => {
-    await page.goto("/raids");
-    await page.getByTestId("raid-card").first().waitFor({ state: "visible" });
+  test("pagination updates run list within budget", async ({ page }) => {
+    await page.goto("/runs");
+    await page.getByTestId("run-card").first().waitFor({ state: "visible" });
 
     const page2Button = page.getByRole("button", { name: "2", exact: true });
     // Pagination is a synchronous client-side data swap — ack and completion

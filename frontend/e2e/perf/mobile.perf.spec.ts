@@ -14,14 +14,14 @@ test.describe("Mobile responsiveness", () => {
     await page.setViewportSize(MOBILE_VIEWPORT);
   });
 
-  test("mobile raids list loads within budget", async ({ page }) => {
+  test("mobile runs list loads within budget", async ({ page }) => {
     const main = page.getByRole("main");
-    const heading = page.getByRole("heading", { name: "Raids" });
-    const firstCard = page.getByTestId("raid-card").first();
+    const heading = page.getByRole("heading", { name: "Runs" });
+    const firstCard = page.getByTestId("run-card").first();
 
     const result = await measureInteraction(
       page,
-      () => page.goto("/raids", { waitUntil: "commit" }).then(() => undefined),
+      () => page.goto("/runs", { waitUntil: "commit" }).then(() => undefined),
       { ackMarker: main, completionMarker: firstCard },
     );
 
@@ -31,12 +31,12 @@ test.describe("Mobile responsiveness", () => {
   });
 
   test("mobile card expand shows details within budget", async ({ page }) => {
-    await page.goto("/raids");
-    await page.getByTestId("raid-card").first().waitFor({ state: "visible" });
+    await page.goto("/runs");
+    await page.getByTestId("run-card").first().waitFor({ state: "visible" });
 
     // "Heroic farm night" is on page 1 in the default seed — confirmed by
-    // existing raids.spec.ts which references it without pagination.
-    const targetCard = page.getByTestId("raid-card").filter({ hasText: "Heroic farm night" });
+    // existing runs.spec.ts which references it without pagination.
+    const targetCard = page.getByTestId("run-card").filter({ hasText: "Heroic farm night" });
     const expandButton = targetCard.getByRole("button", { name: "Show details" });
     const signupRegion = targetCard.getByRole("region", { name: "Your Signup for Heroic farm night" });
 
@@ -51,12 +51,12 @@ test.describe("Mobile responsiveness", () => {
     expectStableInteraction(result);
   });
 
-  test("mobile raid signup shows busy state and completes within budget", async ({ page }) => {
-    await page.goto("/raids?raid=raid-public-empty-deadmines");
+  test("mobile run signup shows busy state and completes within budget", async ({ page }) => {
+    await page.goto("/runs?run=run-public-empty-deadmines");
 
-    // On mobile, the target card should auto-expand because of the ?raid= param
+    // On mobile, the target card should auto-expand because of the ?run= param
     const signupRegion = page
-      .getByTestId("raid-card")
+      .getByTestId("run-card")
       .filter({ hasText: "Public dungeon warmup" })
       .getByRole("region", { name: "Your Signup for Public dungeon warmup" });
 

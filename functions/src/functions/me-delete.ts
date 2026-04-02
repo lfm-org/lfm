@@ -1,9 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
-import { getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
+import { getRaidersContainer, getRunsContainer } from "../lib/cosmos.js";
 import { auditLog } from "../lib/audit.js";
 import { withSecurityHeaders } from "../middleware/security-headers.js";
-import { scrubRaiderFromRaids, deleteRaiderDocument } from "../lib/raider-cleanup.js";
+import { scrubRaiderFromRuns, deleteRaiderDocument } from "../lib/raider-cleanup.js";
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || "localhost";
 const secureCookie = process.env.BATTLE_NET_COOKIE_SECURE !== "false";
@@ -16,7 +16,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   const { battleNetId } = identity;
 
-  await scrubRaiderFromRaids(battleNetId, getRaidsContainer());
+  await scrubRaiderFromRuns(battleNetId, getRunsContainer());
   await deleteRaiderDocument(battleNetId, getRaidersContainer());
   auditLog(context, { action: "account.delete", actorId: battleNetId, result: "success" });
 

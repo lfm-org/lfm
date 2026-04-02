@@ -15,8 +15,8 @@ describe("createGuildSettingsDraft", () => {
           rankPermissions: [
             {
               rank: 1,
-              canCreateGuildRaids: true,
-              canSignupGuildRaids: false,
+              canCreateGuildRuns: true,
+              canSignupGuildRuns: false,
             },
           ],
         },
@@ -28,8 +28,8 @@ describe("createGuildSettingsDraft", () => {
       rankPermissions: [
         {
           rank: 1,
-          canCreateGuildRaids: true,
-          canSignupGuildRaids: false,
+          canCreateGuildRuns: true,
+          canSignupGuildRuns: false,
         },
       ],
     });
@@ -55,12 +55,12 @@ describe("updateGuildRankPermission", () => {
   it("updates only the targeted rank and field", () => {
     expect(
       updateGuildRankPermission(
-        [{ rank: 1, canCreateGuildRaids: false, canSignupGuildRaids: false, canDeleteGuildRaids: false }],
+        [{ rank: 1, canCreateGuildRuns: false, canSignupGuildRuns: false, canDeleteGuildRuns: false }],
         1,
-        "canCreateGuildRaids",
+        "canCreateGuildRuns",
         true,
       ),
-    ).toEqual([{ rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: false }]);
+    ).toEqual([{ rank: 1, canCreateGuildRuns: true, canSignupGuildRuns: false, canDeleteGuildRuns: false }]);
   });
 });
 
@@ -74,9 +74,9 @@ describe("toGuildSettingsPayload", () => {
         rankPermissions: [
           {
             rank: 1,
-            canCreateGuildRaids: true,
-            canSignupGuildRaids: false,
-            canDeleteGuildRaids: false,
+            canCreateGuildRuns: true,
+            canSignupGuildRuns: false,
+            canDeleteGuildRuns: false,
           },
         ],
       }),
@@ -87,9 +87,9 @@ describe("toGuildSettingsPayload", () => {
       rankPermissions: [
         {
           rank: 1,
-          canCreateGuildRaids: true,
-          canSignupGuildRaids: false,
-          canDeleteGuildRaids: false,
+          canCreateGuildRuns: true,
+          canSignupGuildRuns: false,
+          canDeleteGuildRuns: false,
         },
       ],
     });

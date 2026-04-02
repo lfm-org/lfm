@@ -72,10 +72,10 @@ const instances: WowInstance[] = [
   },
 ];
 
-function getRaidModePlayers(raid: { instanceId: number; modeKey: string }): number {
-  const instance = instances.find((entry) => entry.id === raid.instanceId);
+function getRunModePlayers(run: { instanceId: number; modeKey: string }): number {
+  const instance = instances.find((entry) => entry.id === run.instanceId);
   if (!instance) return 0;
-  return getModePlayersFromInstance(instance, raid.modeKey);
+  return getModePlayersFromInstance(instance, run.modeKey);
 }
 
 function getModePlayersFromInstance(instance: WowInstance, modeKey: string): number {
@@ -196,7 +196,7 @@ describe("buildSeedData", () => {
         instances,
         raidDefinitions: [
           {
-            id: "raid-invalid-creator",
+            id: "run-invalid-creator",
             instanceId: 63,
             modeKey: "NORMAL:5",
             visibility: "PUBLIC",
@@ -209,7 +209,7 @@ describe("buildSeedData", () => {
           },
         ],
       })
-    ).toThrowError("Missing creator missing-raider for raid seed raid-invalid-creator");
+    ).toThrowError("Missing creator missing-raider for raid seed run-invalid-creator");
   });
 
   it("fails fast when a raid definition requests more signups than its pool can satisfy", () => {
@@ -220,7 +220,7 @@ describe("buildSeedData", () => {
         instances,
         raidDefinitions: [
           {
-            id: "raid-invalid-signup-count",
+            id: "run-invalid-signup-count",
             instanceId: 631,
             modeKey: "HEROIC:25",
             visibility: "GUILD",
@@ -233,7 +233,7 @@ describe("buildSeedData", () => {
           },
         ],
       })
-    ).toThrowError("Not enough outsider raiders to seed 25 signups for raid-invalid-signup-count");
+    ).toThrowError("Not enough outsider raiders to seed 25 signups for run-invalid-signup-count");
   });
 
   it("builds a guild-scale deterministic dataset with named scenarios and valid mode selections", () => {
@@ -244,7 +244,7 @@ describe("buildSeedData", () => {
     });
 
     expect(seed.raiders.length).toBeGreaterThanOrEqual(40);
-    expect(seed.raids.length).toBeGreaterThanOrEqual(40);
+    expect(seed.runs.length).toBeGreaterThanOrEqual(40);
     expect(seed.guilds).toHaveLength(1);
 
     const testRaider = seed.raiders.find((raider) => raider.battleNetId === TEST_MODE_IDENTITY.battleNetId);
@@ -271,42 +271,42 @@ describe("buildSeedData", () => {
     });
     expect(needsCharacterRaider?.characters.length).toBeGreaterThanOrEqual(2);
 
-    expect(seed.raids.some((raid) => raid.id === "raid-public-signup-target-icc25")).toBe(true);
-    expect(seed.raids.some((raid) => raid.id === "raid-public-existing-signup-onyxia25")).toBe(true);
-    expect(seed.raids.some((raid) => raid.id === "raid-outsider-guild-hidden")).toBe(true);
+    expect(seed.runs.some((run) => run.id === "run-public-signup-target-icc25")).toBe(true);
+    expect(seed.runs.some((run) => run.id === "run-public-existing-signup-onyxia25")).toBe(true);
+    expect(seed.runs.some((run) => run.id === "run-outsider-guild-hidden")).toBe(true);
 
     expect(
-      seed.raids.every((raid) =>
+      seed.runs.every((run) =>
         instances.some(
           (instance) =>
-            instance.id === raid.instanceId &&
-            instance.modes.some((mode) => toModeKey(mode) === raid.modeKey)
+            instance.id === run.instanceId &&
+            instance.modes.some((mode) => toModeKey(mode) === run.modeKey)
         )
       )
     ).toBe(true);
 
     expect(
-      seed.raids.every((raid) => raid.raidCharacters.length <= getRaidModePlayers(raid))
+      seed.runs.every((run) => run.runCharacters.length <= getRunModePlayers(run))
     ).toBe(true);
     expect(
-      seed.raids.every(
-        (raid) => new Set(raid.raidCharacters.map((character) => character.raiderBattleNetId)).size === raid.raidCharacters.length
+      seed.runs.every(
+        (run) => new Set(run.runCharacters.map((character) => character.raiderBattleNetId)).size === run.runCharacters.length
       )
     ).toBe(true);
     expect(
-      seed.raids.every(
-        (raid) => new Set(raid.raidCharacters.map((character) => character.id)).size === raid.raidCharacters.length
+      seed.runs.every(
+        (run) => new Set(run.runCharacters.map((character) => character.id)).size === run.runCharacters.length
       )
     ).toBe(true);
 
-    const denseRaid = seed.raids.find((raid) => raid.id === "raid-guild-dense-molten-core");
-    expect(denseRaid?.raidCharacters.length).toBeGreaterThanOrEqual(30);
+    const denseRun = seed.runs.find((run) => run.id === "run-guild-dense-molten-core");
+    expect(denseRun?.runCharacters.length).toBeGreaterThanOrEqual(30);
 
-    const fivePlayerRaid = seed.raids.find((raid) => raid.id === "raid-public-empty-deadmines");
-    expect(fivePlayerRaid?.raidCharacters.length).toBeLessThanOrEqual(5);
+    const fivePlayerRun = seed.runs.find((run) => run.id === "run-public-empty-deadmines");
+    expect(fivePlayerRun?.runCharacters.length).toBeLessThanOrEqual(5);
 
-    const existingSignupRaid = seed.raids.find((raid) => raid.id === "raid-public-existing-signup-onyxia25");
-    expect(existingSignupRaid?.raidCharacters.slice(0, 4).map((signup) => signup.desiredAttendance)).toEqual([
+    const existingSignupRun = seed.runs.find((run) => run.id === "run-public-existing-signup-onyxia25");
+    expect(existingSignupRun?.runCharacters.slice(0, 4).map((signup) => signup.desiredAttendance)).toEqual([
       "IN",
       "IN",
       "IN",
@@ -333,7 +333,7 @@ describe("buildSeedData", () => {
     });
 
     expect(seed.raiders.length).toBeGreaterThan(0);
-    expect(seed.raids).toEqual([]);
+    expect(seed.runs).toEqual([]);
     expect(seed.guilds).toHaveLength(1);
   });
 

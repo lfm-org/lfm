@@ -48,7 +48,7 @@ export default function GuildPage() {
 
   const handlePermissionChange = (
     rank: number,
-    field: "canCreateGuildRaids" | "canSignupGuildRaids" | "canDeleteGuildRaids",
+    field: "canCreateGuildRuns" | "canSignupGuildRuns" | "canDeleteGuildRuns",
     checked: boolean,
   ) => {
     setDraft((current) => ({
@@ -180,14 +180,14 @@ export default function GuildPage() {
                     </Typography>
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
                       <Chip
-                        label={data.memberPermissions.canCreateGuildRaids ? t("guild.chip.canCreate") : t("guild.chip.cannotCreate")}
-                        color={data.memberPermissions.canCreateGuildRaids ? "success" : "default"}
-                        variant={data.memberPermissions.canCreateGuildRaids ? "filled" : "outlined"}
+                        label={data.memberPermissions.canCreateGuildRuns ? t("guild.chip.canCreate") : t("guild.chip.cannotCreate")}
+                        color={data.memberPermissions.canCreateGuildRuns ? "success" : "default"}
+                        variant={data.memberPermissions.canCreateGuildRuns ? "filled" : "outlined"}
                       />
                       <Chip
-                        label={data.memberPermissions.canSignupGuildRaids ? t("guild.chip.canSignup") : t("guild.chip.cannotSignup")}
-                        color={data.memberPermissions.canSignupGuildRaids ? "success" : "default"}
-                        variant={data.memberPermissions.canSignupGuildRaids ? "filled" : "outlined"}
+                        label={data.memberPermissions.canSignupGuildRuns ? t("guild.chip.canSignup") : t("guild.chip.cannotSignup")}
+                        color={data.memberPermissions.canSignupGuildRuns ? "success" : "default"}
+                        variant={data.memberPermissions.canSignupGuildRuns ? "filled" : "outlined"}
                       />
                     </Stack>
                   </Box>

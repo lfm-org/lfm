@@ -11,8 +11,8 @@ import type {
   EntitySyncMeta,
   GuildDocument,
   RaiderDocument,
-  RaidCharacter,
-  RaidDocument,
+  RunCharacter,
+  RunDocument,
   WowClass,
   WowInstance,
   WowRace,
@@ -21,7 +21,7 @@ import type {
 import {
   buildRaiderSeeds,
   buildRaidSignup,
-  buildRaidDocument,
+  buildRunDocument,
   createRaidDefinitions,
   requireMode,
   selectRaiders,
@@ -42,7 +42,7 @@ export interface BlobWrite {
 
 export interface SeedDataBundle {
   raiders: RaiderDocument[];
-  raids: RaidDocument[];
+  runs: RunDocument[];
   guilds: GuildDocument[];
 }
 
@@ -283,7 +283,7 @@ export function buildSeedData({
     TEST_MODE_IDENTITY.battleNetId,
     TEST_MODE_NEEDS_CHARACTER_IDENTITY.battleNetId,
   ]);
-  const raids = scenario === "raids-empty" ? [] : definitions.map((definition) => {
+  const runs = scenario === "raids-empty" ? [] : definitions.map((definition) => {
     const sourcePool = definition.pool === "guild" ? guildPool : outsiderPool;
     const { players } = requireMode(instances, definition.instanceId, definition.modeKey);
     const creator = sourcePool.find((raider) => raider.document.battleNetId === definition.creatorBattleNetId);
@@ -291,7 +291,7 @@ export function buildSeedData({
       throw new Error(`Missing creator ${definition.creatorBattleNetId} for raid seed ${definition.id}`);
     }
 
-    const signups: RaidCharacter[] = [];
+    const signups: RunCharacter[] = [];
     const requestedCount = Math.min(definition.signupCount, players);
     const availablePool = sourcePool.filter(
       (raider) => !localTestBattleNetIds.has(raider.document.battleNetId)
@@ -317,7 +317,7 @@ export function buildSeedData({
       signups.push(buildRaidSignup(definition.id, raider, attendanceOffset + index));
     });
 
-    return buildRaidDocument(definition, creator, signups, seedTime, instances);
+    return buildRunDocument(definition, creator, signups, seedTime, instances);
   });
 
   const staleFetchedAt = new Date(seedTime.getTime() - 2 * 60 * 60 * 1000).toISOString();
@@ -388,8 +388,8 @@ export function buildSeedData({
       },
       blizzardRosterFetchedAt: staleFetchedAt,
       rankPermissions: [
-        { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true },
-        { rank: 2, canCreateGuildRaids: false, canSignupGuildRaids: true },
+        { rank: 0, canCreateGuildRuns: true, canSignupGuildRuns: true },
+        { rank: 2, canCreateGuildRuns: false, canSignupGuildRuns: true },
       ],
       setup: {
         initializedAt: createdAt,
@@ -400,7 +400,7 @@ export function buildSeedData({
 
   return {
     raiders: [...guildPool.map((entry) => entry.document), ...outsiderPool.map((entry) => entry.document)],
-    raids,
+    runs,
     guilds,
   };
 }

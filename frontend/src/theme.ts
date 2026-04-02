@@ -36,6 +36,19 @@ export const surface = {
   borderSubtle: "rgba(255, 255, 255, 0.05)",
 } as const;
 
+/** WoW content type colors matching in-game palette. */
+export const instanceType = {
+  RAID: { border: "#1eff00", bg: "rgba(30, 255, 0, 0.08)" },
+  DUNGEON: { border: "#0070dd", bg: "rgba(0, 112, 221, 0.08)" },
+  UNKNOWN: { border: "rgba(255, 255, 255, 0.2)", bg: "transparent" },
+} as const;
+
+export type InstanceTypeKey = keyof typeof instanceType;
+
+export function getInstanceTypeColors(type: string) {
+  return instanceType[type as InstanceTypeKey] ?? instanceType.UNKNOWN;
+}
+
 /** Reusable layout tokens consumed by PageContainer and page components. */
 export const layout = {
   /** Max content width for standard pages (px). */

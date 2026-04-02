@@ -8,10 +8,10 @@ import {
 import { ACK_BUDGET, COMPLETION_BUDGET } from "./helpers/flowBudgets";
 
 test.describe("Async action responsiveness", () => {
-  test("raid signup shows busy state and completes within budget", async ({ page }) => {
-    await page.goto("/raids?raid=raid-public-empty-deadmines");
+  test("run signup shows busy state and completes within budget", async ({ page }) => {
+    await page.goto("/runs?run=run-public-empty-deadmines");
     const signupRegion = page
-      .getByTestId("raid-card")
+      .getByTestId("run-card")
       .filter({ hasText: "Public dungeon warmup" })
       .getByRole("region", { name: "Your Signup for Public dungeon warmup" });
 
@@ -44,9 +44,9 @@ test.describe("Async action responsiveness", () => {
   });
 
   test("cancel signup shows busy state and completes within budget", async ({ page }) => {
-    await page.goto("/raids?raid=raid-public-existing-signup-onyxia25");
+    await page.goto("/runs?run=run-public-existing-signup-onyxia25");
     const signupRegion = page
-      .getByTestId("raid-card")
+      .getByTestId("run-card")
       .filter({ hasText: "Dragon reset clear" })
       .getByRole("region", { name: "Your Signup for Dragon reset clear" });
 

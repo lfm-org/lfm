@@ -104,6 +104,12 @@ export interface BlizzardJournalInstanceResponse {
   expansion?: BlizzardNamedReference;
   minimum_level?: number;
   modes?: BlizzardJournalInstanceMode[];
+  media?: {
+    assets?: Array<{
+      key: string;
+      value: string;
+    }>;
+  };
 }
 
 export interface BlizzardAccountCharacterSummary {

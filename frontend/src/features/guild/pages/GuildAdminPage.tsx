@@ -37,7 +37,7 @@ export default function GuildAdminPage() {
 
   const handlePermissionChange = (
     rank: number,
-    field: "canCreateGuildRaids" | "canSignupGuildRaids" | "canDeleteGuildRaids",
+    field: "canCreateGuildRuns" | "canSignupGuildRuns" | "canDeleteGuildRuns",
     checked: boolean,
   ) => {
     setDraft((current) => ({

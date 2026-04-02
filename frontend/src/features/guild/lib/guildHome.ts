@@ -25,9 +25,9 @@ export interface GuildHomeResponse {
   settings: {
     rankPermissions: Array<{
       rank: number;
-      canCreateGuildRaids: boolean;
-      canSignupGuildRaids: boolean;
-      canDeleteGuildRaids: boolean;
+      canCreateGuildRuns: boolean;
+      canSignupGuildRuns: boolean;
+      canDeleteGuildRuns: boolean;
     }>;
   } | null;
   editor: {
@@ -37,9 +37,9 @@ export interface GuildHomeResponse {
   };
   memberPermissions: {
     matchedRank: number | null;
-    canCreateGuildRaids: boolean;
-    canSignupGuildRaids: boolean;
-    canDeleteGuildRaids: boolean;
+    canCreateGuildRuns: boolean;
+    canSignupGuildRuns: boolean;
+    canDeleteGuildRuns: boolean;
     rankDataFresh: boolean;
   };
   adminOverride: {

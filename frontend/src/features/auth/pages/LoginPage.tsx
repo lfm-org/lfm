@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   useDocumentTitle(`${t("login.title")} — LFM`);
-  const redirectPath = searchParams.get("redirect") || "/raids";
+  const redirectPath = searchParams.get("redirect") || "/runs";
 
   return (
     <Box sx={{ minHeight: "100%", display: "grid", placeItems: "center", px: 2, py: 4 }}>

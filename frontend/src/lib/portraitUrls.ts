@@ -1,7 +1,3 @@
-interface PortraitUrlField {
-  portraitUrl?: string | null;
-}
-
 export function normalizePortraitUrl(
   portraitUrl: string | null | undefined
 ): string | undefined {
@@ -9,9 +5,7 @@ export function normalizePortraitUrl(
   return portraitUrl;
 }
 
-export function normalizePortraitUrlField<T extends PortraitUrlField>(
-  value: T
-): T {
+export function normalizePortraitUrlField<T>(value: T): T {
   return value;
 }
 

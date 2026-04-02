@@ -8,7 +8,7 @@
  * down() is a no-op — guild data cannot be reliably recovered for historical raids.
  */
 import { CosmosClient } from "@azure/cosmos";
-import type { RaiderDocument, RaidDocument } from "../../types/index.js";
+import type { RaiderDocument, RunDocument } from "../../types/index.js";
 import type { BlizzardCharacterProfileSummary } from "../../types/blizzard.js";
 
 const DB_NAME = process.env.COSMOS_DATABASE!;
@@ -21,7 +21,7 @@ export async function up(client: CosmosClient): Promise<void> {
   const raidersContainer = client.database(DB_NAME).container("raiders");
 
   const { resources: raids } = await raidsContainer.items
-    .query<RaidDocument>({
+    .query<RunDocument>({
       query: "SELECT * FROM c WHERE (NOT IS_DEFINED(c.creatorGuildId) OR IS_NULL(c.creatorGuildId)) AND c.createdAt < @cutoff",
       parameters: [{ name: "@cutoff", value: cutoff }],
     })

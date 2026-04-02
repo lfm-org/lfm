@@ -51,17 +51,17 @@ describe("NavBar integration", () => {
 
     const menu = screen.getByRole("menu");
     expect(
-      within(menu).getByRole("menuitem", { name: "Runs" })
-    ).toBeTruthy();
-    expect(
-      within(menu).getByRole("menuitem", { name: "Guild" })
-    ).toBeTruthy();
-    expect(
       within(menu).getByRole("menuitem", { name: "Characters" })
     ).toBeTruthy();
     expect(
       within(menu).getByRole("menuitem", { name: "Logout" })
     ).toBeTruthy();
+    expect(
+      within(menu).queryByRole("menuitem", { name: "Runs" })
+    ).toBeNull();
+    expect(
+      within(menu).queryByRole("menuitem", { name: "Guild" })
+    ).toBeNull();
   });
 
   it("includes Guild Admin in the menu for site admins", async () => {

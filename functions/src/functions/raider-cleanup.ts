@@ -1,6 +1,6 @@
 import { app, InvocationContext, Timer } from "@azure/functions";
-import { getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
-import { scrubRaiderFromRaids, deleteRaiderDocument } from "../lib/raider-cleanup.js";
+import { getRaidersContainer, getRunsContainer } from "../lib/cosmos.js";
+import { scrubRaiderFromRuns, deleteRaiderDocument } from "../lib/raider-cleanup.js";
 import { auditLog } from "../lib/audit.js";
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -8,7 +8,7 @@ const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 async function handler(_timer: Timer, context: InvocationContext): Promise<void> {
   const cutoff = new Date(Date.now() - NINETY_DAYS_MS).toISOString();
   const raidersContainer = getRaidersContainer();
-  const raidsContainer = getRaidsContainer();
+  const runsContainer = getRunsContainer();
 
   const { resources: staleRaiders } = await raidersContainer.items.query<{ id: string; battleNetId: string }>({
     query: "SELECT c.id, c.battleNetId FROM c WHERE c.lastSeenAt < @cutoff OR NOT IS_DEFINED(c.lastSeenAt)",
@@ -20,7 +20,7 @@ async function handler(_timer: Timer, context: InvocationContext): Promise<void>
 
   for (const raider of staleRaiders) {
     try {
-      await scrubRaiderFromRaids(raider.battleNetId, raidsContainer);
+      await scrubRaiderFromRuns(raider.battleNetId, runsContainer);
       await deleteRaiderDocument(raider.battleNetId, raidersContainer);
       auditLog(context, { action: "account.expired", actorId: "system:raider-cleanup", targetId: raider.battleNetId, result: "success" });
       removed++;

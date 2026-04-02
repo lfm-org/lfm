@@ -16,8 +16,8 @@ const PLAYWRIGHT_BROWSERS_PATH = path.join(ROOT_DIR, ".cache/ms-playwright");
 const VALID_COMMANDS = new Set(["serve", "test", "refresh-reference", "reset", "down"]);
 const E2E_SCENARIOS = new Set([
   "default",
-  "raids-empty",
-  "raids-error",
+  "runs-empty",
+  "runs-error",
   "characters-empty",
   "instances-missing",
 ]);

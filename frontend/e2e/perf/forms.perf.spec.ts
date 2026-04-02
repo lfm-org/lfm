@@ -22,10 +22,10 @@ async function fillDateTimeGroup(
 
 test.describe("Form responsiveness", () => {
   test("validation errors appear within budget on empty submit", async ({ page }) => {
-    await page.goto("/raids/new");
-    await page.getByRole("heading", { name: "Create Raid" }).waitFor({ state: "visible" });
+    await page.goto("/runs/new");
+    await page.getByRole("heading", { name: "Create Run" }).waitFor({ state: "visible" });
 
-    const submitButton = page.getByRole("button", { name: "Create Raid" });
+    const submitButton = page.getByRole("button", { name: "Create Run" });
     const validationError = page.getByText("Instance is required");
 
     const result = await measureInteraction(
@@ -38,9 +38,9 @@ test.describe("Form responsiveness", () => {
     expectStableInteraction(result);
   });
 
-  test("create raid submit shows busy state and completes within budget", async ({ page }) => {
-    await page.goto("/raids/new");
-    await page.getByRole("heading", { name: "Create Raid" }).waitFor({ state: "visible" });
+  test("create run submit shows busy state and completes within budget", async ({ page }) => {
+    await page.goto("/runs/new");
+    await page.getByRole("heading", { name: "Create Run" }).waitFor({ state: "visible" });
 
     // Fill the form
     await page.getByRole("combobox").first().click();
@@ -50,11 +50,11 @@ test.describe("Form responsiveness", () => {
     await fillDateTimeGroup(page.getByRole("group", { name: "Start Time" }), {
       month: "12", day: "25", year: "2030", hours: "07", minutes: "30", meridiem: "PM",
     });
-    await page.getByLabel("Description").fill("Perf test raid");
+    await page.getByLabel("Description").fill("Perf test run");
 
-    const submitButton = page.getByRole("button", { name: "Create Raid" });
+    const submitButton = page.getByRole("button", { name: "Create Run" });
     const busyButton = page.getByRole("button", { name: "Creating..." });
-    const createdCard = page.getByTestId("raid-card").filter({ hasText: "Perf test raid" });
+    const createdCard = page.getByTestId("run-card").filter({ hasText: "Perf test run" });
 
     const result = await measureInteraction(
       page,
@@ -63,7 +63,7 @@ test.describe("Form responsiveness", () => {
     );
 
     // Verify redirect happened
-    await expect(page).toHaveURL(/\/raids\?raid=/);
+    await expect(page).toHaveURL(/\/runs\?run=/);
 
     expectAcknowledgementWithin(result, ACK_BUDGET.STANDARD);
     expectCompletionWithin(result, COMPLETION_BUDGET.NETWORK);

@@ -8,15 +8,15 @@ describe("parseGuildSettingsInput", () => {
       parseGuildSettingsInput(
         { timezone: "Europe/Helsinki" },
         [0, 1],
-        [{ rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false }],
+        [{ rank: 1, canCreateGuildRuns: true, canSignupGuildRuns: false }],
       ),
     ).toEqual({
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: null,
       rankPermissions: [
-        { rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true },
-        { rank: 1, canCreateGuildRaids: true, canSignupGuildRaids: false, canDeleteGuildRaids: false },
+        { rank: 0, canCreateGuildRuns: true, canSignupGuildRuns: true, canDeleteGuildRuns: true },
+        { rank: 1, canCreateGuildRuns: true, canSignupGuildRuns: false, canDeleteGuildRuns: false },
       ],
     });
   });
@@ -32,7 +32,7 @@ describe("parseGuildSettingsInput", () => {
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: null,
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRuns: true, canSignupGuildRuns: true, canDeleteGuildRuns: true }],
     });
 
     expect(
@@ -45,7 +45,7 @@ describe("parseGuildSettingsInput", () => {
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: null,
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRuns: true, canSignupGuildRuns: true, canDeleteGuildRuns: true }],
     });
   });
 
@@ -60,7 +60,7 @@ describe("parseGuildSettingsInput", () => {
       timezone: "Europe/Helsinki",
       locale: "fi",
       slogan: "Victory or Lunch",
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRuns: true, canSignupGuildRuns: true, canDeleteGuildRuns: true }],
     });
   });
 
@@ -92,7 +92,7 @@ describe("parseGuildSettingsInput", () => {
     expect(() => parseGuildSettingsInput(
       {
         timezone: "Europe/Helsinki",
-        rankPermissions: [{ rank: 1, canCreateGuildRaids: true }],
+        rankPermissions: [{ rank: 1, canCreateGuildRuns: true }],
       },
       [0, 1],
       [],
@@ -103,7 +103,7 @@ describe("parseGuildSettingsInput", () => {
     expect(() => parseGuildSettingsInput(
       {
         timezone: "Europe/Helsinki",
-        rankPermissions: [{ rank: 9, canCreateGuildRaids: true, canSignupGuildRaids: true, canDeleteGuildRaids: false }],
+        rankPermissions: [{ rank: 9, canCreateGuildRuns: true, canSignupGuildRuns: true, canDeleteGuildRuns: false }],
       },
       [0, 1],
       [],
@@ -123,7 +123,7 @@ describe("parseGuildSettingsInput", () => {
         {
           timezone: "Europe/Helsinki",
           slogan: "Victory or Lunch",
-          rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
+          rankPermissions: [{ rank: 0, canCreateGuildRuns: false, canSignupGuildRuns: true, canDeleteGuildRuns: true }],
         },
         [0],
         [],
@@ -138,7 +138,7 @@ describe("parseGuildSettingsInput", () => {
         timezone: "Europe/Helsinki",
         locale: "fi",
       },
-      rankPermissions: [{ rank: 0, canCreateGuildRaids: false, canSignupGuildRaids: true, canDeleteGuildRaids: true }],
+      rankPermissions: [{ rank: 0, canCreateGuildRuns: false, canSignupGuildRuns: true, canDeleteGuildRuns: true }],
     });
   });
 });

@@ -22,7 +22,7 @@ This is a hobby project. Prefer free tiers where available — Cosmos DB free ti
 3. Keep changesets small: commits `<= 5` files / `<= 250` lines; branches `<= 30` files / `<= 900` lines vs `main`. Thresholds guide planning, not design — don't degrade quality to hit them. Commit partial finishes as you go; split into subtasks if a branch will exceed these.
 4. Merge strategy is rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch; keep workspace clean on `main` after close.
 5. Before claiming work complete, use `superpowers:verification-before-completion`. For non-trivial tasks, use `superpowers:requesting-code-review` before merging.
-6. Commit message style: short, imperative subjects — e.g. `Fix docker`, `Add raids route`.
+6. Commit message style: short, imperative subjects — e.g. `Fix docker`, `Add runs route`.
 7. PR descriptions: explain the change, list env/schema changes, include screenshots for UI work.
 8. Do not add `Co-Authored-By` trailers. AI usage is acknowledged in `README.md`.
 9. Document any guidance changes in the same task's guidance files.
@@ -82,7 +82,7 @@ fnm exec npm --prefix frontend run build 2>&1; echo "EXIT:$?"
 Use `jq` for JSON processing in shell, not Python one-liners.
 
 ```bash
-jq '.raids[] | select(.visibility == "PUBLIC") | .id' raids.json
+jq '.runs[] | select(.visibility == "PUBLIC") | .id' runs.json
 ```
 
 ## Verification
@@ -170,14 +170,14 @@ Playwright against the full Docker stack (Cosmos, Azurite, Functions, frontend p
 
 `scripts/dev-env.mjs` manages the Docker stack lifecycle (start, seed, run Playwright, teardown).
 
-Available scenarios: `default`, `raids-empty`, `raids-error`, `characters-empty`, `instances-missing`. Each seeds the database differently; scenario-specific specs only pass under their matching scenario.
+Available scenarios: `default`, `runs-empty`, `runs-error`, `characters-empty`, `instances-missing`. Each seeds the database differently; scenario-specific specs only pass under their matching scenario.
 
 Perf specs live in `frontend/e2e/perf/` and are excluded from default discovery.
 
 Commands:
 - `fnm exec npm --prefix frontend run e2e:list` — list default-discovered specs
 - `./scripts/dev-env.mjs test signup` — run a focused spec (bare names expanded to `e2e/*.spec.ts`)
-- `./scripts/e2e.sh raids-empty raids-empty.spec.ts` — run a scenario-specific spec
+- `./scripts/e2e.sh runs-empty runs-empty.spec.ts` — run a scenario-specific spec
 - `./scripts/e2e-all.sh` — full all-scenarios suite
 
 Rules:
