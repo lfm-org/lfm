@@ -84,23 +84,24 @@ export function toWowInstanceViews(
 ): WowInstance[] {
   return index.instances.flatMap((entry) => {
     const detail = details.get(entry.id);
-    return detail
-      ? [{
-          id: detail.id,
-          name: localizeName(detail.name) || localizeName(entry.name),
-          type: detail.category?.type ?? "UNKNOWN",
-          minLevel: detail.minimum_level ?? 0,
-          expansionId: detail.expansion?.id ?? 0,
-          modes: detail.modes?.map((mode) => ({
-            mode: {
-              type: mode.mode.type,
-              name: localizeName(mode.mode.name) || mode.mode.type,
-            },
-            ...(mode.players !== undefined ? { players: mode.players } : {}),
-            ...(mode.is_tracked !== undefined ? { is_tracked: mode.is_tracked } : {}),
-          })) ?? [],
-        }]
-      : [];
+    if (!detail) return [];
+    const tileAsset = detail.media?.assets?.find((a) => a.key === "tile") ?? detail.media?.assets?.[0];
+    return [{
+      id: detail.id,
+      name: localizeName(detail.name) || localizeName(entry.name),
+      type: detail.category?.type ?? "UNKNOWN",
+      minLevel: detail.minimum_level ?? 0,
+      expansionId: detail.expansion?.id ?? 0,
+      modes: detail.modes?.map((mode) => ({
+        mode: {
+          type: mode.mode.type,
+          name: localizeName(mode.mode.name) || mode.mode.type,
+        },
+        ...(mode.players !== undefined ? { players: mode.players } : {}),
+        ...(mode.is_tracked !== undefined ? { is_tracked: mode.is_tracked } : {}),
+      })) ?? [],
+      ...(tileAsset?.value ? { mediaUrl: tileAsset.value } : {}),
+    }];
   });
 }
 

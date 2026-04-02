@@ -296,6 +296,110 @@ describe("blizzard-adapters", () => {
     ]);
   });
 
+  it("extracts mediaUrl from the tile asset when present", () => {
+    const instanceIndex = {
+      _links: { self: { href: "https://example.test/instance/index" } },
+      instances: [
+        { key: { href: "https://example.test/instance/63" }, id: 63, name: "Deadmines" },
+      ],
+    };
+    const instanceDetails = new Map([
+      [
+        63,
+        {
+          id: 63,
+          name: "Deadmines",
+          category: { type: "DUNGEON" },
+          expansion: { id: 1, name: "Classic" },
+          minimum_level: 10,
+          modes: [],
+          media: {
+            assets: [
+              { key: "header", value: "https://render.worldofwarcraft.com/test/deadmines-header.jpg" },
+              { key: "tile", value: "https://render.worldofwarcraft.com/test/deadmines-tile.jpg" },
+            ],
+          },
+        },
+      ],
+    ]);
+
+    expect(toWowInstanceViews(instanceIndex, instanceDetails)).toEqual([
+      {
+        id: 63,
+        name: "Deadmines",
+        type: "DUNGEON",
+        minLevel: 10,
+        expansionId: 1,
+        modes: [],
+        mediaUrl: "https://render.worldofwarcraft.com/test/deadmines-tile.jpg",
+      },
+    ]);
+  });
+
+  it("falls back to the first asset when no tile asset is present", () => {
+    const instanceIndex = {
+      _links: { self: { href: "https://example.test/instance/index" } },
+      instances: [
+        { key: { href: "https://example.test/instance/63" }, id: 63, name: "Deadmines" },
+      ],
+    };
+    const instanceDetails = new Map([
+      [
+        63,
+        {
+          id: 63,
+          name: "Deadmines",
+          category: { type: "DUNGEON" },
+          expansion: { id: 1, name: "Classic" },
+          minimum_level: 10,
+          modes: [],
+          media: {
+            assets: [
+              { key: "header", value: "https://render.worldofwarcraft.com/test/deadmines-header.jpg" },
+            ],
+          },
+        },
+      ],
+    ]);
+
+    expect(toWowInstanceViews(instanceIndex, instanceDetails)).toEqual([
+      {
+        id: 63,
+        name: "Deadmines",
+        type: "DUNGEON",
+        minLevel: 10,
+        expansionId: 1,
+        modes: [],
+        mediaUrl: "https://render.worldofwarcraft.com/test/deadmines-header.jpg",
+      },
+    ]);
+  });
+
+  it("omits mediaUrl when no media assets exist", () => {
+    const instanceIndex = {
+      _links: { self: { href: "https://example.test/instance/index" } },
+      instances: [
+        { key: { href: "https://example.test/instance/63" }, id: 63, name: "Deadmines" },
+      ],
+    };
+    const instanceDetails = new Map([
+      [
+        63,
+        {
+          id: 63,
+          name: "Deadmines",
+          category: { type: "DUNGEON" },
+          expansion: { id: 1, name: "Classic" },
+          minimum_level: 10,
+          modes: [],
+        },
+      ],
+    ]);
+
+    const result = toWowInstanceViews(instanceIndex, instanceDetails);
+    expect(result[0]).not.toHaveProperty("mediaUrl");
+  });
+
   it("normalizes localized instance names into plain strings", () => {
     const instanceIndex = {
       _links: { self: { href: "https://example.test/instance/index" } },
