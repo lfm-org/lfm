@@ -38,7 +38,9 @@ jobs:
           scope: resourcegroup
           resourceGroupName: lfm
           template: infra/main.bicep
-          parameters: infra/parameters.prod.lfm.json
+          parameters: >-
+            infra/parameters.prod.lfm.json
+            privacyEmail=${{ vars.PRIVACY_EMAIL }}
           failOnStdErr: false
 
       - name: Configure Functions custom domain and managed certificate

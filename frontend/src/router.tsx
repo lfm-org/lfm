@@ -1,9 +1,10 @@
 import { Suspense, lazy, type ReactNode } from "react";
-import { Routes, Route } from "react-router";
+import { createBrowserRouter, createRoutesFromElements, Route, Outlet } from "react-router";
 import { CircularProgress, Stack } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import AppLayout from "./components/layout/AppLayout";
 import PageContainer from "./components/layout/PageContainer";
+import { AuthProvider } from "./features/auth";
 import AuthGuard from "./features/auth/components/AuthGuard";
 import GuildSetupGuard from "./features/guild/components/GuildSetupGuard";
 
@@ -35,23 +36,31 @@ function withRouteFallback(node: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{node}</Suspense>;
 }
 
-export default function App() {
+function RootLayout() {
   return (
-    <AppLayout>
-      <Routes>
-        <Route path="/" element={withRouteFallback(<LandingPage />)} />
-        <Route path="/login" element={withRouteFallback(<LoginPage />)} />
-        <Route path="/login/failed" element={withRouteFallback(<LoginFailedPage />)} />
-        <Route path="/login/success" element={withRouteFallback(<LoginSuccessPage />)} />
-        <Route path="/goodbye" element={withRouteFallback(<GoodbyePage />)} />
-        <Route path="/privacy" element={withRouteFallback(<PrivacyPolicyPage />)} />
-        <Route path="/characters" element={withRouteFallback(<AuthGuard><CharactersPage /></AuthGuard>)} />
-        <Route path="/guild" element={withRouteFallback(<AuthGuard><GuildPage /></AuthGuard>)} />
-        <Route path="/guild/admin" element={withRouteFallback(<AuthGuard><GuildAdminPage /></AuthGuard>)} />
-        <Route path="/raids" element={withRouteFallback(<AuthGuard><GuildSetupGuard><RaidsPage /></GuildSetupGuard></AuthGuard>)} />
-        <Route path="/raids/new" element={withRouteFallback(<AuthGuard><GuildSetupGuard><CreateRaidPage /></GuildSetupGuard></AuthGuard>)} />
-        <Route path="/raids/:id/edit" element={withRouteFallback(<AuthGuard><GuildSetupGuard><EditRaidPage /></GuildSetupGuard></AuthGuard>)} />
-      </Routes>
-    </AppLayout>
+    <AuthProvider>
+      <AppLayout>
+        <Outlet />
+      </AppLayout>
+    </AuthProvider>
   );
 }
+
+export const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      <Route path="/" element={withRouteFallback(<LandingPage />)} />
+      <Route path="/login" element={withRouteFallback(<LoginPage />)} />
+      <Route path="/login/failed" element={withRouteFallback(<LoginFailedPage />)} />
+      <Route path="/login/success" element={withRouteFallback(<LoginSuccessPage />)} />
+      <Route path="/goodbye" element={withRouteFallback(<GoodbyePage />)} />
+      <Route path="/privacy" element={withRouteFallback(<PrivacyPolicyPage />)} />
+      <Route path="/characters" element={withRouteFallback(<AuthGuard><CharactersPage /></AuthGuard>)} />
+      <Route path="/guild" element={withRouteFallback(<AuthGuard><GuildPage /></AuthGuard>)} />
+      <Route path="/guild/admin" element={withRouteFallback(<AuthGuard><GuildAdminPage /></AuthGuard>)} />
+      <Route path="/raids" element={withRouteFallback(<AuthGuard><GuildSetupGuard><RaidsPage /></GuildSetupGuard></AuthGuard>)} />
+      <Route path="/raids/new" element={withRouteFallback(<AuthGuard><GuildSetupGuard><CreateRaidPage /></GuildSetupGuard></AuthGuard>)} />
+      <Route path="/raids/:id/edit" element={withRouteFallback(<AuthGuard><GuildSetupGuard><EditRaidPage /></GuildSetupGuard></AuthGuard>)} />
+    </Route>
+  )
+);
