@@ -130,6 +130,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               )}
               <Typography
                 component="span"
+                variant="body2"
                 noWrap
                 sx={{ maxWidth: { xs: 88, sm: 148 } }}
               >
