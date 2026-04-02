@@ -44,20 +44,20 @@ resource raidersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
       id: 'raiders'
       partitionKey: { paths: ['/battleNetId'], kind: 'Hash' }
       // Cleanup handled by raider-cleanup timer function (daily, 90-day inactivity threshold).
-      // No container-level TTL — the timer scrubs raid data before deleting the raider document.
+      // No container-level TTL — the timer scrubs run data before deleting the raider document.
     }
   }
 }
 
-resource raidsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+resource runsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
   parent: database
-  name: 'raids'
+  name: 'runs'
   properties: {
     resource: {
-      id: 'raids'
+      id: 'runs'
       partitionKey: { paths: ['/id'], kind: 'Hash' }
       // TTL=-1: enable TTL support but rely on per-document ttl field.
-      // Each raid document sets its own ttl = seconds until startTime + 7 days.
+      // Each run document sets its own ttl = seconds until startTime + 7 days.
       defaultTtl: -1
       indexingPolicy: {
         automatic: true
