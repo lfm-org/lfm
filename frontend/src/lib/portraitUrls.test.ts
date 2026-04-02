@@ -5,63 +5,41 @@ import {
   normalizePortraitUrlField,
 } from "./portraitUrls";
 
+const CDN_URL = "https://render.worldofwarcraft.com/eu/character/stormreaver/69/172412997-avatar.jpg";
+
 describe("normalizePortraitUrl", () => {
-  it("resolves relative portrait URLs against an absolute API base URL", () => {
-    expect(
-      normalizePortraitUrl(
-        "/api/raider/character-portrait/eu-stormreaver-aelrin/jpg",
-        "https://lfm-api.dinosauruskeksi.com/api",
-      ),
-    ).toBe("https://lfm-api.dinosauruskeksi.com/api/raider/character-portrait/eu-stormreaver-aelrin/jpg");
+  it("returns the CDN URL as-is", () => {
+    expect(normalizePortraitUrl(CDN_URL)).toBe(CDN_URL);
   });
 
-  it("preserves relative portrait URLs when the API base URL is same-origin relative", () => {
-    expect(
-      normalizePortraitUrl(
-        "/api/raider/character-portrait/eu-stormreaver-aelrin/jpg",
-        "/api",
-      ),
-    ).toBe("/api/raider/character-portrait/eu-stormreaver-aelrin/jpg");
+  it("returns undefined for null input", () => {
+    expect(normalizePortraitUrl(null)).toBeUndefined();
   });
 
-  it("leaves absolute portrait URLs unchanged", () => {
-    expect(
-      normalizePortraitUrl(
-        "https://render.worldofwarcraft.com/eu/character/stormreaver/69/172412997-avatar.jpg",
-        "https://lfm-api.dinosauruskeksi.com/api",
-      ),
-    ).toBe("https://render.worldofwarcraft.com/eu/character/stormreaver/69/172412997-avatar.jpg");
+  it("returns undefined for undefined input", () => {
+    expect(normalizePortraitUrl(undefined)).toBeUndefined();
+  });
+
+  it("returns undefined for empty string", () => {
+    expect(normalizePortraitUrl("")).toBeUndefined();
   });
 });
 
 describe("normalizePortraitUrlField", () => {
-  it("normalizes portraitUrl on object payloads", () => {
-    expect(
-      normalizePortraitUrlField(
-        {
-          id: "eu-stormreaver-aelrin",
-          portraitUrl: "/api/raider/character-portrait/eu-stormreaver-aelrin/jpg",
-        },
-        "https://lfm-api.dinosauruskeksi.com/api",
-      ),
-    ).toEqual({
-      id: "eu-stormreaver-aelrin",
-      portraitUrl: "https://lfm-api.dinosauruskeksi.com/api/raider/character-portrait/eu-stormreaver-aelrin/jpg",
-    });
+  it("returns the object unchanged when portraitUrl is a CDN URL", () => {
+    const input = { id: "eu-stormreaver-aelrin", portraitUrl: CDN_URL };
+    expect(normalizePortraitUrlField(input)).toEqual(input);
+  });
+
+  it("returns the object unchanged when portraitUrl is absent", () => {
+    const input = { id: "eu-stormreaver-aelrin" };
+    expect(normalizePortraitUrlField(input)).toEqual(input);
   });
 });
 
 describe("normalizePortraitMap", () => {
-  it("normalizes portrait maps returned by the portrait lookup endpoint", () => {
-    expect(
-      normalizePortraitMap(
-        {
-          "eu-stormreaver-aelrin": "/api/raider/character-portrait/eu-stormreaver-aelrin/jpg",
-        },
-        "https://lfm-api.dinosauruskeksi.com/api",
-      ),
-    ).toEqual({
-      "eu-stormreaver-aelrin": "https://lfm-api.dinosauruskeksi.com/api/raider/character-portrait/eu-stormreaver-aelrin/jpg",
-    });
+  it("returns the portrait map unchanged", () => {
+    const input = { "eu-stormreaver-aelrin": CDN_URL };
+    expect(normalizePortraitMap(input)).toEqual(input);
   });
 });
