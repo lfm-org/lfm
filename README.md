@@ -26,7 +26,7 @@ This starts the local dev stack with:
 Useful companion commands:
 
 - `./scripts/dev-env.mjs test`
-- `./scripts/dev-env.mjs test raids-error`
+- `./scripts/dev-env.mjs test runs-error`
 - `./scripts/dev-env.mjs test signup`
 - `./scripts/e2e-all.sh`
 - `./scripts/dev-env.mjs refresh-reference`
@@ -86,7 +86,7 @@ Copy `example.env` and `frontend/example.env` before running locally. Do not com
 
 ## Structure
 
-- `frontend/src/features`: feature modules (`auth`, `characters`, `raids`)
+- `frontend/src/features`: feature modules (`auth`, `characters`, `runs`)
 - `frontend/src/components`: shared UI components
 - `frontend/src/lib`: shared frontend logic
 - `functions/src/functions`: Azure Function handlers
