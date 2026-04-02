@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
 import LoadingState from "../../../components/LoadingState";
-import { useToast } from "../../../components/ToastContext";
+import { useToast } from "../../../components/useToast";
 import DOMPurify from "dompurify";
 import api from "../../../lib/api";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";

@@ -1,23 +1,11 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Alert, Snackbar } from "@mui/material";
+import { ToastContext } from "./toastContext";
 
 interface ToastState {
   open: boolean;
   message: string;
   severity: "success" | "error";
-}
-
-interface ToastContextValue {
-  showSuccess: (message: string) => void;
-  showError: (message: string) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function useToast(): ToastContextValue {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within ToastProvider");
-  return ctx;
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {

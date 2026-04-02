@@ -19,7 +19,7 @@ import {
 } from "../lib/guildSettingsForm";
 import { useGuildHome } from "../lib/useGuildHome";
 import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
-import { useToast } from "../../../components/ToastContext";
+import { useToast } from "../../../components/useToast";
 
 export default function GuildPage() {
   const { t } = useTranslation();

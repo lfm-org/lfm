@@ -15,7 +15,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useToast } from "../../../components/ToastContext";
+import { useToast } from "../../../components/useToast";
 import LoadingState from "../../../components/LoadingState";
 import ErrorState from "../../../components/ErrorState";
 import EmptyState from "../../../components/EmptyState";
