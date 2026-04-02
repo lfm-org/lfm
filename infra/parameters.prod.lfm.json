@@ -12,6 +12,7 @@
     "swaName": { "value": "lfm-swa" },
     "keyVaultName": { "value": "lfm-kv-prot" },
     "logAnalyticsWorkspaceName": { "value": "lfm-logs" },
+    "privacyEmail": { "value": "REPLACED_BY_CI" },
     "tags": {
       "value": {
         "project": "lfm",
