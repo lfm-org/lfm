@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Box,
   Button,
@@ -65,6 +66,11 @@ export default function RunsPage() {
     sortOrder,
     handleSortChange,
   } = useRuns(battleNetId, isDesktop, isMobile);
+
+  const instanceById = useMemo(
+    () => new Map(instances.map((i) => [i.id, i])),
+    [instances]
+  );
 
   const handleRefresh = () => { refresh(); };
 
@@ -158,6 +164,7 @@ export default function RunsPage() {
                 <RunSummaryItem
                   run={run}
                   modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
+                  instanceType={instanceById.get(run.instanceId)?.type}
                   selected={run.id === requestedRunId}
                   onClick={() => handleSelectRun(run.id)}
                   guildTimezone={guildHome?.setup.timezone}
@@ -203,6 +210,7 @@ export default function RunsPage() {
                         <RunSummaryItem
                           run={run}
                           modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
+                          instanceType={instanceById.get(run.instanceId)?.type}
                           selected={run.id === requestedRunId}
                           onClick={() => handleSelectRun(run.id)}
                           guildTimezone={guildHome?.setup.timezone}
@@ -223,6 +231,8 @@ export default function RunsPage() {
                 key={selectedRun.id}
                 run={selectedRun}
                 modeLabel={resolveInstanceModeLabel(instances, selectedRun.instanceId, selectedRun.modeKey)}
+                instanceType={instanceById.get(selectedRun.instanceId)?.type}
+                mediaUrl={instanceById.get(selectedRun.instanceId)?.mediaUrl}
                 isMobile={false}
                 isExpanded={true}
                 onToggle={() => {}}
@@ -252,6 +262,8 @@ export default function RunsPage() {
               key={run.id}
               run={run}
               modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
+              instanceType={instanceById.get(run.instanceId)?.type}
+              mediaUrl={instanceById.get(run.instanceId)?.mediaUrl}
               isMobile={isMobile}
               isExpanded={Boolean(expandedRuns[run.id])}
               onToggle={() => handleToggleRun(run.id)}
@@ -292,6 +304,8 @@ export default function RunsPage() {
                       key={run.id}
                       run={run}
                       modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
+                      instanceType={instanceById.get(run.instanceId)?.type}
+                      mediaUrl={instanceById.get(run.instanceId)?.mediaUrl}
                       isMobile={isMobile}
                       isExpanded={Boolean(expandedRuns[run.id])}
                       onToggle={() => handleToggleRun(run.id)}
