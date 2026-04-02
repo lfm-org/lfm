@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import type { Run } from "../lib/runTypes";
 import { isAttending } from "../lib/attendanceConfig";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
+import { getInstanceTypeColors } from "../../../theme";
 
 interface RunSummaryItemProps {
   run: Run;
@@ -12,10 +13,12 @@ interface RunSummaryItemProps {
   onClick: () => void;
   guildTimezone?: string;
   passed?: boolean;
+  instanceType?: string;
 }
 
-export default function RunSummaryItem({ run, modeLabel, selected, onClick, guildTimezone, passed }: RunSummaryItemProps) {
+export default function RunSummaryItem({ run, modeLabel, selected, onClick, guildTimezone, passed, instanceType }: RunSummaryItemProps) {
   const { t } = useTranslation();
+  const typeColors = getInstanceTypeColors(instanceType ?? "UNKNOWN");
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
   const startDt = run.startTime
     ? DateTime.fromISO(run.startTime, { zone: "UTC" }).setZone(timezone)
@@ -39,6 +42,7 @@ export default function RunSummaryItem({ run, modeLabel, selected, onClick, guil
         width: "100%",
         p: 1.5,
         border: "none",
+        borderLeft: `3px solid ${typeColors.border}`,
         borderRadius: 1,
         cursor: "pointer",
         textAlign: "left",
