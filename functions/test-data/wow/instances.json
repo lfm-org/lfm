@@ -8,7 +8,8 @@
     "modes": [
       { "mode": { "type": "NORMAL", "name": "Normal" }, "players": 5, "is_tracked": true },
       { "mode": { "type": "HEROIC", "name": "Heroic" }, "players": 5, "is_tracked": true }
-    ]
+    ],
+    "mediaUrl": "https://render.worldofwarcraft.com/test/deadmines-tile.jpg"
   },
   {
     "id": 249,
@@ -18,7 +19,8 @@
     "expansionId": 3,
     "modes": [
       { "mode": { "type": "NORMAL", "name": "Normal" }, "players": 25, "is_tracked": true }
-    ]
+    ],
+    "mediaUrl": "https://render.worldofwarcraft.com/test/onyxias-lair-tile.jpg"
   },
   {
     "id": 631,
@@ -31,7 +33,8 @@
       { "mode": { "type": "NORMAL", "name": "Normal" }, "players": 25, "is_tracked": true },
       { "mode": { "type": "HEROIC", "name": "Heroic" }, "players": 10, "is_tracked": true },
       { "mode": { "type": "HEROIC", "name": "Heroic" }, "players": 25, "is_tracked": true }
-    ]
+    ],
+    "mediaUrl": "https://render.worldofwarcraft.com/test/icecrown-citadel-tile.jpg"
   },
   {
     "id": 741,
@@ -41,6 +44,7 @@
     "expansionId": 68,
     "modes": [
       { "mode": { "type": "NORMAL", "name": "Normal" }, "players": 40, "is_tracked": true }
-    ]
+    ],
+    "mediaUrl": "https://render.worldofwarcraft.com/test/molten-core-tile.jpg"
   }
 ]
