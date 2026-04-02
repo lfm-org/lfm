@@ -38,4 +38,10 @@ export default tseslint.config(
       "no-unsanitized/property": "error",
     },
   },
+  {
+    files: ["src/router.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );
