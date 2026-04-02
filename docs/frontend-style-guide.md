@@ -50,7 +50,7 @@ sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
 | Metadata / helpers | `caption` | — | default |
 
 - Section headings often use `textTransform: "uppercase"` and `letterSpacing: "0.05em"`.
-- Inside `<Button>`, wrap visible text in `<Typography component="span">` so it uses `body1` styling instead of the button typography variant.
+- Do not wrap `<Button>` text in `<Typography>` — let Button use its own typography (0.875rem / weight 600) so navbar and toolbar text stays uniform.
 - Always set `component` to maintain semantic heading hierarchy for accessibility.
 
 ## Colors

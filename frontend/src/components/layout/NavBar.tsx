@@ -9,7 +9,6 @@ import {
   MenuItem,
   Toolbar,
   Tooltip,
-  Typography,
 } from "@mui/material";
 import { useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -128,14 +127,17 @@ export default function NavBar({ character = null }: NavBarProps) {
                   {character.name.slice(0, 1).toUpperCase()}
                 </Avatar>
               )}
-              <Typography
+              <Box
                 component="span"
-                variant="body2"
-                noWrap
-                sx={{ maxWidth: { xs: 88, sm: 148 } }}
+                sx={{
+                  maxWidth: { xs: 88, sm: 148 },
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
               >
                 {character.name}
-              </Typography>
+              </Box>
             </Button>
             </Tooltip>
 
@@ -146,6 +148,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               onClose={closeMenu}
               MenuListProps={{
                 "aria-labelledby": "navbar-account-trigger",
+                dense: true,
               }}
               anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
               transformOrigin={{ vertical: "top", horizontal: "right" }}
@@ -177,7 +180,7 @@ export default function NavBar({ character = null }: NavBarProps) {
               to={loginHref}
               color="inherit"
             >
-              <Typography component="span">{t("nav.login")}</Typography>
+              {t("nav.login")}
             </Button>
           </Box>
         )}
