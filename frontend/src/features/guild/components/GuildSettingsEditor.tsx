@@ -27,7 +27,7 @@ interface GuildSettingsEditorProps {
   onSloganChange: (value: string) => void;
   onPermissionChange: (
     rank: number,
-    field: "canCreateGuildRaids" | "canSignupGuildRaids" | "canDeleteGuildRaids",
+    field: "canCreateGuildRuns" | "canSignupGuildRuns" | "canDeleteGuildRuns",
     checked: boolean,
   ) => void;
   onSave: () => void;
@@ -101,11 +101,11 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
               <FormControlLabel
                 control={(
                   <Checkbox
-                    checked={permission.canCreateGuildRaids}
+                    checked={permission.canCreateGuildRuns}
                     onChange={(event) =>
                       props.onPermissionChange(
                         permission.rank,
-                        "canCreateGuildRaids",
+                        "canCreateGuildRuns",
                         event.target.checked,
                       )}
                     disabled={!props.rankDataFresh || props.saving}
@@ -116,11 +116,11 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
               <FormControlLabel
                 control={(
                   <Checkbox
-                    checked={permission.canSignupGuildRaids}
+                    checked={permission.canSignupGuildRuns}
                     onChange={(event) =>
                       props.onPermissionChange(
                         permission.rank,
-                        "canSignupGuildRaids",
+                        "canSignupGuildRuns",
                         event.target.checked,
                       )}
                     disabled={!props.rankDataFresh || props.saving}
@@ -131,11 +131,11 @@ export default function GuildSettingsEditor(props: GuildSettingsEditorProps) {
               <FormControlLabel
                 control={(
                   <Checkbox
-                    checked={permission.canDeleteGuildRaids}
+                    checked={permission.canDeleteGuildRuns}
                     onChange={(event) =>
                       props.onPermissionChange(
                         permission.rank,
-                        "canDeleteGuildRaids",
+                        "canDeleteGuildRuns",
                         event.target.checked,
                       )}
                     disabled={!props.rankDataFresh || props.saving}

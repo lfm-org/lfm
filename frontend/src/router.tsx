@@ -17,9 +17,9 @@ const PrivacyPolicyPage = lazy(() => import("./features/auth/pages/PrivacyPolicy
 const CharactersPage = lazy(() => import("./features/characters/pages/CharactersPage"));
 const GuildPage = lazy(() => import("./features/guild/pages/GuildPage"));
 const GuildAdminPage = lazy(() => import("./features/guild/pages/GuildAdminPage"));
-const RaidsPage = lazy(() => import("./features/raids/pages/RaidsPage"));
-const CreateRaidPage = lazy(() => import("./features/raids/pages/CreateRaidPage"));
-const EditRaidPage = lazy(() => import("./features/raids/pages/EditRaidPage"));
+const RunsPage = lazy(() => import("./features/runs/pages/RunsPage"));
+const CreateRunPage = lazy(() => import("./features/runs/pages/CreateRunPage"));
+const EditRunPage = lazy(() => import("./features/runs/pages/EditRunPage"));
 
 function RouteFallback() {
   const { t } = useTranslation();
@@ -58,9 +58,9 @@ export const router = createBrowserRouter(
       <Route path="/characters" element={withRouteFallback(<AuthGuard><CharactersPage /></AuthGuard>)} />
       <Route path="/guild" element={withRouteFallback(<AuthGuard><GuildPage /></AuthGuard>)} />
       <Route path="/guild/admin" element={withRouteFallback(<AuthGuard><GuildAdminPage /></AuthGuard>)} />
-      <Route path="/raids" element={withRouteFallback(<AuthGuard><GuildSetupGuard><RaidsPage /></GuildSetupGuard></AuthGuard>)} />
-      <Route path="/raids/new" element={withRouteFallback(<AuthGuard><GuildSetupGuard><CreateRaidPage /></GuildSetupGuard></AuthGuard>)} />
-      <Route path="/raids/:id/edit" element={withRouteFallback(<AuthGuard><GuildSetupGuard><EditRaidPage /></GuildSetupGuard></AuthGuard>)} />
+      <Route path="/runs" element={withRouteFallback(<AuthGuard><GuildSetupGuard><RunsPage /></GuildSetupGuard></AuthGuard>)} />
+      <Route path="/runs/new" element={withRouteFallback(<AuthGuard><GuildSetupGuard><CreateRunPage /></GuildSetupGuard></AuthGuard>)} />
+      <Route path="/runs/:id/edit" element={withRouteFallback(<AuthGuard><GuildSetupGuard><EditRunPage /></GuildSetupGuard></AuthGuard>)} />
     </Route>
   )
 );

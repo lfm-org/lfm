@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 
 export type FormField = "instance" | "mode" | "startTime" | "signupCloseTime" | "description";
 
-export function validateRaidForm(
+export function validateRunForm(
   fields: {
     instanceId: number | "";
     selectedModeKey: string;

@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { DateTime } from "luxon";
-import { validateRaidForm } from "./raidValidation";
+import { validateRunForm } from "./runValidation";
 
 const FUTURE = DateTime.now().plus({ days: 1 });
 const PAST = DateTime.now().minus({ hours: 1 });
 
-describe("validateRaidForm (create mode)", () => {
+describe("validateRunForm (create mode)", () => {
   it("returns no errors for a valid submission with no signup close time", () => {
     expect(
-      validateRaidForm({
+      validateRunForm({
         instanceId: 1,
         selectedModeKey: "heroic",
         startTime: FUTURE,
@@ -20,7 +20,7 @@ describe("validateRaidForm (create mode)", () => {
 
   it("returns no errors when signup close time is valid (before start time, in the future)", () => {
     expect(
-      validateRaidForm({
+      validateRunForm({
         instanceId: 1,
         selectedModeKey: "heroic",
         startTime: DateTime.now().plus({ days: 2 }),
@@ -31,7 +31,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("requires instanceId", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: "",
       selectedModeKey: "heroic",
       startTime: FUTURE,
@@ -42,7 +42,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("requires selectedModeKey", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "",
       startTime: FUTURE,
@@ -53,7 +53,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("requires startTime to be present", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: null,
@@ -64,7 +64,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("requires startTime to be in the future", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: PAST,
@@ -75,7 +75,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("rejects signupCloseTime in the past", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: FUTURE,
@@ -88,7 +88,7 @@ describe("validateRaidForm (create mode)", () => {
   it("rejects signupCloseTime after startTime", () => {
     const start = DateTime.now().plus({ days: 2 });
     const closeAfterStart = DateTime.now().plus({ days: 3 });
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: start,
@@ -100,7 +100,7 @@ describe("validateRaidForm (create mode)", () => {
 
   it("allows signupCloseTime equal to startTime", () => {
     const start = DateTime.now().plus({ days: 2 });
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: start,
@@ -111,7 +111,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("rejects description over 500 characters", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: FUTURE,
@@ -122,7 +122,7 @@ describe("validateRaidForm (create mode)", () => {
   });
 
   it("accepts description of exactly 500 characters", () => {
-    const errors = validateRaidForm({
+    const errors = validateRunForm({
       instanceId: 1,
       selectedModeKey: "heroic",
       startTime: FUTURE,

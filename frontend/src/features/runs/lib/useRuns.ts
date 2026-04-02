@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import api from "../../../lib/api";
-import { normalizeRaid, type Raid } from "./raidTypes";
+import { normalizeRun, type Run } from "./runTypes";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";
-import { normalizeRaidSignupCharacter, type RaidSignupCharacter } from "./raidSignupCharacters";
-import { groupRaidsByTime } from "./raidGrouping";
+import { normalizeRunSignupCharacter, type RunSignupCharacter } from "./runSignupCharacters";
+import { groupRunsByTime } from "./runGrouping";
 
 const PAGE_SIZE = 5;
 
 interface CharactersResponse {
-  characters: RaidSignupCharacter[];
+  characters: RunSignupCharacter[];
   selectedCharacterId: string | null;
 }
 
@@ -23,64 +23,64 @@ function clampPage(page: number, totalPages: number): number {
   return Math.min(Math.max(page, 1), totalPages);
 }
 
-export interface UseRaidsResult {
-  raids: Raid[];
+export interface UseRunsResult {
+  runs: Run[];
   instances: WowInstance[];
   loading: boolean;
   error: string | null;
-  characters: RaidSignupCharacter[];
+  characters: RunSignupCharacter[];
   selectedCharacterId: string | null;
   loadingChars: boolean;
   charactersError: string | null;
-  expandedRaids: Record<string, boolean>;
-  requestedRaidId: string | null;
+  expandedRuns: Record<string, boolean>;
+  requestedRunId: string | null;
   totalPages: number;
   currentPage: number;
-  visibleRaids: Raid[];
-  selectedRaid: Raid | null;
-  passedRaids: Raid[];
+  visibleRuns: Run[];
+  selectedRun: Run | null;
+  passedRuns: Run[];
   showPassed: boolean;
   handleTogglePassed: () => void;
-  handleRaidUpdate: (updatedRaid: Raid) => void;
-  handleToggleRaid: (raidId: string) => void;
-  handleSelectRaid: (raidId: string) => void;
+  handleRunUpdate: (updatedRun: Run) => void;
+  handleToggleRun: (runId: string) => void;
+  handleSelectRun: (runId: string) => void;
   handlePageChange: (page: number) => void;
-  handleRaidDelete: (raidId: string) => void;
+  handleRunDelete: (runId: string) => void;
   refresh: () => void;
   sortOrder: "asc" | "desc";
   handleSortChange: (order: "asc" | "desc") => void;
 }
 
-export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRaidsResult {
+export function useRuns(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRunsResult {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [raids, setRaids] = useState<Raid[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
   const [instances, setInstances] = useState<WowInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [characters, setCharacters] = useState<RaidSignupCharacter[]>([]);
+  const [characters, setCharacters] = useState<RunSignupCharacter[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [loadingChars, setLoadingChars] = useState(true);
   const [charactersError, setCharactersError] = useState<string | null>(null);
-  const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
-  const lastFocusedRaidId = useRef<string | null>(null);
+  const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
+  const lastFocusedRunId = useRef<string | null>(null);
 
-  const loadRaids = useCallback(() => {
+  const loadRuns = useCallback(() => {
     let active = true;
     setLoading(true);
     setError(null);
 
     Promise.allSettled([
-      api.get<Raid[]>("/raids"),
+      api.get<Run[]>("/runs"),
       api.get<WowInstance[]>("/instances"),
     ])
-      .then(([raidResult, instanceResult]) => {
+      .then(([runResult, instanceResult]) => {
         if (!active) return;
 
-        if (raidResult.status === "fulfilled") {
-          setRaids(raidResult.value.data.map(normalizeRaid));
+        if (runResult.status === "fulfilled") {
+          setRuns(runResult.value.data.map(normalizeRun));
         } else {
-          setRaids([]);
-          setError("raids.loadFailed");
+          setRuns([]);
+          setError("runs.loadFailed");
         }
 
         if (instanceResult.status === "fulfilled") {
@@ -101,8 +101,8 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   }, []);
 
   useEffect(() => {
-    return loadRaids();
-  }, [loadRaids]);
+    return loadRuns();
+  }, [loadRuns]);
 
   useEffect(() => {
     if (!battleNetId) {
@@ -120,7 +120,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     api.get<CharactersResponse>("/raider/characters")
       .then((response) => {
         if (!active) return;
-        setCharacters(response.data.characters.map(normalizeRaidSignupCharacter));
+        setCharacters(response.data.characters.map(normalizeRunSignupCharacter));
         setSelectedCharacterId(response.data.selectedCharacterId);
       })
       .catch(() => {
@@ -140,12 +140,12 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     };
   }, [battleNetId]);
 
-  const requestedRaidId = searchParams.get("raid");
+  const requestedRunId = searchParams.get("run");
   const requestedPage = parsePageParam(searchParams.get("page"));
   const showPassed = searchParams.get("passed") === "1";
   const sortOrder = (searchParams.get("sort") === "asc" ? "asc" : "desc") as "asc" | "desc";
 
-  const { upcoming, passed } = useMemo(() => groupRaidsByTime(raids), [raids]);
+  const { upcoming, passed } = useMemo(() => groupRunsByTime(runs), [runs]);
 
   const sortedUpcoming = useMemo(() => {
     const sorted = [...upcoming];
@@ -153,37 +153,37 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     return sorted;
   }, [upcoming, sortOrder]);
 
-  const targetIndex = requestedRaidId ? sortedUpcoming.findIndex((raid) => raid.id === requestedRaidId) : -1;
-  const targetInPassed = requestedRaidId && targetIndex < 0 ? passed.some((r) => r.id === requestedRaidId) : false;
+  const targetIndex = requestedRunId ? sortedUpcoming.findIndex((run) => run.id === requestedRunId) : -1;
+  const targetInPassed = requestedRunId && targetIndex < 0 ? passed.some((r) => r.id === requestedRunId) : false;
   const totalPages = Math.max(1, Math.ceil(sortedUpcoming.length / PAGE_SIZE));
   const currentPage = clampPage(
     targetIndex >= 0 ? Math.floor(targetIndex / PAGE_SIZE) + 1 : requestedPage,
     totalPages
   );
-  const visibleRaids = sortedUpcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const visibleRuns = sortedUpcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Auto-select first raid on desktop when no raid is selected
+  // Auto-select first run on desktop when no run is selected
   useEffect(() => {
-    if (!isDesktop || loading || (visibleRaids.length === 0 && passed.length === 0)) return;
-    const isSelected = requestedRaidId && (visibleRaids.some(r => r.id === requestedRaidId) || passed.some(r => r.id === requestedRaidId));
+    if (!isDesktop || loading || (visibleRuns.length === 0 && passed.length === 0)) return;
+    const isSelected = requestedRunId && (visibleRuns.some(r => r.id === requestedRunId) || passed.some(r => r.id === requestedRunId));
     if (!isSelected) {
-      const fallback = visibleRaids[0] ?? passed[0];
+      const fallback = visibleRuns[0] ?? passed[0];
       if (fallback) {
         const next = new URLSearchParams(searchParams);
-        if (!visibleRaids[0] && passed[0]) next.set("passed", "1");
-        next.set("raid", fallback.id);
+        if (!visibleRuns[0] && passed[0]) next.set("passed", "1");
+        next.set("run", fallback.id);
         setSearchParams(next, { replace: true });
       }
     }
-  }, [isDesktop, loading, visibleRaids, passed, requestedRaidId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isDesktop, loading, visibleRuns, passed, requestedRunId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!isMobile || !requestedRaidId || targetIndex < 0) return;
+    if (!isMobile || !requestedRunId || targetIndex < 0) return;
 
-    setExpandedRaids((current) => (
-      current[requestedRaidId] ? current : { ...current, [requestedRaidId]: true }
+    setExpandedRuns((current) => (
+      current[requestedRunId] ? current : { ...current, [requestedRunId]: true }
     ));
-  }, [isMobile, requestedRaidId, targetIndex]);
+  }, [isMobile, requestedRunId, targetIndex]);
 
   useEffect(() => {
     if (targetInPassed && !showPassed) {
@@ -194,35 +194,35 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   }, [targetInPassed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (isDesktop || !requestedRaidId || targetIndex < 0) return;
+    if (isDesktop || !requestedRunId || targetIndex < 0) return;
 
-    const isVisible = visibleRaids.some((raid) => raid.id === requestedRaidId);
-    if (!isVisible || lastFocusedRaidId.current === requestedRaidId) return;
+    const isVisible = visibleRuns.some((run) => run.id === requestedRunId);
+    if (!isVisible || lastFocusedRunId.current === requestedRunId) return;
 
     const frame = requestAnimationFrame(() => {
-      document.getElementById(`raid-card-${requestedRaidId}`)?.scrollIntoView({ block: "start" });
-      lastFocusedRaidId.current = requestedRaidId;
+      document.getElementById(`run-card-${requestedRunId}`)?.scrollIntoView({ block: "start" });
+      lastFocusedRunId.current = requestedRunId;
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [isDesktop, requestedRaidId, targetIndex, visibleRaids]);
+  }, [isDesktop, requestedRunId, targetIndex, visibleRuns]);
 
-  const handleRaidUpdate = (updatedRaid: Raid) => {
-    setRaids((current) => current.map((raid) => (
-      raid.id === updatedRaid.id ? normalizeRaid(updatedRaid) : raid
+  const handleRunUpdate = (updatedRun: Run) => {
+    setRuns((current) => current.map((run) => (
+      run.id === updatedRun.id ? normalizeRun(updatedRun) : run
     )));
   };
 
-  const handleToggleRaid = (raidId: string) => {
-    setExpandedRaids((current) => ({
+  const handleToggleRun = (runId: string) => {
+    setExpandedRuns((current) => ({
       ...current,
-      [raidId]: !current[raidId],
+      [runId]: !current[runId],
     }));
   };
 
-  const handleSelectRaid = (raidId: string) => {
+  const handleSelectRun = (runId: string) => {
     const next = new URLSearchParams(searchParams);
-    next.set("raid", raidId);
+    next.set("run", runId);
     setSearchParams(next);
   };
 
@@ -246,8 +246,8 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     setSearchParams(next);
   };
 
-  const handleRaidDelete = (raidId: string) => {
-    setRaids((current) => current.filter((raid) => raid.id !== raidId));
+  const handleRunDelete = (runId: string) => {
+    setRuns((current) => current.filter((run) => run.id !== runId));
   };
 
   const handleSortChange = (order: "asc" | "desc") => {
@@ -261,14 +261,14 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     setSearchParams(next);
   };
 
-  const selectedRaid = requestedRaidId
-    ? (visibleRaids.find(r => r.id === requestedRaidId)
-      ?? passed.find(r => r.id === requestedRaidId)
+  const selectedRun = requestedRunId
+    ? (visibleRuns.find(r => r.id === requestedRunId)
+      ?? passed.find(r => r.id === requestedRunId)
       ?? null)
     : null;
 
   return {
-    raids,
+    runs,
     instances,
     loading,
     error,
@@ -276,21 +276,21 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     selectedCharacterId,
     loadingChars,
     charactersError,
-    expandedRaids,
-    requestedRaidId,
+    expandedRuns,
+    requestedRunId,
     totalPages,
     currentPage,
-    visibleRaids,
-    selectedRaid,
-    passedRaids: passed,
+    visibleRuns,
+    selectedRun,
+    passedRuns: passed,
     showPassed,
     handleTogglePassed,
-    handleRaidUpdate,
-    handleToggleRaid,
-    handleSelectRaid,
+    handleRunUpdate,
+    handleToggleRun,
+    handleSelectRun,
     handlePageChange,
-    handleRaidDelete,
-    refresh: loadRaids,
+    handleRunDelete,
+    refresh: loadRuns,
     sortOrder,
     handleSortChange,
   };

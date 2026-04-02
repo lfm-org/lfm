@@ -33,9 +33,9 @@ function createResponse(crestUrl: string | null): GuildHomeResponse {
     },
     memberPermissions: {
       matchedRank: 3,
-      canCreateGuildRaids: false,
-      canSignupGuildRaids: true,
-      canDeleteGuildRaids: false,
+      canCreateGuildRuns: false,
+      canSignupGuildRuns: true,
+      canDeleteGuildRuns: false,
       rankDataFresh: true,
     },
     adminOverride: null,

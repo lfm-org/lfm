@@ -6,10 +6,10 @@ import {
 } from "./navBarModel";
 
 describe("navBarModel", () => {
-  it("sends public entry routes back to /raids after login", () => {
-    expect(getLoginHref("/", "")).toBe("/login?redirect=%2Fraids");
-    expect(getLoginHref("/login", "")).toBe("/login?redirect=%2Fraids");
-    expect(getLoginHref("/login/failed", "")).toBe("/login?redirect=%2Fraids");
+  it("sends public entry routes back to /runs after login", () => {
+    expect(getLoginHref("/", "")).toBe("/login?redirect=%2Fruns");
+    expect(getLoginHref("/login", "")).toBe("/login?redirect=%2Fruns");
+    expect(getLoginHref("/login/failed", "")).toBe("/login?redirect=%2Fruns");
   });
 
   it("preserves path and query string for protected-route redirects", () => {
@@ -18,9 +18,9 @@ describe("navBarModel", () => {
     );
   });
 
-  it("keeps primary navigation limited to Raids and Guild", () => {
+  it("keeps primary navigation limited to Runs and Guild", () => {
     expect(getPrimaryNavItems()).toEqual([
-      { i18nKey: "nav.raids", to: "/raids" },
+      { i18nKey: "nav.runs", to: "/runs" },
       { i18nKey: "nav.guild", to: "/guild" },
     ]);
   });

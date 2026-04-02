@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DateTime } from "luxon";
-import { validateRaidForm } from "./raidValidation";
+import { validateRunForm } from "./runValidation";
 
 const baseFields = {
   instanceId: 631 as number | "",
@@ -10,14 +10,14 @@ const baseFields = {
   description: "Test raid",
 };
 
-describe("validateRaidForm — create mode", () => {
+describe("validateRunForm — create mode", () => {
   it("requires instance", () => {
-    const errors = validateRaidForm({ ...baseFields, instanceId: "" }, "create");
+    const errors = validateRunForm({ ...baseFields, instanceId: "" }, "create");
     expect(errors.instance).toBeDefined();
   });
 
   it("requires start time in the future", () => {
-    const errors = validateRaidForm(
+    const errors = validateRunForm(
       { ...baseFields, startTime: DateTime.now().minus({ hours: 1 }) },
       "create"
     );
@@ -25,14 +25,14 @@ describe("validateRaidForm — create mode", () => {
   });
 
   it("passes with valid fields", () => {
-    const errors = validateRaidForm(baseFields, "create");
+    const errors = validateRunForm(baseFields, "create");
     expect(Object.keys(errors)).toHaveLength(0);
   });
 });
 
-describe("validateRaidForm — edit mode", () => {
+describe("validateRunForm — edit mode", () => {
   it("skips future check on startTime when in edit mode", () => {
-    const errors = validateRaidForm(
+    const errors = validateRunForm(
       { ...baseFields, startTime: DateTime.now().minus({ hours: 1 }) },
       "edit"
     );
@@ -40,7 +40,7 @@ describe("validateRaidForm — edit mode", () => {
   });
 
   it("still requires instance and mode in edit mode", () => {
-    const errors = validateRaidForm(
+    const errors = validateRunForm(
       { ...baseFields, instanceId: "", selectedModeKey: "" },
       "edit"
     );
@@ -49,7 +49,7 @@ describe("validateRaidForm — edit mode", () => {
   });
 
   it("still validates signupCloseTime before startTime", () => {
-    const errors = validateRaidForm(
+    const errors = validateRunForm(
       {
         ...baseFields,
         signupCloseTime: baseFields.startTime.plus({ hours: 1 }),

@@ -1,12 +1,12 @@
 import { Box, Chip, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { DateTime } from "luxon";
-import type { Raid } from "../lib/raidTypes";
+import type { Run } from "../lib/runTypes";
 import { isAttending } from "../lib/attendanceConfig";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 
-interface RaidSummaryItemProps {
-  raid: Raid;
+interface RunSummaryItemProps {
+  run: Run;
   modeLabel: string;
   selected: boolean;
   onClick: () => void;
@@ -14,16 +14,16 @@ interface RaidSummaryItemProps {
   passed?: boolean;
 }
 
-export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, guildTimezone, passed }: RaidSummaryItemProps) {
+export default function RunSummaryItem({ run, modeLabel, selected, onClick, guildTimezone, passed }: RunSummaryItemProps) {
   const { t } = useTranslation();
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
-  const startDt = raid.startTime
-    ? DateTime.fromISO(raid.startTime, { zone: "UTC" }).setZone(timezone)
+  const startDt = run.startTime
+    ? DateTime.fromISO(run.startTime, { zone: "UTC" }).setZone(timezone)
     : null;
   const startDisplay = startDt?.isValid
     ? startDt.setLocale("fi").toLocaleString(DateTime.DATETIME_SHORT)
     : "—";
-  const inCount = raid.raidCharacters.filter(rc => isAttending(rc.desiredAttendance)).length;
+  const inCount = run.runCharacters.filter(rc => isAttending(rc.desiredAttendance)).length;
 
   return (
     <Box
@@ -51,18 +51,18 @@ export default function RaidSummaryItem({ raid, modeLabel, selected, onClick, gu
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
         <Typography variant="body2" fontWeight={selected ? 700 : 400} sx={{ flex: 1, minWidth: 0 }} noWrap>
-          {raid.instanceName}
+          {run.instanceName}
         </Typography>
         <Chip label={modeLabel} size="small" variant="outlined" sx={{ flexShrink: 0, height: 20 }} />
-        {raid.visibility === "GUILD" && (
-          <Chip label={t("raidSummary.guild")} size="small" color="primary" variant="outlined" sx={{ flexShrink: 0, height: 20 }} />
+        {run.visibility === "GUILD" && (
+          <Chip label={t("runSummary.guild")} size="small" color="primary" variant="outlined" sx={{ flexShrink: 0, height: 20 }} />
         )}
       </Box>
       <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
         {startDisplay}
       </Typography>
       <Typography variant="caption" color={selected ? "text.primary" : "text.secondary"}>
-        {t("raidSummary.attending", { count: inCount })} · {t("raidSummary.total", { count: raid.raidCharacters.length })}
+        {t("runSummary.attending", { count: inCount })} · {t("runSummary.total", { count: run.runCharacters.length })}
       </Typography>
     </Box>
   );

@@ -23,14 +23,14 @@ import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { resolveInstanceModeLabel } from "../../../lib/wow/instances";
 import { useAuth } from "../../auth";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
-import RaidListCard from "../components/RaidListCard";
-import RaidSummaryItem from "../components/RaidSummaryItem";
-import { useRaids } from "../lib/useRaids";
+import RunListCard from "../components/RunListCard";
+import RunSummaryItem from "../components/RunSummaryItem";
+import { useRuns } from "../lib/useRuns";
 
-export default function RaidsPage() {
+export default function RunsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  useDocumentTitle(`${t("raids.title")} — LFM`);
+  useDocumentTitle(`${t("runs.title")} — LFM`);
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -39,7 +39,7 @@ export default function RaidsPage() {
   const battleNetId = user?.battleNetId ?? null;
 
   const {
-    raids,
+    runs,
     instances,
     loading,
     error,
@@ -47,38 +47,38 @@ export default function RaidsPage() {
     selectedCharacterId,
     loadingChars,
     charactersError,
-    expandedRaids,
-    requestedRaidId,
+    expandedRuns,
+    requestedRunId,
     totalPages,
     currentPage,
-    visibleRaids,
-    selectedRaid,
-    passedRaids,
+    visibleRuns,
+    selectedRun,
+    passedRuns,
     showPassed,
     handleTogglePassed,
-    handleRaidUpdate,
-    handleToggleRaid,
-    handleSelectRaid,
+    handleRunUpdate,
+    handleToggleRun,
+    handleSelectRun,
     handlePageChange,
-    handleRaidDelete,
+    handleRunDelete,
     refresh,
     sortOrder,
     handleSortChange,
-  } = useRaids(battleNetId, isDesktop, isMobile);
+  } = useRuns(battleNetId, isDesktop, isMobile);
 
   const handleRefresh = () => { refresh(); };
 
-  const handleRaidEdit = (raidId: string) => {
+  const handleRunEdit = (runId: string) => {
     const params = new URLSearchParams();
     if (currentPage > 1) params.set("page", String(currentPage));
     const query = params.toString();
-    navigate(`/raids/${encodeURIComponent(raidId)}/edit${query ? `?${query}` : ""}`);
+    navigate(`/runs/${encodeURIComponent(runId)}/edit${query ? `?${query}` : ""}`);
   };
 
   const pagination = !loading && totalPages > 1 && (
     <Box
       component="nav"
-      aria-label={t("raids.pagination")}
+      aria-label={t("runs.pagination")}
       sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 1, flexWrap: "wrap" }}
     >
       <Button size="small" variant="outlined" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} aria-label={t("common.previous")} sx={{ minWidth: 36 }}>
@@ -107,24 +107,24 @@ export default function RaidsPage() {
   return (
     <PageContainer maxWidth={isDesktop ? 1280 : undefined}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
-        <Typography component="h1" variant="h5">{t("raids.title")}</Typography>
+        <Typography component="h1" variant="h5">{t("runs.title")}</Typography>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <IconButton onClick={handleRefresh} disabled={loading} aria-label={t("common.refresh")}>
             <RefreshIcon />
           </IconButton>
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel id="raids-sort-label">{t("raids.sort")}</InputLabel>
+            <InputLabel id="runs-sort-label">{t("runs.sort")}</InputLabel>
             <Select
-              labelId="raids-sort-label"
+              labelId="runs-sort-label"
               value={sortOrder}
-              label={t("raids.sort")}
+              label={t("runs.sort")}
               onChange={(e) => handleSortChange(e.target.value as "asc" | "desc")}
             >
-              <MenuItem value="desc">{t("raids.sortNewest")}</MenuItem>
-              <MenuItem value="asc">{t("raids.sortOldest")}</MenuItem>
+              <MenuItem value="desc">{t("runs.sortNewest")}</MenuItem>
+              <MenuItem value="asc">{t("runs.sortOldest")}</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
+          <Button variant="contained" onClick={() => navigate("/runs/new")}>{t("runs.createButton")}</Button>
         </Box>
       </Box>
 
@@ -132,16 +132,16 @@ export default function RaidsPage() {
 
       {loading ? (
         <LoadingState />
-      ) : raids.length === 0 ? (
+      ) : runs.length === 0 ? (
         <EmptyState
           icon={<EventBusyIcon />}
-          message={t("raids.empty")}
-          action={{ label: t("raids.emptyCta"), onClick: () => navigate("/raids/new") }}
+          message={t("runs.empty")}
+          action={{ label: t("runs.emptyCta"), onClick: () => navigate("/runs/new") }}
         />
       ) : isDesktop ? (
         /* Desktop: two-column layout */
         <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
-          {/* Left panel: raid list */}
+          {/* Left panel: run list */}
           <Box
             sx={{
               width: 320,
@@ -152,27 +152,27 @@ export default function RaidsPage() {
               overflow: "hidden",
             }}
           >
-            {visibleRaids.map((raid, index) => (
-              <Box key={raid.id}>
+            {visibleRuns.map((run, index) => (
+              <Box key={run.id}>
                 {index > 0 && <Divider />}
-                <RaidSummaryItem
-                  raid={raid}
-                  modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
-                  selected={raid.id === requestedRaidId}
-                  onClick={() => handleSelectRaid(raid.id)}
+                <RunSummaryItem
+                  run={run}
+                  modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
+                  selected={run.id === requestedRunId}
+                  onClick={() => handleSelectRun(run.id)}
                   guildTimezone={guildHome?.setup.timezone}
                 />
               </Box>
             ))}
             {pagination && <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 1 }}>{pagination}</Box>}
-            {passedRaids.length > 0 && (
+            {passedRuns.length > 0 && (
               <>
                 <Divider />
                 <Box
                   component="button"
                   onClick={handleTogglePassed}
                   aria-expanded={showPassed}
-                  aria-controls="passed-raids-section"
+                  aria-controls="passed-runs-section"
                   sx={{
                     display: "flex",
                     alignItems: "center",
@@ -191,20 +191,20 @@ export default function RaidsPage() {
                   }}
                 >
                   <Typography component="span" variant="body2" fontWeight={600}>
-                    {t("raids.passed", { count: passedRaids.length })}
+                    {t("runs.passed", { count: passedRuns.length })}
                   </Typography>
                   <Typography component="span" variant="body2">{showPassed ? "▾" : "▸"}</Typography>
                 </Box>
                 {showPassed && (
-                  <Box id="passed-raids-section" role="region" aria-label={t("raids.passedToggle")}>
-                    {passedRaids.map((raid, index) => (
-                      <Box key={raid.id}>
+                  <Box id="passed-runs-section" role="region" aria-label={t("runs.passedToggle")}>
+                    {passedRuns.map((run, index) => (
+                      <Box key={run.id}>
                         {index > 0 && <Divider />}
-                        <RaidSummaryItem
-                          raid={raid}
-                          modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
-                          selected={raid.id === requestedRaidId}
-                          onClick={() => handleSelectRaid(raid.id)}
+                        <RunSummaryItem
+                          run={run}
+                          modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
+                          selected={run.id === requestedRunId}
+                          onClick={() => handleSelectRun(run.id)}
                           guildTimezone={guildHome?.setup.timezone}
                           passed
                         />
@@ -216,97 +216,97 @@ export default function RaidsPage() {
             )}
           </Box>
 
-          {/* Right panel: selected raid details */}
+          {/* Right panel: selected run details */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {selectedRaid ? (
-              <RaidListCard
-                key={selectedRaid.id}
-                raid={selectedRaid}
-                modeLabel={resolveInstanceModeLabel(instances, selectedRaid.instanceId, selectedRaid.modeKey)}
+            {selectedRun ? (
+              <RunListCard
+                key={selectedRun.id}
+                run={selectedRun}
+                modeLabel={resolveInstanceModeLabel(instances, selectedRun.instanceId, selectedRun.modeKey)}
                 isMobile={false}
                 isExpanded={true}
                 onToggle={() => {}}
-                onRaidUpdate={handleRaidUpdate}
+                onRunUpdate={handleRunUpdate}
                 characters={characters}
                 selectedCharacterId={selectedCharacterId}
                 loadingChars={loadingChars}
                 charactersError={charactersError}
                 guildTimezone={guildHome?.setup.timezone}
-                canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+                canSignupToGuildRuns={guildHome?.memberPermissions.canSignupGuildRuns ?? false}
                 currentBattleNetId={battleNetId}
-                canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
-                canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
-                onRaidDelete={handleRaidDelete}
-                onRaidEdit={handleRaidEdit}
+                canDeleteGuildRuns={guildHome?.memberPermissions.canDeleteGuildRuns ?? false}
+                canCreateGuildRuns={guildHome?.memberPermissions.canCreateGuildRuns ?? false}
+                onRunDelete={handleRunDelete}
+                onRunEdit={handleRunEdit}
               />
             ) : (
-              <Typography color="text.secondary">{t("raids.selectPrompt")}</Typography>
+              <Typography color="text.secondary">{t("runs.selectPrompt")}</Typography>
             )}
           </Box>
         </Box>
       ) : (
         /* Mobile: stacked cards */
         <Box sx={{ display: "grid", gap: 3 }}>
-          {visibleRaids.map((raid) => (
-            <RaidListCard
-              key={raid.id}
-              raid={raid}
-              modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
+          {visibleRuns.map((run) => (
+            <RunListCard
+              key={run.id}
+              run={run}
+              modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
               isMobile={isMobile}
-              isExpanded={Boolean(expandedRaids[raid.id])}
-              onToggle={() => handleToggleRaid(raid.id)}
-              onRaidUpdate={handleRaidUpdate}
+              isExpanded={Boolean(expandedRuns[run.id])}
+              onToggle={() => handleToggleRun(run.id)}
+              onRunUpdate={handleRunUpdate}
               characters={characters}
               selectedCharacterId={selectedCharacterId}
               loadingChars={loadingChars}
               charactersError={charactersError}
               guildTimezone={guildHome?.setup.timezone}
-              canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+              canSignupToGuildRuns={guildHome?.memberPermissions.canSignupGuildRuns ?? false}
               currentBattleNetId={battleNetId}
-              canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
-              canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
-              onRaidDelete={handleRaidDelete}
-              onRaidEdit={handleRaidEdit}
+              canDeleteGuildRuns={guildHome?.memberPermissions.canDeleteGuildRuns ?? false}
+              canCreateGuildRuns={guildHome?.memberPermissions.canCreateGuildRuns ?? false}
+              onRunDelete={handleRunDelete}
+              onRunEdit={handleRunEdit}
             />
           ))}
           {pagination}
-          {passedRaids.length > 0 && (
+          {passedRuns.length > 0 && (
             <>
               <Button
                 variant="text"
                 fullWidth
                 onClick={handleTogglePassed}
                 aria-expanded={showPassed}
-                aria-controls="passed-raids-mobile"
+                aria-controls="passed-runs-mobile"
                 sx={{ color: "text.secondary", justifyContent: "space-between" }}
               >
                 <Typography variant="body2" fontWeight={600}>
-                  {t("raids.passed", { count: passedRaids.length })}
+                  {t("runs.passed", { count: passedRuns.length })}
                 </Typography>
                 <Typography component="span" variant="body2">{showPassed ? "▾" : "▸"}</Typography>
               </Button>
               {showPassed && (
-                <Box id="passed-raids-mobile" role="region" aria-label={t("raids.passedToggle")} sx={{ display: "grid", gap: 3, opacity: 0.7 }}>
-                  {passedRaids.map((raid) => (
-                    <RaidListCard
-                      key={raid.id}
-                      raid={raid}
-                      modeLabel={resolveInstanceModeLabel(instances, raid.instanceId, raid.modeKey)}
+                <Box id="passed-runs-mobile" role="region" aria-label={t("runs.passedToggle")} sx={{ display: "grid", gap: 3, opacity: 0.7 }}>
+                  {passedRuns.map((run) => (
+                    <RunListCard
+                      key={run.id}
+                      run={run}
+                      modeLabel={resolveInstanceModeLabel(instances, run.instanceId, run.modeKey)}
                       isMobile={isMobile}
-                      isExpanded={Boolean(expandedRaids[raid.id])}
-                      onToggle={() => handleToggleRaid(raid.id)}
-                      onRaidUpdate={handleRaidUpdate}
+                      isExpanded={Boolean(expandedRuns[run.id])}
+                      onToggle={() => handleToggleRun(run.id)}
+                      onRunUpdate={handleRunUpdate}
                       characters={characters}
                       selectedCharacterId={selectedCharacterId}
                       loadingChars={loadingChars}
                       charactersError={charactersError}
                       guildTimezone={guildHome?.setup.timezone}
-                      canSignupToGuildRaids={guildHome?.memberPermissions.canSignupGuildRaids ?? false}
+                      canSignupToGuildRuns={guildHome?.memberPermissions.canSignupGuildRuns ?? false}
                       currentBattleNetId={battleNetId}
-                      canDeleteGuildRaids={guildHome?.memberPermissions.canDeleteGuildRaids ?? false}
-                      canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
-                      onRaidDelete={handleRaidDelete}
-                      onRaidEdit={handleRaidEdit}
+                      canDeleteGuildRuns={guildHome?.memberPermissions.canDeleteGuildRuns ?? false}
+                      canCreateGuildRuns={guildHome?.memberPermissions.canCreateGuildRuns ?? false}
+                      onRunDelete={handleRunDelete}
+                      onRunEdit={handleRunEdit}
                     />
                   ))}
                 </Box>

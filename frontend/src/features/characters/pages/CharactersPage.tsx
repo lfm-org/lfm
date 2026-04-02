@@ -251,7 +251,7 @@ export default function CharactersPage() {
 
   const redirectPath = (() => {
     const requested = searchParams.get("redirect");
-    return requested && requested.startsWith("/") ? requested : "/raids";
+    return requested && requested.startsWith("/") ? requested : "/runs";
   })();
 
   const currentPage = parsePageParam(searchParams.get("page"));

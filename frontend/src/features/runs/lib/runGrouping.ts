@@ -1,22 +1,22 @@
 import { DateTime } from "luxon";
-import type { Raid } from "./raidTypes";
+import type { Run } from "./runTypes";
 
-export interface GroupedRaids {
-  upcoming: Raid[];
-  passed: Raid[];
+export interface GroupedRuns {
+  upcoming: Run[];
+  passed: Run[];
 }
 
-export function groupRaidsByTime(raids: Raid[]): GroupedRaids {
+export function groupRunsByTime(runs: Run[]): GroupedRuns {
   const now = DateTime.now();
-  const upcoming: Raid[] = [];
-  const passed: Raid[] = [];
+  const upcoming: Run[] = [];
+  const passed: Run[] = [];
 
-  for (const raid of raids) {
-    const dt = DateTime.fromISO(raid.startTime, { zone: "UTC" });
+  for (const run of runs) {
+    const dt = DateTime.fromISO(run.startTime, { zone: "UTC" });
     if (dt.isValid && dt < now) {
-      passed.push(raid);
+      passed.push(run);
     } else {
-      upcoming.push(raid);
+      upcoming.push(run);
     }
   }
 

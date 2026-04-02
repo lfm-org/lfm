@@ -1,10 +1,10 @@
 import { Box, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { CharacterCard } from "../../characters";
-import type { RaidSignup } from "../lib/raidTypes";
+import type { RunSignup } from "../lib/runTypes";
 
 interface NotAttendingSectionProps {
-  signups: RaidSignup[];
+  signups: RunSignup[];
 }
 
 export default function NotAttendingSection({ signups }: NotAttendingSectionProps) {

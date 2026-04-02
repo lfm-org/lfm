@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { normalizeRaidSignupCharacter, type RaidSignupCharacter } from "./raidSignupCharacters";
+import { normalizeRunSignupCharacter, type RunSignupCharacter } from "./runSignupCharacters";
 
-function buildCharacter(overrides: Partial<RaidSignupCharacter> = {}): RaidSignupCharacter {
+function buildCharacter(overrides: Partial<RunSignupCharacter> = {}): RunSignupCharacter {
   return {
     id: "eu-test-realm-aelrin",
     name: "Aelrin",
@@ -11,14 +11,14 @@ function buildCharacter(overrides: Partial<RaidSignupCharacter> = {}): RaidSignu
   };
 }
 
-describe("normalizeRaidSignupCharacter", () => {
+describe("normalizeRunSignupCharacter", () => {
   it("handles absent specializations without error", () => {
-    const result = normalizeRaidSignupCharacter(buildCharacter({ specializations: undefined }));
+    const result = normalizeRunSignupCharacter(buildCharacter({ specializations: undefined }));
     expect(result.specializations).toBeUndefined();
   });
 
   it("passes through specialization name and role strings unchanged", () => {
-    const result = normalizeRaidSignupCharacter(
+    const result = normalizeRunSignupCharacter(
       buildCharacter({
         specializations: [{ id: 65, name: "Holy", role: "Healer" }],
       })
@@ -28,7 +28,7 @@ describe("normalizeRaidSignupCharacter", () => {
   });
 
   it("passes through a plain https portraitUrl unchanged", () => {
-    const result = normalizeRaidSignupCharacter(
+    const result = normalizeRunSignupCharacter(
       buildCharacter({ portraitUrl: "https://cdn.example.test/portrait.jpg" })
     );
     expect(result.portraitUrl).toBe("https://cdn.example.test/portrait.jpg");

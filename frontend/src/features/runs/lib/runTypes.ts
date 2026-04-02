@@ -2,9 +2,9 @@ import type { AttendanceStatus } from "./attendanceConfig";
 import { normalizeLocalizedString } from "../../../lib/localizedStrings";
 
 export type { AttendanceStatus } from "./attendanceConfig";
-export type RaidRole = "TANK" | "HEALER" | "DPS";
+export type RunRole = "TANK" | "HEALER" | "DPS";
 
-export interface RaidSignup {
+export interface RunSignup {
   id: string;
   characterId: string;
   characterName: string;
@@ -19,10 +19,10 @@ export interface RaidSignup {
   reviewedAttendance: AttendanceStatus;
   specId: number | null;
   specName: string | null;
-  role: RaidRole | null;
+  role: RunRole | null;
 }
 
-export interface Raid {
+export interface Run {
   id: string;
   startTime: string;
   signupCloseTime: string;
@@ -34,10 +34,10 @@ export interface Raid {
   creatorBattleNetId: string;
   creatorGuild: string;
   createdAt: string;
-  raidCharacters: RaidSignup[];
+  runCharacters: RunSignup[];
 }
 
-export function normalizeRaidSignup(signup: RaidSignup): RaidSignup {
+export function normalizeRunSignup(signup: RunSignup): RunSignup {
   return {
     ...signup,
     characterName: normalizeLocalizedString(signup.characterName),
@@ -48,10 +48,10 @@ export function normalizeRaidSignup(signup: RaidSignup): RaidSignup {
   };
 }
 
-export function normalizeRaid(raid: Raid): Raid {
+export function normalizeRun(run: Run): Run {
   return {
-    ...raid,
-    instanceName: normalizeLocalizedString(raid.instanceName),
-    raidCharacters: raid.raidCharacters.map(normalizeRaidSignup),
+    ...run,
+    instanceName: normalizeLocalizedString(run.instanceName),
+    runCharacters: run.runCharacters.map(normalizeRunSignup),
   };
 }

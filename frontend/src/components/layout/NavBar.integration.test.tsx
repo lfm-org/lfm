@@ -30,12 +30,12 @@ describe("NavBar integration", () => {
         }}
       />,
       {
-        route: "/raids",
+        route: "/runs",
         authValue: { user: memberUser, loading: false },
       }
     );
 
-    expect(screen.queryByRole("link", { name: "Raids" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Runs" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Guild" })).toBeNull();
 
     const trigger = screen.getByRole("button", {
@@ -51,7 +51,7 @@ describe("NavBar integration", () => {
 
     const menu = screen.getByRole("menu");
     expect(
-      within(menu).getByRole("menuitem", { name: "Raids" })
+      within(menu).getByRole("menuitem", { name: "Runs" })
     ).toBeTruthy();
     expect(
       within(menu).getByRole("menuitem", { name: "Guild" })
@@ -94,7 +94,7 @@ describe("NavBar integration", () => {
     renderWithProviders(<NavBar />, { route: "/" });
 
     expect(screen.getByRole("link", { name: "Login" })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Raids" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Runs" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Guild" })).toBeNull();
     expect(
       screen.queryByRole("button", { name: /Open navigation menu/i })

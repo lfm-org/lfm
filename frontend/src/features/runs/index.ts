@@ -1,6 +1,6 @@
-export { default as RaidListCard } from "./components/RaidListCard";
-export { default as RaidsPage } from "./pages/RaidsPage";
-export { default as CreateRaidPage } from "./pages/CreateRaidPage";
-export type { Raid, RaidSignup, RaidRole } from "./lib/raidTypes";
+export { default as RunListCard } from "./components/RunListCard";
+export { default as RunsPage } from "./pages/RunsPage";
+export { default as CreateRunPage } from "./pages/CreateRunPage";
+export type { Run, RunSignup, RunRole } from "./lib/runTypes";
 export type { AttendanceStatus } from "./lib/attendanceConfig";
-export type { RaidSignupCharacter } from "./components/RaidSignupCard";
+export type { RunSignupCharacter } from "./components/RunSignupCard";

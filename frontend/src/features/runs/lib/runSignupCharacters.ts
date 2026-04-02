@@ -1,7 +1,7 @@
 import { normalizeLocalizedString } from "../../../lib/localizedStrings";
 import { normalizePortraitUrlField } from "../../../lib/portraitUrls";
 
-export interface RaidSignupCharacter {
+export interface RunSignupCharacter {
   id: string;
   name: string;
   realm: string;
@@ -11,7 +11,7 @@ export interface RaidSignupCharacter {
   activeSpecId?: number | null;
 }
 
-export function normalizeRaidSignupCharacter(character: RaidSignupCharacter): RaidSignupCharacter {
+export function normalizeRunSignupCharacter(character: RunSignupCharacter): RunSignupCharacter {
   return normalizePortraitUrlField({
     ...character,
     name: normalizeLocalizedString(character.name),

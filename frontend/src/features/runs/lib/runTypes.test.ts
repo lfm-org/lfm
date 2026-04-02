@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { normalizeRaidSignup, type RaidSignup } from "./raidTypes";
+import { normalizeRunSignup, type RunSignup } from "./runTypes";
 
-function buildSignup(overrides: Partial<RaidSignup> = {}): RaidSignup {
+function buildSignup(overrides: Partial<RunSignup> = {}): RunSignup {
   return {
     id: "signup-1",
     characterId: "eu-test-realm-aelrin",
@@ -22,9 +22,9 @@ function buildSignup(overrides: Partial<RaidSignup> = {}): RaidSignup {
   };
 }
 
-describe("normalizeRaidSignup", () => {
+describe("normalizeRunSignup", () => {
   it("passes through a fully-populated signup with string fields unchanged", () => {
-    const result = normalizeRaidSignup(buildSignup());
+    const result = normalizeRunSignup(buildSignup());
     expect(result.characterName).toBe("Aelrin");
     expect(result.characterRealm).toBe("test-realm");
     expect(result.specName).toBe("Holy");
@@ -32,12 +32,12 @@ describe("normalizeRaidSignup", () => {
   });
 
   it("preserves null specName as null", () => {
-    const result = normalizeRaidSignup(buildSignup({ specName: null }));
+    const result = normalizeRunSignup(buildSignup({ specName: null }));
     expect(result.specName).toBeNull();
   });
 
   it("preserves non-string fields (numeric, boolean) unchanged", () => {
-    const result = normalizeRaidSignup(buildSignup({ characterLevel: 80, isCurrentUser: true }));
+    const result = normalizeRunSignup(buildSignup({ characterLevel: 80, isCurrentUser: true }));
     expect(result.characterLevel).toBe(80);
     expect(result.isCurrentUser).toBe(true);
   });

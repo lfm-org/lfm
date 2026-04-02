@@ -1,17 +1,17 @@
 import { Box, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { CharacterCard } from "../../characters";
-import type { RaidRole, RaidSignup } from "../lib/raidTypes";
+import type { RunRole, RunSignup } from "../lib/runTypes";
 
-const ROLE_KEY: Record<RaidRole, string> = {
+const ROLE_KEY: Record<RunRole, string> = {
   TANK: "rosterSection.tanks",
   HEALER: "rosterSection.healers",
   DPS: "rosterSection.dps",
 };
 
 interface RosterSectionProps {
-  role: RaidRole;
-  signups: RaidSignup[];
+  role: RunRole;
+  signups: RunSignup[];
 }
 
 export default function RosterSection({ role, signups }: RosterSectionProps) {

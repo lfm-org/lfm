@@ -10,9 +10,9 @@ import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instan
 import PageContainer from "../../../components/layout/PageContainer";
 import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
-import RaidForm, { type CreateRaidFormValues, type RaidFormInitialValues } from "../components/RaidForm";
+import RunForm, { type CreateRunFormValues, type RunFormInitialValues } from "../components/RunForm";
 
-const EMPTY_INITIAL: RaidFormInitialValues = {
+const EMPTY_INITIAL: RunFormInitialValues = {
   instanceId: "",
   startTime: null,
   signupCloseTime: null,
@@ -21,11 +21,11 @@ const EMPTY_INITIAL: RaidFormInitialValues = {
   visibility: "PUBLIC",
 };
 
-export default function CreateRaidPage() {
+export default function CreateRunPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { showSuccess } = useToast();
-  useDocumentTitle(`${t("createRaid.title")} — LFM`);
+  useDocumentTitle(`${t("createRun.title")} — LFM`);
   const { data: guildHome } = useGuildHome();
   const [instances, setInstances] = useState<WowInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,11 +35,11 @@ export default function CreateRaidPage() {
   useEffect(() => {
     api.get<WowInstance[]>("/instances")
       .then((res) => setInstances(normalizeWowInstances(res.data)))
-      .catch(() => setError("createRaid.loadInstancesFailed"))
+      .catch(() => setError("createRun.loadInstancesFailed"))
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSubmit = async (values: CreateRaidFormValues) => {
+  const handleSubmit = async (values: CreateRunFormValues) => {
     const sanitizedDescription = DOMPurify.sanitize(values.description, {
       ALLOWED_TAGS: [],
       ALLOWED_ATTR: [],
@@ -47,14 +47,14 @@ export default function CreateRaidPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await api.post<{ id: string }>("/raids", {
+      const res = await api.post<{ id: string }>("/runs", {
         ...values,
         description: sanitizedDescription,
       });
-      showSuccess(t("createRaid.createSuccess"));
-      navigate(`/raids?raid=${encodeURIComponent(res.data.id)}`);
+      showSuccess(t("createRun.createSuccess"));
+      navigate(`/runs?run=${encodeURIComponent(res.data.id)}`);
     } catch {
-      setError("createRaid.createFailed");
+      setError("createRun.createFailed");
       setSubmitting(false);
     }
   };
@@ -63,18 +63,18 @@ export default function CreateRaidPage() {
 
   return (
     <PageContainer maxWidth={600}>
-      <Typography variant="h5" component="h1" gutterBottom>{t("createRaid.title")}</Typography>
-      <RaidForm
+      <Typography variant="h5" component="h1" gutterBottom>{t("createRun.title")}</Typography>
+      <RunForm
         initialValues={EMPTY_INITIAL}
         instances={instances}
         locale={guildHome?.setup.locale}
         timezone={guildHome?.setup.timezone}
-        canCreateGuildRaids={guildHome?.memberPermissions.canCreateGuildRaids ?? false}
+        canCreateGuildRuns={guildHome?.memberPermissions.canCreateGuildRuns ?? false}
         onSubmit={handleSubmit}
         submitting={submitting}
         error={error}
-        onCancel={() => navigate("/raids")}
-        submitLabel={t("createRaid.submit")}
+        onCancel={() => navigate("/runs")}
+        submitLabel={t("createRun.submit")}
         mode="create"
       />
     </PageContainer>

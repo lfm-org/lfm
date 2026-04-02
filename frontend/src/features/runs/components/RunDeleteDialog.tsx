@@ -3,15 +3,15 @@ import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, 
 import { useTranslation } from "react-i18next";
 import api from "../../../lib/api";
 
-interface RaidDeleteDialogProps {
+interface RunDeleteDialogProps {
   open: boolean;
-  raidId: string;
-  raidName: string;
+  runId: string;
+  runName: string;
   onClose: () => void;
-  onDeleted: (raidId: string) => void;
+  onDeleted: (runId: string) => void;
 }
 
-export default function RaidDeleteDialog({ open, raidId, raidName, onClose, onDeleted }: RaidDeleteDialogProps) {
+export default function RunDeleteDialog({ open, runId, runName, onClose, onDeleted }: RunDeleteDialogProps) {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(false);
@@ -20,8 +20,8 @@ export default function RaidDeleteDialog({ open, raidId, raidName, onClose, onDe
     setDeleting(true);
     setError(false);
     try {
-      await api.delete(`/raids/${encodeURIComponent(raidId)}`);
-      onDeleted(raidId);
+      await api.delete(`/runs/${encodeURIComponent(runId)}`);
+      onDeleted(runId);
     } catch {
       setError(true);
       setDeleting(false);
@@ -30,16 +30,16 @@ export default function RaidDeleteDialog({ open, raidId, raidName, onClose, onDe
 
   return (
     <Dialog open={open} onClose={deleting ? undefined : onClose}>
-      <DialogTitle>{t("raidInfo.deleteConfirmTitle")}</DialogTitle>
+      <DialogTitle>{t("runInfo.deleteConfirmTitle")}</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          {t("raidInfo.deleteConfirmBody", { raidName })}
+          {t("runInfo.deleteConfirmBody", { runName })}
         </DialogContentText>
-        {error && <Alert severity="error" sx={{ mt: 1.5 }}>{t("raidInfo.deleteFailed")}</Alert>}
+        {error && <Alert severity="error" sx={{ mt: 1.5 }}>{t("runInfo.deleteFailed")}</Alert>}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={deleting}>
-          {t("raidInfo.deleteConfirmCancel")}
+          {t("runInfo.deleteConfirmCancel")}
         </Button>
         <Button
           onClick={handleDelete}
@@ -48,7 +48,7 @@ export default function RaidDeleteDialog({ open, raidId, raidName, onClose, onDe
           disabled={deleting}
           startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {t("raidInfo.deleteConfirmDelete")}
+          {t("runInfo.deleteConfirmDelete")}
         </Button>
       </DialogActions>
     </Dialog>

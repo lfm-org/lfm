@@ -16,11 +16,11 @@ import {
   type WowInstance,
 } from "../../../lib/wow/instances";
 import DateTimeInput from "../../../components/DateTimeInput";
-import { validateRaidForm, type FormField } from "../lib/raidValidation";
+import { validateRunForm, type FormField } from "../lib/runValidation";
 
 const MAX_DESCRIPTION = 500;
 
-export interface CreateRaidFormValues {
+export interface CreateRunFormValues {
   instanceId: number;
   instanceName: string;
   startTime: string;
@@ -30,7 +30,7 @@ export interface CreateRaidFormValues {
   visibility: "GUILD" | "PUBLIC";
 }
 
-export interface EditRaidFormValues {
+export interface EditRunFormValues {
   instanceId?: number;
   instanceName?: string;
   startTime?: string;
@@ -40,7 +40,7 @@ export interface EditRaidFormValues {
   visibility: "GUILD" | "PUBLIC";
 }
 
-export interface RaidFormInitialValues {
+export interface RunFormInitialValues {
   instanceId: number | "";
   startTime: DateTime | null;
   signupCloseTime: DateTime | null;
@@ -49,29 +49,29 @@ export interface RaidFormInitialValues {
   visibility: "GUILD" | "PUBLIC";
 }
 
-interface RaidFormBaseProps {
-  initialValues: RaidFormInitialValues;
+interface RunFormBaseProps {
+  initialValues: RunFormInitialValues;
   instances: WowInstance[];
   locale?: string;
   timezone?: string;
-  canCreateGuildRaids: boolean;
+  canCreateGuildRuns: boolean;
   submitting: boolean;
   error: string | null;
   onCancel: () => void;
   submitLabel: string;
 }
 
-type RaidFormProps = RaidFormBaseProps & (
-  | { mode: "create"; onSubmit: (values: CreateRaidFormValues) => void; lockedFields?: undefined; lockReason?: undefined }
-  | { mode: "edit"; onSubmit: (values: EditRaidFormValues) => void; lockedFields?: Set<string>; lockReason?: string }
+type RunFormProps = RunFormBaseProps & (
+  | { mode: "create"; onSubmit: (values: CreateRunFormValues) => void; lockedFields?: undefined; lockReason?: undefined }
+  | { mode: "edit"; onSubmit: (values: EditRunFormValues) => void; lockedFields?: Set<string>; lockReason?: string }
 );
 
-export default function RaidForm({
+export default function RunForm({
   initialValues,
   instances,
   locale,
   timezone,
-  canCreateGuildRaids,
+  canCreateGuildRuns,
   onSubmit,
   submitting,
   error,
@@ -80,7 +80,7 @@ export default function RaidForm({
   mode,
   lockedFields,
   lockReason,
-}: RaidFormProps) {
+}: RunFormProps) {
   const { t } = useTranslation();
 
   const [instanceId, setInstanceId] = useState<number | "">(initialValues.instanceId);
@@ -103,10 +103,10 @@ export default function RaidForm({
   const { dialog: unsavedDialog } = useUnsavedChanges(isDirty);
 
   useEffect(() => {
-    if (!canCreateGuildRaids && visibility === "GUILD") {
+    if (!canCreateGuildRuns && visibility === "GUILD") {
       setVisibility("PUBLIC");
     }
-  }, [canCreateGuildRaids, visibility]);
+  }, [canCreateGuildRuns, visibility]);
 
   const currentExpansionId = instances.length
     ? Math.max(...instances.map((i) => i.expansionId))
@@ -116,7 +116,7 @@ export default function RaidForm({
     ? instances.filter((i) => i.expansionId === currentExpansionId)
     : [];
 
-  // In edit mode, ensure the raid's instance is always in the list (it may be from a prior expansion)
+  // In edit mode, ensure the run's instance is always in the list (it may be from a prior expansion)
   const filteredInstances = instanceId && !expansionInstances.some((i) => i.id === instanceId)
     ? [...expansionInstances, ...instances.filter((i) => i.id === instanceId)]
     : expansionInstances;
@@ -140,7 +140,7 @@ export default function RaidForm({
 
   const handleStartTimeChange = (value: DateTime | null) => {
     setStartTime(value);
-    const fieldErrors = validateRaidForm(
+    const fieldErrors = validateRunForm(
       { instanceId, selectedModeKey, startTime: value, signupCloseTime, description },
       mode,
     );
@@ -149,7 +149,7 @@ export default function RaidForm({
 
   const handleSignupCloseTimeChange = (value: DateTime | null) => {
     setSignupCloseTime(value);
-    const fieldErrors = validateRaidForm(
+    const fieldErrors = validateRunForm(
       { instanceId, selectedModeKey, startTime, signupCloseTime: value, description },
       mode,
     );
@@ -164,7 +164,7 @@ export default function RaidForm({
   };
 
   const handleSubmit = () => {
-    const fieldErrors = validateRaidForm(
+    const fieldErrors = validateRunForm(
       { instanceId, selectedModeKey, startTime, signupCloseTime, description },
       mode,
     );
@@ -206,10 +206,10 @@ export default function RaidForm({
       {error && <Alert severity="error" sx={{ mb: 2 }}>{t(error)}</Alert>}
 
       <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.instance} disabled={instanceLocked} required>
-        <InputLabel>{t("createRaid.instance")}</InputLabel>
+        <InputLabel>{t("createRun.instance")}</InputLabel>
         <Select
           value={instanceId}
-          label={t("createRaid.instance")}
+          label={t("createRun.instance")}
           onChange={(e) => handleInstanceChange(e.target.value as number)}
         >
           {filteredInstances.map((inst) => (
@@ -229,10 +229,10 @@ export default function RaidForm({
         error={!!errors.mode}
         required
       >
-        <InputLabel>{t("createRaid.mode")}</InputLabel>
+        <InputLabel>{t("createRun.mode")}</InputLabel>
         <Select
           value={selectedModeKey}
-          label={t("createRaid.mode")}
+          label={t("createRun.mode")}
           onChange={(e) => handleModeChange(e.target.value)}
         >
           {availableModes.map((m) => (
@@ -246,7 +246,7 @@ export default function RaidForm({
 
       <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale={locale ?? "en"}>
         <DateTimeInput
-          label={t("createRaid.startTime")}
+          label={t("createRun.startTime")}
           value={startTime}
           onChange={handleStartTimeChange}
           error={errors.startTime}
@@ -258,7 +258,7 @@ export default function RaidForm({
         />
 
         <DateTimeInput
-          label={t("createRaid.signupCloseTime")}
+          label={t("createRun.signupCloseTime")}
           value={signupCloseTime}
           onChange={handleSignupCloseTimeChange}
           error={errors.signupCloseTime}
@@ -269,7 +269,7 @@ export default function RaidForm({
       </LocalizationProvider>
 
       <TextField
-        label={t("createRaid.description")}
+        label={t("createRun.description")}
         multiline
         rows={3}
         fullWidth
@@ -277,7 +277,7 @@ export default function RaidForm({
         value={description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
         onBlur={() => {
-          const fieldErrors = validateRaidForm(
+          const fieldErrors = validateRunForm(
             { instanceId, selectedModeKey, startTime, signupCloseTime, description },
             mode,
           );
@@ -287,24 +287,24 @@ export default function RaidForm({
         helperText={
           errors.description
             ? errors.description
-            : t("createRaid.descriptionCount", { count: descriptionCount, max: MAX_DESCRIPTION })
+            : t("createRun.descriptionCount", { count: descriptionCount, max: MAX_DESCRIPTION })
         }
         slotProps={{ htmlInput: { maxLength: MAX_DESCRIPTION } }}
       />
 
       <Box sx={{ mb: 3 }}>
-        <Typography variant="body2" sx={{ mb: 1 }}>{t("createRaid.visibility")}</Typography>
+        <Typography variant="body2" sx={{ mb: 1 }}>{t("createRun.visibility")}</Typography>
         <ToggleButtonGroup
           exclusive
           value={visibility}
-          aria-label={t("createRaid.visibility")}
+          aria-label={t("createRun.visibility")}
           onChange={(_, newValue: "GUILD" | "PUBLIC" | null) => {
             if (newValue) setVisibility(newValue);
           }}
         >
-          <ToggleButton value="PUBLIC">{t("createRaid.public")}</ToggleButton>
-          {canCreateGuildRaids && (
-            <ToggleButton value="GUILD">{t("createRaid.guild")}</ToggleButton>
+          <ToggleButton value="PUBLIC">{t("createRun.public")}</ToggleButton>
+          {canCreateGuildRuns && (
+            <ToggleButton value="GUILD">{t("createRun.guild")}</ToggleButton>
           )}
         </ToggleButtonGroup>
       </Box>
@@ -319,7 +319,7 @@ export default function RaidForm({
           {submitLabel}
         </Button>
         <Button variant="text" onClick={onCancel}>
-          {t("createRaid.cancel")}
+          {t("createRun.cancel")}
         </Button>
       </Box>
       {unsavedDialog}

@@ -9,41 +9,41 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth";
 import api from "../../../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
-import type { Raid } from "../lib/raidTypes";
-import type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
+import type { Run } from "../lib/runTypes";
+import type { RunSignupCharacter } from "../lib/runSignupCharacters";
 import SurfaceCard from "../../../components/SurfaceCard";
 import ConfirmDialog from "../../../components/ConfirmDialog";
 import { DateTime } from "luxon";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 
-export type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
+export type { RunSignupCharacter } from "../lib/runSignupCharacters";
 
-interface RaidSignupCardProps {
-  raid: Raid;
-  onRaidUpdate: (raid: Raid) => void;
-  characters: RaidSignupCharacter[];
+interface RunSignupCardProps {
+  run: Run;
+  onRunUpdate: (run: Run) => void;
+  characters: RunSignupCharacter[];
   selectedCharacterId: string | null;
   loadingChars: boolean;
   charactersError: string | null;
   guildTimezone?: string;
-  canSignupToGuildRaids: boolean;
+  canSignupToGuildRuns: boolean;
 }
 
-const CHARACTER_LABEL_ID = "raid-signup-character-label";
-const CHARACTER_SELECT_ID = "raid-signup-character";
-const SPEC_LABEL_ID = "raid-signup-spec-label";
-const SPEC_SELECT_ID = "raid-signup-spec";
+const CHARACTER_LABEL_ID = "run-signup-character-label";
+const CHARACTER_SELECT_ID = "run-signup-character";
+const SPEC_LABEL_ID = "run-signup-spec-label";
+const SPEC_SELECT_ID = "run-signup-spec";
 
-export default function RaidSignupCard({
-  raid,
-  onRaidUpdate,
+export default function RunSignupCard({
+  run,
+  onRunUpdate,
   characters,
   selectedCharacterId,
   loadingChars,
   charactersError,
   guildTimezone,
-  canSignupToGuildRaids,
-}: RaidSignupCardProps) {
+  canSignupToGuildRuns,
+}: RunSignupCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [characterId, setCharacterId] = useState("");
@@ -54,23 +54,23 @@ export default function RaidSignupCard({
   const [pendingCancel, setPendingCancel] = useState(false);
 
   const existingSignup = useMemo(
-    () => user ? raid.raidCharacters.find(rc => rc.isCurrentUser) : undefined,
-    [raid.raidCharacters, user]
+    () => user ? run.runCharacters.find(rc => rc.isCurrentUser) : undefined,
+    [run.runCharacters, user]
   );
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
 
-  const closeTime = raid.signupCloseTime
-    ? DateTime.fromISO(raid.signupCloseTime, { zone: "UTC" }).setZone(timezone)
+  const closeTime = run.signupCloseTime
+    ? DateTime.fromISO(run.signupCloseTime, { zone: "UTC" }).setZone(timezone)
     : null;
   const isClosed = closeTime?.isValid ? closeTime < DateTime.now() : false;
-  const guildSignupBlocked = raid.visibility === "GUILD" && !canSignupToGuildRaids;
+  const guildSignupBlocked = run.visibility === "GUILD" && !canSignupToGuildRuns;
 
   const selectedCharacter = characters.find(c => c.id === characterId);
   const availableSpecs = selectedCharacter?.specializations ?? [];
 
   const signupRegionProps = {
     component: "section" as const,
-    "aria-label": t("raidSignup.signupRegion", { description: raid.description }),
+    "aria-label": t("runSignup.signupRegion", { description: run.description }),
   };
 
   // Default character + spec when characters load
@@ -107,15 +107,15 @@ export default function RaidSignupCard({
     setSubmitting(true);
     setError(null);
     try {
-      const res = await api.post<Raid>(`/raids/${raid.id}/signup`, {
+      const res = await api.post<Run>(`/runs/${run.id}/signup`, {
         characterId: submitCharId,
         desiredAttendance: newStatus,
         specId: submitSpecId,
       });
-      onRaidUpdate(res.data);
+      onRunUpdate(res.data);
       setShowCharEdit(false);
     } catch {
-      setError(t("raidSignup.updateFailed"));
+      setError(t("runSignup.updateFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -125,11 +125,11 @@ export default function RaidSignupCard({
     setSubmitting(true);
     setError(null);
     try {
-      const res = await api.delete<Raid>(`/raids/${raid.id}/signup`);
-      onRaidUpdate(res.data);
+      const res = await api.delete<Run>(`/runs/${run.id}/signup`);
+      onRunUpdate(res.data);
       setPendingCancel(false);
     } catch {
-      setError(t("raidSignup.cancelFailed"));
+      setError(t("runSignup.cancelFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -143,8 +143,8 @@ export default function RaidSignupCard({
         {...signupRegionProps}
         sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
       >
-        <CircularProgress size={20} aria-label={t("raidSignup.loadingCharacters")} />
-        <Typography variant="body2">{t("raidSignup.loadingCharacters")}</Typography>
+        <CircularProgress size={20} aria-label={t("runSignup.loadingCharacters")} />
+        <Typography variant="body2">{t("runSignup.loadingCharacters")}</Typography>
       </SurfaceCard>
     );
   }
@@ -161,7 +161,7 @@ export default function RaidSignupCard({
     return (
       <SurfaceCard {...signupRegionProps} sx={{ mb: 2 }}>
         <Typography variant="body2">
-          <Link to="/characters">{t("raidSignup.addCharacter")}</Link>{t("raidSignup.addCharacterSuffix")}
+          <Link to="/characters">{t("runSignup.addCharacter")}</Link>{t("runSignup.addCharacterSuffix")}
         </Typography>
       </SurfaceCard>
     );
@@ -170,7 +170,7 @@ export default function RaidSignupCard({
   if (isClosed) {
     return (
       <SurfaceCard {...signupRegionProps} tone="error" sx={{ mb: 2 }}>
-        <Typography variant="body2" color="error">{t("raidSignup.signupsClosed")}</Typography>
+        <Typography variant="body2" color="error">{t("runSignup.signupsClosed")}</Typography>
       </SurfaceCard>
     );
   }
@@ -195,18 +195,18 @@ export default function RaidSignupCard({
               sx={{ p: 0, minWidth: 0, fontSize: "0.75rem" }}
               onClick={() => setShowCharEdit(true)}
             >
-              {t("raidSignup.changeCharacter")}
+              {t("runSignup.changeCharacter")}
             </Button>
           </Box>
         ) : (
           <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
             <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id={CHARACTER_LABEL_ID}>{t("raidSignup.character")}</InputLabel>
+              <InputLabel id={CHARACTER_LABEL_ID}>{t("runSignup.character")}</InputLabel>
               <Select
                 id={CHARACTER_SELECT_ID}
                 labelId={CHARACTER_LABEL_ID}
                 value={characterId}
-                label={t("raidSignup.character")}
+                label={t("runSignup.character")}
                 onChange={e => handleCharacterChange(e.target.value)}
               >
                 {characters.map(c => (
@@ -215,16 +215,16 @@ export default function RaidSignupCard({
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 140 }} disabled={availableSpecs.length === 0}>
-              <InputLabel id={SPEC_LABEL_ID}>{t("raidSignup.spec")}</InputLabel>
+              <InputLabel id={SPEC_LABEL_ID}>{t("runSignup.spec")}</InputLabel>
               <Select
                 id={SPEC_SELECT_ID}
                 labelId={SPEC_LABEL_ID}
                 value={specId ?? ""}
-                label={t("raidSignup.spec")}
+                label={t("runSignup.spec")}
                 onChange={e => setSpecId(Number(e.target.value))}
               >
                 {availableSpecs.length === 0
-                  ? <MenuItem value="" disabled>{t("raidSignup.unknownSpec")}</MenuItem>
+                  ? <MenuItem value="" disabled>{t("runSignup.unknownSpec")}</MenuItem>
                   : availableSpecs.map(s => (
                       <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
                     ))
@@ -237,14 +237,14 @@ export default function RaidSignupCard({
                 sx={{ alignSelf: "center" }}
                 onClick={() => setShowCharEdit(false)}
               >
-                {t("raidSignup.back")}
+                {t("runSignup.back")}
               </Button>
             )}
           </Box>
         )}
 
         {guildSignupBlocked && (
-          <Alert severity="info">{t("raidSignup.guildRankBlocked")}</Alert>
+          <Alert severity="info">{t("runSignup.guildRankBlocked")}</Alert>
         )}
 
         {/* Status buttons + cancel */}
@@ -253,7 +253,7 @@ export default function RaidSignupCard({
             <ToggleButtonGroup
               exclusive
               size="small"
-              aria-label={t("raidSignup.attendance")}
+              aria-label={t("runSignup.attendance")}
               value={currentStatus ?? null}
               sx={{ flexWrap: "wrap" }}
             >
@@ -291,7 +291,7 @@ export default function RaidSignupCard({
               disabled={submitting}
               onClick={() => setPendingCancel(true)}
             >
-              {t("raidSignup.cancel")}
+              {t("runSignup.cancel")}
             </Button>
           )}
 
@@ -299,10 +299,10 @@ export default function RaidSignupCard({
       </Box>
       <ConfirmDialog
         open={pendingCancel}
-        title={t("raidSignup.cancelConfirmTitle")}
-        description={t("raidSignup.cancelConfirmBody")}
-        confirmLabel={t("raidSignup.cancelConfirmConfirm")}
-        cancelLabel={t("raidSignup.cancelConfirmCancel")}
+        title={t("runSignup.cancelConfirmTitle")}
+        description={t("runSignup.cancelConfirmBody")}
+        confirmLabel={t("runSignup.cancelConfirmConfirm")}
+        cancelLabel={t("runSignup.cancelConfirmCancel")}
         onConfirm={handleCancelSignup}
         onCancel={() => setPendingCancel(false)}
         loading={submitting}

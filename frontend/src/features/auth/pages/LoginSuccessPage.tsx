@@ -12,7 +12,7 @@ export default function LoginSuccessPage() {
   useDocumentTitle(`${t("loginSuccess.signingIn")} — LFM`);
 
   useEffect(() => {
-    const redirect = searchParams.get("redirect") || "/raids";
+    const redirect = searchParams.get("redirect") || "/runs";
     navigate(redirect, { replace: true });
   }, [navigate, searchParams]);
 
