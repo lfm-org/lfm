@@ -84,8 +84,8 @@ describe("runStartupMigrations", () => {
     });
   });
 
-  it("skips startup migrations for the raids-error e2e scenario", async () => {
-    process.env.E2E_SCENARIO = "raids-error";
+  it("skips startup migrations for the runs-error e2e scenario", async () => {
+    process.env.E2E_SCENARIO = "runs-error";
     const { runStartupMigrations } = await import("./startup-migrations.js");
 
     await runStartupMigrations();

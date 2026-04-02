@@ -14,6 +14,8 @@ import { createCosmosClientOptions } from "./cosmos.js";
 import { CosmosMigrationsStorage } from "./cosmos-migrations-storage.js";
 import * as migration20260321 from "../scripts/migrations/20260321-raid-guild.js";
 import * as migration20260322 from "../scripts/migrations/20260322-raid-guild-fallback.js";
+import * as migration20260403runs from "../scripts/migrations/20260403-raids-to-runs.js";
+import * as migration20260403portraits from "../scripts/migrations/20260403-portrait-cdn-urls.js";
 
 export async function runStartupMigrations(): Promise<void> {
   const endpoint = process.env.COSMOS_ENDPOINT;
@@ -23,8 +25,8 @@ export async function runStartupMigrations(): Promise<void> {
     return;
   }
 
-  if (process.env.TEST_MODE === "true" && process.env.E2E_SCENARIO === "raids-error") {
-    console.log("[migrations] Skipping startup migrations for raids-error scenario.");
+  if (process.env.TEST_MODE === "true" && process.env.E2E_SCENARIO === "runs-error") {
+    console.log("[migrations] Skipping startup migrations for runs-error scenario.");
     return;
   }
 
@@ -50,6 +52,16 @@ export async function runStartupMigrations(): Promise<void> {
         name: "20260322-raid-guild-fallback",
         up: async ({ context }: { context: CosmosClient }) => migration20260322.up(context),
         down: async ({ context }: { context: CosmosClient }) => migration20260322.down(context),
+      },
+      {
+        name: "20260403-raids-to-runs",
+        up: async ({ context }: { context: CosmosClient }) => migration20260403runs.up(context),
+        down: async ({ context }: { context: CosmosClient }) => migration20260403runs.down(context),
+      },
+      {
+        name: "20260403-portrait-cdn-urls",
+        up: async ({ context }: { context: CosmosClient }) => migration20260403portraits.up(context),
+        down: async ({ context }: { context: CosmosClient }) => migration20260403portraits.down(context),
       },
     ],
     context: client,

@@ -128,6 +128,6 @@ export async function up(client: CosmosClient): Promise<void> {
   console.log(`[20260403-portrait-cdn-urls] Done. Updated: ${updatedDocs}, Skipped: ${skippedDocs}`);
 }
 
-export async function down(): Promise<void> {
+export async function down(_client: CosmosClient): Promise<void> {
   console.log("[20260403-portrait-cdn-urls] down() is a no-op — original proxy URLs are not recoverable");
 }
