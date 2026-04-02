@@ -13,7 +13,6 @@ import { deleteAccount } from "../../../lib/auth";
 import ErrorState from "../../../components/ErrorState";
 import EmptyState from "../../../components/EmptyState";
 import LoadingState from "../../../components/LoadingState";
-import { useToast } from "../../../components/useToast";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import ForgetMeSection from "../components/ForgetMeSection";
 import { useCharacters } from "../lib/useCharacters";
@@ -238,7 +237,6 @@ function CharactersPageInner({
 export default function CharactersPage() {
   const { t } = useTranslation();
   useDocumentTitle(`${t("characters.title")} — LFM`);
-  const { showSuccess } = useToast();
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -271,7 +269,7 @@ export default function CharactersPage() {
   );
 
   const { characters, loading, portraits, loadingPortraits, error, retry } = useCharacters(visibleCharsForPortraits);
-  const handleRefresh = () => { retry(); showSuccess(t("common.refreshed")); };
+  const handleRefresh = () => { retry(); };
 
   const sortedCharacters = useMemo(() => {
     const sorted = [...characters];

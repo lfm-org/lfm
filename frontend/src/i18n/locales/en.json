@@ -126,6 +126,7 @@
 
   "raids.title": "Raids",
   "raids.createButton": "Create Raid",
+  "raids.loadFailed": "Failed to load raids",
   "raids.empty": "No raids found.",
   "raids.emptyCta": "Create Raid",
   "raids.sort": "Sort",

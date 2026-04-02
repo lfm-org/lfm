@@ -80,7 +80,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
           setRaids(raidResult.value.data.map(normalizeRaid));
         } else {
           setRaids([]);
-          setError("Failed to load raids");
+          setError("raids.loadFailed");
         }
 
         if (instanceResult.status === "fulfilled") {

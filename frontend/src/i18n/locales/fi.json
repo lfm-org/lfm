@@ -126,6 +126,7 @@
 
   "raids.title": "Raidit",
   "raids.createButton": "Luo raid",
+  "raids.loadFailed": "Raidien lataaminen epäonnistui",
   "raids.empty": "Raideja ei löytynyt.",
   "raids.emptyCta": "Luo raid",
   "raids.sort": "Järjestys",

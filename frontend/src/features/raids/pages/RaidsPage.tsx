@@ -15,7 +15,6 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useToast } from "../../../components/useToast";
 import LoadingState from "../../../components/LoadingState";
 import ErrorState from "../../../components/ErrorState";
 import EmptyState from "../../../components/EmptyState";
@@ -67,8 +66,7 @@ export default function RaidsPage() {
     handleSortChange,
   } = useRaids(battleNetId, isDesktop, isMobile);
 
-  const { showSuccess } = useToast();
-  const handleRefresh = () => { refresh(); showSuccess(t("common.refreshed")); };
+  const handleRefresh = () => { refresh(); };
 
   const handleRaidEdit = (raidId: string) => {
     const params = new URLSearchParams();
@@ -130,7 +128,7 @@ export default function RaidsPage() {
         </Box>
       </Box>
 
-      {error && <ErrorState message={error} onRetry={refresh} />}
+      {error && <ErrorState message={t(error)} onRetry={refresh} />}
 
       {loading ? (
         <LoadingState />
