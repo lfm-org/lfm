@@ -177,6 +177,7 @@ export interface WowInstance {
   minLevel: number;
   expansionId: number;
   modes: WowInstanceMode[];
+  mediaUrl?: string;
 }
 
 export interface WowSpecialization {
