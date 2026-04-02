@@ -5,6 +5,7 @@ import RunInfoCard from "./RunInfoCard";
 import RunRosterGrid from "./RunRosterGrid";
 import RunSignupCard, { type RunSignupCharacter } from "./RunSignupCard";
 import type { Run } from "../lib/runTypes";
+import { getInstanceTypeColors } from "../../../theme";
 
 interface RunListCardProps {
   run: Run;
@@ -24,6 +25,8 @@ interface RunListCardProps {
   canCreateGuildRuns?: boolean;
   onRunDelete?: (runId: string) => void;
   onRunEdit?: (runId: string) => void;
+  instanceType?: string;
+  mediaUrl?: string;
 }
 
 function getRoleCounts(run: Run) {
@@ -54,9 +57,12 @@ export default function RunListCard({
   canCreateGuildRuns,
   onRunDelete,
   onRunEdit,
+  instanceType: instanceTypeProp,
+  mediaUrl,
 }: RunListCardProps) {
   const { t } = useTranslation();
   const roleCounts = getRoleCounts(run);
+  const typeColors = getInstanceTypeColors(instanceTypeProp ?? "UNKNOWN");
   const showDetails = !isMobile || isExpanded;
 
   return (
@@ -65,7 +71,31 @@ export default function RunListCard({
       aria-label={`${run.instanceName}: ${run.description}`}
       id={`run-card-${run.id}`}
       data-testid="run-card"
-      sx={{ display: "grid", gap: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}
+      sx={{
+          display: "grid",
+          gap: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          borderLeft: `3px solid ${typeColors.border}`,
+          borderRadius: 2,
+          p: 2,
+          position: "relative",
+          overflow: "hidden",
+          ...(mediaUrl && {
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url(${mediaUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              opacity: 0.12,
+              pointerEvents: "none",
+              zIndex: 0,
+            },
+          }),
+          "& > *": { position: "relative", zIndex: 1 },
+        }}
     >
       <RunInfoCard run={run} modeLabel={modeLabel} guildTimezone={guildTimezone} currentBattleNetId={currentBattleNetId} canDeleteGuildRuns={canDeleteGuildRuns} canCreateGuildRuns={canCreateGuildRuns} onRunDelete={onRunDelete} onRunEdit={onRunEdit}>
         {isMobile && (
