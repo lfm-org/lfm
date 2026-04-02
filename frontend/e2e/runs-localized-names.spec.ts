@@ -1,15 +1,15 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures/auth";
 
-test("raids page renders localized API names without crashing", async ({ page }) => {
+test("runs page renders localized API names without crashing", async ({ page }) => {
   const pageErrors: Error[] = [];
   page.on("pageerror", (error) => pageErrors.push(error));
 
-  await page.route("**/api/raids", async (route) => {
+  await page.route("**/api/runs", async (route) => {
     await route.fulfill({
       json: [
         {
-          id: "raid-localized",
+          id: "run-localized",
           startTime: "2026-03-25T19:30:00.000Z",
           signupCloseTime: "2026-03-25T18:00:00.000Z",
           description: "Legacy localized data",
@@ -68,10 +68,10 @@ test("raids page renders localized API names without crashing", async ({ page })
     });
   });
 
-  await page.goto("/raids");
+  await page.goto("/runs");
 
-  await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
-  await expect(page.getByTestId("raid-card").getByRole("heading", { name: "Icecrown Citadel" })).toBeVisible();
-  await expect(page.getByTestId("raid-card").getByText("Normal (10 players)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
+  await expect(page.getByTestId("run-card").getByRole("heading", { name: "Icecrown Citadel" })).toBeVisible();
+  await expect(page.getByTestId("run-card").getByText("Normal (10 players)")).toBeVisible();
   await expect(pageErrors).toEqual([]);
 });

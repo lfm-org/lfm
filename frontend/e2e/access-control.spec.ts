@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("unauthenticated protected routes redirect to the themed login page", async ({ page }) => {
-  for (const protectedPath of ["/raids", "/characters", "/raids/new"]) {
+  for (const protectedPath of ["/runs", "/characters", "/runs/new"]) {
     await page.goto(protectedPath, { waitUntil: "domcontentloaded" });
 
     await expect(page).toHaveURL(new RegExp(`/login\\?redirect=${encodeURIComponent(protectedPath)}$`));

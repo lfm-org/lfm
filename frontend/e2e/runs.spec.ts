@@ -1,21 +1,21 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures/auth";
-test("authenticated raids page shows five full raid cards with pagination", async ({ page }) => {
-  await page.goto("/raids");
+test("authenticated runs page shows five full run cards with pagination", async ({ page }) => {
+  await page.goto("/runs");
 
-  await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Deadmines Heroic \(5 players\)/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Icecrown Citadel Heroic \(10 players\)/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Deadmines Normal \(5 players\)/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Icecrown Citadel Heroic \(25 players\)/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Onyxia's Lair Normal \(25 players\)/ })).toBeVisible();
   await expect(page.getByText("Rival guild only raid")).toHaveCount(0);
-  await expect(page.getByTestId("raid-card")).toHaveCount(1);
+  await expect(page.getByTestId("run-card")).toHaveCount(1);
   await expect(page.getByText("Closed heroic cleanup")).toBeVisible();
 
   // Passed section collapsed by default
-  await expect(page.locator("#passed-raids-section")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Passed raids \(2\)/ })).toBeVisible();
+  await expect(page.locator("#passed-runs-section")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Passed runs \(2\)/ })).toBeVisible();
 
   await page.getByRole("button", { name: /Icecrown Citadel Heroic \(10 players\)/ }).click();
   await expect(page.getByText("Closed progression lockout")).toBeVisible();
@@ -47,52 +47,52 @@ test("authenticated raids page shows five full raid cards with pagination", asyn
   await expect(page.getByText("Guild ten-player alt run")).toHaveCount(0);
 });
 
-test("raids page focuses the requested raid query on the correct page", async ({ page }) => {
-  await page.goto("/raids?raid=raid-guild-dense-molten-core");
+test("runs page focuses the requested run query on the correct page", async ({ page }) => {
+  await page.goto("/runs?run=run-guild-dense-molten-core");
 
   await expect(page.getByText("Guild retro forty-player night")).toBeVisible();
   await expect(page.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
-test("passed raids section is collapsed by default and expandable", async ({ page }) => {
-  await page.goto("/raids");
-  await expect(page.getByRole("heading", { name: "Raids" })).toBeVisible();
+test("passed runs section is collapsed by default and expandable", async ({ page }) => {
+  await page.goto("/runs");
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
 
   // Passed section not visible by default
-  await expect(page.locator("#passed-raids-section")).toHaveCount(0);
+  await expect(page.locator("#passed-runs-section")).toHaveCount(0);
 
   // Toggle button shows count
-  const toggle = page.getByRole("button", { name: /Passed raids \(2\)/ });
+  const toggle = page.getByRole("button", { name: /Passed runs \(2\)/ });
   await expect(toggle).toBeVisible();
 
   // Expand passed section — sidebar shows instance names, not descriptions
   await toggle.click();
-  const passedSection = page.locator("#passed-raids-section");
+  const passedSection = page.locator("#passed-runs-section");
   await expect(passedSection).toBeVisible();
   await expect(passedSection.getByRole("button")).toHaveCount(2);
 
-  // Click a passed raid to see its description in the detail panel
+  // Click a passed run to see its description in the detail panel
   await passedSection.getByRole("button").first().click();
   await expect(page.getByText("Completed heroic speed run")).toBeVisible();
 
   // Collapse again
   await toggle.click();
-  await expect(page.locator("#passed-raids-section")).toHaveCount(0);
+  await expect(page.locator("#passed-runs-section")).toHaveCount(0);
 });
 
-test("deep-link to passed raid auto-expands passed section", async ({ page }) => {
-  await page.goto("/raids?raid=raid-passed-public-deadmines");
-  // Passed section auto-expanded and raid selected — description visible in detail panel
-  await expect(page.locator("#passed-raids-section")).toBeVisible();
+test("deep-link to passed run auto-expands passed section", async ({ page }) => {
+  await page.goto("/runs?run=run-passed-public-deadmines");
+  // Passed section auto-expanded and run selected — description visible in detail panel
+  await expect(page.locator("#passed-runs-section")).toBeVisible();
   await expect(page.getByText("Completed heroic speed run")).toBeVisible();
 });
 
-test("mobile raids page keeps cards compact until expanded", async ({ page }) => {
+test("mobile runs page keeps cards compact until expanded", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/raids");
+  await page.goto("/runs");
 
-  const heroicFarmCard = page.getByTestId("raid-card").filter({ hasText: "Heroic farm night" });
-  const dragonResetCard = page.getByTestId("raid-card").filter({ hasText: "Dragon reset clear" });
+  const heroicFarmCard = page.getByTestId("run-card").filter({ hasText: "Heroic farm night" });
+  const dragonResetCard = page.getByTestId("run-card").filter({ hasText: "Dragon reset clear" });
 
   await expect(heroicFarmCard.getByRole("button", { name: "Show details" })).toBeVisible();
   await expect(heroicFarmCard.getByRole("region", { name: "Your Signup for Heroic farm night" })).toHaveCount(0);

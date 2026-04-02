@@ -60,19 +60,19 @@ unauthenticatedTest("privacy policy page is axe-clean", async ({ page }) => {
 
 // --- Authenticated pages ---
 
-authenticatedTest("raids list is keyboard reachable and axe-clean", async ({ page }) => {
-  await page.goto("/raids");
-  const createRaidButton = page.getByRole("button", { name: "Create Raid" });
+authenticatedTest("runs list is keyboard reachable and axe-clean", async ({ page }) => {
+  await page.goto("/runs");
+  const createRunButton = page.getByRole("button", { name: "Create Run" });
 
-  await expect(createRaidButton).toBeVisible();
-  await tabUntilFocused(page, createRaidButton);
+  await expect(createRunButton).toBeVisible();
+  await tabUntilFocused(page, createRunButton);
   await expectNoA11yViolations(page);
 });
 
-authenticatedTest("combined raid card detail is keyboard reachable and axe-clean", async ({ page }) => {
-  await page.goto("/raids?raid=raid-public-generated-02");
+authenticatedTest("combined run card detail is keyboard reachable and axe-clean", async ({ page }) => {
+  await page.goto("/runs?run=run-public-generated-02");
   const signupRegion = page
-    .getByTestId("raid-card")
+    .getByTestId("run-card")
     .filter({ hasText: "Public roster check 2" })
     .getByRole("region", { name: "Your Signup for Public roster check 2" });
   const signupAction = signupRegion.getByRole("combobox", { name: /Character/ });
@@ -95,8 +95,8 @@ authenticatedTest("guild page is axe-clean", async ({ page }) => {
   await expectNoA11yViolations(page);
 });
 
-authenticatedTest("create raid page is axe-clean", async ({ page }) => {
-  await page.goto("/raids/new");
+authenticatedTest("create run page is axe-clean", async ({ page }) => {
+  await page.goto("/runs/new");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expectNoA11yViolations(page);
 });

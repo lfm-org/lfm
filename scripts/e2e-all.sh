@@ -12,7 +12,7 @@ RUNNER="$ROOT_DIR/scripts/e2e.sh"
 "$RUNNER" default
 
 # Scenario-specific specs — each requires its own seed state.
-"$RUNNER" raids-empty e2e/raids-empty.spec.ts
-"$RUNNER" raids-error e2e/raids-error.spec.ts
+"$RUNNER" runs-empty e2e/runs-empty.spec.ts
+"$RUNNER" runs-error e2e/runs-error.spec.ts
 "$RUNNER" characters-empty e2e/characters-empty.spec.ts
-"$RUNNER" instances-missing e2e/create-raid-instances-missing.spec.ts
+"$RUNNER" instances-missing e2e/create-run-instances-missing.spec.ts

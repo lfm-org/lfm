@@ -24,12 +24,12 @@ async function fillDateTimeGroup(
   await group.getByRole("spinbutton", { name: "Minutes" }).fill(minutes);
 }
 
-test("authenticated raider can create a raid with modeKey and land on the new raid card", async ({ page }) => {
-  await page.goto("/raids/new");
+test("authenticated raider can create a run with modeKey and land on the new run card", async ({ page }) => {
+  await page.goto("/runs/new");
 
-  await expect(page.getByRole("heading", { name: "Create Raid" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create Run" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Create Raid" }).click();
+  await page.getByRole("button", { name: "Create Run" }).click();
   await expect(page.getByText("Instance is required")).toBeVisible();
   await expect(page.getByText("Mode is required")).toBeVisible();
   await expect(page.getByText("Start time is required")).toBeVisible();
@@ -52,18 +52,18 @@ test("authenticated raider can create a raid with modeKey and land on the new ra
     hours: "18",
     minutes: "00",
   });
-  await page.getByLabel("Description").fill("Harness create raid");
+  await page.getByLabel("Description").fill("Harness create run");
 
-  const requestPromise = page.waitForRequest("**/api/raids");
-  await page.getByRole("button", { name: "Create Raid" }).click();
+  const requestPromise = page.waitForRequest("**/api/runs");
+  await page.getByRole("button", { name: "Create Run" }).click();
   const request = await requestPromise;
   const payload = request.postDataJSON() as Record<string, unknown>;
 
   expect(payload.modeKey).toBe("NORMAL:5");
   expect(payload).not.toHaveProperty("mode");
 
-  await expect(page).toHaveURL(/\/raids\?raid=/);
-  const createdRaidCard = page.getByTestId("raid-card").filter({ hasText: "Harness create raid" });
-  await expect(createdRaidCard).toBeVisible();
-  await expect(createdRaidCard.getByText("Normal (5 players)")).toBeVisible();
+  await expect(page).toHaveURL(/\/runs\?run=/);
+  const createdRunCard = page.getByTestId("run-card").filter({ hasText: "Harness create run" });
+  await expect(createdRunCard).toBeVisible();
+  await expect(createdRunCard.getByText("Normal (5 players)")).toBeVisible();
 });

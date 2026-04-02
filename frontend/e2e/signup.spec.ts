@@ -1,10 +1,10 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures/auth";
 
-test("authenticated raider can create, update, and cancel a signup from the combined raids page", async ({ page }) => {
-  await page.goto("/raids?raid=raid-public-empty-deadmines");
+test("authenticated raider can create, update, and cancel a signup from the combined runs page", async ({ page }) => {
+  await page.goto("/runs?run=run-public-empty-deadmines");
   const signupRegion = page
-    .getByTestId("raid-card")
+    .getByTestId("run-card")
     .filter({ hasText: "Public dungeon warmup" })
     .getByRole("region", { name: "Your Signup for Public dungeon warmup" });
 
@@ -15,9 +15,9 @@ test("authenticated raider can create, update, and cancel a signup from the comb
   await expect(signupRegion.getByRole("button", { name: "Late" })).toHaveAttribute("aria-pressed", "true");
   await expect(signupRegion.getByRole("button", { name: "Change character" })).toBeVisible();
 
-  await page.goto("/raids?raid=raid-public-existing-signup-onyxia25");
+  await page.goto("/runs?run=run-public-existing-signup-onyxia25");
   const existingSignupRegion = page
-    .getByTestId("raid-card")
+    .getByTestId("run-card")
     .filter({ hasText: "Dragon reset clear" })
     .getByRole("region", { name: "Your Signup for Dragon reset clear" });
 

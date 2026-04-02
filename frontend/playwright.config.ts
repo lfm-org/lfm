@@ -9,10 +9,10 @@ const includePerfSpecs = process.env.PLAYWRIGHT_INCLUDE_PERF_SPECS === "1";
 // Excluded from open test discovery so `e2e.sh` (default scenario) doesn't
 // pick them up and fail; e2e-all.sh passes them explicitly by filename.
 const SCENARIO_SPECS = [
-  "**/raids-empty.spec.ts",
-  "**/raids-error.spec.ts",
+  "**/runs-empty.spec.ts",
+  "**/runs-error.spec.ts",
   "**/characters-empty.spec.ts",
-  "**/create-raid-instances-missing.spec.ts",
+  "**/create-run-instances-missing.spec.ts",
 ];
 
 // Perf specs are always excluded from default discovery. Run them explicitly

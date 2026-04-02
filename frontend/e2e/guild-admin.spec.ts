@@ -11,7 +11,7 @@ test("site admins can resolve a guild explicitly and edit its settings through /
 
   await expect(page.getByRole("heading", { name: "Rival Guild" })).toBeVisible();
   await page.getByLabel("Slogan").fill("Bench starts on time.");
-  await page.getByLabel("Allow guild raid creation for Rank 2").check();
+  await page.getByLabel("Allow guild run creation for Rank 2").check();
   await page.getByRole("button", { name: "Save guild settings" }).click();
 
   await expect(page.getByText("Guild settings saved")).toBeVisible();
