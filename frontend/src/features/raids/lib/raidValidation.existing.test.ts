@@ -85,7 +85,7 @@ describe("validateRaidForm (create mode)", () => {
     expect(errors.signupCloseTime).toBe("Signup close time must be in the future");
   });
 
-  it("rejects signupCloseTime at or after startTime", () => {
+  it("rejects signupCloseTime after startTime", () => {
     const start = DateTime.now().plus({ days: 2 });
     const closeAfterStart = DateTime.now().plus({ days: 3 });
     const errors = validateRaidForm({
@@ -95,7 +95,19 @@ describe("validateRaidForm (create mode)", () => {
       signupCloseTime: closeAfterStart,
       description: "",
     });
-    expect(errors.signupCloseTime).toBe("Signup close time must be before start time");
+    expect(errors.signupCloseTime).toBe("Signup close time must be at or before start time");
+  });
+
+  it("allows signupCloseTime equal to startTime", () => {
+    const start = DateTime.now().plus({ days: 2 });
+    const errors = validateRaidForm({
+      instanceId: 1,
+      selectedModeKey: "heroic",
+      startTime: start,
+      signupCloseTime: start,
+      description: "",
+    });
+    expect(errors.signupCloseTime).toBeUndefined();
   });
 
   it("rejects description over 500 characters", () => {

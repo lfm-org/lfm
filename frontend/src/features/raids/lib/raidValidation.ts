@@ -26,8 +26,8 @@ export function validateRaidForm(
   if (fields.signupCloseTime?.isValid) {
     if (mode === "create" && fields.signupCloseTime <= DateTime.now()) {
       errors.signupCloseTime = "Signup close time must be in the future";
-    } else if (fields.startTime?.isValid && fields.signupCloseTime >= fields.startTime) {
-      errors.signupCloseTime = "Signup close time must be before start time";
+    } else if (fields.startTime?.isValid && fields.signupCloseTime > fields.startTime) {
+      errors.signupCloseTime = "Signup close time must be at or before start time";
     }
   }
 
