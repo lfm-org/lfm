@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
-import { getGuildsContainer, getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
+import { getGuildsContainer, getRaidersContainer, getRunsContainer } from "../lib/cosmos.js";
 import { getEffectiveGuildPermissions } from "../lib/guild-permissions.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
@@ -9,9 +9,9 @@ import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { writeLimiter, getClientIp, rateLimitResponse } from "../middleware/rate-limit.js";
 import { z } from "zod";
-import type { BattleNetIdentity, GuildDocument, RaidDocument, RaidVisibility, RaiderDocument, WowInstance } from "../types/index.js";
+import type { BattleNetIdentity, GuildDocument, RunDocument, RunVisibility, RaiderDocument, WowInstance } from "../types/index.js";
 
-const createRaidSchema = z.object({
+const createRunSchema = z.object({
   startTime: z.string(),
   signupCloseTime: z.string().optional(),
   description: z.string().optional(),
@@ -21,14 +21,14 @@ const createRaidSchema = z.object({
   instanceName: z.string().optional(),
 }).strict();
 
-export type CreateRaidBody = z.infer<typeof createRaidSchema>;
+export type CreateRunBody = z.infer<typeof createRunSchema>;
 
 function findInstance(instances: WowInstance[], instanceId: number): WowInstance | undefined {
   return instances.find(instance => instance.id === instanceId);
 }
 
-export function parseCreateRaidBody(body: unknown): CreateRaidBody {
-  const result = createRaidSchema.safeParse(body);
+export function parseCreateRunBody(body: unknown): CreateRunBody {
+  const result = createRunSchema.safeParse(body);
   if (!result.success) {
     const first = result.error.issues[0];
     throw new Error(first?.message ?? "Invalid request body");
@@ -36,7 +36,7 @@ export function parseCreateRaidBody(body: unknown): CreateRaidBody {
   return result.data;
 }
 
-export function validateCreateRaidBody(body: CreateRaidBody, instances: WowInstance[]): CreateRaidBody {
+export function validateCreateRunBody(body: CreateRunBody, instances: WowInstance[]): CreateRunBody {
   const instance = findInstance(instances, body.instanceId);
   if (!instance || !hasModeKey(instance, body.modeKey)) {
     throw new Error("Invalid modeKey for instance");
@@ -48,16 +48,16 @@ export function validateCreateRaidBody(body: CreateRaidBody, instances: WowInsta
   };
 }
 
-const RAID_TTL_AFTER_START_MS = 7 * 24 * 3600 * 1000;
+const RUN_TTL_AFTER_START_MS = 7 * 24 * 3600 * 1000;
 const MIN_TTL_SECONDS = 86400; // 1 day minimum
 
-export function buildRaidDocument(
-  body: CreateRaidBody,
+export function buildRunDocument(
+  body: CreateRunBody,
   identity: BattleNetIdentity,
   id: string,
   createdAt: string
-): RaidDocument {
-  const expiryMs = new Date(body.startTime).getTime() + RAID_TTL_AFTER_START_MS;
+): RunDocument {
+  const expiryMs = new Date(body.startTime).getTime() + RUN_TTL_AFTER_START_MS;
   const ttl = Math.max(MIN_TTL_SECONDS, Math.floor((expiryMs - new Date(createdAt).getTime()) / 1000));
 
   return {
@@ -74,7 +74,7 @@ export function buildRaidDocument(
     creatorBattleNetId: identity.battleNetId,
     createdAt,
     ttl,
-    raidCharacters: [],
+    runCharacters: [],
   };
 }
 
@@ -84,9 +84,9 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const identity = await requireAuth(request);
   if (!identity) return errorResponse(401, "Unauthorized");
 
-  let body: CreateRaidBody;
+  let body: CreateRunBody;
   try {
-    body = parseCreateRaidBody(await request.json());
+    body = parseCreateRunBody(await request.json());
   } catch (error: unknown) {
     return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
   }
@@ -95,13 +95,13 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   if (!instances) return errorResponse(503, "Instance data not available");
 
   try {
-    body = validateCreateRaidBody(body, instances);
+    body = validateCreateRunBody(body, instances);
   } catch (error: unknown) {
     return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
   }
 
   if (body.visibility === "GUILD" && !identity.guildId) {
-    return errorResponse(400, "A guild raid requires an active character in a guild");
+    return errorResponse(400, "A guild run requires an active character in a guild");
   }
 
   if (body.visibility === "GUILD" && identity.guildId) {
@@ -111,21 +111,21 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>(),
     ]);
     const permissions = getEffectiveGuildPermissions(guildDoc, raider);
-    if (!permissions.canCreateGuildRaids) {
-      return errorResponse(403, "Guild raid creation is not enabled for your rank");
+    if (!permissions.canCreateGuildRuns) {
+      return errorResponse(403, "Guild run creation is not enabled for your rank");
     }
   }
 
-  const raid = buildRaidDocument(body, identity, randomUUID(), new Date().toISOString());
+  const run = buildRunDocument(body, identity, randomUUID(), new Date().toISOString());
 
-  const { resource } = await getRaidsContainer().items.create(raid);
-  auditLog(context, { action: "raid.create", actorId: identity.battleNetId, targetId: raid.id, result: "success" });
+  const { resource } = await getRunsContainer().items.create(run);
+  auditLog(context, { action: "run.create", actorId: identity.battleNetId, targetId: run.id, result: "success" });
   return jsonResponse(resource, 201);
 }
 
-app.http("raids-create", {
+app.http("runs-create", {
   methods: ["POST"],
-  route: "raids",
+  route: "runs",
   authLevel: "anonymous",
   handler,
 });

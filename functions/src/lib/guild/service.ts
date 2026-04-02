@@ -121,9 +121,9 @@ function buildAdminGuildHomeView(guildDoc: GuildDocument) {
     toAdminEditorView(),
     {
       matchedRank: null,
-      canCreateGuildRaids: false,
-      canSignupGuildRaids: false,
-      canDeleteGuildRaids: false,
+      canCreateGuildRuns: false,
+      canSignupGuildRuns: false,
+      canDeleteGuildRuns: false,
       rankDataFresh: false,
     },
     {

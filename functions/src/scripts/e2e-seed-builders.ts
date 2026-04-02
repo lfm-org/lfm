@@ -9,8 +9,8 @@ import { findModeByKey, getModePlayers } from "../lib/wow-instance-modes.js";
 import type {
   Character,
   RaiderDocument,
-  RaidCharacter,
-  RaidDocument,
+  RunCharacter,
+  RunDocument,
   WowInstance,
 } from "../types/index.js";
 import type { E2eScenario, RaidSeedDefinition } from "./e2e-test-data.js";
@@ -198,7 +198,7 @@ const NAME_PREFIXES = [
 ];
 
 const NAME_SUFFIXES = ["dor", "wyn", "mere", "thorn"];
-const ATTENDANCE_CYCLE: Array<RaidCharacter["desiredAttendance"]> = ["IN", "IN", "IN", "BENCH", "LATE", "AWAY", "OUT"];
+const ATTENDANCE_CYCLE: Array<RunCharacter["desiredAttendance"]> = ["IN", "IN", "IN", "BENCH", "LATE", "AWAY", "OUT"];
 
 export function buildCharacterId(region: string, realm: string, name: string): string {
   return `${region}-${realm}-${name.toLowerCase()}`;
@@ -473,14 +473,14 @@ export function requireMode(instances: WowInstance[], instanceId: number, modeKe
   return { instance, players: getModePlayers(mode) };
 }
 
-export function buildRaidSignup(raidId: string, raider: RaiderSeed, index: number): RaidCharacter {
+export function buildRaidSignup(runId: string, raider: RaiderSeed, index: number): RunCharacter {
   const activeSpecId = raider.primary.character.activeSpecId ?? raider.primary.character.specializations?.[0]?.id ?? null;
   const activeSpec = raider.primary.character.specializations?.find((spec) => spec.id === activeSpecId)
     ?? raider.primary.character.specializations?.[0]
     ?? null;
 
   return {
-    id: `${raidId}-signup-${raider.document.battleNetId}`,
+    id: `${runId}-signup-${raider.document.battleNetId}`,
     characterId: raider.primary.character.id,
     characterName: raider.primary.character.name,
     characterRealm: raider.primary.character.realm,
@@ -498,13 +498,13 @@ export function buildRaidSignup(raidId: string, raider: RaiderSeed, index: numbe
   };
 }
 
-export function buildRaidDocument(
+export function buildRunDocument(
   definition: RaidSeedDefinition,
   creator: RaiderSeed,
-  signups: RaidCharacter[],
+  signups: RunCharacter[],
   now: Date,
   instances: WowInstance[]
-): RaidDocument {
+): RunDocument {
   const { instance } = requireMode(instances, definition.instanceId, definition.modeKey);
   const startTime = new Date(now.getTime() + definition.startHoursFromNow * 60 * 60 * 1000);
   const createdAt = new Date(now.getTime() - 48 * 60 * 60 * 1000);
@@ -524,14 +524,14 @@ export function buildRaidDocument(
     creatorBattleNetId: creator.document.battleNetId,
     createdAt: createdAt.toISOString(),
     ttl,
-    raidCharacters: signups,
+    runCharacters: signups,
   };
 }
 
 export function createRaidDefinitions(): RaidSeedDefinition[] {
   const definitions: RaidSeedDefinition[] = [
     {
-      id: "raid-passed-public-deadmines",
+      id: "run-passed-public-deadmines",
       instanceId: 63,
       modeKey: "HEROIC:5",
       visibility: "PUBLIC",
@@ -543,7 +543,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       pool: "guild",
     },
     {
-      id: "raid-passed-guild-icc25",
+      id: "run-passed-guild-icc25",
       instanceId: 631,
       modeKey: "HEROIC:25",
       visibility: "GUILD",
@@ -555,7 +555,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       pool: "guild",
     },
     {
-      id: "raid-public-empty-deadmines",
+      id: "run-public-empty-deadmines",
       instanceId: 63,
       modeKey: "NORMAL:5",
       visibility: "PUBLIC",
@@ -567,7 +567,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       pool: "guild",
     },
     {
-      id: "raid-public-signup-target-icc25",
+      id: "run-public-signup-target-icc25",
       instanceId: 631,
       modeKey: "HEROIC:25",
       visibility: "PUBLIC",
@@ -580,7 +580,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 2,
     },
     {
-      id: "raid-public-existing-signup-onyxia25",
+      id: "run-public-existing-signup-onyxia25",
       instanceId: 249,
       modeKey: "NORMAL:25",
       visibility: "PUBLIC",
@@ -594,7 +594,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 4,
     },
     {
-      id: "raid-guild-sparse-icc10",
+      id: "run-guild-sparse-icc10",
       instanceId: 631,
       modeKey: "NORMAL:10",
       visibility: "GUILD",
@@ -608,7 +608,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 6,
     },
     {
-      id: "raid-guild-dense-molten-core",
+      id: "run-guild-dense-molten-core",
       instanceId: 741,
       modeKey: "NORMAL:40",
       visibility: "GUILD",
@@ -622,7 +622,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 1,
     },
     {
-      id: "raid-public-closed-deadmines",
+      id: "run-public-closed-deadmines",
       instanceId: 63,
       modeKey: "HEROIC:5",
       visibility: "PUBLIC",
@@ -635,7 +635,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 8,
     },
     {
-      id: "raid-guild-closed-icc10",
+      id: "run-guild-closed-icc10",
       instanceId: 631,
       modeKey: "HEROIC:10",
       visibility: "GUILD",
@@ -649,7 +649,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 10,
     },
     {
-      id: "raid-edit-closed-deadmines",
+      id: "run-edit-closed-deadmines",
       instanceId: 63,
       modeKey: "NORMAL:5",
       visibility: "PUBLIC",
@@ -662,7 +662,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
       poolOffset: 12,
     },
     {
-      id: "raid-outsider-guild-hidden",
+      id: "run-outsider-guild-hidden",
       instanceId: 631,
       modeKey: "NORMAL:25",
       visibility: "GUILD",
@@ -678,7 +678,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
 
   for (let index = 0; index < 12; index++) {
     definitions.push({
-      id: `raid-public-generated-${String(index + 1).padStart(2, "0")}`,
+      id: `run-public-generated-${String(index + 1).padStart(2, "0")}`,
       instanceId: [63, 249, 631, 741][index % 4],
       modeKey: ["NORMAL:5", "NORMAL:25", "HEROIC:10", "NORMAL:40"][index % 4],
       visibility: "PUBLIC",
@@ -695,7 +695,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
 
   for (let index = 0; index < 12; index++) {
     definitions.push({
-      id: `raid-guild-generated-${String(index + 1).padStart(2, "0")}`,
+      id: `run-guild-generated-${String(index + 1).padStart(2, "0")}`,
       instanceId: [631, 63, 741, 249][index % 4],
       modeKey: ["NORMAL:10", "HEROIC:5", "NORMAL:40", "NORMAL:25"][index % 4],
       visibility: "GUILD",
@@ -714,7 +714,7 @@ export function createRaidDefinitions(): RaidSeedDefinition[] {
 
   for (let index = 0; index < 8; index++) {
     definitions.push({
-      id: `raid-outsider-generated-${String(index + 1).padStart(2, "0")}`,
+      id: `run-outsider-generated-${String(index + 1).padStart(2, "0")}`,
       instanceId: [63, 249, 631, 741][index % 4],
       modeKey: ["NORMAL:5", "NORMAL:25", "HEROIC:25", "NORMAL:40"][index % 4],
       visibility: "GUILD",

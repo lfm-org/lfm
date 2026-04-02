@@ -90,9 +90,9 @@ export interface GuildDocument {
   crestUrl?: string;
   rankPermissions?: Array<{
     rank: number;
-    canCreateGuildRaids: boolean;
-    canSignupGuildRaids: boolean;
-    canDeleteGuildRaids?: boolean;
+    canCreateGuildRuns: boolean;
+    canSignupGuildRuns: boolean;
+    canDeleteGuildRuns?: boolean;
   }>;
   lastOverrideBy?: string;
   lastOverrideAt?: string;
@@ -103,11 +103,11 @@ export interface GuildDocument {
   };
 }
 
-// Raid document (Cosmos container: raids, partition key: /id)
+// Run document (Cosmos container: runs, partition key: /id)
 export type AttendanceStatus = "IN" | "OUT" | "BENCH" | "LATE" | "AWAY";
-export type RaidVisibility = "PUBLIC" | "GUILD";
+export type RunVisibility = "PUBLIC" | "GUILD";
 
-export interface RaidCharacter {
+export interface RunCharacter {
   id: string;
   characterId: string;
   characterName: string;
@@ -125,13 +125,13 @@ export interface RaidCharacter {
   role: "TANK" | "HEALER" | "DPS" | null;
 }
 
-export interface RaidDocument {
+export interface RunDocument {
   id: string;
   startTime: string;
   signupCloseTime: string;
   description: string;
   modeKey: string;
-  visibility: RaidVisibility;
+  visibility: RunVisibility;
   creatorGuild: string;
   creatorGuildId: number | null;
   instanceId: number;
@@ -139,7 +139,7 @@ export interface RaidDocument {
   creatorBattleNetId: string | null;
   createdAt: string;
   ttl: number;
-  raidCharacters: RaidCharacter[];
+  runCharacters: RunCharacter[];
 }
 
 // Blob metadata schema

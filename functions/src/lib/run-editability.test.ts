@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isEditingClosed, getLockedFields } from "./raid-editability.js";
+import { isEditingClosed, getLockedFields } from "./run-editability.js";
 
 const FUTURE_START = "2026-04-10T19:00:00Z";
 const PAST_START = "2026-04-01T00:00:00Z";

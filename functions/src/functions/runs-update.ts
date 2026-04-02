@@ -1,25 +1,25 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
-import { getGuildsContainer, getRaidersContainer, getRaidsContainer } from "../lib/cosmos.js";
+import { getGuildsContainer, getRaidersContainer, getRunsContainer } from "../lib/cosmos.js";
 import { getEffectiveGuildPermissions } from "../lib/guild-permissions.js";
-import { isEditingClosed, getLockedFields } from "../lib/raid-editability.js";
+import { isEditingClosed, getLockedFields } from "../lib/run-editability.js";
 import { readWowInstances } from "../lib/reference-data.js";
 import { hasModeKey } from "../lib/wow-instance-modes.js";
 import { auditLog } from "../lib/audit.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
-import type { GuildDocument, RaidDocument, RaiderDocument, RaidVisibility, WowInstance } from "../types/index.js";
+import type { GuildDocument, RunDocument, RaiderDocument, RunVisibility, WowInstance } from "../types/index.js";
 
-export interface UpdateRaidBody {
+export interface UpdateRunBody {
   startTime?: string;
   signupCloseTime?: string;
   description?: string;
   modeKey?: string;
-  visibility?: RaidVisibility;
+  visibility?: RunVisibility;
   instanceId?: number;
   instanceName?: string;
 }
 
-const VALID_VISIBILITY: RaidVisibility[] = ["PUBLIC", "GUILD"];
+const VALID_VISIBILITY: RunVisibility[] = ["PUBLIC", "GUILD"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -29,7 +29,7 @@ function findInstance(instances: WowInstance[], instanceId: number): WowInstance
   return instances.find(instance => instance.id === instanceId);
 }
 
-export function parseRaidUpdateBody(body: unknown): UpdateRaidBody {
+export function parseRunUpdateBody(body: unknown): UpdateRunBody {
   if (!isRecord(body)) {
     throw new Error("Invalid request body");
   }
@@ -38,7 +38,7 @@ export function parseRaidUpdateBody(body: unknown): UpdateRaidBody {
     throw new Error("Legacy mode is not supported");
   }
 
-  if (body.visibility !== undefined && !VALID_VISIBILITY.includes(body.visibility as RaidVisibility)) {
+  if (body.visibility !== undefined && !VALID_VISIBILITY.includes(body.visibility as RunVisibility)) {
     throw new Error("Invalid visibility value");
   }
 
@@ -47,17 +47,17 @@ export function parseRaidUpdateBody(body: unknown): UpdateRaidBody {
     signupCloseTime: typeof body.signupCloseTime === "string" ? body.signupCloseTime : undefined,
     description: typeof body.description === "string" ? body.description : undefined,
     modeKey: typeof body.modeKey === "string" ? body.modeKey : undefined,
-    visibility: body.visibility as RaidVisibility | undefined,
+    visibility: body.visibility as RunVisibility | undefined,
     instanceId: typeof body.instanceId === "number" ? body.instanceId : undefined,
     instanceName: typeof body.instanceName === "string" ? body.instanceName : undefined,
   };
 }
 
-export function isGuildVisibilityPromotion(requestedVisibility: RaidVisibility | undefined, currentVisibility: RaidVisibility): boolean {
+export function isGuildVisibilityPromotion(requestedVisibility: RunVisibility | undefined, currentVisibility: RunVisibility): boolean {
   return requestedVisibility === "GUILD" && currentVisibility !== "GUILD";
 }
 
-export function applyRaidUpdate(existing: RaidDocument, body: UpdateRaidBody, instances: WowInstance[]): RaidDocument {
+export function applyRunUpdate(existing: RunDocument, body: UpdateRunBody, instances: WowInstance[]): RunDocument {
   const instanceId = body.instanceId ?? existing.instanceId;
   const instance = findInstance(instances, instanceId);
   const modeKey = body.modeKey ?? existing.modeKey;
@@ -80,7 +80,7 @@ export function applyRaidUpdate(existing: RaidDocument, body: UpdateRaidBody, in
     creatorBattleNetId: existing.creatorBattleNetId,
     createdAt: existing.createdAt,
     ttl: existing.ttl ?? 86400,
-    raidCharacters: existing.raidCharacters ?? [],
+    runCharacters: existing.runCharacters ?? [],
   };
 }
 
@@ -89,16 +89,16 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   if (!identity) return errorResponse(401, "Unauthorized");
 
   const id = request.params.id;
-  if (!id) return errorResponse(400, "Missing raid ID");
+  if (!id) return errorResponse(400, "Missing run ID");
 
   try {
-    const { resource: existing } = await getRaidsContainer().item(id, id).read<RaidDocument>();
-    if (!existing) return errorResponse(404, "Raid not found");
+    const { resource: existing } = await getRunsContainer().item(id, id).read<RunDocument>();
+    if (!existing) return errorResponse(404, "Run not found");
     const isCreator = existing.creatorBattleNetId === identity.battleNetId;
 
     if (!isCreator) {
       if (existing.visibility !== "GUILD" || !existing.creatorGuildId || identity.guildId !== existing.creatorGuildId) {
-        return errorResponse(403, "Only the raid creator can update this raid");
+        return errorResponse(403, "Only the run creator can update this run");
       }
 
       const [{ resource: guildDoc }, { resource: raider }] = await Promise.all([
@@ -107,14 +107,14 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       ]);
 
       const permissions = getEffectiveGuildPermissions(guildDoc ?? null, raider ?? undefined);
-      if (!permissions.canCreateGuildRaids) {
-        return errorResponse(403, "Your guild rank does not have permission to edit guild raids");
+      if (!permissions.canCreateGuildRuns) {
+        return errorResponse(403, "Your guild rank does not have permission to edit guild runs");
       }
     }
 
-    let body: UpdateRaidBody;
+    let body: UpdateRunBody;
     try {
-      body = parseRaidUpdateBody(await request.json());
+      body = parseRunUpdateBody(await request.json());
     } catch (error: unknown) {
       return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
     }
@@ -123,10 +123,10 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     if (!instances) return errorResponse(503, "Instance data not available");
 
     if (isEditingClosed(existing.signupCloseTime, existing.startTime, new Date().toISOString())) {
-      return errorResponse(403, "Editing is closed for this raid");
+      return errorResponse(403, "Editing is closed for this run");
     }
 
-    const lockedFields = getLockedFields(existing.raidCharacters.length);
+    const lockedFields = getLockedFields(existing.runCharacters.length);
     if (lockedFields.has("startTime") && body.startTime !== undefined) {
       return errorResponse(400, "Cannot change start time after signups");
     }
@@ -137,7 +137,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
     // Guard: visibility change to GUILD requires guild membership + permissions
     if (isGuildVisibilityPromotion(body.visibility, existing.visibility)) {
       if (!identity.guildId) {
-        return errorResponse(400, "A guild raid requires an active character in a guild");
+        return errorResponse(400, "A guild run requires an active character in a guild");
       }
       const guildDocId = String(identity.guildId);
       const [{ resource: guildDoc }, { resource: raider }] = await Promise.all([
@@ -145,14 +145,14 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
         getRaidersContainer().item(identity.battleNetId, identity.battleNetId).read<RaiderDocument>(),
       ]);
       const permissions = getEffectiveGuildPermissions(guildDoc, raider);
-      if (!permissions.canCreateGuildRaids) {
-        return errorResponse(403, "Guild raid creation is not enabled for your rank");
+      if (!permissions.canCreateGuildRuns) {
+        return errorResponse(403, "Guild run creation is not enabled for your rank");
       }
     }
 
-    let updated: RaidDocument;
+    let updated: RunDocument;
     try {
-      updated = applyRaidUpdate(existing, body, instances);
+      updated = applyRunUpdate(existing, body, instances);
     } catch (error: unknown) {
       return errorResponse(400, error instanceof Error ? error.message : "Invalid request body");
     }
@@ -163,18 +163,18 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       updated.creatorGuildId = identity.guildId ?? null;
     }
 
-    const { resource } = await getRaidsContainer().item(id, id).replace(updated);
-    auditLog(context, { action: "raid.update", actorId: identity.battleNetId, targetId: id, result: "success" });
+    const { resource } = await getRunsContainer().item(id, id).replace(updated);
+    auditLog(context, { action: "run.update", actorId: identity.battleNetId, targetId: id, result: "success" });
     return jsonResponse(resource);
   } catch (error: unknown) {
-    if ((error as { code?: number }).code === 404) return errorResponse(404, "Raid not found");
+    if ((error as { code?: number }).code === 404) return errorResponse(404, "Run not found");
     throw error;
   }
 }
 
-app.http("raids-update", {
+app.http("runs-update", {
   methods: ["PUT"],
-  route: "raids/{id}",
+  route: "runs/{id}",
   authLevel: "anonymous",
   handler,
 });

@@ -93,7 +93,7 @@ function createGuildDoc(overrides: Partial<GuildDocument> = {}): GuildDocument {
       timezone: "Europe/Helsinki",
     },
     slogan: "Old slogan",
-    rankPermissions: [{ rank: 0, canCreateGuildRaids: true, canSignupGuildRaids: true }],
+    rankPermissions: [{ rank: 0, canCreateGuildRuns: true, canSignupGuildRuns: true }],
     ...overrides,
   };
 }

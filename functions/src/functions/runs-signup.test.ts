@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { VALID_ATTENDANCE } from "./raids-signup.js";
+import { VALID_ATTENDANCE } from "./runs-signup.js";
 
 describe("VALID_ATTENDANCE", () => {
   it("contains all five new statuses", () => {

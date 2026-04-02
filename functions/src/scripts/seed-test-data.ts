@@ -10,7 +10,7 @@ import {
   resolveTestDataTimestamp,
   type E2eScenario,
 } from "./e2e-test-data.js";
-import type { GuildDocument, RaiderDocument, RaidDocument } from "../types/index.js";
+import type { GuildDocument, RaiderDocument, RunDocument } from "../types/index.js";
 
 const DB_NAME = process.env.COSMOS_DATABASE ?? "lfm";
 
@@ -22,8 +22,8 @@ export const RAIDERS_CONTAINER_DEFINITION = {
   },
 };
 
-export const RAIDS_CONTAINER_DEFINITION = {
-  id: "raids",
+export const RUNS_CONTAINER_DEFINITION = {
+  id: "runs",
   partitionKey: {
     paths: ["/id"],
     kind: PartitionKeyKind.Hash,
@@ -38,10 +38,10 @@ export const GUILDS_CONTAINER_DEFINITION = {
   },
 };
 
-export function getRaidsContainerDefinitionForScenario(
+export function getRunsContainerDefinitionForScenario(
   scenario: E2eScenario
-): typeof RAIDS_CONTAINER_DEFINITION | null {
-  return scenario === "raids-error" ? null : RAIDS_CONTAINER_DEFINITION;
+): typeof RUNS_CONTAINER_DEFINITION | null {
+  return scenario === "raids-error" ? null : RUNS_CONTAINER_DEFINITION;
 }
 
 async function resetContainer<T extends { id: string }>(
@@ -84,14 +84,14 @@ async function main() {
   await resetContainer<GuildDocument>(guildsContainer, (guild) => guild.id);
   await upsertAll(guildsContainer, seed.guilds);
 
-  const raidsContainerDefinition = getRaidsContainerDefinitionForScenario(scenario);
-  if (raidsContainerDefinition) {
-    const { container: raidsContainer } = await database.containers.createIfNotExists(raidsContainerDefinition);
-    await resetContainer<RaidDocument>(raidsContainer, (raid) => raid.id);
-    await upsertAll(raidsContainer, seed.raids);
+  const runsContainerDefinition = getRunsContainerDefinitionForScenario(scenario);
+  if (runsContainerDefinition) {
+    const { container: runsContainer } = await database.containers.createIfNotExists(runsContainerDefinition);
+    await resetContainer<RunDocument>(runsContainer, (run) => run.id);
+    await upsertAll(runsContainer, seed.runs);
   }
 
-  console.log(`Seeded ${seed.raiders.length} raiders, ${seed.raids.length} raids, and ${seed.guilds.length} guilds from ${snapshotDir}`);
+  console.log(`Seeded ${seed.raiders.length} raiders, ${seed.runs.length} runs, and ${seed.guilds.length} guilds from ${snapshotDir}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

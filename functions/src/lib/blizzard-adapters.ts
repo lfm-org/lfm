@@ -195,9 +195,9 @@ export interface GuildHomeView {
   settings: {
     rankPermissions: Array<{
       rank: number;
-      canCreateGuildRaids: boolean;
-      canSignupGuildRaids: boolean;
-      canDeleteGuildRaids: boolean;
+      canCreateGuildRuns: boolean;
+      canSignupGuildRuns: boolean;
+      canDeleteGuildRuns: boolean;
     }>;
   } | null;
   editor: {
@@ -225,9 +225,9 @@ export function toGuildHomeView(
   editor: GuildHomeView["editor"] = { canEdit: false, mode: "member", overrideAvailable: false },
   memberPermissions: GuildHomeView["memberPermissions"] = {
     matchedRank: null,
-    canCreateGuildRaids: false,
-    canSignupGuildRaids: false,
-    canDeleteGuildRaids: false,
+    canCreateGuildRuns: false,
+    canSignupGuildRuns: false,
+    canDeleteGuildRuns: false,
     rankDataFresh: false,
   },
   adminOverride: GuildHomeView["adminOverride"] = null

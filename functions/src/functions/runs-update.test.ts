@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { isGuildVisibilityPromotion, parseRaidUpdateBody, applyRaidUpdate, type UpdateRaidBody } from "./raids-update.js";
-import { isEditingClosed, getLockedFields } from "../lib/raid-editability.js";
-import type { RaidDocument, WowInstance } from "../types/index.js";
+import { isGuildVisibilityPromotion, parseRunUpdateBody, applyRunUpdate, type UpdateRunBody } from "./runs-update.js";
+import { isEditingClosed, getLockedFields } from "../lib/run-editability.js";
+import type { RunDocument, WowInstance } from "../types/index.js";
 
-describe("parseRaidUpdateBody", () => {
+describe("parseRunUpdateBody", () => {
   it("rejects legacy mode field", () => {
-    expect(() => parseRaidUpdateBody({ mode: "normal" })).toThrow("Legacy mode");
+    expect(() => parseRunUpdateBody({ mode: "normal" })).toThrow("Legacy mode");
   });
 
   it("rejects invalid visibility", () => {
-    expect(() => parseRaidUpdateBody({ visibility: "PRIVATE" })).toThrow("Invalid visibility");
+    expect(() => parseRunUpdateBody({ visibility: "PRIVATE" })).toThrow("Invalid visibility");
   });
 
   it("parses valid partial update", () => {
-    const result = parseRaidUpdateBody({ description: "Updated" });
+    const result = parseRunUpdateBody({ description: "Updated" });
     expect(result).toEqual({ description: "Updated" });
   });
 });
@@ -57,12 +57,12 @@ const STUB_INSTANCES: WowInstance[] = [
   },
 ];
 
-function stubRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
+function stubRun(overrides: Partial<RunDocument> = {}): RunDocument {
   return {
-    id: "raid-1",
+    id: "run-1",
     startTime: "2026-04-05T19:00:00Z",
     signupCloseTime: "2026-04-05T17:00:00Z",
-    description: "Test raid",
+    description: "Test run",
     modeKey: "NORMAL:10",
     visibility: "GUILD",
     creatorGuild: "Test Guild",
@@ -72,24 +72,24 @@ function stubRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
     creatorBattleNetId: "creator-bnet",
     createdAt: "2026-04-01T10:00:00Z",
     ttl: 86400,
-    raidCharacters: [],
+    runCharacters: [],
     ...overrides,
   };
 }
 
-describe("editability enforcement with applyRaidUpdate", () => {
+describe("editability enforcement with applyRunUpdate", () => {
   it("allows all fields when no signups", () => {
-    const raid = stubRaid({ raidCharacters: [] });
-    const body: UpdateRaidBody = { startTime: "2026-04-06T19:00:00Z", instanceId: 631 };
-    const locked = getLockedFields(raid.raidCharacters.length);
+    const run = stubRun({ runCharacters: [] });
+    const body: UpdateRunBody = { startTime: "2026-04-06T19:00:00Z", instanceId: 631 };
+    const locked = getLockedFields(run.runCharacters.length);
     expect(locked.size).toBe(0);
-    const result = applyRaidUpdate(raid, body, STUB_INSTANCES);
+    const result = applyRunUpdate(run, body, STUB_INSTANCES);
     expect(result.startTime).toBe("2026-04-06T19:00:00Z");
   });
 
   it("flags locked fields when signups exist", () => {
-    const raid = stubRaid({ raidCharacters: [{ id: "s1" }] as never[] });
-    const locked = getLockedFields(raid.raidCharacters.length);
+    const run = stubRun({ runCharacters: [{ id: "s1" }] as never[] });
+    const locked = getLockedFields(run.runCharacters.length);
     expect(locked.has("startTime")).toBe(true);
     expect(locked.has("instanceId")).toBe(true);
   });

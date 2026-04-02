@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  sanitizeOptionalRaidDocumentForResponse,
-  sanitizeRaidDocumentForResponse,
-} from "./raidResponseSanitizer.js";
-import type { RaidDocument } from "../types/index.js";
+  sanitizeOptionalRunDocumentForResponse,
+  sanitizeRunDocumentForResponse,
+} from "./runResponseSanitizer.js";
+import type { RunDocument } from "../types/index.js";
 
-function buildRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
+function buildRun(overrides: Partial<RunDocument> = {}): RunDocument {
   return {
-    id: "raid-1",
+    id: "run-1",
     startTime: "2026-03-20T18:00:00.000Z",
     signupCloseTime: "2026-03-20T16:00:00.000Z",
     description: "Heroic farm night",
@@ -19,7 +19,7 @@ function buildRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
     instanceName: "Icecrown Citadel",
     creatorBattleNetId: "guild-raider-01",
     createdAt: "2026-03-18T12:00:00.000Z",
-    raidCharacters: [
+    runCharacters: [
       {
         id: "signup-1",
         characterId: "char-1",
@@ -42,21 +42,21 @@ function buildRaid(overrides: Partial<RaidDocument> = {}): RaidDocument {
   };
 }
 
-describe("sanitizeRaidDocumentForResponse", () => {
-  it("returns null when a replace operation yields no raid resource", () => {
-    expect(sanitizeOptionalRaidDocumentForResponse(undefined)).toBeNull();
+describe("sanitizeRunDocumentForResponse", () => {
+  it("returns null when a replace operation yields no run resource", () => {
+    expect(sanitizeOptionalRunDocumentForResponse(undefined)).toBeNull();
   });
 
-  it("normalizes localized raid signup names into strings", () => {
-    const sanitized = sanitizeRaidDocumentForResponse(buildRaid());
+  it("normalizes localized run signup names into strings", () => {
+    const sanitized = sanitizeRunDocumentForResponse(buildRun());
 
-    expect(sanitized.raidCharacters[0]?.characterClassName).toBe("Mage");
-    expect(sanitized.raidCharacters[0]?.characterRaceName).toBe("Human");
+    expect(sanitized.runCharacters[0]?.characterClassName).toBe("Mage");
+    expect(sanitized.runCharacters[0]?.characterRaceName).toBe("Human");
   });
 
-  it("normalizes a localized raid instance name into a string", () => {
-    const sanitized = sanitizeRaidDocumentForResponse(
-      buildRaid({
+  it("normalizes a localized run instance name into a string", () => {
+    const sanitized = sanitizeRunDocumentForResponse(
+      buildRun({
         instanceName: {
           en_US: "Icecrown Citadel",
           es_ES: "Ciudadela de la Corona de Hielo",
@@ -67,29 +67,29 @@ describe("sanitizeRaidDocumentForResponse", () => {
     expect(sanitized.instanceName).toBe("Icecrown Citadel");
   });
 
-  it("strips raiderBattleNetId from sanitized raid characters", () => {
-    const sanitized = sanitizeRaidDocumentForResponse(buildRaid());
+  it("strips raiderBattleNetId from sanitized run characters", () => {
+    const sanitized = sanitizeRunDocumentForResponse(buildRun());
 
-    expect(sanitized.raidCharacters[0]).not.toHaveProperty("raiderBattleNetId");
+    expect(sanitized.runCharacters[0]).not.toHaveProperty("raiderBattleNetId");
   });
 
   it("marks the current user's signup without exposing the private battle.net id", () => {
-    const sanitized = sanitizeRaidDocumentForResponse(buildRaid(), "guild-raider-01");
+    const sanitized = sanitizeRunDocumentForResponse(buildRun(), "guild-raider-01");
 
-    expect(sanitized.raidCharacters[0]?.isCurrentUser).toBe(true);
-    expect(sanitized.raidCharacters[0]).not.toHaveProperty("raiderBattleNetId");
+    expect(sanitized.runCharacters[0]?.isCurrentUser).toBe(true);
+    expect(sanitized.runCharacters[0]).not.toHaveProperty("raiderBattleNetId");
   });
 
   it("leaves isCurrentUser false for other signups", () => {
-    const sanitized = sanitizeRaidDocumentForResponse(buildRaid(), "guild-raider-99");
+    const sanitized = sanitizeRunDocumentForResponse(buildRun(), "guild-raider-99");
 
-    expect(sanitized.raidCharacters[0]?.isCurrentUser).toBe(false);
+    expect(sanitized.runCharacters[0]?.isCurrentUser).toBe(false);
   });
 
   it("preserves string values and falls back to the first localized value when needed", () => {
-    const sanitized = sanitizeRaidDocumentForResponse(
-      buildRaid({
-        raidCharacters: [
+    const sanitized = sanitizeRunDocumentForResponse(
+      buildRun({
+        runCharacters: [
           {
             id: "signup-2",
             characterId: "char-2",
@@ -111,7 +111,7 @@ describe("sanitizeRaidDocumentForResponse", () => {
       })
     );
 
-    expect(sanitized.raidCharacters[0]?.characterClassName).toBe("Warrior");
-    expect(sanitized.raidCharacters[0]?.characterRaceName).toBe("Ork");
+    expect(sanitized.runCharacters[0]?.characterClassName).toBe("Warrior");
+    expect(sanitized.runCharacters[0]?.characterRaceName).toBe("Ork");
   });
 });

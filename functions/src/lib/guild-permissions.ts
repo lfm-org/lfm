@@ -6,16 +6,16 @@ export const GUILD_ROSTER_TTL_MS = 60 * 60 * 1000;
 
 export interface GuildRankPermission {
   rank: number;
-  canCreateGuildRaids: boolean;
-  canSignupGuildRaids: boolean;
-  canDeleteGuildRaids: boolean;
+  canCreateGuildRuns: boolean;
+  canSignupGuildRuns: boolean;
+  canDeleteGuildRuns: boolean;
 }
 
 export interface EffectiveGuildPermissions {
   matchedRank: number | null;
-  canCreateGuildRaids: boolean;
-  canSignupGuildRaids: boolean;
-  canDeleteGuildRaids: boolean;
+  canCreateGuildRuns: boolean;
+  canSignupGuildRuns: boolean;
+  canDeleteGuildRuns: boolean;
   rankDataFresh: boolean;
 }
 
@@ -27,9 +27,9 @@ export function getGuildRanksFromRoster(roster?: BlizzardGuildRosterResponse): n
 export function buildDefaultRankPermissions(ranks: number[]): GuildRankPermission[] {
   return [...new Set(ranks)].sort((left, right) => left - right).map((rank) => ({
     rank,
-    canCreateGuildRaids: rank === 0,
-    canSignupGuildRaids: true,
-    canDeleteGuildRaids: rank === 0,
+    canCreateGuildRuns: rank === 0,
+    canSignupGuildRuns: true,
+    canDeleteGuildRuns: rank === 0,
   }));
 }
 
@@ -43,9 +43,9 @@ export function mergeRankPermissions(
     return storedPermission
       ? {
           rank: permission.rank,
-          canCreateGuildRaids: storedPermission.canCreateGuildRaids,
-          canSignupGuildRaids: storedPermission.canSignupGuildRaids,
-          canDeleteGuildRaids: storedPermission.canDeleteGuildRaids ?? permission.canDeleteGuildRaids,
+          canCreateGuildRuns: storedPermission.canCreateGuildRuns,
+          canSignupGuildRuns: storedPermission.canSignupGuildRuns,
+          canDeleteGuildRuns: storedPermission.canDeleteGuildRuns ?? permission.canDeleteGuildRuns,
         }
       : permission;
   });
@@ -76,9 +76,9 @@ export function getEffectiveGuildPermissions(
   if (!guildDoc || !isGuildRosterFresh(guildDoc, now)) {
     return {
       matchedRank: null,
-      canCreateGuildRaids: false,
-      canSignupGuildRaids: false,
-      canDeleteGuildRaids: false,
+      canCreateGuildRuns: false,
+      canSignupGuildRuns: false,
+      canDeleteGuildRuns: false,
       rankDataFresh: false,
     };
   }
@@ -87,9 +87,9 @@ export function getEffectiveGuildPermissions(
   if (matchedRank === null) {
     return {
       matchedRank: null,
-      canCreateGuildRaids: false,
-      canSignupGuildRaids: false,
-      canDeleteGuildRaids: false,
+      canCreateGuildRuns: false,
+      canSignupGuildRuns: false,
+      canDeleteGuildRuns: false,
       rankDataFresh: true,
     };
   }
@@ -99,9 +99,9 @@ export function getEffectiveGuildPermissions(
 
   return {
     matchedRank,
-    canCreateGuildRaids: permission?.canCreateGuildRaids ?? false,
-    canSignupGuildRaids: permission?.canSignupGuildRaids ?? false,
-    canDeleteGuildRaids: permission?.canDeleteGuildRaids ?? false,
+    canCreateGuildRuns: permission?.canCreateGuildRuns ?? false,
+    canSignupGuildRuns: permission?.canSignupGuildRuns ?? false,
+    canDeleteGuildRuns: permission?.canDeleteGuildRuns ?? false,
     rankDataFresh: true,
   };
 }

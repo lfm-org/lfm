@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildRaidDocument, parseCreateRaidBody, validateCreateRaidBody } from "./raids-create.js";
-import { applyRaidUpdate, parseRaidUpdateBody } from "./raids-update.js";
-import type { BattleNetIdentity, RaidDocument, WowInstance } from "../types/index.js";
+import { buildRunDocument, parseCreateRunBody, validateCreateRunBody } from "./runs-create.js";
+import { applyRunUpdate, parseRunUpdateBody } from "./runs-update.js";
+import type { BattleNetIdentity, RunDocument, WowInstance } from "../types/index.js";
 
 const identity: BattleNetIdentity = {
   battleNetId: "bn-123",
@@ -9,8 +9,8 @@ const identity: BattleNetIdentity = {
   guildId: 99,
 };
 
-const existingRaid: RaidDocument = {
-  id: "raid-1",
+const existingRun: RunDocument = {
+  id: "run-1",
   startTime: "2026-03-20T18:00:00.000Z",
   signupCloseTime: "2026-03-20T16:00:00.000Z",
   description: "Progression",
@@ -22,7 +22,7 @@ const existingRaid: RaidDocument = {
   instanceName: "Icecrown Citadel",
   creatorBattleNetId: "bn-123",
   createdAt: "2026-03-18T12:00:00.000Z",
-  raidCharacters: [],
+  runCharacters: [],
 };
 
 const instances: WowInstance[] = [
@@ -70,10 +70,10 @@ const instances: WowInstance[] = [
   },
 ];
 
-describe("parseCreateRaidBody", () => {
+describe("parseCreateRunBody", () => {
   it("rejects legacy mode input on create", () => {
     expect(() =>
-      parseCreateRaidBody({
+      parseCreateRunBody({
         startTime: "2026-03-20T18:00:00.000Z",
         mode: "Heroic",
         modeKey: "HEROIC:25",
@@ -83,9 +83,9 @@ describe("parseCreateRaidBody", () => {
     ).toThrowError("Unrecognized key");
   });
 
-  it("requires modeKey for raid creation", () => {
+  it("requires modeKey for run creation", () => {
     expect(() =>
-      parseCreateRaidBody({
+      parseCreateRunBody({
         startTime: "2026-03-20T18:00:00.000Z",
         signupCloseTime: "2026-03-20T16:00:00.000Z",
         description: "Progression",
@@ -96,8 +96,8 @@ describe("parseCreateRaidBody", () => {
     ).toThrowError(); // Zod reports specific missing field
   });
 
-  it("builds a raid document with modeKey as the source of truth", () => {
-    const parsedBody = parseCreateRaidBody({
+  it("builds a run document with modeKey as the source of truth", () => {
+    const parsedBody = parseCreateRunBody({
       startTime: "2026-03-20T18:00:00.000Z",
       signupCloseTime: "2026-03-20T16:00:00.000Z",
       description: "Progression",
@@ -106,23 +106,23 @@ describe("parseCreateRaidBody", () => {
       instanceId: 631,
       instanceName: "Icecrown Citadel",
     });
-    const body = validateCreateRaidBody(parsedBody, instances);
+    const body = validateCreateRunBody(parsedBody, instances);
 
-    const raid = buildRaidDocument(body, identity, "raid-2", "2026-03-18T12:30:00.000Z");
+    const run = buildRunDocument(body, identity, "run-2", "2026-03-18T12:30:00.000Z");
 
-    expect(raid).toMatchObject({
-      id: "raid-2",
+    expect(run).toMatchObject({
+      id: "run-2",
       modeKey: "HEROIC:25",
       visibility: "PUBLIC",
       creatorGuild: "Sisu",
       creatorGuildId: 99,
       creatorBattleNetId: "bn-123",
     });
-    expect(raid).not.toHaveProperty("mode");
+    expect(run).not.toHaveProperty("mode");
   });
 
   it("rejects an invalid modeKey for the selected instance", () => {
-    const body = parseCreateRaidBody({
+    const body = parseCreateRunBody({
       startTime: "2026-03-20T18:00:00.000Z",
       signupCloseTime: "2026-03-20T16:00:00.000Z",
       description: "Progression",
@@ -132,58 +132,58 @@ describe("parseCreateRaidBody", () => {
       instanceName: "Icecrown Citadel",
     });
 
-    expect(() => validateCreateRaidBody(body, instances)).toThrowError("Invalid modeKey for instance");
+    expect(() => validateCreateRunBody(body, instances)).toThrowError("Invalid modeKey for instance");
   });
 });
 
-describe("raid modeKey updates", () => {
+describe("run modeKey updates", () => {
   it("rejects legacy mode input on update", () => {
     expect(() =>
-      parseRaidUpdateBody({
+      parseRunUpdateBody({
         mode: "Heroic",
       })
     ).toThrowError("Legacy mode is not supported");
   });
 
   it("rejects a non-object update body", () => {
-    expect(() => parseRaidUpdateBody("not an object")).toThrowError("Invalid request body");
-    expect(() => parseRaidUpdateBody([])).toThrowError("Invalid request body");
+    expect(() => parseRunUpdateBody("not an object")).toThrowError("Invalid request body");
+    expect(() => parseRunUpdateBody([])).toThrowError("Invalid request body");
   });
 
   it("preserves the existing modeKey when an update omits it", () => {
-    const update = parseRaidUpdateBody({
+    const update = parseRunUpdateBody({
       description: "More wipes",
     });
 
-    const raid = applyRaidUpdate(existingRaid, update, instances);
+    const run = applyRunUpdate(existingRun, update, instances);
 
-    expect(raid.modeKey).toBe("NORMAL:10");
-    expect(raid.description).toBe("More wipes");
+    expect(run.modeKey).toBe("NORMAL:10");
+    expect(run.description).toBe("More wipes");
   });
 
   it("replaces the existing modeKey when the update provides one", () => {
-    const update = parseRaidUpdateBody({
+    const update = parseRunUpdateBody({
       modeKey: "HEROIC:25",
       visibility: "PUBLIC",
     });
 
-    const raid = applyRaidUpdate(existingRaid, update, instances);
+    const run = applyRunUpdate(existingRun, update, instances);
 
-    expect(raid.modeKey).toBe("HEROIC:25");
-    expect(raid.visibility).toBe("PUBLIC");
+    expect(run.modeKey).toBe("HEROIC:25");
+    expect(run.visibility).toBe("PUBLIC");
   });
 
   it("rejects an invalid final modeKey and instance combination", () => {
-    const update = parseRaidUpdateBody({
+    const update = parseRunUpdateBody({
       instanceId: 249,
     });
 
-    expect(() => applyRaidUpdate(existingRaid, update, instances)).toThrowError("Invalid modeKey for instance");
+    expect(() => applyRunUpdate(existingRun, update, instances)).toThrowError("Invalid modeKey for instance");
   });
 
-  it("normalizes an old-shaped raid when a valid modeKey is supplied", () => {
-    const legacyRaid = {
-      id: "raid-legacy",
+  it("normalizes an old-shaped run when a valid modeKey is supplied", () => {
+    const legacyRun = {
+      id: "run-legacy",
       startTime: "2026-03-20T18:00:00.000Z",
       signupCloseTime: "2026-03-20T16:00:00.000Z",
       description: "Progression",
@@ -194,23 +194,23 @@ describe("raid modeKey updates", () => {
       instanceName: "Icecrown Citadel",
       creatorBattleNetId: "bn-123",
       createdAt: "2026-03-18T12:00:00.000Z",
-      raidCharacters: [],
+      runCharacters: [],
       mode: "Heroic",
-    } as unknown as RaidDocument;
+    } as unknown as RunDocument;
 
-    const update = parseRaidUpdateBody({
+    const update = parseRunUpdateBody({
       modeKey: "HEROIC:25",
     });
 
-    const raid = applyRaidUpdate(legacyRaid, update, instances);
+    const run = applyRunUpdate(legacyRun, update, instances);
 
-    expect(raid.modeKey).toBe("HEROIC:25");
-    expect(raid).not.toHaveProperty("mode");
+    expect(run.modeKey).toBe("HEROIC:25");
+    expect(run).not.toHaveProperty("mode");
   });
 
-  it("rejects a pre-migration raid without a valid modeKey when update does not provide one", () => {
-    const legacyRaid = {
-      id: "raid-legacy",
+  it("rejects a pre-migration run without a valid modeKey when update does not provide one", () => {
+    const legacyRun = {
+      id: "run-legacy",
       startTime: "2026-03-20T18:00:00.000Z",
       signupCloseTime: "2026-03-20T16:00:00.000Z",
       description: "Progression",
@@ -221,14 +221,14 @@ describe("raid modeKey updates", () => {
       instanceName: "Icecrown Citadel",
       creatorBattleNetId: "bn-123",
       createdAt: "2026-03-18T12:00:00.000Z",
-      raidCharacters: [],
+      runCharacters: [],
       mode: "Heroic",
-    } as unknown as RaidDocument;
+    } as unknown as RunDocument;
 
-    const update = parseRaidUpdateBody({
+    const update = parseRunUpdateBody({
       description: "Still progressing",
     });
 
-    expect(() => applyRaidUpdate(legacyRaid, update, instances)).toThrowError("Invalid modeKey for instance");
+    expect(() => applyRunUpdate(legacyRun, update, instances)).toThrowError("Invalid modeKey for instance");
   });
 });
