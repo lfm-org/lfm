@@ -4,6 +4,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { useTranslation } from "react-i18next";
 import { fiFI as muiFiFI } from "@mui/material/locale";
 import theme from "../theme";
+import { ToastProvider } from "./ToastContext";
 
 const themeEn = theme;
 const themeFi = createTheme(theme, muiFiFI);
@@ -15,7 +16,7 @@ export default function ThemeRegistry({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider theme={activeTheme}>
       <CssBaseline />
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </ThemeProvider>
   );
 }

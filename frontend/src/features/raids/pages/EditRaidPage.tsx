@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Alert, CircularProgress, Typography } from "@mui/material";
+import { Alert, Typography } from "@mui/material";
+import LoadingState from "../../../components/LoadingState";
+import { useToast } from "../../../components/useToast";
 import DOMPurify from "dompurify";
 import { DateTime } from "luxon";
 import api from "../../../lib/api";
@@ -17,6 +19,7 @@ export default function EditRaidPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { showSuccess } = useToast();
   useDocumentTitle(`${t("editRaid.title")} — LFM`);
   const { data: guildHome } = useGuildHome();
 
@@ -53,7 +56,13 @@ export default function EditRaidPage() {
         ...values,
         description: sanitizedDescription,
       });
-      navigate(`/raids?raid=${encodeURIComponent(id)}`);
+      showSuccess(t("editRaid.saveSuccess"));
+      const params = new URLSearchParams(window.location.search);
+      const returnPage = params.get("page");
+      const returnParams = new URLSearchParams();
+      returnParams.set("raid", id);
+      if (returnPage) returnParams.set("page", returnPage);
+      navigate(`/raids?${returnParams.toString()}`);
     } catch {
       setError("editRaid.saveFailed");
       setSubmitting(false);
@@ -63,7 +72,7 @@ export default function EditRaidPage() {
   if (loading) {
     return (
       <PageContainer maxWidth={600}>
-        <CircularProgress aria-label={t("common.loading")} />
+        <LoadingState />
       </PageContainer>
     );
   }

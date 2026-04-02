@@ -18,35 +18,23 @@ describe("navBarModel", () => {
     );
   });
 
-  it("keeps primary navigation limited to top-level routes", () => {
-    expect(getPrimaryNavItems(false)).toEqual([
+  it("keeps primary navigation limited to Raids and Guild", () => {
+    expect(getPrimaryNavItems()).toEqual([
       { i18nKey: "nav.raids", to: "/raids" },
       { i18nKey: "nav.guild", to: "/guild" },
     ]);
   });
 
-  it("adds Guild Admin to primary navigation for site admins", () => {
-    expect(getPrimaryNavItems(true)).toEqual([
-      { i18nKey: "nav.raids", to: "/raids" },
-      { i18nKey: "nav.guild", to: "/guild" },
-      { i18nKey: "nav.guildAdmin", to: "/guild/admin" },
-    ]);
-  });
-
-  it("includes nav routes and Characters in the account menu", () => {
+  it("includes only Characters in the account menu for regular users", () => {
     expect(getAccountMenuRouteItems(false)).toEqual([
-      { i18nKey: "nav.raids", to: "/raids" },
-      { i18nKey: "nav.guild", to: "/guild" },
       { i18nKey: "nav.characters", to: "/characters" },
     ]);
   });
 
-  it("includes Guild Admin in the account menu for site admins", () => {
+  it("includes Characters and Guild Admin in the account menu for site admins", () => {
     expect(getAccountMenuRouteItems(true)).toEqual([
-      { i18nKey: "nav.raids", to: "/raids" },
-      { i18nKey: "nav.guild", to: "/guild" },
-      { i18nKey: "nav.guildAdmin", to: "/guild/admin" },
       { i18nKey: "nav.characters", to: "/characters" },
+      { i18nKey: "nav.guildAdmin", to: "/guild/admin" },
     ]);
   });
 });

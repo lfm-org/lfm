@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
+import LoadingState from "../../../components/LoadingState";
+import { useToast } from "../../../components/useToast";
 import DOMPurify from "dompurify";
 import api from "../../../lib/api";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";
@@ -22,6 +24,7 @@ const EMPTY_INITIAL: RaidFormInitialValues = {
 export default function CreateRaidPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { showSuccess } = useToast();
   useDocumentTitle(`${t("createRaid.title")} — LFM`);
   const { data: guildHome } = useGuildHome();
   const [instances, setInstances] = useState<WowInstance[]>([]);
@@ -48,6 +51,7 @@ export default function CreateRaidPage() {
         ...values,
         description: sanitizedDescription,
       });
+      showSuccess(t("createRaid.createSuccess"));
       navigate(`/raids?raid=${encodeURIComponent(res.data.id)}`);
     } catch {
       setError("createRaid.createFailed");
@@ -55,7 +59,7 @@ export default function CreateRaidPage() {
     }
   };
 
-  if (loading) return <Typography sx={{ p: 4 }}>{t("createRaid.loading")}</Typography>;
+  if (loading) return <PageContainer maxWidth={600}><LoadingState /></PageContainer>;
 
   return (
     <PageContainer maxWidth={600}>

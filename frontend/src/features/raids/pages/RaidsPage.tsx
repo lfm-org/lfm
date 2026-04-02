@@ -1,15 +1,23 @@
 import {
-  Alert,
   Box,
   Button,
-  CircularProgress,
   Divider,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import LoadingState from "../../../components/LoadingState";
+import ErrorState from "../../../components/ErrorState";
+import EmptyState from "../../../components/EmptyState";
 import PageContainer from "../../../components/layout/PageContainer";
 import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { resolveInstanceModeLabel } from "../../../lib/wow/instances";
@@ -53,10 +61,18 @@ export default function RaidsPage() {
     handleSelectRaid,
     handlePageChange,
     handleRaidDelete,
+    refresh,
+    sortOrder,
+    handleSortChange,
   } = useRaids(battleNetId, isDesktop, isMobile);
 
+  const handleRefresh = () => { refresh(); };
+
   const handleRaidEdit = (raidId: string) => {
-    navigate(`/raids/${encodeURIComponent(raidId)}/edit`);
+    const params = new URLSearchParams();
+    if (currentPage > 1) params.set("page", String(currentPage));
+    const query = params.toString();
+    navigate(`/raids/${encodeURIComponent(raidId)}/edit${query ? `?${query}` : ""}`);
   };
 
   const pagination = !loading && totalPages > 1 && (
@@ -92,17 +108,36 @@ export default function RaidsPage() {
     <PageContainer maxWidth={isDesktop ? 1280 : undefined}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
         <Typography component="h1" variant="h5">{t("raids.title")}</Typography>
-        <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <IconButton onClick={handleRefresh} disabled={loading} aria-label={t("common.refresh")}>
+            <RefreshIcon />
+          </IconButton>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="raids-sort-label">{t("raids.sort")}</InputLabel>
+            <Select
+              labelId="raids-sort-label"
+              value={sortOrder}
+              label={t("raids.sort")}
+              onChange={(e) => handleSortChange(e.target.value as "asc" | "desc")}
+            >
+              <MenuItem value="desc">{t("raids.sortNewest")}</MenuItem>
+              <MenuItem value="asc">{t("raids.sortOldest")}</MenuItem>
+            </Select>
+          </FormControl>
+          <Button variant="contained" onClick={() => navigate("/raids/new")}>{t("raids.createButton")}</Button>
+        </Box>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <ErrorState message={t(error)} onRetry={refresh} />}
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress aria-label={t("common.loading")} />
-        </Box>
+        <LoadingState />
       ) : raids.length === 0 ? (
-        <Typography color="text.secondary">{t("raids.empty")}</Typography>
+        <EmptyState
+          icon={<EventBusyIcon />}
+          message={t("raids.empty")}
+          action={{ label: t("raids.emptyCta"), onClick: () => navigate("/raids/new") }}
+        />
       ) : isDesktop ? (
         /* Desktop: two-column layout */
         <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>

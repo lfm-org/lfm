@@ -1,4 +1,6 @@
 import { Box, Typography } from "@mui/material";
+import GroupsIcon from "@mui/icons-material/Groups";
+import EmptyState from "../../../components/EmptyState";
 import { useTranslation } from "react-i18next";
 import RosterSection from "./RosterSection";
 import NotAttendingSection from "./NotAttendingSection";
@@ -19,9 +21,10 @@ export default function RaidRosterGrid({ signups }: RaidRosterGridProps) {
   if (signups.length === 0) {
     return (
       <Box role="region" aria-label={t("raidRoster.region")}>
-        <Typography variant="body2" color="text.disabled" sx={{ fontStyle: "italic" }}>
-          {t("raidRoster.noSignups")}
-        </Typography>
+        <EmptyState
+          icon={<GroupsIcon />}
+          message={t("raidRoster.noSignups")}
+        />
       </Box>
     );
   }

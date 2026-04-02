@@ -12,6 +12,7 @@ import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "
 import type { Raid } from "../lib/raidTypes";
 import type { RaidSignupCharacter } from "../lib/raidSignupCharacters";
 import SurfaceCard from "../../../components/SurfaceCard";
+import ConfirmDialog from "../../../components/ConfirmDialog";
 import { DateTime } from "luxon";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 
@@ -294,19 +295,18 @@ export default function RaidSignupCard({
             </Button>
           )}
 
-          {existingSignup && pendingCancel && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">{t("raidSignup.cancelPrompt")}</Typography>
-              <Button size="small" variant="outlined" color="error" onClick={handleCancelSignup} disabled={submitting}>
-                {t("raidSignup.yes")}
-              </Button>
-              <Button size="small" onClick={() => setPendingCancel(false)} disabled={submitting}>
-                {t("raidSignup.no")}
-              </Button>
-            </Box>
-          )}
         </Box>
       </Box>
+      <ConfirmDialog
+        open={pendingCancel}
+        title={t("raidSignup.cancelConfirmTitle")}
+        description={t("raidSignup.cancelConfirmBody")}
+        confirmLabel={t("raidSignup.cancelConfirmConfirm")}
+        cancelLabel={t("raidSignup.cancelConfirmCancel")}
+        onConfirm={handleCancelSignup}
+        onCancel={() => setPendingCancel(false)}
+        loading={submitting}
+      />
     </SurfaceCard>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import api from "../../../lib/api";
 import { normalizeRaid, type Raid } from "./raidTypes";
@@ -46,6 +46,9 @@ export interface UseRaidsResult {
   handleSelectRaid: (raidId: string) => void;
   handlePageChange: (page: number) => void;
   handleRaidDelete: (raidId: string) => void;
+  refresh: () => void;
+  sortOrder: "asc" | "desc";
+  handleSortChange: (order: "asc" | "desc") => void;
 }
 
 export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRaidsResult {
@@ -59,10 +62,9 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   const [loadingChars, setLoadingChars] = useState(true);
   const [charactersError, setCharactersError] = useState<string | null>(null);
   const [expandedRaids, setExpandedRaids] = useState<Record<string, boolean>>({});
-  const [showPassed, setShowPassed] = useState(false);
   const lastFocusedRaidId = useRef<string | null>(null);
 
-  useEffect(() => {
+  const loadRaids = useCallback(() => {
     let active = true;
     setLoading(true);
     setError(null);
@@ -78,7 +80,7 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
           setRaids(raidResult.value.data.map(normalizeRaid));
         } else {
           setRaids([]);
-          setError("Failed to load raids");
+          setError("raids.loadFailed");
         }
 
         if (instanceResult.status === "fulfilled") {
@@ -97,6 +99,10 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    return loadRaids();
+  }, [loadRaids]);
 
   useEffect(() => {
     if (!battleNetId) {
@@ -136,17 +142,25 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
 
   const requestedRaidId = searchParams.get("raid");
   const requestedPage = parsePageParam(searchParams.get("page"));
+  const showPassed = searchParams.get("passed") === "1";
+  const sortOrder = (searchParams.get("sort") === "asc" ? "asc" : "desc") as "asc" | "desc";
 
   const { upcoming, passed } = useMemo(() => groupRaidsByTime(raids), [raids]);
 
-  const targetIndex = requestedRaidId ? upcoming.findIndex((raid) => raid.id === requestedRaidId) : -1;
+  const sortedUpcoming = useMemo(() => {
+    const sorted = [...upcoming];
+    if (sortOrder === "asc") sorted.reverse();
+    return sorted;
+  }, [upcoming, sortOrder]);
+
+  const targetIndex = requestedRaidId ? sortedUpcoming.findIndex((raid) => raid.id === requestedRaidId) : -1;
   const targetInPassed = requestedRaidId && targetIndex < 0 ? passed.some((r) => r.id === requestedRaidId) : false;
-  const totalPages = Math.max(1, Math.ceil(upcoming.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedUpcoming.length / PAGE_SIZE));
   const currentPage = clampPage(
     targetIndex >= 0 ? Math.floor(targetIndex / PAGE_SIZE) + 1 : requestedPage,
     totalPages
   );
-  const visibleRaids = upcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const visibleRaids = sortedUpcoming.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Auto-select first raid on desktop when no raid is selected
   useEffect(() => {
@@ -155,8 +169,8 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     if (!isSelected) {
       const fallback = visibleRaids[0] ?? passed[0];
       if (fallback) {
-        if (!visibleRaids[0] && passed[0]) setShowPassed(true);
         const next = new URLSearchParams(searchParams);
+        if (!visibleRaids[0] && passed[0]) next.set("passed", "1");
         next.set("raid", fallback.id);
         setSearchParams(next, { replace: true });
       }
@@ -172,7 +186,11 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
   }, [isMobile, requestedRaidId, targetIndex]);
 
   useEffect(() => {
-    if (targetInPassed && !showPassed) setShowPassed(true);
+    if (targetInPassed && !showPassed) {
+      const next = new URLSearchParams(searchParams);
+      next.set("passed", "1");
+      setSearchParams(next, { replace: true });
+    }
   }, [targetInPassed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -208,6 +226,16 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     setSearchParams(next);
   };
 
+  const handleTogglePassed = () => {
+    const next = new URLSearchParams(searchParams);
+    if (showPassed) {
+      next.delete("passed");
+    } else {
+      next.set("passed", "1");
+    }
+    setSearchParams(next);
+  };
+
   const handlePageChange = (page: number) => {
     const next = new URLSearchParams(searchParams);
     if (page <= 1) {
@@ -215,12 +243,22 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     } else {
       next.set("page", String(page));
     }
-    next.delete("raid");
     setSearchParams(next);
   };
 
   const handleRaidDelete = (raidId: string) => {
     setRaids((current) => current.filter((raid) => raid.id !== raidId));
+  };
+
+  const handleSortChange = (order: "asc" | "desc") => {
+    const next = new URLSearchParams(searchParams);
+    if (order === "desc") {
+      next.delete("sort");
+    } else {
+      next.set("sort", order);
+    }
+    next.delete("page");
+    setSearchParams(next);
   };
 
   const selectedRaid = requestedRaidId
@@ -246,11 +284,14 @@ export function useRaids(battleNetId: string | null, isDesktop: boolean, isMobil
     selectedRaid,
     passedRaids: passed,
     showPassed,
-    handleTogglePassed: () => setShowPassed(p => !p),
+    handleTogglePassed,
     handleRaidUpdate,
     handleToggleRaid,
     handleSelectRaid,
     handlePageChange,
     handleRaidDelete,
+    refresh: loadRaids,
+    sortOrder,
+    handleSortChange,
   };
 }

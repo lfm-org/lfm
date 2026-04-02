@@ -33,7 +33,7 @@ export default function GuildSetupGuard({ children }: Props) {
   }
 
   if (!error && data?.editor.canEdit && data.setup.requiresSetup && location.pathname !== "/guild") {
-    return <Navigate to="/guild" replace />;
+    return <Navigate to="/guild?setup=required" replace />;
   }
 
   return <>{children}</>;

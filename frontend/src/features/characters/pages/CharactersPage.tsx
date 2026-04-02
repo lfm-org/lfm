@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Avatar, Box, Button, CircularProgress, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Avatar, Box, Button, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Select, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useTranslation } from "react-i18next";
 import api from "../../../lib/api";
 import { useAuth } from "../../auth";
@@ -9,6 +10,10 @@ import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { layout } from "../../../theme";
 import { classColor } from "../../../lib/wow/classColors";
 import { deleteAccount } from "../../../lib/auth";
+import ErrorState from "../../../components/ErrorState";
+import EmptyState from "../../../components/EmptyState";
+import LoadingState from "../../../components/LoadingState";
+import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import ForgetMeSection from "../components/ForgetMeSection";
 import { useCharacters } from "../lib/useCharacters";
 
@@ -39,6 +44,11 @@ function CharactersPageInner({
   loading,
   portraits,
   loadingPortraits,
+  error,
+  onRetry,
+  onRefresh,
+  sortBy,
+  onSortChange,
   handlePageChange,
   selectCharacter,
   selectingId,
@@ -56,6 +66,11 @@ function CharactersPageInner({
   loading: boolean;
   portraits: Record<string, string>;
   loadingPortraits: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onRefresh: () => void;
+  sortBy: "name" | "level";
+  onSortChange: (value: string) => void;
   handlePageChange: (page: number) => void;
   selectCharacter: (char: AccountCharacter) => void;
   selectingId: string | null;
@@ -71,7 +86,7 @@ function CharactersPageInner({
   if (loading) {
     return (
       <PageContainer>
-        <Typography>{t("characters.loading")}</Typography>
+        <LoadingState label={t("characters.loading")} />
       </PageContainer>
     );
   }
@@ -80,13 +95,33 @@ function CharactersPageInner({
     <PageContainer>
       <Stack spacing={layout.pageGap}>
         <Box>
-          <Typography component="h1" variant="h5" gutterBottom>
-            {t("characters.title")}
-          </Typography>
-          {characters.length === 0 && (
-            <Typography color="text.secondary">
-              {t("characters.empty")}
-            </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography component="h1" variant="h5">{t("characters.title")}</Typography>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <FormControl size="small" sx={{ minWidth: 130 }}>
+                <InputLabel id="chars-sort-label">{t("characters.sort")}</InputLabel>
+                <Select
+                  labelId="chars-sort-label"
+                  value={sortBy}
+                  label={t("characters.sort")}
+                  onChange={(e) => onSortChange(e.target.value)}
+                >
+                  <MenuItem value="level">{t("characters.sortLevel")}</MenuItem>
+                  <MenuItem value="name">{t("characters.sortName")}</MenuItem>
+                </Select>
+              </FormControl>
+              <IconButton onClick={onRefresh} disabled={loading} aria-label={t("common.refresh")}>
+                <RefreshIcon />
+              </IconButton>
+            </Box>
+          </Box>
+          {error && <ErrorState message={t(error)} onRetry={onRetry} />}
+          {characters.length === 0 && !error && (
+            <EmptyState
+              icon={<PersonSearchIcon />}
+              message={t("characters.empty")}
+              action={{ label: t("characters.emptyCta"), onClick: onRefresh }}
+            />
           )}
         </Box>
 
@@ -220,6 +255,7 @@ export default function CharactersPage() {
   })();
 
   const currentPage = parsePageParam(searchParams.get("page"));
+  const sortBy = (searchParams.get("sort") as "name" | "level" | null) ?? "level";
 
   // visibleCharsForPortraits is derived from characters (from hook), then fed back in.
   // On initial render characters is [], so visibleCharsForPortraits is [].
@@ -232,18 +268,38 @@ export default function CharactersPage() {
     [charactersForPagination, clampedPageForPortrait, PAGE_SIZE]
   );
 
-  const { characters, loading, portraits, loadingPortraits } = useCharacters(visibleCharsForPortraits);
+  const { characters, loading, portraits, loadingPortraits, error, retry } = useCharacters(visibleCharsForPortraits);
+  const handleRefresh = () => { retry(); };
+
+  const sortedCharacters = useMemo(() => {
+    const sorted = [...characters];
+    if (sortBy === "name") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return sorted;
+  }, [characters, sortBy]);
 
   useEffect(() => {
-    setCharactersForPagination(characters);
-  }, [characters]);
+    setCharactersForPagination(sortedCharacters);
+  }, [sortedCharacters]);
 
-  const totalPages = Math.max(1, Math.ceil(characters.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedCharacters.length / PAGE_SIZE));
   const clampedPage = Math.min(Math.max(currentPage, 1), totalPages);
   const visibleChars = useMemo(
-    () => characters.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE),
-    [characters, clampedPage, PAGE_SIZE]
+    () => sortedCharacters.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE),
+    [sortedCharacters, clampedPage, PAGE_SIZE]
   );
+
+  const handleSortChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === "level") {
+      next.delete("sort");
+    } else {
+      next.set("sort", value);
+    }
+    next.delete("page");
+    setSearchParams(next);
+  };
 
   const handlePageChange = (page: number) => {
     const next = new URLSearchParams(searchParams);
@@ -291,10 +347,15 @@ export default function CharactersPage() {
       visibleChars={visibleChars}
       totalPages={totalPages}
       clampedPage={clampedPage}
-      characters={characters}
+      characters={sortedCharacters}
       loading={loading}
       portraits={portraits}
       loadingPortraits={loadingPortraits}
+      error={error}
+      onRetry={retry}
+      onRefresh={handleRefresh}
+      sortBy={sortBy}
+      onSortChange={handleSortChange}
       handlePageChange={handlePageChange}
       selectCharacter={selectCharacter}
       selectingId={selectingId}
