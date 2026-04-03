@@ -12,6 +12,21 @@ param logAnalyticsWorkspaceName string
 @description('Privacy contact email address')
 param privacyEmail string
 
+@description('Cosmos DB database name')
+param cosmosDatabase string
+
+@description('Frontend origin URL (no trailing slash)')
+param frontendOrigin string
+
+@description('Cookie domain')
+param cookieDomain string
+
+@description('Battle.net OAuth redirect URI')
+param battleNetRedirectUri string
+
+@description('Battle.net region code')
+param battleNetRegion string
+
 @description('Tags applied to all resources')
 param tags object
 
@@ -59,6 +74,11 @@ module functions 'modules/functions.bicep' = {
     storageAccountName: storageAccountName
     cosmosAccountEndpoint: cosmos.outputs.endpoint
     cosmosAccountName: cosmosAccountName
+    cosmosDatabase: cosmosDatabase
+    frontendOrigin: frontendOrigin
+    cookieDomain: cookieDomain
+    battleNetRedirectUri: battleNetRedirectUri
+    battleNetRegion: battleNetRegion
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
     privacyEmail: privacyEmail

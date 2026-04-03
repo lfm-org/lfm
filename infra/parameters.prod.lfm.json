@@ -13,6 +13,11 @@
     "keyVaultName": { "value": "lfm-kv-prot" },
     "logAnalyticsWorkspaceName": { "value": "lfm-logs" },
     "privacyEmail": { "value": "REPLACED_BY_CI" },
+    "cosmosDatabase": { "value": "lfm" },
+    "frontendOrigin": { "value": "https://lfm.dinosauruskeksi.com" },
+    "cookieDomain": { "value": ".dinosauruskeksi.com" },
+    "battleNetRedirectUri": { "value": "https://lfm-api.dinosauruskeksi.com/api/battlenet/callback" },
+    "battleNetRegion": { "value": "eu" },
     "tags": {
       "value": {
         "project": "lfm",

@@ -16,6 +16,21 @@ param keyVaultName string
 @description('Cosmos DB account name')
 param cosmosAccountName string
 
+@description('Cosmos DB database name')
+param cosmosDatabase string
+
+@description('Frontend origin URL for CORS and APP_BASE_URL (no trailing slash)')
+param frontendOrigin string
+
+@description('Cookie domain (include leading dot for subdomain sharing)')
+param cookieDomain string
+
+@description('Battle.net OAuth redirect URI')
+param battleNetRedirectUri string
+
+@description('Battle.net region code')
+param battleNetRegion string
+
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
@@ -72,7 +87,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
       cors: {
-        allowedOrigins: ['https://lfm.dinosauruskeksi.com']
+        allowedOrigins: [frontendOrigin]
         supportCredentials: true
       }
       appSettings: [
@@ -83,15 +98,15 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
-        { name: 'COSMOS_DATABASE', value: 'lfm' }
+        { name: 'COSMOS_DATABASE', value: cosmosDatabase }
         { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}' }
-        { name: 'APP_BASE_URL', value: 'https://lfm.dinosauruskeksi.com' }
-        { name: 'COOKIE_DOMAIN', value: '.dinosauruskeksi.com' }
-        { name: 'BATTLE_NET_REGION', value: 'eu' }
+        { name: 'APP_BASE_URL', value: frontendOrigin }
+        { name: 'COOKIE_DOMAIN', value: cookieDomain }
+        { name: 'BATTLE_NET_REGION', value: battleNetRegion }
         { name: 'BATTLE_NET_COOKIE_SECURE', value: 'true' }
         { name: 'LFM_CLIENT_ID', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-id)' }
         { name: 'LFM_CLIENT_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
-        { name: 'BATTLE_NET_REDIRECT_URI', value: 'https://lfm-api.dinosauruskeksi.com/api/battlenet/callback' }
+        { name: 'BATTLE_NET_REDIRECT_URI', value: battleNetRedirectUri }
         { name: 'HMAC_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=hmac-secret)' }
         { name: 'SESSION_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
         { name: 'KEY_VAULT_URL', value: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/' }
