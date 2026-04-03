@@ -32,8 +32,6 @@ function getWowContainer(): ContainerClient {
   return _wowContainer;
 }
 
-const blobUrl = (): string => process.env.PUBLIC_BLOB_STORAGE_URL || process.env.BLOB_STORAGE_URL || "";
-
 export async function readBlob<T>(blobName: string): Promise<T | null> {
   const asset = await readBinaryBlob(blobName);
   if (!asset) return null;
@@ -74,14 +72,6 @@ export async function resetWowContainer(): Promise<void> {
   const container = getWowContainer();
   await container.deleteIfExists();
   _wowContainer = null;
-}
-
-export function getPublicBlobUrl(blobName: string): string {
-  return `${blobUrl()}/wow/${blobName}`;
-}
-
-async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
-  return (await streamToBuffer(stream)).toString("utf-8");
 }
 
 async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {

@@ -76,19 +76,19 @@ describe("writeBlob", () => {
   it("can upload binary assets with an explicit content type", async () => {
     const { writeBinaryBlob } = await import("./blob.js");
 
-    await writeBinaryBlob("guild-crests/12345/crest.svg", new Uint8Array([60, 62]), "image/svg+xml");
+    await writeBinaryBlob("reference/test.json", new Uint8Array([60, 62]), "application/json");
 
     expect(upload).toHaveBeenCalledWith(expect.any(Uint8Array), 2, {
-      blobHTTPHeaders: { blobContentType: "image/svg+xml" },
+      blobHTTPHeaders: { blobContentType: "application/json" },
     });
   });
 
   it("can read binary assets and preserve the stored content type", async () => {
     const { readBinaryBlob } = await import("./blob.js");
 
-    const result = await readBinaryBlob("guild-crests/12345/crest.svg");
+    const result = await readBinaryBlob("reference/test.json");
 
-    expect(getBlobClient).toHaveBeenCalledWith("guild-crests/12345/crest.svg");
+    expect(getBlobClient).toHaveBeenCalledWith("reference/test.json");
     expect(result).toEqual({
       bytes: new Uint8Array([60, 62]),
       contentType: "image/svg+xml",
