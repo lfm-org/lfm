@@ -52,6 +52,7 @@ module storage 'modules/storage.bicep' = {
 
 module functions 'modules/functions.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-functions'
+  dependsOn: [storage, keyVault]
   params: {
     location: location
     functionAppName: functionAppName
