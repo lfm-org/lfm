@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "dev:e2e": "FRONTEND_PORT=${FRONTEND_PORT:-4173} vite --host 127.0.0.1",
@@ -10,13 +11,13 @@
     "bundle:check": "node ./scripts/check-bundle.mjs",
     "lint": "eslint --max-warnings=0 src eslint.config.mjs vite.config.ts vitest.config.ts vitest.integration.config.ts playwright.config.ts",
     "preview": "vite preview",
-    "test": "npm run test:unit && npm run test:integration",
+    "test": "pnpm test:unit && pnpm test:integration",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "e2e": "playwright test",
     "e2e:list": "playwright test --list",
-    "verify:fast": "npm run lint && npm run test && npm run build && npm run bundle:check"
+    "verify:fast": "pnpm lint && pnpm test && pnpm build && pnpm bundle:check"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
