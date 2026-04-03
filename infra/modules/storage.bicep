@@ -10,7 +10,7 @@ param logAnalyticsWorkspaceId string
 @description('Resource tags')
 param tags object
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   name: storageAccountName
   location: location
   tags: tags
@@ -34,7 +34,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
-resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   parent: storageAccount
   name: 'default'
   properties: {
@@ -43,7 +43,7 @@ resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01
   }
 }
 
-resource wowContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+resource wowContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   parent: blobServices
   name: 'wow'
   properties: {

@@ -39,7 +39,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${functionAppName}-plan'
   location: location
   tags: tags
@@ -47,7 +47,7 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   properties: { reserved: true }
 }
 
-resource storageAccountRef 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
+resource storageAccountRef 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
   name: storageAccountName
 }
 
@@ -55,7 +55,7 @@ var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
 var storageQueueDataContributorRoleId = '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
 var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 
-resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
+resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
   tags: tags
@@ -102,7 +102,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
 }
 
 // Grant Function App's MI read access to Key Vault secrets
-resource keyVaultRef 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVaultRef 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: keyVaultName
 }
 
@@ -164,13 +164,13 @@ resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
-resource ftpCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+resource ftpCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2024-04-01' = {
   parent: functionApp
   name: 'ftp'
   properties: { allow: false }
 }
 
-resource scmCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+resource scmCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2024-04-01' = {
   parent: functionApp
   name: 'scm'
   properties: { allow: false }
