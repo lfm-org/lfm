@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -33,15 +33,14 @@ jobs:
           fi
 
       - name: Deploy Bicep
-        uses: azure/arm-deploy@a1361c2c2cd398621955b16ca32e01c65ea340f5 # v2
-        with:
-          scope: resourcegroup
-          resourceGroupName: lfm
-          template: infra/main.bicep
-          parameters: >-
-            infra/parameters.prod.lfm.json
-            privacyEmail=${{ vars.PRIVACY_EMAIL }}
-          failOnStdErr: false
+        env:
+          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
+        run: |
+          az deployment group create \
+            --resource-group lfm \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters.prod.lfm.json \
+            --parameters "privacyEmail=$PRIVACY_EMAIL"
 
       - name: Configure Functions custom domain and managed certificate
         run: |
