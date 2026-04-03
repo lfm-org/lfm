@@ -24,6 +24,9 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     minimalTlsVersion: 'Tls12'
     disableLocalAuth: true
     disableKeyBasedMetadataWriteAccess: true
+    ipRules: [
+      { ipAddressOrRange: '0.0.0.0' } // Accept connections from within Azure datacenters
+    ]
   }
 }
 
