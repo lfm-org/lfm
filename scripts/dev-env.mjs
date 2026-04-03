@@ -226,7 +226,7 @@ async function runServe(plan) {
     await startFunctionsService(plan.profile, composeEnv);
     shutdown.throwIfInterrupted();
 
-    viteChild = spawnCommand("npm", ["run", "dev", "--", "--host", "127.0.0.1"], {
+    viteChild = spawnCommand("pnpm", ["dev", "--", "--host", "127.0.0.1"], {
       cwd: FRONTEND_DIR,
       env: buildFrontendServeEnvironment(plan.profile),
       stdio: "inherit",
@@ -278,7 +278,7 @@ async function runTest(plan) {
     await ensurePlaywrightBrowser();
     shutdown.throwIfInterrupted();
 
-    playwrightChild = spawnCommand("npx", ["playwright", "test", ...plan.playwrightArgs], {
+    playwrightChild = spawnCommand("pnpm", ["exec", "playwright", "test", ...plan.playwrightArgs], {
       cwd: FRONTEND_DIR,
       env: buildFrontendTestEnvironment(plan.profile, plan.scenario),
       stdio: "inherit",
@@ -576,7 +576,7 @@ async function runFunctionsScript(profile, composeEnv, scriptName, scriptArgs = 
 async function ensurePlaywrightBrowser() {
   if (await hasCachedChromium()) return;
 
-  await runCommand("npx", ["playwright", "install", "chromium"], {
+  await runCommand("pnpm", ["exec", "playwright", "install", "chromium"], {
     cwd: FRONTEND_DIR,
     env: {
       ...process.env,
