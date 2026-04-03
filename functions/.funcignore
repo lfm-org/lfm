@@ -1,6 +1,9 @@
 *.ts
 tsconfig.json
 node_modules/@types
+node_modules/.pnpm
+node_modules/.ignored
+node_modules/.modules.yaml
 .git*
 local.settings.json
 src/**/*.test.ts
