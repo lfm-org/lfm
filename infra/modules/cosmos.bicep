@@ -35,6 +35,9 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15
   name: 'lfm'
   properties: {
     resource: { id: 'lfm' }
+    // Free tier (enableFreeTier: true) covers the first 1,000 RU/s and 25 GB
+    // account-wide. A second provisioned-throughput database would immediately
+    // incur cost (~$58/month per 1,000 RU/s). Keep exactly one database here.
     options: { throughput: 1000 }
   }
 }
@@ -48,6 +51,18 @@ resource raidersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
       partitionKey: { paths: ['/battleNetId'], kind: 'Hash' }
       // Cleanup handled by raider-cleanup timer function (daily, 90-day inactivity threshold).
       // No container-level TTL — the timer scrubs run data before deleting the raider document.
+      indexingPolicy: {
+        automatic: true
+        indexingMode: 'consistent'
+        // Only the cleanup query filters on lastSeenAt. All other access is
+        // point-reads by partition key, which don't use secondary indexes.
+        includedPaths: [
+          { path: '/lastSeenAt/?' }
+        ]
+        excludedPaths: [
+          { path: '/*' }
+        ]
+      }
     }
   }
 }
