@@ -13,6 +13,9 @@ param cosmosAccountEndpoint string
 @description('Key Vault name')
 param keyVaultName string
 
+@description('Cosmos DB account name')
+param cosmosAccountName string
+
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
@@ -115,9 +118,6 @@ resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 }
 
 // Grant Function App's MI Cosmos DB data contributor role
-@description('Cosmos DB account name (extracted from resource ID)')
-param cosmosAccountName string
-
 resource cosmosAccountRef 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
   name: cosmosAccountName
 }
