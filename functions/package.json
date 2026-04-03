@@ -30,6 +30,9 @@
       "ajv": ">=8.18.0"
     }
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
   "devDependencies": {
     "@types/luxon": "3.4.2",
     "@types/node": "25.5.0",
