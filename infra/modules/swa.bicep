@@ -4,6 +4,9 @@ param location string
 @description('Static Web App name')
 param swaName string
 
+@description('Log Analytics workspace resource ID for diagnostic settings')
+param logAnalyticsWorkspaceId string
+
 @description('Resource tags')
 param tags object
 
@@ -13,6 +16,17 @@ resource staticWebApp 'Microsoft.Web/staticSites@2024-04-01' = {
   tags: tags
   sku: { name: 'Free', tier: 'Free' }
   properties: {}
+}
+
+resource swaDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'swa-diagnostics'
+  scope: staticWebApp
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      { category: 'StaticSiteAppLogs', enabled: true }
+    ]
+  }
 }
 
 output defaultHostname string = staticWebApp.properties.defaultHostname

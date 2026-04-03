@@ -88,5 +88,10 @@ module functions 'modules/functions.bicep' = {
 
 module swa 'modules/swa.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-swa'
-  params: { location: location, swaName: swaName, tags: tags }
+  params: {
+    location: location
+    swaName: swaName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    tags: tags
+  }
 }
