@@ -32,6 +32,16 @@ jobs:
             echo "No soft-deleted Key Vault found, proceeding with fresh creation."
           fi
 
+      - name: Preview infrastructure changes (what-if)
+        env:
+          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
+        run: |
+          az deployment group what-if \
+            --resource-group lfm \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters.prod.lfm.json \
+            --parameters "privacyEmail=$PRIVACY_EMAIL"
+
       - name: Deploy Bicep
         env:
           PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
