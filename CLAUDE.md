@@ -43,7 +43,7 @@ Do not commit populated `.env` files or real Blizzard or database credentials. U
 
 ### Node.js via fnm
 
-This project uses **fnm** (Fast Node Manager) with `.node-version` to pin the Node version. Never call `node`, `npm`, or `npx` directly — always prefix with `fnm exec`. This keeps sandbox allow-list entries simple (e.g. `fnm exec:*`).
+This project uses **fnm** (Fast Node Manager) with `.node-version` to pin the Node version and **pnpm** as the package manager (provided via corepack). Never call `node` or `pnpm` directly — always prefix with `fnm exec`. This keeps sandbox allow-list entries simple (e.g. `fnm exec:*`).
 
 ### Config file preference
 
@@ -55,7 +55,7 @@ Claude Code's sandbox blocks writes to `~/` locations. Use `.cache/` (project-lo
 
 | Tool | Config file approach |
 |------|---------------------|
-| npm | `cache=.cache/npm` in `frontend/.npmrc` |
+| pnpm | `store-dir=.cache/pnpm-store` in `frontend/.npmrc` |
 | ESLint | `cacheLocation: ".cache/eslint"` in `eslint.config.mjs` |
 
 Prefer `--prefix` / `-C` flags over `cd dir &&` — the sandbox allow-list is keyed on command prefixes:
@@ -63,18 +63,18 @@ Prefer `--prefix` / `-C` flags over `cd dir &&` — the sandbox allow-list is ke
 ```bash
 # Good — matches sandbox allow-list
 git -C /absolute/path/to/repo status
-fnm exec npm --prefix /absolute/path/to/repo/frontend install
-fnm exec npx --prefix /absolute/path/to/repo/frontend tsc --noEmit
+fnm exec pnpm -C /absolute/path/to/repo/frontend install
+fnm exec pnpm -C /absolute/path/to/repo/frontend exec tsc --noEmit
 
 # Avoid — direct calls bypass fnm; cd bypasses allow-list match
-npm --prefix /absolute/path/to/repo/frontend install
-cd frontend && npm install
+pnpm -C /absolute/path/to/repo/frontend install
+cd frontend && pnpm install
 ```
 
 Exit codes: use `echo "EXIT:$?"` (uppercase, colon, no spaces) for consistent sandbox allow-list matching:
 
 ```bash
-fnm exec npm --prefix frontend run build 2>&1; echo "EXIT:$?"
+fnm exec pnpm -C frontend run build 2>&1; echo "EXIT:$?"
 ```
 
 ### JSON processing
@@ -96,12 +96,12 @@ Run `./scripts/verify-local.sh` before claiming work is complete:
 | Full | `./scripts/verify-local.sh full` | browser + perf specs |
 
 Per-package shortcuts:
-- `fnm exec npm --prefix frontend run verify:fast` — lint, unit + integration tests, build, bundle check
-- `fnm exec npm --prefix functions run verify:fast` — lint, build, unit tests
+- `fnm exec pnpm -C frontend verify:fast` — lint, unit + integration tests, build, bundle check
+- `fnm exec pnpm -C functions verify:fast` — lint, build, unit tests
 
-Run `fnm exec npm --prefix <package> audit` after adding or upgrading dependencies — deploy workflows run `npm audit` and will fail on vulnerabilities.
+Run `fnm exec pnpm -C <package> audit` after adding or upgrading dependencies — deploy workflows run `pnpm audit` and will fail on vulnerabilities.
 
-**Knip** is installed in both packages for unused export/file detection: `fnm exec npx --prefix frontend knip` / `fnm exec npx --prefix functions knip`.
+**Knip** is installed in both packages for unused export/file detection: `fnm exec pnpm -C frontend exec knip` / `fnm exec pnpm -C functions exec knip`.
 
 ## Testing
 
@@ -138,8 +138,8 @@ Both packages use **Vitest** in Node environment (`environment: "node"`). No DOM
 **What does NOT belong:** Anything requiring click handlers, state changes, DOM events, `useMediaQuery`, or interactive behavior — use integration tests instead.
 
 Commands:
-- `fnm exec npm --prefix frontend run test:unit` — frontend unit tests
-- `fnm exec npm --prefix functions test` — functions unit tests
+- `fnm exec pnpm -C frontend test:unit` — frontend unit tests
+- `fnm exec pnpm -C functions test` — functions unit tests
 - Watch mode: `test:unit:watch` (frontend) / `test:watch` (functions)
 
 Config: `frontend/vitest.config.ts` (includes `src/**/*.test.ts`), `functions/vitest.config.ts`.
@@ -153,8 +153,8 @@ Frontend-only. Vitest with **jsdom** environment, `@testing-library/react`, and 
 **What does NOT belong:** Pure logic (use unit tests). Full user journeys that need a real backend, cookies, or database (use E2E).
 
 Commands:
-- `fnm exec npm --prefix frontend run test:integration` — run integration tests
-- `fnm exec npm --prefix frontend test` — run both unit + integration
+- `fnm exec pnpm -C frontend test:integration` — run integration tests
+- `fnm exec pnpm -C frontend test` — run both unit + integration
 
 Config: `frontend/vitest.integration.config.ts` (includes `src/**/*.integration.test.tsx`). Setup file: `src/test/setupDomTests.ts` (cleanup + `matchMedia` shim).
 
@@ -175,7 +175,7 @@ Available scenarios: `default`, `runs-empty`, `runs-error`, `characters-empty`, 
 Perf specs live in `frontend/e2e/perf/` and are excluded from default discovery.
 
 Commands:
-- `fnm exec npm --prefix frontend run e2e:list` — list default-discovered specs
+- `fnm exec pnpm -C frontend e2e:list` — list default-discovered specs
 - `./scripts/dev-env.mjs test signup` — run a focused spec (bare names expanded to `e2e/*.spec.ts`)
 - `./scripts/e2e.sh runs-empty runs-empty.spec.ts` — run a scenario-specific spec
 - `./scripts/e2e-all.sh` — full all-scenarios suite
@@ -215,7 +215,7 @@ Follow the expand/contract pattern for breaking changes:
 
 To run migrations manually:
 ```bash
-COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm fnm exec npx tsx functions/src/scripts/run-migrations.ts
+COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm fnm exec pnpm -C functions exec tsx src/scripts/run-migrations.ts
 ```
 
 ## Documentation Separation
