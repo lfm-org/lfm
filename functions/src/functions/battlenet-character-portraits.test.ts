@@ -33,6 +33,37 @@ function makeRaiderDoc(overrides: Partial<RaiderDocument> = {}): RaiderDocument 
 }
 
 describe("handler", () => {
+  it("filters out stale blob URLs from portraitCache", async () => {
+    vi.mocked(requireAuthWithToken).mockResolvedValue({
+      identity: { battleNetId: "bnet-1", guildId: null, guildName: null },
+      accessToken: "token",
+    });
+
+    vi.mocked(getRaidersContainer).mockReturnValue({
+      item: vi.fn(() => ({
+        read: vi.fn().mockResolvedValue({
+          resource: makeRaiderDoc({
+            portraitCache: {
+              "eu-test-realm-aelrin": "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+            },
+          }),
+        }),
+      })),
+    } as never);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+    });
+
+    const response = await handler({
+      json: vi.fn().mockResolvedValue([
+        { region: "eu", realm: "test-realm", name: "Aelrin" },
+      ]),
+    } as never, { log: vi.fn() } as never);
+
+    expect(JSON.parse(response.body as string)).toEqual({});
+  });
+
   it("returns a cached Blizzard CDN portrait URL directly without mirroring", async () => {
     vi.mocked(requireAuthWithToken).mockResolvedValue({
       identity: { battleNetId: "bnet-1", guildId: null, guildName: null },

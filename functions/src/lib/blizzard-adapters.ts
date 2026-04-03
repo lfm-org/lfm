@@ -1,6 +1,6 @@
 import { resolveSpecRole } from "./wowSpecRoles.js";
 import { getResolvedRankPermissions, isGuildRosterFresh, type EffectiveGuildPermissions } from "./guild-permissions.js";
-import { getServedCharacterPortraitUrl } from "./character-portrait.js";
+import { getServedCharacterPortraitUrl, isBlizzardRenderUrl } from "./character-portrait.js";
 import type {
   BlizzardAccountGuildsSummary,
   BlizzardAccountProfileSummary,
@@ -124,7 +124,7 @@ export function toAccountCharacterViews(
       const cachedPortraitUrl = portraitCache?.[cachedId];
       const portraitUrl = stored
         ? getServedCharacterPortraitUrl(stored.portraitUrl, stored.mediaSummary)
-        : (cachedPortraitUrl ?? "");
+        : (cachedPortraitUrl && isBlizzardRenderUrl(cachedPortraitUrl) ? cachedPortraitUrl : "");
       const safePortraitUrl = portraitUrl || undefined;
       const activeSpecId = stored?.specializationsSummary?.active_specialization?.id ?? null;
       const activeSpec = stored?.specializationsSummary?.specializations?.find(

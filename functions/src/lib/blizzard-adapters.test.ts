@@ -140,8 +140,8 @@ describe("blizzard-adapters", () => {
       },
     ]);
 
-    // portraitCache fallback
-    const cache = { "eu-test-realm-aelrin": "https://example.test/cached-avatar.jpg" };
+    // portraitCache fallback — only CDN URLs are accepted
+    const cache = { "eu-test-realm-aelrin": "https://render.worldofwarcraft.com/eu/character/test-realm/69/12345-avatar.jpg" };
     expect(toAccountCharacterViews(accountProfileSummary, "eu", [], cache)).toEqual([
       {
         name: "Aelrin",
@@ -150,7 +150,20 @@ describe("blizzard-adapters", () => {
         level: 80,
         region: "eu",
         classId: 2,
-        portraitUrl: "https://example.test/cached-avatar.jpg",
+        portraitUrl: "https://render.worldofwarcraft.com/eu/character/test-realm/69/12345-avatar.jpg",
+      },
+    ]);
+
+    // stale blob URLs in portraitCache are filtered out
+    const staleCache = { "eu-test-realm-aelrin": "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg" };
+    expect(toAccountCharacterViews(accountProfileSummary, "eu", [], staleCache)).toEqual([
+      {
+        name: "Aelrin",
+        realm: "test-realm",
+        realmName: "Test Realm",
+        level: 80,
+        region: "eu",
+        classId: 2,
       },
     ]);
 

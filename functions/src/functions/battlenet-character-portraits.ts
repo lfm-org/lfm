@@ -68,7 +68,7 @@ export async function handler(request: HttpRequest, context: InvocationContext):
 
     // Check portrait cache
     const cachedUrl = portraitCache[characterId];
-    if (cachedUrl) {
+    if (cachedUrl && isBlizzardRenderUrl(cachedUrl)) {
       result[characterId] = cachedUrl;
       if (stored && stored.portraitUrl !== cachedUrl) {
         characters[storedIndex] = { ...stored, portraitUrl: cachedUrl };
