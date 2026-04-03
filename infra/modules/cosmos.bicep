@@ -7,6 +7,9 @@ param accountName string
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
+@description('Cosmos DB database name')
+param databaseName string
+
 @description('Resource tags')
 param tags object
 
@@ -32,9 +35,9 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
 
 resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
   parent: cosmosAccount
-  name: 'lfm'
+  name: databaseName
   properties: {
-    resource: { id: 'lfm' }
+    resource: { id: databaseName }
     // Free tier (enableFreeTier: true) covers the first 1,000 RU/s and 25 GB
     // account-wide. A second provisioned-throughput database would immediately
     // incur cost (~$58/month per 1,000 RU/s). Keep exactly one database here.

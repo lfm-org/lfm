@@ -50,6 +50,7 @@ module cosmos 'modules/cosmos.bicep' = {
   params: {
     location: location
     accountName: cosmosAccountName
+    databaseName: cosmosDatabase
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
     tags: tags
   }
