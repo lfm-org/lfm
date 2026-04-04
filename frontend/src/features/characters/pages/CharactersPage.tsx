@@ -16,6 +16,8 @@ import LoadingState from "../../../components/LoadingState";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import ForgetMeSection from "../components/ForgetMeSection";
 import { useCharacters } from "../lib/useCharacters";
+import SpecIcon from "../../../lib/wow/SpecIcon";
+import { useSpecIcons } from "../../../lib/wow/useSpecIcons";
 
 interface AccountCharacter {
   name: string;
@@ -58,6 +60,7 @@ function CharactersPageInner({
   deleting,
   setDeleteConfirmation,
   handleDeleteAccount,
+  specIcons,
 }: {
   visibleChars: AccountCharacter[];
   totalPages: number;
@@ -80,6 +83,7 @@ function CharactersPageInner({
   deleting: boolean;
   setDeleteConfirmation: (value: string) => void;
   handleDeleteAccount: () => void;
+  specIcons: Map<number, string>;
 }) {
   const { t } = useTranslation();
 
@@ -182,9 +186,17 @@ function CharactersPageInner({
                     {t("characters.level", { level: char.level, className: char.className })}
                   </Typography>
                   {char.specName && (
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      {char.specName}
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <SpecIcon
+                        specName={char.specName}
+                        wowClassName={char.className ?? ""}
+                        iconUrl={char.activeSpecId ? (specIcons.get(char.activeSpecId) ?? null) : null}
+                        size={16}
+                      />
+                      <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                        {char.specName}
+                      </Typography>
+                    </Box>
                   )}
                 </Box>
               </Button>
@@ -269,6 +281,7 @@ export default function CharactersPage() {
   );
 
   const { characters, loading, portraits, loadingPortraits, error, retry } = useCharacters(visibleCharsForPortraits);
+  const { specIcons } = useSpecIcons();
   const handleRefresh = () => { retry(); };
 
   const sortedCharacters = useMemo(() => {
@@ -365,6 +378,7 @@ export default function CharactersPage() {
       deleting={deleting}
       setDeleteConfirmation={setDeleteConfirmation}
       handleDeleteAccount={handleDeleteAccount}
+      specIcons={specIcons}
     />
   );
 }
