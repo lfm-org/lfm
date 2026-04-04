@@ -86,6 +86,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       http20Enabled: true
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
+      healthCheckPath: '/api/health'
       cors: {
         allowedOrigins: [frontendOrigin]
         supportCredentials: true

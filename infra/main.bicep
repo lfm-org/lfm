@@ -87,6 +87,18 @@ module functions 'modules/functions.bicep' = {
   }
 }
 
+module alerts 'modules/alerts.bicep' = {
+  name: '${uniqueString(resourceGroup().id, location)}-alerts'
+  dependsOn: [functions, cosmos]
+  params: {
+    location: location
+    functionAppName: functionAppName
+    cosmosAccountName: cosmosAccountName
+    alertEmail: privacyEmail
+    tags: tags
+  }
+}
+
 module swa 'modules/swa.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-swa'
   params: {

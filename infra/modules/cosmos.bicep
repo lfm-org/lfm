@@ -117,6 +117,15 @@ resource migrationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases
   }
 }
 
+resource cosmosLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: '${accountName}-lock'
+  scope: cosmosAccount
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevent accidental deletion of Cosmos DB account and its data.'
+  }
+}
+
 resource cosmosDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'cosmos-diagnostics'
   scope: cosmosAccount

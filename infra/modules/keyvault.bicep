@@ -36,6 +36,15 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
   }
 }
 
+resource kvLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: '${keyVaultName}-lock'
+  scope: keyVault
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevent accidental deletion of Key Vault and its secrets.'
+  }
+}
+
 resource kvDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'kv-diagnostics'
   scope: keyVault
