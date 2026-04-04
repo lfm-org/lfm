@@ -15,6 +15,8 @@ import SurfaceCard from "../../../components/SurfaceCard";
 import ConfirmDialog from "../../../components/ConfirmDialog";
 import { DateTime } from "luxon";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
+import SpecIcon from "../../../lib/wow/SpecIcon";
+import { useSpecIcons } from "../../../lib/wow/useSpecIcons";
 
 export type { RunSignupCharacter } from "../lib/runSignupCharacters";
 
@@ -58,6 +60,7 @@ export default function RunSignupCard({
     [run.runCharacters, user]
   );
   const timezone = guildTimezone ?? GUILD_TIMEZONE;
+  const { specIcons } = useSpecIcons();
 
   const closeTime = run.signupCloseTime
     ? DateTime.fromISO(run.signupCloseTime, { zone: "UTC" }).setZone(timezone)
@@ -185,10 +188,19 @@ export default function RunSignupCard({
         {/* Character info or selectors */}
         {existingSignup && !showCharEdit ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-            <Typography variant="body2">
-              <strong>{existingSignup.characterName}</strong>
-              {existingSignup.specName ? ` · ${existingSignup.specName}` : ""}
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {existingSignup.specName && (
+                <SpecIcon
+                  specName={existingSignup.specName}
+                  wowClassName={existingSignup.characterClassName}
+                  iconUrl={existingSignup.specId ? (specIcons.get(existingSignup.specId) ?? null) : null}
+                  size={20}
+                />
+              )}
+              <Typography variant="body2">
+                <strong>{existingSignup.characterName}</strong>
+              </Typography>
+            </Box>
             <Button
               size="small"
               variant="text"
@@ -226,7 +238,17 @@ export default function RunSignupCard({
                 {availableSpecs.length === 0
                   ? <MenuItem value="" disabled>{t("runSignup.unknownSpec")}</MenuItem>
                   : availableSpecs.map(s => (
-                      <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                      <MenuItem key={s.id} value={s.id}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <SpecIcon
+                            specName={s.name}
+                            wowClassName=""
+                            iconUrl={specIcons.get(s.id) ?? null}
+                            size={16}
+                          />
+                          {s.name}
+                        </Box>
+                      </MenuItem>
                     ))
                 }
               </Select>
