@@ -8,6 +8,7 @@ import {
 import type {
   BlizzardJournalInstanceIndexResponse,
   BlizzardJournalInstanceResponse,
+  BlizzardMediaSummary,
   BlizzardPlayableClassIndexResponse,
   BlizzardPlayableClassResponse,
   BlizzardPlayableRaceIndexResponse,
@@ -44,11 +45,10 @@ export async function readWowRaces(): Promise<WowRace[] | null> {
 export async function readWowSpecializations(): Promise<WowSpecialization[] | null> {
   const index = await readBlob<BlizzardPlayableSpecializationIndexResponse>("reference/playable-specialization/index.json");
   if (!index) return null;
-  const details = await readDetailMap<BlizzardPlayableSpecializationResponse>(
-    "playable-specialization",
-    index.character_specializations.map((entry) => entry.id)
-  );
-  return toWowSpecializationViews(index, details);
+  const ids = index.character_specializations.map((entry) => entry.id);
+  const details = await readDetailMap<BlizzardPlayableSpecializationResponse>("playable-specialization", ids);
+  const media = await readDetailMap<BlizzardMediaSummary>("playable-specialization-media", ids);
+  return toWowSpecializationViews(index, details, media);
 }
 
 export async function readWowSpecializationMap(): Promise<Map<number, WowSpecialization>> {
