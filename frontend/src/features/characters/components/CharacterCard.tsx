@@ -1,12 +1,14 @@
 import { Box, Chip, Typography } from "@mui/material";
 import { classColor } from "../../../lib/wow/classColors";
 import { getAttendanceConfig } from "../../runs/lib/attendanceConfig";
+import SpecIcon from "../../../lib/wow/SpecIcon";
 
 interface CharacterCardProps {
   characterName: string;
   characterClassId: number;
   characterClassName: string;
   specName: string | null;
+  specIconUrl: string | null;
   desiredAttendance: string;
 }
 
@@ -15,6 +17,7 @@ export default function CharacterCard({
   characterClassId,
   characterClassName,
   specName,
+  specIconUrl,
   desiredAttendance,
 }: CharacterCardProps) {
   const color = classColor(characterClassId);
@@ -35,12 +38,16 @@ export default function CharacterCard({
         mb: 1,
       }}
     >
-      <Box>
-        <Typography variant="body2" fontWeight={600} lineHeight={1.2}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+        {specName && (
+          <SpecIcon
+            specName={specName}
+            wowClassName={characterClassName}
+            iconUrl={specIconUrl}
+          />
+        )}
+        <Typography variant="body2" fontWeight={600} lineHeight={1.2} noWrap>
           {characterName}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {specName ? `${characterClassName} · ${specName}` : characterClassName}
         </Typography>
       </Box>
       <Chip
