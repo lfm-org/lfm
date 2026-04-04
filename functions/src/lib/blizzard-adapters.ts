@@ -11,6 +11,7 @@ import type {
   BlizzardJournalInstanceIndexResponse,
   BlizzardJournalInstanceResponse,
   BlizzardLocalizedString,
+  BlizzardMediaSummary,
   BlizzardPlayableClassIndexResponse,
   BlizzardPlayableClassResponse,
   BlizzardPlayableRaceIndexResponse,
@@ -62,18 +63,20 @@ export function toWowRaceViews(
 
 export function toWowSpecializationViews(
   index: BlizzardPlayableSpecializationIndexResponse,
-  details: Map<number, BlizzardPlayableSpecializationResponse>
+  details: Map<number, BlizzardPlayableSpecializationResponse>,
+  media?: Map<number, BlizzardMediaSummary>
 ): WowSpecialization[] {
   return index.character_specializations.flatMap((entry) => {
     const detail = details.get(entry.id);
-    return detail
-      ? [{
-          id: detail.id,
-          name: detail.name,
-          classId: detail.playable_class.id,
-          role: toRole(detail.role.type),
-        }]
-      : [];
+    if (!detail) return [];
+    const iconAsset = media?.get(entry.id)?.assets?.find((a) => a.key === "icon");
+    return [{
+      id: detail.id,
+      name: detail.name,
+      classId: detail.playable_class.id,
+      role: toRole(detail.role.type),
+      ...(iconAsset?.value ? { iconUrl: iconAsset.value } : {}),
+    }];
   });
 }
 

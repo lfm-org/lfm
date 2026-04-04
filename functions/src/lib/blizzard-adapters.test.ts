@@ -374,6 +374,28 @@ describe("blizzard-adapters", () => {
     expect(result[0]).not.toHaveProperty("mediaUrl");
   });
 
+  it("includes iconUrl from media map when available", () => {
+    const specializationIndex = {
+      _links: { self: { href: "https://example.test/spec/index" } },
+      character_specializations: [
+        { key: { href: "https://example.test/spec/65" }, id: 65, name: "Holy" },
+        { key: { href: "https://example.test/spec/66" }, id: 66, name: "Protection" },
+      ],
+    };
+    const specializationDetails = new Map([
+      [65, { id: 65, name: "Holy", playable_class: { id: 2, name: "Paladin" }, role: { type: "HEALER", name: "Healer" } }],
+      [66, { id: 66, name: "Protection", playable_class: { id: 2, name: "Paladin" }, role: { type: "TANK", name: "Tank" } }],
+    ]);
+    const mediaMap = new Map([
+      [65, { assets: [{ key: "icon", value: "https://render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg" }] }],
+    ]);
+
+    expect(toWowSpecializationViews(specializationIndex, specializationDetails, mediaMap)).toEqual([
+      { id: 65, name: "Holy", classId: 2, role: "HEALER", iconUrl: "https://render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg" },
+      { id: 66, name: "Protection", classId: 2, role: "TANK" },
+    ]);
+  });
+
   it("normalizes localized instance names into plain strings", () => {
     const instanceIndex = {
       _links: { self: { href: "https://example.test/instance/index" } },
