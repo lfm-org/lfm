@@ -11,7 +11,7 @@
     "reset-storage": "pnpm build && node dist/src/scripts/reset-storage.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src/ --max-warnings=0",
+    "lint": "eslint --cache --cache-location .cache/eslint --max-warnings=0 src/",
     "verify:fast": "pnpm lint && pnpm build && pnpm test"
   },
   "dependencies": {

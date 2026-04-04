@@ -33,7 +33,7 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 **Config preference:** config file > CLI argument > environment variable.
 
-**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. pnpm store: `frontend/.npmrc`; ESLint cache: `eslint.config.mjs`. Prefer `-C` flags over `cd &&`:
+**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. pnpm store: `frontend/.npmrc`; ESLint cache: `--cache-location` in lint scripts. Prefer `-C` flags over `cd &&`:
 
 ```bash
 # Good

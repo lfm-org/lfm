@@ -9,7 +9,7 @@
     "dev:e2e": "FRONTEND_PORT=${FRONTEND_PORT:-4173} vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "bundle:check": "node ./scripts/check-bundle.mjs",
-    "lint": "eslint --max-warnings=0 src eslint.config.mjs vite.config.ts vitest.config.ts vitest.integration.config.ts playwright.config.ts",
+    "lint": "eslint --cache --cache-location .cache/eslint --max-warnings=0 src eslint.config.mjs vite.config.ts vitest.config.ts vitest.integration.config.ts playwright.config.ts",
     "preview": "vite preview",
     "test": "pnpm test:unit && pnpm test:integration",
     "test:unit": "vitest run",

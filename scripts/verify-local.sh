@@ -5,8 +5,8 @@ MODE="${1:-fast}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 run_fast() {
-  (cd "$ROOT_DIR/functions" && pnpm verify:fast)
-  (cd "$ROOT_DIR/frontend" && pnpm verify:fast)
+  fnm exec pnpm -C "$ROOT_DIR/functions" verify:fast
+  fnm exec pnpm -C "$ROOT_DIR/frontend" verify:fast
 }
 
 run_browser() {
