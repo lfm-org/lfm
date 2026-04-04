@@ -8,7 +8,7 @@ interface SpecIconProps {
 }
 
 export default function SpecIcon({ specName, wowClassName, iconUrl, size = 22 }: SpecIconProps) {
-  const label = `${specName} ${wowClassName}`;
+  const label = wowClassName ? `${specName} ${wowClassName}` : specName;
 
   if (!iconUrl) {
     return (
