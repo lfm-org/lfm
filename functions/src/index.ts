@@ -24,5 +24,6 @@ import "./functions/battlenet-character-portraits.js";
 import "./functions/battlenet-characters-refresh.js";
 import "./functions/wow-update.js";
 import "./functions/instances-list.js";
+import "./functions/specializations-list.js";
 import "./functions/guild.js";
 import "./functions/privacy-contact.js";
