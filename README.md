@@ -6,6 +6,15 @@ LFM has three parts:
 - `functions/`: an Azure Functions backend
 - `infra/`: Azure infrastructure defined with Bicep
 
+## Prerequisites
+
+This project uses [fnm](https://github.com/Schniz/fnm) (Fast Node Manager) to pin the Node.js version (see `.node-version`) and **pnpm** as the package manager (provided via corepack). Always run Node/pnpm commands through `fnm exec`:
+
+```bash
+fnm exec pnpm -C frontend install
+fnm exec pnpm -C functions install
+```
+
 ## Run Locally
 
 ### Preferred runner
@@ -46,25 +55,23 @@ Copy `example.env` before using `serve`. The runner overrides local emulator URL
 ### Frontend
 
 ```bash
-cd frontend
-npm ci
-npm run dev
+fnm exec pnpm -C frontend install
+fnm exec pnpm -C frontend dev
 ```
 
 ### Backend
 
 ```bash
-cd functions
-npm ci
-npm run build
-npm start
+fnm exec pnpm -C functions install
+fnm exec pnpm -C functions build
+fnm exec pnpm -C functions start
 ```
 
 Useful checks:
 
-- `cd frontend && npm run build`
-- `cd functions && npm run build`
-- `cd functions && npm test`
+- `fnm exec pnpm -C frontend build`
+- `fnm exec pnpm -C functions build`
+- `fnm exec pnpm -C functions test`
 
 ## Local Verification
 
@@ -86,7 +93,7 @@ Copy `example.env` and `frontend/example.env` before running locally. Do not com
 
 ## Structure
 
-- `frontend/src/features`: feature modules (`auth`, `characters`, `runs`)
+- `frontend/src/features`: feature modules (`auth`, `characters`, `guild`, `runs`)
 - `frontend/src/components`: shared UI components
 - `frontend/src/lib`: shared frontend logic
 - `functions/src/functions`: Azure Function handlers
@@ -102,11 +109,3 @@ Use the existing TypeScript style in the repo: 2-space indentation, double quote
 ## AI Assistance
 
 This project is developed with the assistance of [Claude Code](https://claude.ai/claude-code) and [Codex](https://openai.com/codex/). AI is used for coding, code review, and documentation tasks throughout the codebase.
-
-Repo-tracked Codex skills live under `skills/`. To install them into the directory Codex actually discovers, run:
-
-```bash
-./scripts/install-codex-skills.sh
-```
-
-This links each repo skill into `${CODEX_HOME:-~/.codex}/skills/`. Restart Codex after running it so new skills appear in the session.
