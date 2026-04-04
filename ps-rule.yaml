@@ -41,9 +41,9 @@ configuration:
   AZURE_BICEP_FILE_EXPANSION_TIMEOUT: 10
   AZURE_PARAMETER_FILE_EXPANSION: true
 
-  # Placeholder resource group for analysis.
+  # Placeholder resource group for analysis (match your parameter file).
   AZURE_RESOURCE_GROUP:
-    name: lfm
+    name: myapp
     location: westeurope
 
 # Suppress rules for known, documented trade-offs.

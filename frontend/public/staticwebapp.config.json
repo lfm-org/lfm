@@ -16,6 +16,7 @@
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "_CSP_NOTE": "Replace the API and storage origins below with your own deployed domains",
     "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://lfm-api.dinosauruskeksi.com https://lfmstore.blob.core.windows.net; img-src 'self' https://lfm-api.dinosauruskeksi.com https://render.worldofwarcraft.com https://lfmstore.blob.core.windows.net"
   }
 }

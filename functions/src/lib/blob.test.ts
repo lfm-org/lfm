@@ -38,7 +38,7 @@ describe("writeBlob", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    process.env.BLOB_STORAGE_URL = "https://lfmstore.blob.core.windows.net";
+    process.env.BLOB_STORAGE_URL = "https://myappstore.blob.core.windows.net";
     delete process.env.AzureWebJobsStorage;
   });
 

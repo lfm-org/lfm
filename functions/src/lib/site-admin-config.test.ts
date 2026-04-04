@@ -20,7 +20,7 @@ describe("site-admin-config", () => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.useFakeTimers();
-    process.env.KEY_VAULT_URL = "https://lfm-kv.vault.azure.net/";
+    process.env.KEY_VAULT_URL = "https://myapp-kv.vault.azure.net/";
   });
 
   afterEach(() => {

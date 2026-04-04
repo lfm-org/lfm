@@ -92,9 +92,9 @@ jobs:
 
       - name: Configure SWA custom domain
         run: |
-          HOSTNAME="lfm.dinosauruskeksi.com"
-          SWA="lfm-swa"
-          RG="lfm"
+          HOSTNAME="${{ vars.FRONTEND_HOSTNAME }}"
+          SWA="${{ vars.SWA_NAME }}"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
 
           # Set custom domain (idempotent — SWA auto-provisions managed certificate)
           EXISTING=$(az staticwebapp hostname list \
@@ -112,10 +112,13 @@ jobs:
       - name: Clean up auto-created App Insights resources
         run: |
           # Azure auto-creates a managed RG + workspace when migrating classic App
-          # Insights. Now that App Insights is linked to lfm-logs, the managed RG
-          # is orphaned. Also clean up any auto-created Smart Detection action groups.
+          # Insights. Now that App Insights is workspace-linked, the managed RG is
+          # orphaned. Also clean up any auto-created Smart Detection action groups.
+          APP_INSIGHTS_PREFIX="ai_${{ vars.FUNCTION_APP_NAME }}-insights_"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
           MANAGED_RG=$(az group list \
-            --query "[?starts_with(name, 'ai_lfm-functions-insights_')].name" -o tsv)
+            --query "[?starts_with(name, '$APP_INSIGHTS_PREFIX')].name" -o tsv)
 
           if [ -n "$MANAGED_RG" ]; then
             echo "Deleting orphaned managed resource group: $MANAGED_RG"
@@ -124,13 +127,13 @@ jobs:
             echo "No orphaned managed resource group found."
           fi
 
-          AUTO_AG=$(az monitor action-group list --resource-group lfm \
-            --query "[?starts_with(name, 'ai_lfm-functions-insights_')].name" -o tsv)
+          AUTO_AG=$(az monitor action-group list --resource-group "$RG" \
+            --query "[?starts_with(name, '$APP_INSIGHTS_PREFIX')].name" -o tsv)
 
           if [ -n "$AUTO_AG" ]; then
             echo "Deleting auto-created action group: $AUTO_AG"
             az monitor action-group delete \
-              --name "$AUTO_AG" --resource-group lfm
+              --name "$AUTO_AG" --resource-group "$RG"
           else
             echo "No auto-created action group found."
           fi

@@ -44,7 +44,7 @@ describe("handler", () => {
         read: vi.fn().mockResolvedValue({
           resource: makeRaiderDoc({
             portraitCache: {
-              "eu-test-realm-aelrin": "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
+              "eu-test-realm-aelrin": "https://myappstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg",
             },
           }),
         }),

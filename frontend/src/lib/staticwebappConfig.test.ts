@@ -10,6 +10,6 @@ describe("staticwebapp.config CSP", () => {
       .find((directive) => directive.startsWith("img-src "));
 
     expect(imgSrcDirective).toBeDefined();
-    expect(imgSrcDirective).toContain("https://lfm-api.dinosauruskeksi.com");
+    expect(imgSrcDirective).toMatch(/https:\/\/[^\s]+/);
   });
 });

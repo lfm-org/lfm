@@ -46,10 +46,10 @@ describe("normalizeGuildHomeResponse", () => {
   it("resolves relative crest URLs against an absolute API base URL", () => {
     const result = normalizeGuildHomeResponse(
       createResponse("/api/guild/75956957/crest"),
-      "https://lfm-api.dinosauruskeksi.com/api",
+      "https://myapi.example.com/api",
     );
 
-    expect(result.guild?.crestUrl).toBe("https://lfm-api.dinosauruskeksi.com/api/guild/75956957/crest");
+    expect(result.guild?.crestUrl).toBe("https://myapi.example.com/api/guild/75956957/crest");
   });
 
   it("preserves relative crest URLs when the API base URL is same-origin relative", () => {
@@ -60,10 +60,10 @@ describe("normalizeGuildHomeResponse", () => {
 
   it("leaves absolute crest URLs unchanged", () => {
     const result = normalizeGuildHomeResponse(
-      createResponse("https://lfmstore.blob.core.windows.net/guild-crests/75956957/crest.svg"),
-      "https://lfm-api.dinosauruskeksi.com/api",
+      createResponse("https://myappstore.blob.core.windows.net/guild-crests/75956957/crest.svg"),
+      "https://myapi.example.com/api",
     );
 
-    expect(result.guild?.crestUrl).toBe("https://lfmstore.blob.core.windows.net/guild-crests/75956957/crest.svg");
+    expect(result.guild?.crestUrl).toBe("https://myappstore.blob.core.windows.net/guild-crests/75956957/crest.svg");
   });
 });

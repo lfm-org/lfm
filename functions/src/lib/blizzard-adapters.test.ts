@@ -155,7 +155,7 @@ describe("blizzard-adapters", () => {
     ]);
 
     // stale blob URLs in portraitCache are filtered out
-    const staleCache = { "eu-test-realm-aelrin": "https://lfmstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg" };
+    const staleCache = { "eu-test-realm-aelrin": "https://myappstore.blob.core.windows.net/wow/character-portraits/eu-test-realm-aelrin.jpg" };
     expect(toAccountCharacterViews(accountProfileSummary, "eu", [], staleCache)).toEqual([
       {
         name: "Aelrin",
