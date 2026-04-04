@@ -96,8 +96,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }
-        { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
+        { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'Authorization=AAD' }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
         { name: 'COSMOS_DATABASE', value: cosmosDatabase }
         { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}' }
@@ -175,6 +175,20 @@ resource storageTableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   scope: storageAccountRef
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Grant Function App's MI the Monitoring Metrics Publisher role on App Insights.
+// Required because DisableLocalAuth is true — without this, telemetry silently drops.
+var monitoringMetricsPublisherRoleId = '3913510d-42f4-4e42-8a64-420c390055eb'
+resource appInsightsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(appInsights.id, functionApp.id, monitoringMetricsPublisherRoleId)
+  scope: appInsights
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions', monitoringMetricsPublisherRoleId)
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }

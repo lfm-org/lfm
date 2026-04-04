@@ -102,6 +102,13 @@ resource guildsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
     resource: {
       id: 'guilds'
       partitionKey: { paths: ['/id'], kind: 'Hash' }
+      // Point-read only (by partition key). Exclude all secondary indexes to save write RU.
+      indexingPolicy: {
+        automatic: true
+        indexingMode: 'consistent'
+        includedPaths: []
+        excludedPaths: [{ path: '/*' }]
+      }
     }
   }
 }
@@ -113,6 +120,13 @@ resource migrationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases
     resource: {
       id: 'migrations'
       partitionKey: { paths: ['/id'], kind: 'Hash' }
+      // Point-read only (by partition key). Exclude all secondary indexes to save write RU.
+      indexingPolicy: {
+        automatic: true
+        indexingMode: 'consistent'
+        includedPaths: []
+        excludedPaths: [{ path: '/*' }]
+      }
     }
   }
 }
@@ -134,6 +148,7 @@ resource cosmosDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-pre
     logs: [
       { category: 'DataPlaneRequests', enabled: true }
       { category: 'ControlPlaneRequests', enabled: true }
+      { category: 'QueryRuntimeStatistics', enabled: true }
     ]
   }
 }

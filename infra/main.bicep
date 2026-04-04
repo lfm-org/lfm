@@ -2,11 +2,35 @@ targetScope = 'resourceGroup'
 
 @description('Azure region for all resources')
 param location string
+
+@description('Cosmos DB account name')
+@minLength(3)
+@maxLength(44)
 param cosmosAccountName string
+
+@description('Storage account name (lowercase alphanumeric only)')
+@minLength(3)
+@maxLength(24)
 param storageAccountName string
+
+@description('Function App name')
+@minLength(2)
+@maxLength(60)
 param functionAppName string
+
+@description('Static Web App name')
+@minLength(1)
+@maxLength(40)
 param swaName string
+
+@description('Key Vault name')
+@minLength(3)
+@maxLength(24)
 param keyVaultName string
+
+@description('Log Analytics workspace name')
+@minLength(4)
+@maxLength(63)
 param logAnalyticsWorkspaceName string
 
 @description('Privacy contact email address')

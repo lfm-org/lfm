@@ -44,6 +44,7 @@ resource functionErrorsAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
     enabled: true
     evaluationFrequency: 'PT5M'
     windowSize: 'PT5M'
+    autoMitigate: true
     scopes: [functionApp.id]
     criteria: {
       'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
@@ -63,6 +64,36 @@ resource functionErrorsAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
+// Alert: Function App response time degradation
+resource functionLatencyAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-${functionAppName}-latency'
+  location: 'global'
+  tags: tags
+  properties: {
+    severity: 3
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    autoMitigate: true
+    scopes: [functionApp.id]
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'HighLatency'
+          metricName: 'HttpResponseTime'
+          metricNamespace: 'Microsoft.Web/sites'
+          operator: 'GreaterThan'
+          threshold: 5
+          timeAggregation: 'Average'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: actionGroup.id }]
+  }
+}
+
 // Alert: Cosmos DB request throttling (HTTP 429)
 resource cosmosThrottleAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-${cosmosAccountName}-throttle'
@@ -73,6 +104,7 @@ resource cosmosThrottleAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
     enabled: true
     evaluationFrequency: 'PT5M'
     windowSize: 'PT5M'
+    autoMitigate: true
     scopes: [cosmosAccount.id]
     criteria: {
       'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'

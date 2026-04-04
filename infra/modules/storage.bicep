@@ -64,5 +64,14 @@ resource blobDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-previ
   }
 }
 
+resource storageLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: '${storageAccountName}-lock'
+  scope: storageAccount
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevent accidental deletion of storage account (Functions runtime + wow blob data).'
+  }
+}
+
 output storageAccountId string = storageAccount.id
 output blobEndpoint string = storageAccount.properties.primaryEndpoints.blob
