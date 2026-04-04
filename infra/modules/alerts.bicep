@@ -115,7 +115,7 @@ resource cosmosThrottleAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           metricNamespace: 'Microsoft.DocumentDB/databaseAccounts'
           operator: 'GreaterThan'
           threshold: 10
-          timeAggregation: 'Total'
+          timeAggregation: 'Count'
           criterionType: 'StaticThresholdCriterion'
           dimensions: [
             { name: 'StatusCode', operator: 'Include', values: ['429'] }
