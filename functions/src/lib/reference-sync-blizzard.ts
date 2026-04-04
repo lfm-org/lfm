@@ -51,6 +51,17 @@ const ENTITY_SYNC_DEFS: Array<
       })),
   },
   {
+    name: "specialization-media",
+    entity: "playable-specialization-media",
+    maxAgeMs: 30 * 24 * 60 * 60 * 1000,
+    fetchIndex: fetchSpecializations,
+    getDetails: (response) =>
+      (response as BlizzardPlayableSpecializationIndexResponse).character_specializations.map((entry) => ({
+        id: entry.id,
+        href: `${blizzardApiBase()}/data/wow/media/playable-specialization/${entry.id}?namespace=${staticNamespace()}&locale=en_US`,
+      })),
+  },
+  {
     name: "instances",
     entity: "journal-instance",
     maxAgeMs: 7 * 24 * 60 * 60 * 1000,
