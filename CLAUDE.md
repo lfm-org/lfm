@@ -136,6 +136,10 @@ Acceptable for exploration/debugging. Any `az` CLI change is **temporary and mus
 
 `infra/main.bicep` orchestrates `infra/modules/`. New params → add to both `main.bicep` and `infra/parameters.example.json`. Module params are required with no defaults — expanded through `main.bicep` via parameter files. Production param files (`parameters.prod.*.json`) are gitignored.
 
+## Azure Functions
+
+New endpoint file → add `import "./functions/<name>.js"` to `functions/src/index.ts`. The v4 runtime only registers `app.http()` calls from files imported by the entrypoint; missing imports produce silent 404s (tests pass, deploy succeeds).
+
 ## Database Migrations
 
 Migrations in `functions/src/scripts/migrations/` run via umzug before every functions deploy. The migrations container in Cosmos tracks execution; each runs at most once.
