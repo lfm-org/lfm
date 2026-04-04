@@ -189,7 +189,44 @@ Rules:
 
 ## Infrastructure Development
 
-All Bicep changes must follow Azure Well-Architected Framework best practices. Use the `microsoft-docs` skill to verify resource configurations against current WAF guidance before committing.
+All Bicep changes must follow **Azure Well-Architected Framework** (WAF) best practices. Before adding or modifying any resource, use the `microsoft-docs` skill to look up the WAF service guide for that resource type (e.g. "Architecture best practices for Azure Functions", "Architecture best practices for Azure Cosmos DB for NoSQL"). Apply recommendations from all five pillars: Security, Reliability, Operational Excellence, Cost Optimization, and Performance Efficiency.
+
+### WAF checklist for new resources
+
+When adding a new Azure resource or modifying an existing one, verify:
+
+| Pillar | Check |
+|--------|-------|
+| **Security** | Managed identity over shared keys. TLS 1.2 minimum. Disable local auth where supported. RBAC over access policies. Disable FTP/basic auth. Use Key Vault references for secrets — never app settings. |
+| **Reliability** | CanNotDelete lock on stateful resources (Cosmos, Storage, Key Vault). Soft delete / purge protection where available. Health check endpoints on apps. |
+| **Operational Excellence** | Diagnostic settings sending logs to Log Analytics. All modules fully parameterized — no hardcoded names, domains, or regions. `@description` on every parameter. `@minLength`/`@maxLength` where Azure enforces naming constraints. |
+| **Cost Optimization** | Respect free-tier constraints (see Cost Guidance above). Minimal Cosmos indexing — only index paths used in queries; exclude `/*` on point-read-only containers. Set Log Analytics daily cap. |
+| **Performance** | `http20Enabled` on web apps. Disable client affinity on stateless APIs. Per-document TTL over container-level TTL when expiry varies. |
+
+### WAF checklist for alerts
+
+When adding metric alerts, verify the `timeAggregation` value is valid for the chosen metric — use `microsoft-docs` skill to look up the metric definition. Common pitfall: dimension-filtered metrics (e.g. Cosmos `TotalRequests` with `StatusCode` filter) often require `Count`, not `Total`. Always set `autoMitigate: true` explicitly.
+
+### Workflow parameterization
+
+Deploy workflows (`deploy-infra.yml`, `deploy-functions.yml`, `deploy-frontend.yml`) use GitHub repository variables for all project-specific values (resource names, domains, regions). Never hardcode these in workflows. The variable inventory:
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `AZURE_RESOURCE_GROUP` | Target resource group | `lfm` |
+| `AZURE_LOCATION` | Azure region | `westeurope` |
+| `FUNCTION_APP_NAME` | Functions app name | `lfm-functions` |
+| `KEY_VAULT_NAME` | Key Vault name | `lfm-kv-prot` |
+| `SWA_NAME` | Static Web App name | `lfm-swa` |
+| `LOG_ANALYTICS_NAME` | Log Analytics workspace | `lfm-logs` |
+| `API_HOSTNAME` | API custom domain | `lfm-api.dinosauruskeksi.com` |
+| `FRONTEND_HOSTNAME` | Frontend custom domain | `lfm.dinosauruskeksi.com` |
+| `PARAMETER_FILE` | Bicep parameter file path | `infra/parameters.prod.lfm.json` |
+| `PRIVACY_EMAIL` | Privacy contact email | *(set in GitHub)* |
+
+`VITE_API_BASE_URL` is derived from `API_HOSTNAME` in the frontend workflow — not a separate var.
+
+### `az` CLI usage
 
 `az` CLI commands are acceptable for **exploration and debugging** (e.g. inspecting resource state). However:
 
@@ -197,9 +234,13 @@ All Bicep changes must follow Azure Well-Architected Framework best practices. U
 2. The fix must be captured in Bicep templates (`infra/`) or the `deploy-infra.yml` workflow.
 3. Production state is always defined by `deploy-infra.yml` — never by ad-hoc CLI commands.
 
-**Validation:** The `analyze-infra.yml` workflow runs PSRule for Azure on every push/PR touching `infra/`. Configuration is in `ps-rule.yaml`. After modifying infra, push to a branch and verify the `Analyze Infrastructure` check passes before merging. If a rule must be suppressed (e.g. Consumption plan limitations), add it to `ps-rule.yaml` `rule.exclude` with a justifying comment.
+### Validation
 
-**Structure:** `infra/main.bicep` orchestrates modules in `infra/modules/`. New params must be added to both `main.bicep` and `infra/parameters.prod.lfm.json`. Module params are required with no defaults — they are expanded through `main.bicep` via parameter-file expansion, not standalone.
+The `analyze-infra.yml` workflow runs PSRule for Azure on every push/PR touching `infra/`. Configuration is in `ps-rule.yaml`. After modifying infra, push to a branch and verify the `Analyze Infrastructure` check passes before merging. If a rule must be suppressed (e.g. Consumption plan limitations), add it to `ps-rule.yaml` `rule.exclude` with a justifying comment.
+
+### Structure
+
+`infra/main.bicep` orchestrates modules in `infra/modules/`. New params must be added to both `main.bicep` and `infra/parameters.example.json` (and your production parameter file). Module params are required with no defaults — they are expanded through `main.bicep` via parameter-file expansion, not standalone. Production parameter files (`parameters.prod.*.json`) are gitignored.
 
 ## Database Migrations
 
