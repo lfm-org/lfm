@@ -72,6 +72,10 @@ export interface BlizzardPlayableSpecializationResponse {
     type: "DAMAGE" | "HEALER" | "TANK";
     name: string;
   };
+  media?: {
+    key: BlizzardLink;
+    id: number;
+  };
 }
 
 export interface BlizzardJournalInstanceIndexEntry {

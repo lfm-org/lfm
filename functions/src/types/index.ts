@@ -187,6 +187,7 @@ export interface WowSpecialization {
   name: string;
   classId: number;
   role: "TANK" | "HEALER" | "DPS";
+  iconUrl?: string;
 }
 
 // Auth identity (returned by requireAuth)
