@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { CharacterCard } from "../../characters";
 import type { RunSignup } from "../lib/runTypes";
+import { useSpecIcons } from "../../../lib/wow/useSpecIcons";
 
 interface NotAttendingSectionProps {
   signups: RunSignup[];
@@ -9,6 +10,7 @@ interface NotAttendingSectionProps {
 
 export default function NotAttendingSection({ signups }: NotAttendingSectionProps) {
   const { t } = useTranslation();
+  const { specIcons } = useSpecIcons();
 
   if (signups.length === 0) return null;
 
@@ -29,6 +31,7 @@ export default function NotAttendingSection({ signups }: NotAttendingSectionProp
           characterClassId={s.characterClassId}
           characterClassName={s.characterClassName}
           specName={s.specName}
+          specIconUrl={s.specId ? (specIcons.get(s.specId) ?? null) : null}
           desiredAttendance={s.desiredAttendance}
         />
       ))}

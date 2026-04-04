@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { CharacterCard } from "../../characters";
 import type { RunRole, RunSignup } from "../lib/runTypes";
+import { useSpecIcons } from "../../../lib/wow/useSpecIcons";
 
 const ROLE_KEY: Record<RunRole, string> = {
   TANK: "rosterSection.tanks",
@@ -16,6 +17,7 @@ interface RosterSectionProps {
 
 export default function RosterSection({ role, signups }: RosterSectionProps) {
   const { t } = useTranslation();
+  const { specIcons } = useSpecIcons();
 
   return (
     <Box>
@@ -39,6 +41,7 @@ export default function RosterSection({ role, signups }: RosterSectionProps) {
             characterClassId={s.characterClassId}
             characterClassName={s.characterClassName}
             specName={s.specName}
+            specIconUrl={s.specId ? (specIcons.get(s.specId) ?? null) : null}
             desiredAttendance={s.desiredAttendance}
           />
         ))
