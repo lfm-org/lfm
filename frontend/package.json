@@ -25,6 +25,8 @@
     "@mui/icons-material": "7.3.9",
     "@mui/material": "7.3.9",
     "@mui/x-date-pickers": "8.5.3",
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query-devtools": "^5.0.0",
     "@tanstack/react-table": "8.21.3",
     "axios": "1.13.6",
     "dompurify": "3.3.3",

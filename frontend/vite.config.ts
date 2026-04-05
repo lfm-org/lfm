@@ -23,7 +23,9 @@ export default defineConfig({
             id.includes("node_modules/react-dom/") ||
             id.includes("node_modules/react/") ||
             id.includes("node_modules/react-router/") ||
-            id.includes("node_modules/scheduler/")
+            id.includes("node_modules/scheduler/") ||
+            id.includes("node_modules/@tanstack/react-query/") ||
+            id.includes("node_modules/@tanstack/query-core/")
           ) {
             return "vendor-react";
           }
