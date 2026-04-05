@@ -131,3 +131,21 @@ docker-compose.override.yaml
 
 # Azure CLI cached credentials
 .azure/
+
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+publish/
+
+# .NET local settings (secrets)
+api/local.settings.json
+app/wwwroot/appsettings.Development.json
