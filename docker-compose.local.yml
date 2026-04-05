@@ -5,8 +5,8 @@ services:
       - /bin/bash
       - -lc
       - |
-        printf '%s' "$COSMOS_KEY_CONTENT" > /run/cosmos.key
-        export KEY_FILE=/run/cosmos.key
+        printf '%s' "$COSMOS_KEY_CONTENT" > /tmp/cosmos.key
+        export KEY_FILE=/tmp/cosmos.key
         exec /home/cosmosdev/docker_entrypoint.sh
     ports:
       - "${COSMOS_PORT:-8081}:8081"
