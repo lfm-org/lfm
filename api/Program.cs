@@ -4,7 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Azure.Cosmos;
 using Azure.Identity;
+using Lfm.Api.Auth;
 using Lfm.Api.Options;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Configuration;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -64,5 +67,28 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         ? new CosmosClient(opts.Endpoint, new DefaultAzureCredential(), clientOptions)
         : new CosmosClient(opts.Endpoint, opts.AuthKey, clientOptions);
 });
+
+// WAF/Reliability + Security: Data Protection keys are persisted to a blob and
+// wrapped with a Key Vault key. Both pieces are necessary:
+//   - ProtectKeysWithAzureKeyVault encrypts the key ring at rest but DISABLES
+//     the default persistence location discovery. Without PersistKeysTo*, keys
+//     would only live in memory and every Functions instance/slot swap would
+//     invalidate all sessions.
+//   - PersistKeysToAzureBlobStorage gives the ring a durable shared home so
+//     every instance in every slot reads the same keys.
+// Use the VERSIONLESS Key Vault key URI so automatic key rotation works.
+var authOpts = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>()
+    ?? throw new InvalidOperationException("AuthOptions not configured");
+var storageOpts = builder.Configuration.GetSection(StorageOptions.SectionName).Get<StorageOptions>()
+    ?? throw new InvalidOperationException("StorageOptions not configured");
+var credential = new DefaultAzureCredential();
+
+builder.Services.AddDataProtection()
+    .SetApplicationName("Lfm")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
+    .PersistKeysToAzureBlobStorage(new Uri(storageOpts.DataProtectionBlobUri), credential)
+    .ProtectKeysWithAzureKeyVault(new Uri(authOpts.DataProtectionKeyUri), credential);
+
+builder.Services.AddSingleton<ISessionCipher, DataProtectionSessionCipher>();
 
 builder.Build().Run();
