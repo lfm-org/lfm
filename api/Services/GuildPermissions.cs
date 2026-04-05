@@ -105,6 +105,60 @@ public sealed class GuildPermissions(IGuildRepository guildRepo, IRaidersReposit
         return bestRank.Value == 0;
     }
 
+    public async Task<bool> CanSignupGuildRunsAsync(SessionPrincipal principal, CancellationToken ct)
+    {
+        if (principal.GuildId is null) return false;
+
+        var guildTask = guildRepo.GetAsync(principal.GuildId, ct);
+        var raiderTask = raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+
+        await Task.WhenAll(guildTask, raiderTask);
+
+        var guild = guildTask.Result;
+        var raider = raiderTask.Result;
+
+        // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
+        if (guild?.BlizzardRosterRaw?.Members is null || raider is null) return false;
+
+        // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
+        if (guild.BlizzardRosterFetchedAt is null) return false;
+        if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
+        if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
+
+        // Find the best (lowest) matched rank for the principal's characters.
+        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var member in guild.BlizzardRosterRaw.Members)
+            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
+
+        int? bestRank = null;
+        if (raider.Characters is not null)
+        {
+            foreach (var character in raider.Characters)
+            {
+                var key = $"{character.Realm}:{character.Name}";
+                if (rankByKey.TryGetValue(key, out var rank))
+                {
+                    if (bestRank is null || rank < bestRank)
+                        bestRank = rank;
+                }
+            }
+        }
+
+        if (bestRank is null) return false;
+
+        // Look up rank permission entry; default canSignupGuildRuns to true for all ranks.
+        // Mirrors: permission?.canSignupGuildRuns ?? true.
+        if (guild.RankPermissions is not null)
+        {
+            var perm = guild.RankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
+            if (perm is not null)
+                return perm.CanSignupGuildRuns;
+        }
+
+        // No stored permission entry → fall back to default (all ranks can sign up).
+        return true;
+    }
+
     public async Task<bool> CanDeleteGuildRunsAsync(SessionPrincipal principal, CancellationToken ct)
     {
         if (principal.GuildId is null) return false;
