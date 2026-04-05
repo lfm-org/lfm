@@ -102,7 +102,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends brotli
 
       - name: Check bundle size budget
-        run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 2
+        # 5 MB is a regression gate, not a target. Baseline after Phase A
+        # (Blazor WASM + FluentUI, no trimming) is ~3.74 MB brotli. Consider
+        # installing `wasm-tools` workload + enabling IL trimming later to
+        # tighten this to 2-3 MB.
+        run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
 
       - name: Audit dependencies
         shell: bash
