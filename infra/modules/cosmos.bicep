@@ -52,8 +52,12 @@ resource raidersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
     resource: {
       id: 'raiders'
       partitionKey: { paths: ['/battleNetId'], kind: 'Hash' }
-      // Cleanup handled by raider-cleanup timer function (daily, 90-day inactivity threshold).
-      // No container-level TTL — the timer scrubs run data before deleting the raider document.
+      // TTL=-1: enable TTL support but rely on per-document ttl field.
+      // Each raider doc sets ttl = 180 days on every write; Cosmos auto-prunes inactive
+      // accounts so orphaned profiles eventually fall off without manual intervention.
+      // The raider-cleanup timer function still scrubs run data (90-day inactivity) before
+      // the doc itself expires, preserving the GDPR purge flow.
+      defaultTtl: -1
       indexingPolicy: {
         automatic: true
         indexingMode: 'consistent'
