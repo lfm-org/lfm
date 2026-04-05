@@ -13,6 +13,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
+builder.UseMiddleware<Lfm.Api.Middleware.AuthPolicyMiddleware>();
 
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 builder.Services.ConfigureFunctionsApplicationInsights();
