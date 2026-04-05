@@ -24,4 +24,12 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
             return null;
         }
     }
+
+    public async Task UpsertAsync(RaiderDocument raider, CancellationToken ct)
+    {
+        await _container.UpsertItemAsync(
+            raider,
+            new PartitionKey(raider.BattleNetId),
+            cancellationToken: ct);
+    }
 }
