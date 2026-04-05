@@ -59,7 +59,10 @@ const PROFILE_NAMESPACES: Record<BattleNetRegion, string> = {
   cn: "profile-cn",
 };
 
-const IDENTITY_CACHE_TTL_MS = 5 * 60 * 1000;
+// 15 min matches ACCOUNT_CHARS_COOLDOWN_MS in cache.ts, so the identity
+// won't expire mid-session while character data is still considered fresh.
+// Trade-off: a guild change takes up to 15 min to reflect in the identity.
+const IDENTITY_CACHE_TTL_MS = 15 * 60 * 1000;
 
 interface CachedIdentity {
   identity: BattleNetIdentity;
