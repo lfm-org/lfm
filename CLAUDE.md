@@ -42,7 +42,7 @@ fnm exec pnpm -C /absolute/path/frontend install
 cd frontend && pnpm install
 ```
 
-**Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching. **JSON:** use `jq`, not Python one-liners.
+**Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching. **JSON:** use `jq`, not Python one-liners. **YAML:** use `yq`, not Python one-liners.
 
 ## Verification
 
