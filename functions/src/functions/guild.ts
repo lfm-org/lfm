@@ -11,18 +11,9 @@ import {
   saveAdminGuildSettings,
   saveCurrentGuildSettings,
 } from "../lib/guild/service.js";
+import { createRequestContext } from "../lib/request-context.js";
 import { cachedJsonResponse, errorResponse, jsonResponse } from "../middleware/security-headers.js";
 import type { GuildDocument, RaiderDocument } from "../types/index.js";
-
-async function readGuildDocument(guildDocId: string): Promise<GuildDocument | null> {
-  const { resource } = await getGuildsContainer().item(guildDocId, guildDocId).read<GuildDocument>();
-  return resource ?? null;
-}
-
-async function readRaider(battleNetId: string): Promise<RaiderDocument | null> {
-  const { resource } = await getRaidersContainer().item(battleNetId, battleNetId).read<RaiderDocument>();
-  return resource ?? null;
-}
 
 async function upsertGuildDocument(doc: GuildDocument): Promise<GuildDocument> {
   await getGuildsContainer().items.upsert(doc);
@@ -41,14 +32,16 @@ export async function currentGuildHandler(request: HttpRequest, context: Invocat
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
+  const ctx = createRequestContext(request, context);
+
   try {
     const view = await loadCurrentGuildHome({
       guildId: auth.identity.guildId,
       guildName: auth.identity.guildName,
       battleNetId: auth.identity.battleNetId,
       accessToken: auth.accessToken,
-      readGuildDocument,
-      readRaider,
+      readGuildDocument: ctx.getGuild.bind(ctx),
+      readRaider: ctx.getRaider.bind(ctx),
       upsertGuildDocument,
       log: context.log.bind(context),
     });
@@ -72,13 +65,15 @@ export async function currentGuildSettingsHandler(request: HttpRequest, context:
   const auth = await requireAuthWithToken(request);
   if (!auth) return errorResponse(401, "Unauthorized");
 
+  const ctx = createRequestContext(request, context);
+
   const view = await saveCurrentGuildSettings({
     guildId: auth.identity.guildId,
     guildName: auth.identity.guildName,
     battleNetId: auth.identity.battleNetId,
     readRawInput: request.json.bind(request),
-    readGuildDocument,
-    readRaider,
+    readGuildDocument: ctx.getGuild.bind(ctx),
+    readRaider: ctx.getRaider.bind(ctx),
     replaceGuildDocument,
   });
   switch (view.kind) {
@@ -111,6 +106,8 @@ async function adminResolveHandler(request: HttpRequest, context: InvocationCont
   const auth = await requireSiteAdminAuthWithToken(request);
   if (!auth) return errorResponse(403, "Forbidden");
 
+  const ctx = createRequestContext(request, context);
+
   const body = (await request.json()) as { guildId?: unknown };
   const guildDocId = parseGuildId(typeof body.guildId === "string" ? body.guildId : body.guildId != null ? String(body.guildId) : null);
   if (!guildDocId) return errorResponse(400, "Invalid guild ID");
@@ -118,7 +115,7 @@ async function adminResolveHandler(request: HttpRequest, context: InvocationCont
   const result = await resolveAdminGuild({
     guildDocId,
     accessToken: auth.accessToken,
-    readGuildDocument,
+    readGuildDocument: ctx.getGuild.bind(ctx),
     listRaiders,
     upsertGuildDocument,
   });
@@ -139,13 +136,15 @@ async function adminGuildGetHandler(request: HttpRequest, context: InvocationCon
   const auth = await requireSiteAdminAuthWithToken(request);
   if (!auth) return errorResponse(403, "Forbidden");
 
+  const ctx = createRequestContext(request, context);
+
   const guildDocId = parseGuildId(request.params.guildId);
   if (!guildDocId) return errorResponse(400, "Invalid guild ID");
 
   const view = await loadAdminGuildHome({
     guildDocId,
     accessToken: auth.accessToken,
-    readGuildDocument,
+    readGuildDocument: ctx.getGuild.bind(ctx),
     listRaiders,
     upsertGuildDocument,
   });
@@ -166,6 +165,8 @@ export async function adminGuildSettingsHandler(request: HttpRequest, context: I
   const auth = await requireSiteAdminAuthWithToken(request);
   if (!auth) return errorResponse(403, "Forbidden");
 
+  const ctx = createRequestContext(request, context);
+
   const guildDocId = parseGuildId(request.params.guildId);
   if (!guildDocId) return errorResponse(400, "Invalid guild ID");
 
@@ -174,7 +175,7 @@ export async function adminGuildSettingsHandler(request: HttpRequest, context: I
     accessToken: auth.accessToken,
     battleNetId: auth.identity.battleNetId,
     readRawInput: request.json.bind(request),
-    readGuildDocument,
+    readGuildDocument: ctx.getGuild.bind(ctx),
     listRaiders,
     upsertGuildDocument,
     replaceGuildDocument,

@@ -5,6 +5,7 @@ import {
   isBlizzardRenderUrl,
 } from "../lib/character-portrait.js";
 import { getRaidersContainer } from "../lib/cosmos.js";
+import { createRequestContext } from "../lib/request-context.js";
 import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RaiderDocument } from "../types/index.js";
 import { validateRegion, validateRealmSlug, validateCharacterName, encodeBlizzardPathSegments } from "../lib/blizzard-validation.js";
@@ -19,10 +20,8 @@ export async function handler(request: HttpRequest, context: InvocationContext):
     return jsonResponse({});
   }
 
-  const container = getRaidersContainer();
-  const { resource: raider } = await container
-    .item(auth.identity.battleNetId, auth.identity.battleNetId)
-    .read<RaiderDocument>();
+  const ctx = createRequestContext(request, context);
+  const raider = await ctx.getRaider(auth.identity.battleNetId);
   if (!raider) return errorResponse(404, "Raider not found");
 
   const portraitCache = { ...(raider.portraitCache ?? {}) };
@@ -106,6 +105,7 @@ export async function handler(request: HttpRequest, context: InvocationContext):
   }
 
   if (cacheUpdated) {
+    const container = getRaidersContainer();
     await container.item(raider.id, raider.battleNetId).replace<RaiderDocument>({
       ...raider,
       characters,
