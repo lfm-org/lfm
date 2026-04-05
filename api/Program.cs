@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+builder.UseMiddleware<Lfm.Api.Middleware.AuditMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthPolicyMiddleware>();
 
