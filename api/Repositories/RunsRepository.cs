@@ -83,6 +83,15 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         }
     }
 
+    public async Task<RunDocument> CreateAsync(RunDocument run, CancellationToken ct)
+    {
+        var response = await _container.CreateItemAsync(
+            run,
+            new PartitionKey(run.Id),
+            cancellationToken: ct);
+        return response.Resource;
+    }
+
     public async Task ScrubRaiderAsync(string battleNetId, CancellationToken ct)
     {
         // Cross-partition query: find runs where this raider is creator or participant.

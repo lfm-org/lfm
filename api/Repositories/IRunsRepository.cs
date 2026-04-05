@@ -76,4 +76,11 @@ public interface IRunsRepository
     /// Mirrors container.item(id, id).read() in runs-detail.ts.
     /// </summary>
     Task<RunDocument?> GetByIdAsync(string id, CancellationToken ct);
+
+    /// <summary>
+    /// Creates a new run document in the "runs" container.
+    /// Returns the persisted document (including any server-side fields set by Cosmos).
+    /// Mirrors <c>getRunsContainer().items.create(run)</c> in runs-create.ts.
+    /// </summary>
+    Task<RunDocument> CreateAsync(RunDocument run, CancellationToken ct);
 }
