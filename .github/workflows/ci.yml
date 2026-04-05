@@ -16,16 +16,12 @@ jobs:
           cache-dependency-path: |
             frontend/pnpm-lock.yaml
             functions/pnpm-lock.yaml
-      - name: Restore tsbuildinfo and ESLint caches
+      - name: Restore functions tsbuildinfo cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: |
-            frontend/.cache/.tsbuildinfo
-            functions/.cache/.tsbuildinfo
-            frontend/.cache/eslint
-            functions/.cache/eslint
-          key: tscache-${{ runner.os }}-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
-          restore-keys: tscache-${{ runner.os }}-
+          path: functions/.cache/.tsbuildinfo
+          key: tscache-functions-${{ runner.os }}-${{ hashFiles('functions/tsconfig.json', 'functions/pnpm-lock.yaml') }}
+          restore-keys: tscache-functions-${{ runner.os }}-
       - name: Install dependencies
         working-directory: functions
         run: pnpm install --frozen-lockfile
@@ -45,16 +41,14 @@ jobs:
           cache-dependency-path: |
             frontend/pnpm-lock.yaml
             functions/pnpm-lock.yaml
-      - name: Restore tsbuildinfo and ESLint caches
+      - name: Restore frontend tsbuildinfo cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             frontend/.cache/.tsbuildinfo
-            functions/.cache/.tsbuildinfo
-            frontend/.cache/eslint
-            functions/.cache/eslint
-          key: tscache-${{ runner.os }}-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
-          restore-keys: tscache-${{ runner.os }}-
+            frontend/.cache/.tsbuildinfo.node
+          key: tscache-frontend-${{ runner.os }}-${{ hashFiles('frontend/tsconfig.json', 'frontend/tsconfig.node.json', 'frontend/pnpm-lock.yaml') }}
+          restore-keys: tscache-frontend-${{ runner.os }}-
       - name: Install dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
@@ -77,16 +71,6 @@ jobs:
           cache-dependency-path: |
             frontend/pnpm-lock.yaml
             functions/pnpm-lock.yaml
-      - name: Restore tsbuildinfo and ESLint caches
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            frontend/.cache/.tsbuildinfo
-            functions/.cache/.tsbuildinfo
-            frontend/.cache/eslint
-            functions/.cache/eslint
-          key: tscache-${{ runner.os }}-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
-          restore-keys: tscache-${{ runner.os }}-
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
