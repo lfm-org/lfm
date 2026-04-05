@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
 import LoadingState from "../../../components/LoadingState";
 import { useToast } from "../../../components/useToast";
 import DOMPurify from "dompurify";
@@ -11,6 +12,7 @@ import PageContainer from "../../../components/layout/PageContainer";
 import useDocumentTitle from "../../../hooks/useDocumentTitle";
 import { useGuildHome } from "../../guild/lib/useGuildHome";
 import RunForm, { type CreateRunFormValues, type RunFormInitialValues } from "../components/RunForm";
+import { queryKeys } from "../../../lib/queryKeys";
 
 const EMPTY_INITIAL: RunFormInitialValues = {
   instanceId: "",
@@ -25,6 +27,7 @@ export default function CreateRunPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { showSuccess } = useToast();
+  const queryClient = useQueryClient();
   useDocumentTitle(`${t("createRun.title")} — LFM`);
   const { data: guildHome } = useGuildHome();
   const [instances, setInstances] = useState<WowInstance[]>([]);
@@ -52,6 +55,7 @@ export default function CreateRunPage() {
         description: sanitizedDescription,
       });
       showSuccess(t("createRun.createSuccess"));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.runs() });
       navigate(`/runs?run=${encodeURIComponent(res.data.id)}`);
     } catch {
       setError("createRun.createFailed");

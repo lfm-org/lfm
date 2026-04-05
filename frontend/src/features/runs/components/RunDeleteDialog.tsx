@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "../../../lib/api";
+import { queryKeys } from "../../../lib/queryKeys";
 
 interface RunDeleteDialogProps {
   open: boolean;
@@ -13,6 +15,7 @@ interface RunDeleteDialogProps {
 
 export default function RunDeleteDialog({ open, runId, runName, onClose, onDeleted }: RunDeleteDialogProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(false);
 
@@ -22,6 +25,7 @@ export default function RunDeleteDialog({ open, runId, runName, onClose, onDelet
     try {
       await api.delete(`/runs/${encodeURIComponent(runId)}`);
       onDeleted(runId);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.runs() });
     } catch {
       setError(true);
       setDeleting(false);

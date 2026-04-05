@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth";
 import api from "../../../lib/api";
 import { ATTENDANCE_OPTIONS, getAttendanceConfig, type AttendanceStatus } from "../lib/attendanceConfig";
@@ -17,6 +18,7 @@ import { DateTime } from "luxon";
 import { GUILD_TIMEZONE } from "../../../lib/guildConfig";
 import SpecIcon from "../../../lib/wow/SpecIcon";
 import { useSpecIcons } from "../../../lib/wow/useSpecIcons";
+import { queryKeys } from "../../../lib/queryKeys";
 
 export type { RunSignupCharacter } from "../lib/runSignupCharacters";
 
@@ -48,6 +50,7 @@ export default function RunSignupCard({
 }: RunSignupCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [characterId, setCharacterId] = useState("");
   const [specId, setSpecId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -117,6 +120,7 @@ export default function RunSignupCard({
       });
       onRunUpdate(res.data);
       setShowCharEdit(false);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.runs() });
     } catch {
       setError(t("runSignup.updateFailed"));
     } finally {
@@ -131,6 +135,7 @@ export default function RunSignupCard({
       const res = await api.delete<Run>(`/runs/${run.id}/signup`);
       onRunUpdate(res.data);
       setPendingCancel(false);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.runs() });
     } catch {
       setError(t("runSignup.cancelFailed"));
     } finally {
