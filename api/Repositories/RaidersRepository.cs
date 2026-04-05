@@ -32,4 +32,19 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
             new PartitionKey(raider.BattleNetId),
             cancellationToken: ct);
     }
+
+    public async Task DeleteAsync(string battleNetId, CancellationToken ct)
+    {
+        try
+        {
+            await _container.DeleteItemAsync<RaiderDocument>(
+                battleNetId,
+                new PartitionKey(battleNetId),
+                cancellationToken: ct);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Idempotent: raider already deleted, treat as success.
+        }
+    }
 }

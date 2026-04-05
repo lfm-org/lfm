@@ -28,4 +28,10 @@ public interface IRaidersRepository
     /// Upserts a raider document. Partition key is the document's BattleNetId.
     /// </summary>
     Task UpsertAsync(RaiderDocument raider, CancellationToken ct);
+
+    /// <summary>
+    /// Deletes the raider document identified by battleNetId (which is both the
+    /// document id and partition key). Treats NotFound as success (idempotent).
+    /// </summary>
+    Task DeleteAsync(string battleNetId, CancellationToken ct);
 }

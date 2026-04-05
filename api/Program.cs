@@ -114,6 +114,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 
 builder.Services.AddScoped<Lfm.Api.Repositories.IInstancesRepository, Lfm.Api.Repositories.InstancesRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IRaidersRepository, Lfm.Api.Repositories.RaidersRepository>();
+builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Repositories.RunsRepository>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
 
 // WAF/Reliability + Security: Data Protection keys are persisted to a blob and
