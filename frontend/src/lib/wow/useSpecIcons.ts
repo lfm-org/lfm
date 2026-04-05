@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import api from "../api";
+import { queryKeys } from "../queryKeys";
 
 interface SpecializationResponse {
   id: number;
@@ -9,55 +10,26 @@ interface SpecializationResponse {
   iconUrl?: string;
 }
 
-let cachedPromise: Promise<Map<number, string>> | null = null;
-let cachedResult: Map<number, string> | null = null;
-
-export function _resetCache(): void {
-  cachedPromise = null;
-  cachedResult = null;
-}
-
+/** Fetches spec icons from the API. Used as the queryFn and exported for tests. */
 export async function fetchSpecIcons(): Promise<Map<number, string>> {
-  if (cachedResult) return cachedResult;
-  if (cachedPromise) return cachedPromise;
-
-  cachedPromise = api
-    .get<{ specializations: SpecializationResponse[] }>("/reference/specializations")
-    .then((res) => {
-      const map = new Map<number, string>();
-      for (const spec of res.data.specializations) {
-        if (spec.iconUrl) map.set(spec.id, spec.iconUrl);
-      }
-      cachedResult = map;
-      return map;
-    })
-    .catch(() => {
-      cachedPromise = null;
-      return new Map<number, string>();
-    });
-
-  return cachedPromise;
+  const res = await api.get<{ specializations: SpecializationResponse[] }>("/reference/specializations");
+  const map = new Map<number, string>();
+  for (const spec of res.data.specializations) {
+    if (spec.iconUrl) map.set(spec.id, spec.iconUrl);
+  }
+  return map;
 }
+
+/** No-op — cache is now managed by TanStack Query. Retained for test compatibility. */
+export function _resetCache(): void {}
 
 export function useSpecIcons(): { specIcons: Map<number, string>; loading: boolean } {
-  const [specIcons, setSpecIcons] = useState<Map<number, string>>(cachedResult ?? new Map());
-  const [loading, setLoading] = useState(!cachedResult);
-
-  useEffect(() => {
-    if (cachedResult) {
-      setSpecIcons(cachedResult);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    fetchSpecIcons().then((map) => {
-      if (!cancelled) {
-        setSpecIcons(map);
-        setLoading(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, []);
+  const { data: specIcons = new Map<number, string>(), isPending: loading } = useQuery({
+    queryKey: queryKeys.specializations(),
+    queryFn: fetchSpecIcons,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
 
   return { specIcons, loading };
 }

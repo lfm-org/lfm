@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import api from "../../../lib/api";
 import { normalizePortraitMap, normalizePortraitUrlField } from "../../../lib/portraitUrls";
+import { queryKeys } from "../../../lib/queryKeys";
 
 interface AccountCharacter {
   name: string;
@@ -15,6 +17,19 @@ interface AccountCharacter {
   specName?: string | null;
 }
 
+async function fetchCharacters(): Promise<AccountCharacter[]> {
+  const res = await api.get<AccountCharacter[]>("/battlenet/characters");
+  if (res.status === 204 || !res.data) {
+    const refreshRes = await api.post<AccountCharacter[]>("/battlenet/characters/refresh");
+    return refreshRes.data
+      .map((character) => normalizePortraitUrlField(character))
+      .sort((a, b) => b.level - a.level);
+  }
+  return res.data
+    .map((character) => normalizePortraitUrlField(character))
+    .sort((a, b) => b.level - a.level);
+}
+
 export function useCharacters(visibleChars: AccountCharacter[]): {
   characters: AccountCharacter[];
   loading: boolean;
@@ -23,40 +38,17 @@ export function useCharacters(visibleChars: AccountCharacter[]): {
   error: string | null;
   retry: () => void;
 } {
-  const [characters, setCharacters] = useState<AccountCharacter[]>([]);
-  const [loading, setLoading] = useState(true);
   const [portraits, setPortraits] = useState<Record<string, string>>({});
   const [loadingPortraits, setLoadingPortraits] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const fetchedPortraitIds = useRef(new Set<string>());
 
-  const fetchCharacters = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await api.get<AccountCharacter[]>("/battlenet/characters");
-      if (res.status === 204 || !res.data) {
-        const refreshRes = await api.post<AccountCharacter[]>("/battlenet/characters/refresh");
-        const sorted = refreshRes.data
-          .map((character) => normalizePortraitUrlField(character))
-          .sort((a, b) => b.level - a.level);
-        setCharacters(sorted);
-      } else {
-        const sorted = res.data
-          .map((character) => normalizePortraitUrlField(character))
-          .sort((a, b) => b.level - a.level);
-        setCharacters(sorted);
-      }
-    } catch {
-      setError("characters.loadFailed");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: characters = [], isPending: loading, isError, refetch } = useQuery({
+    queryKey: queryKeys.characters(),
+    queryFn: fetchCharacters,
+    staleTime: 15 * 60_000,
+  });
 
-  useEffect(() => {
-    fetchCharacters();
-  }, [fetchCharacters]);
+  const error = isError ? "characters.loadFailed" : null;
 
   useEffect(() => {
     const missing = visibleChars.filter(c => {
@@ -82,5 +74,5 @@ export function useCharacters(visibleChars: AccountCharacter[]): {
     });
   }, [visibleChars]);
 
-  return { characters, loading, portraits, loadingPortraits, error, retry: fetchCharacters };
+  return { characters, loading, portraits, loadingPortraits, error, retry: refetch };
 }

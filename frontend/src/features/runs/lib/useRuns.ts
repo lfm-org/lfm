@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../lib/api";
 import { normalizeRun, type Run } from "./runTypes";
 import { normalizeWowInstances, type WowInstance } from "../../../lib/wow/instances";
 import { normalizeRunSignupCharacter, type RunSignupCharacter } from "./runSignupCharacters";
 import { groupRunsByTime } from "./runGrouping";
+import { queryKeys } from "../../../lib/queryKeys";
 
 const PAGE_SIZE = 5;
 
@@ -53,92 +55,63 @@ export interface UseRunsResult {
 
 export function useRuns(battleNetId: string | null, isDesktop: boolean, isMobile: boolean): UseRunsResult {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [instances, setInstances] = useState<WowInstance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [characters, setCharacters] = useState<RunSignupCharacter[]>([]);
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [loadingChars, setLoadingChars] = useState(true);
-  const [charactersError, setCharactersError] = useState<string | null>(null);
   const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
   const lastFocusedRunId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const loadRuns = useCallback(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
+  const {
+    data: runs = [],
+    isPending: runsLoading,
+    isError: runsError,
+    refetch: refetchRuns,
+  } = useQuery({
+    queryKey: queryKeys.runs(),
+    queryFn: async () => {
+      const res = await api.get<Run[]>("/runs");
+      return res.data.map(normalizeRun);
+    },
+    staleTime: 30_000,
+  });
 
-    Promise.allSettled([
-      api.get<Run[]>("/runs"),
-      api.get<WowInstance[]>("/instances"),
-    ])
-      .then(([runResult, instanceResult]) => {
-        if (!active) return;
+  const {
+    data: instances = [],
+    isPending: instancesLoading,
+  } = useQuery({
+    queryKey: queryKeys.instances(),
+    queryFn: async () => {
+      const res = await api.get<WowInstance[]>("/instances");
+      return normalizeWowInstances(res.data);
+    },
+    staleTime: 7 * 24 * 60 * 60_000,
+  });
 
-        if (runResult.status === "fulfilled") {
-          setRuns(runResult.value.data.map(normalizeRun));
-        } else {
-          setRuns([]);
-          setError("runs.loadFailed");
-        }
+  const {
+    data: charData,
+    isPending: loadingChars,
+    isError: charsError,
+  } = useQuery({
+    queryKey: battleNetId ? queryKeys.raiderCharacters(battleNetId) : ["raider", "disabled"],
+    queryFn: async () => {
+      if (!battleNetId) return { characters: [], selectedCharacterId: null };
+      const response = await api.get<CharactersResponse>("/raider/characters");
+      return {
+        characters: response.data.characters.map(normalizeRunSignupCharacter),
+        selectedCharacterId: response.data.selectedCharacterId,
+      };
+    },
+    enabled: battleNetId !== null,
+    staleTime: 15 * 60_000,
+  });
 
-        if (instanceResult.status === "fulfilled") {
-          setInstances(normalizeWowInstances(instanceResult.value.data));
-        } else {
-          setInstances([]);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+  const characters = charData?.characters ?? [];
+  const selectedCharacterId = charData?.selectedCharacterId ?? null;
+  const loading = runsLoading || instancesLoading;
+  const error = runsError ? "runs.loadFailed" : null;
+  const charactersError = charsError ? "Failed to load characters" : null;
 
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    return loadRuns();
-  }, [loadRuns]);
-
-  useEffect(() => {
-    if (!battleNetId) {
-      setCharacters([]);
-      setSelectedCharacterId(null);
-      setLoadingChars(false);
-      setCharactersError(null);
-      return;
-    }
-
-    let active = true;
-    setLoadingChars(true);
-    setCharactersError(null);
-
-    api.get<CharactersResponse>("/raider/characters")
-      .then((response) => {
-        if (!active) return;
-        setCharacters(response.data.characters.map(normalizeRunSignupCharacter));
-        setSelectedCharacterId(response.data.selectedCharacterId);
-      })
-      .catch(() => {
-        if (!active) return;
-        setCharacters([]);
-        setSelectedCharacterId(null);
-        setCharactersError("Failed to load characters");
-      })
-      .finally(() => {
-        if (active) {
-          setLoadingChars(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [battleNetId]);
+  const refresh = () => {
+    void refetchRuns();
+  };
 
   const requestedRunId = searchParams.get("run");
   const requestedPage = parsePageParam(searchParams.get("page"));
@@ -208,9 +181,9 @@ export function useRuns(battleNetId: string | null, isDesktop: boolean, isMobile
   }, [isDesktop, requestedRunId, targetIndex, visibleRuns]);
 
   const handleRunUpdate = (updatedRun: Run) => {
-    setRuns((current) => current.map((run) => (
-      run.id === updatedRun.id ? normalizeRun(updatedRun) : run
-    )));
+    queryClient.setQueryData(queryKeys.runs(), (current: Run[]) =>
+      current.map((run) => (run.id === updatedRun.id ? normalizeRun(updatedRun) : run))
+    );
   };
 
   const handleToggleRun = (runId: string) => {
@@ -247,7 +220,9 @@ export function useRuns(battleNetId: string | null, isDesktop: boolean, isMobile
   };
 
   const handleRunDelete = (runId: string) => {
-    setRuns((current) => current.filter((run) => run.id !== runId));
+    queryClient.setQueryData(queryKeys.runs(), (current: Run[]) =>
+      current.filter((run) => run.id !== runId)
+    );
   };
 
   const handleSortChange = (order: "asc" | "desc") => {
@@ -274,7 +249,7 @@ export function useRuns(battleNetId: string | null, isDesktop: boolean, isMobile
     error,
     characters,
     selectedCharacterId,
-    loadingChars,
+    loadingChars: loadingChars && battleNetId !== null,
     charactersError,
     expandedRuns,
     requestedRunId,
@@ -290,7 +265,7 @@ export function useRuns(battleNetId: string | null, isDesktop: boolean, isMobile
     handleSelectRun,
     handlePageChange,
     handleRunDelete,
-    refresh: loadRuns,
+    refresh,
     sortOrder,
     handleSortChange,
   };

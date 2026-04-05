@@ -1,32 +1,31 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../lib/api";
 import { normalizeGuildHomeResponse, type GuildHomeResponse } from "./guildHome";
+import { queryKeys } from "../../../lib/queryKeys";
+
+async function fetchGuildHome(): Promise<GuildHomeResponse> {
+  const response = await api.get<GuildHomeResponse>("/guild");
+  return normalizeGuildHomeResponse(response.data);
+}
 
 export function useGuildHome() {
-  const [data, setData] = useState<GuildHomeResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const { data = null, isPending: loading, isError } = useQuery({
+    queryKey: queryKeys.guild(),
+    queryFn: fetchGuildHome,
+    staleTime: 60 * 60_000,
+  });
 
-    try {
-      const response = await api.get<GuildHomeResponse>("/guild");
-      const normalized = normalizeGuildHomeResponse(response.data);
-      setData(normalized);
-      return normalized;
-    } catch {
-      setError("Failed to load guild details");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const error = isError ? "Failed to load guild details" : null;
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const reload = async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.guild() });
+  };
+
+  const setData = (value: GuildHomeResponse | null) => {
+    queryClient.setQueryData<GuildHomeResponse | null>(queryKeys.guild(), value);
+  };
 
   return { data, loading, error, reload, setData };
 }

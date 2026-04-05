@@ -31,20 +31,22 @@ describe("fetchSpecIcons", () => {
     expect(api.get).toHaveBeenCalledWith("/reference/specializations");
   });
 
-  it("caches the result across multiple calls", async () => {
+  it("returns distinct maps across independent calls (cache is managed by TanStack Query, not module-level)", async () => {
     vi.mocked(api.get).mockResolvedValue({
       data: { specializations: [{ id: 65, name: "Holy", classId: 2, role: "HEALER", iconUrl: "https://example.test/icon.jpg" }] },
     });
 
-    await fetchSpecIcons();
-    await fetchSpecIcons();
-    expect(api.get).toHaveBeenCalledTimes(1);
+    const result1 = await fetchSpecIcons();
+    const result2 = await fetchSpecIcons();
+    expect(result1.get(65)).toBe("https://example.test/icon.jpg");
+    expect(result2.get(65)).toBe("https://example.test/icon.jpg");
+    // Each call hits the API — deduplication is handled by TanStack Query's queryFn layer
+    expect(api.get).toHaveBeenCalledTimes(2);
   });
 
-  it("returns empty map on fetch failure", async () => {
+  it("throws on fetch failure (TanStack Query handles retry/error state)", async () => {
     vi.mocked(api.get).mockRejectedValue(new Error("Network error"));
 
-    const result = await fetchSpecIcons();
-    expect(result.size).toBe(0);
+    await expect(fetchSpecIcons()).rejects.toThrow("Network error");
   });
 });

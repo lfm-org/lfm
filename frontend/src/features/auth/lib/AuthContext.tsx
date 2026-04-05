@@ -1,46 +1,55 @@
 import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { useLocation } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { checkAuth, updateLocale, type AuthUser } from "../../../lib/auth";
 import { AuthContext } from "./context";
+import { queryKeys } from "../../../lib/queryKeys";
 import i18n, { isSupportedLocale } from "../../../i18n/i18n";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [postAuthRedirect, setPostAuthRedirect] = useState<string | null>(null);
   const location = useLocation();
 
+  const { data: user = null, isPending } = useQuery({
+    queryKey: queryKeys.me(),
+    queryFn: checkAuth,
+    staleTime: 10 * 60_000,
+  });
+
+  // Set i18n language when user data arrives
+  useEffect(() => {
+    if (user?.locale && isSupportedLocale(user.locale)) {
+      i18n.changeLanguage(user.locale);
+    }
+  }, [user?.locale]);
+
   const onCharacterSelected = (selectedCharacterId: string) => {
-    setUser(u => u ? { ...u, selectedCharacterId } : u);
+    queryClient.setQueryData<AuthUser | null>(queryKeys.me(), (prev) =>
+      prev ? { ...prev, selectedCharacterId } : (prev ?? null)
+    );
   };
 
   const clearAuth = () => {
     setPostAuthRedirect("/login");
-    setUser(null);
+    queryClient.setQueryData(queryKeys.me(), null);
   };
 
   const onAccountDeleted = () => {
     setPostAuthRedirect("/goodbye");
-    setUser(null);
+    queryClient.setQueryData(queryKeys.me(), null);
   };
 
   const setLocale = useCallback(async (locale: string) => {
     if (!isSupportedLocale(locale)) return;
     i18n.changeLanguage(locale);
-    setUser(u => u ? { ...u, locale } : u);
+    queryClient.setQueryData<AuthUser | null>(queryKeys.me(), (prev) =>
+      prev ? { ...prev, locale } : (prev ?? null)
+    );
     if (user) {
       await updateLocale(locale).catch(() => {});
     }
-  }, [user]);
-
-  useEffect(() => {
-    checkAuth().then((authUser) => {
-      setUser(authUser);
-      if (authUser?.locale && isSupportedLocale(authUser.locale)) {
-        i18n.changeLanguage(authUser.locale);
-      }
-    }).finally(() => setLoading(false));
-  }, []);
+  }, [user, queryClient]);
 
   useEffect(() => {
     if (postAuthRedirect && location.pathname === postAuthRedirect) {
@@ -49,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, postAuthRedirect]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, onCharacterSelected, clearAuth, onAccountDeleted, postAuthRedirect, setLocale }}>
+    <AuthContext.Provider value={{ user, loading: isPending, onCharacterSelected, clearAuth, onAccountDeleted, postAuthRedirect, setLocale }}>
       {children}
     </AuthContext.Provider>
   );
