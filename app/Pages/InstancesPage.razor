@@ -1,0 +1,46 @@
+@page "/instances"
+@using Lfm.App.Services
+@using Lfm.Contracts.Instances
+@inject IInstancesClient Client
+
+<PageTitle>Instances</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+  <FluentLabel Typo="Typography.H3">Instances</FluentLabel>
+
+  @switch (state)
+  {
+    case LoadingState<IReadOnlyList<InstanceDto>>.Idle:
+    case LoadingState<IReadOnlyList<InstanceDto>>.Loading:
+      <FluentProgressRing />
+      break;
+    case LoadingState<IReadOnlyList<InstanceDto>>.Failure f:
+      <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+      break;
+    case LoadingState<IReadOnlyList<InstanceDto>>.Success s:
+      <FluentDataGrid Items="@s.Value.AsQueryable()" TGridItem="InstanceDto">
+        <PropertyColumn Property="@(i => i.Name)" Title="Name" />
+        <PropertyColumn Property="@(i => i.ModeKey)" Title="Mode" />
+        <PropertyColumn Property="@(i => i.Expansion)" Title="Expansion" />
+      </FluentDataGrid>
+      break;
+  }
+</FluentStack>
+
+@code {
+    private LoadingState<IReadOnlyList<InstanceDto>> state = new LoadingState<IReadOnlyList<InstanceDto>>.Idle();
+
+    protected override async Task OnInitializedAsync()
+    {
+        state = new LoadingState<IReadOnlyList<InstanceDto>>.Loading();
+        try
+        {
+            var items = await Client.ListAsync(CancellationToken.None);
+            state = new LoadingState<IReadOnlyList<InstanceDto>>.Success(items);
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<IReadOnlyList<InstanceDto>>.Failure(ex.Message);
+        }
+    }
+}
