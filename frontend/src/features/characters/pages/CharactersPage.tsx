@@ -172,7 +172,7 @@ function CharactersPageInner({
                   >
                     {(awaitingPortrait || isSelecting) && <CircularProgress size={20} color="inherit" />}
                   </Avatar>
-                  <Box sx={{ minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography variant="body1" component="span" display="block" noWrap>
                       {char.name}
                     </Typography>
@@ -180,24 +180,19 @@ function CharactersPageInner({
                       {char.realmName}
                     </Typography>
                   </Box>
+                  {char.specName && (
+                    <SpecIcon
+                      specName={char.specName}
+                      wowClassName={char.className ?? ""}
+                      iconUrl={char.activeSpecId ? (specIcons.get(char.activeSpecId) ?? null) : null}
+                      size={32}
+                    />
+                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
-                    {t("characters.level", { level: char.level, className: char.className })}
+                    {t("characters.level", { level: char.level })}
                   </Typography>
-                  {char.specName && (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                      <SpecIcon
-                        specName={char.specName}
-                        wowClassName={char.className ?? ""}
-                        iconUrl={char.activeSpecId ? (specIcons.get(char.activeSpecId) ?? null) : null}
-                        size={16}
-                      />
-                      <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                        {char.specName}
-                      </Typography>
-                    </Box>
-                  )}
                 </Box>
               </Button>
             );

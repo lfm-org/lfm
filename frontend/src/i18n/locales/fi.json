@@ -61,7 +61,7 @@
   "characters.sort": "Järjestys",
   "characters.loadFailed": "Hahmojen lataaminen epäonnistui",
   "characters.pagination": "Hahmosivut",
-  "characters.level": "Taso {{level}} {{className}}",
+  "characters.level": "Taso {{level}}",
   "characters.deleteError": "Tilin poistaminen ei onnistu juuri nyt. Yritä hetken kuluttua.",
 
   "forgetMe.title": "Unohda minut",

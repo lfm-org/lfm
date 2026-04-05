@@ -61,7 +61,7 @@
   "characters.sort": "Sort",
   "characters.loadFailed": "Failed to load characters",
   "characters.pagination": "Character pages",
-  "characters.level": "Level {{level}} {{className}}",
+  "characters.level": "Level {{level}}",
   "characters.deleteError": "Unable to delete the account right now. Try again in a moment.",
 
   "forgetMe.title": "Forget me",
