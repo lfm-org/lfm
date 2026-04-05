@@ -1,0 +1,220 @@
+using System.Text;
+using System.Text.Json;
+using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
+using Moq;
+using Lfm.Api.Auth;
+using Lfm.Api.Functions;
+using Lfm.Api.Repositories;
+using Lfm.Api.Services;
+using Lfm.Contracts.Instances;
+using Lfm.Contracts.Runs;
+using Xunit;
+
+namespace Lfm.Api.Tests;
+
+public class RunsUpdateFunctionTests
+{
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+
+    private static FunctionContext MakeFunctionContext(SessionPrincipal principal)
+    {
+        var items = new Dictionary<object, object> { [SessionKeys.Principal] = principal };
+        var ctx = new Mock<FunctionContext>();
+        ctx.Setup(c => c.Items).Returns(items);
+        return ctx.Object;
+    }
+
+    private static SessionPrincipal MakePrincipal(
+        string battleNetId = "bnet-creator",
+        string? guildId = "12345",
+        string? guildName = "Test Guild") =>
+        new SessionPrincipal(
+            BattleNetId: battleNetId,
+            BattleTag: "Creator#1234",
+            GuildId: guildId,
+            GuildName: guildName,
+            IssuedAt: DateTimeOffset.UtcNow,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+    private static HttpRequest MakePutRequest(object body)
+    {
+        var json = JsonSerializer.Serialize(body);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        httpContext.Request.ContentType = "application/json";
+        return httpContext.Request;
+    }
+
+    /// <summary>
+    /// A run that is open for editing: startTime is 24 hours in the future,
+    /// signupCloseTime is 2 hours before that, no signups yet.
+    /// </summary>
+    private static RunDocument MakeOpenRunDoc(
+        string id = "run-1",
+        string creatorBattleNetId = "bnet-creator",
+        int? creatorGuildId = 12345,
+        string visibility = "PUBLIC") =>
+        new RunDocument(
+            Id: id,
+            StartTime: DateTimeOffset.UtcNow.AddHours(24).ToString("o"),
+            SignupCloseTime: DateTimeOffset.UtcNow.AddHours(22).ToString("o"),
+            Description: "Original description",
+            ModeKey: "NORMAL:10",
+            Visibility: visibility,
+            CreatorGuild: "Test Guild",
+            CreatorGuildId: creatorGuildId,
+            InstanceId: 631,
+            InstanceName: "Icecrown Citadel",
+            CreatorBattleNetId: creatorBattleNetId,
+            CreatedAt: "2026-04-01T10:00:00Z",
+            Ttl: 86400,
+            RunCharacters: []);
+
+    private static IReadOnlyList<InstanceDto> MakeInstances() =>
+        new List<InstanceDto>
+        {
+            new("631", "Icecrown Citadel", "NORMAL:10", "wrath"),
+            new("631", "Icecrown Citadel", "HEROIC:25", "wrath"),
+        };
+
+    // ------------------------------------------------------------------
+    // Test 1: Admin (creator) happy path — updates run and returns 200
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_updates_run_and_returns_200_for_creator()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+        var updatedDoc = existing with { Description = "Updated description" };
+
+        var requestBody = new { description = "Updated description" };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedDoc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+
+        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeOfType<RunDetailDto>();
+
+        // Cosmos UpdateAsync was called once
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 2: Run not found — returns 404
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_when_run_does_not_exist()
+    {
+        var principal = MakePrincipal();
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("missing-run", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument?)null);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+
+        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePutRequest(new { }), "missing-run", ctx, CancellationToken.None);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+
+        // Cosmos UpdateAsync must never be called
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: Non-creator with no guild relationship — returns 403
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_403_for_non_creator_without_guild_permission()
+    {
+        // Caller belongs to guild 99999 — different from the run's creator guild (12345).
+        var principal = MakePrincipal(battleNetId: "bnet-other", guildId: "99999");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator", creatorGuildId: 12345, visibility: "PUBLIC");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+
+        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
+
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(403);
+
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: Editing closed (run start time has passed) — returns 409 Conflict
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_409_when_editing_is_closed()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+
+        // Run whose startTime is in the past → editing closed.
+        var pastRun = new RunDocument(
+            Id: "run-1",
+            StartTime: DateTimeOffset.UtcNow.AddHours(-1).ToString("o"),
+            SignupCloseTime: DateTimeOffset.UtcNow.AddHours(-2).ToString("o"),
+            Description: "Past run",
+            ModeKey: "NORMAL:10",
+            Visibility: "PUBLIC",
+            CreatorGuild: "Test Guild",
+            CreatorGuildId: 12345,
+            InstanceId: 631,
+            InstanceName: "Icecrown Citadel",
+            CreatorBattleNetId: "bnet-creator",
+            CreatedAt: "2026-04-01T10:00:00Z",
+            Ttl: 86400,
+            RunCharacters: []);
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pastRun);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+
+        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePutRequest(new { description = "Too late" }), "run-1", ctx, CancellationToken.None);
+
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(409);
+
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+}

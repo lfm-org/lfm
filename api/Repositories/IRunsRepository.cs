@@ -83,4 +83,11 @@ public interface IRunsRepository
     /// Mirrors <c>getRunsContainer().items.create(run)</c> in runs-create.ts.
     /// </summary>
     Task<RunDocument> CreateAsync(RunDocument run, CancellationToken ct);
+
+    /// <summary>
+    /// Replaces an existing run document in the "runs" container.
+    /// Returns the persisted document after the replace.
+    /// Mirrors <c>getRunsContainer().item(id, id).replace(updated)</c> in runs-update.ts.
+    /// </summary>
+    Task<RunDocument> UpdateAsync(RunDocument run, CancellationToken ct);
 }
