@@ -1,12 +1,8 @@
+using Lfm.Contracts.Instances;
+
 namespace Lfm.Api.Repositories;
 
 public interface IInstancesRepository
 {
-    Task<IReadOnlyList<InstanceRecord>> ListAsync(CancellationToken ct);
+    Task<IReadOnlyList<InstanceDto>> ListAsync(CancellationToken ct);
 }
-
-public sealed record InstanceRecord(
-    string Id,
-    string Name,
-    string ModeKey,
-    string Expansion);
