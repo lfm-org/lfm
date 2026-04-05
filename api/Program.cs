@@ -116,7 +116,16 @@ builder.Services.AddScoped<Lfm.Api.Repositories.IInstancesRepository, Lfm.Api.Re
 builder.Services.AddScoped<Lfm.Api.Repositories.IRaidersRepository, Lfm.Api.Repositories.RaidersRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Repositories.RunsRepository>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
-builder.Services.AddSingleton<Lfm.Api.Services.IBlizzardOAuthClient, Lfm.Api.Services.BlizzardOAuthClient>();
+
+// WAF/Reliability: Typed HttpClient with standard resilience handler (retry + circuit breaker).
+// Replaces the old AddSingleton registration — typed clients are registered as transient with
+// IHttpClientFactory managing lifetime, which is correct for HttpClient usage.
+builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardOAuthClient, Lfm.Api.Services.BlizzardOAuthClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Lfm.Api.Options.BlizzardOptions>>().Value;
+    client.BaseAddress = new Uri($"https://{opts.Region.ToLowerInvariant()}.battle.net/");
+    client.Timeout = TimeSpan.FromSeconds(20);
+}).AddStandardResilienceHandler();
 
 // WAF/Reliability + Security: Data Protection keys are persisted to a blob and
 // wrapped with a Key Vault key. Both pieces are necessary:

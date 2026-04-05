@@ -1,25 +1,29 @@
 using FluentAssertions;
 using Lfm.Api.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 using BlizzardOptions = Lfm.Api.Options.BlizzardOptions;
+using MsOptions = Microsoft.Extensions.Options.Options;
 
 namespace Lfm.Api.Tests;
 
 /// <summary>
 /// Unit tests for <see cref="BlizzardOAuthClient"/>.
-/// These tests exercise the pure URL-building logic directly on the service,
-/// which is easier and faster than going through the HTTP trigger.
+/// These tests exercise the pure URL-building and state-protection logic
+/// directly on the service, which is easier and faster than going through
+/// the HTTP trigger.
 /// </summary>
 public class BlizzardOAuthClientTests
 {
-    private static IBlizzardOAuthClient MakeClient(
+    private static BlizzardOAuthClient MakeClient(
         string clientId = "test-client",
         string region = "eu",
         string redirectUri = "https://example.com/api/battlenet/callback")
     {
-        var opts = Microsoft.Extensions.Options.Options.Create(new BlizzardOptions
+        var opts = MsOptions.Create(new BlizzardOptions
         {
             ClientId = clientId,
             ClientSecret = "secret",
@@ -27,7 +31,14 @@ public class BlizzardOAuthClientTests
             RedirectUri = redirectUri,
             AppBaseUrl = "https://example.com",
         });
-        return new BlizzardOAuthClient(opts);
+
+        // Use ephemeral Data Protection for unit tests (no Azure storage required).
+        var dpProvider = new EphemeralDataProtectionProvider();
+
+        return new BlizzardOAuthClient(
+            new HttpClient(),
+            dpProvider,
+            opts);
     }
 
     [Fact]
@@ -35,8 +46,10 @@ public class BlizzardOAuthClientTests
     {
         var client = MakeClient();
         var state = client.GenerateState();
+        var codeVerifier = client.GenerateCodeVerifier();
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(codeVerifier);
 
-        var url = client.BuildAuthorizeUrl(state);
+        var url = client.BuildAuthorizeUrl(state, codeChallenge);
 
         var uri = new Uri(url);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
@@ -50,6 +63,8 @@ public class BlizzardOAuthClientTests
         query["redirect_uri"].Should().Be("https://example.com/api/battlenet/callback");
         query["scope"].Should().Be("wow.profile",     "WoW profile scope is required");
         query["state"].Should().Be(state,             "state must round-trip intact");
+        query["code_challenge"].Should().Be(codeChallenge, "PKCE code_challenge must be present");
+        query["code_challenge_method"].Should().Be("S256", "PKCE S256 method is required");
     }
 
     [Fact]
@@ -65,6 +80,21 @@ public class BlizzardOAuthClientTests
         state.Should().MatchRegex("^[0-9a-f]{32}$", "state should be lowercase hex");
     }
 
+    [Fact]
+    public void GenerateCodeVerifier_returns_base64url_string()
+    {
+        var client = MakeClient();
+
+        var verifier = client.GenerateCodeVerifier();
+
+        verifier.Should().NotBeNullOrEmpty();
+        // Base64url: only A-Z, a-z, 0-9, '-', '_' (no '+', '/', '=')
+        verifier.Should().MatchRegex(@"^[A-Za-z0-9\-_]+$",
+            "code verifier must be Base64url-encoded (no padding, no +/)");
+        verifier.Length.Should().BeGreaterThanOrEqualTo(43,
+            "RFC 7636 requires at least 43 characters for 256-bit entropy");
+    }
+
     [Theory]
     [InlineData("eu",  "eu.battle.net")]
     [InlineData("us",  "us.battle.net")]
@@ -72,8 +102,46 @@ public class BlizzardOAuthClientTests
     public void BuildAuthorizeUrl_uses_correct_regional_host(string region, string expectedHost)
     {
         var client = MakeClient(region: region);
-        var url = client.BuildAuthorizeUrl(client.GenerateState());
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
+        var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
 
         new Uri(url).Host.Should().Be(expectedHost);
+    }
+
+    [Fact]
+    public void ProtectLoginState_then_UnprotectLoginState_round_trips()
+    {
+        var client = MakeClient();
+        var state = client.GenerateState();
+        var verifier = client.GenerateCodeVerifier();
+
+        var payload = client.ProtectLoginState(state, verifier);
+        var result = client.UnprotectLoginState(payload);
+
+        result.Should().NotBeNull("valid protected payload must round-trip");
+        result!.Value.state.Should().Be(state);
+        result.Value.codeVerifier.Should().Be(verifier);
+    }
+
+    [Fact]
+    public void UnprotectLoginState_returns_null_for_tampered_payload()
+    {
+        var client = MakeClient();
+
+        var result = client.UnprotectLoginState("tampered.garbage.payload");
+
+        result.Should().BeNull("tampered payloads must be rejected");
+    }
+
+    [Fact]
+    public void ComputeCodeChallenge_produces_base64url_sha256()
+    {
+        // RFC 7636 §4.6: BASE64URL(SHA256(ASCII(code_verifier)))
+        // Known vector: verifier "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        // → challenge "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+        const string verifier  = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+        const string expected  = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+
+        BlizzardOAuthClient.ComputeCodeChallenge(verifier).Should().Be(expected);
     }
 }

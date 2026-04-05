@@ -1,4 +1,10 @@
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Lfm.Api.Options;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
 
@@ -7,51 +13,206 @@ namespace Lfm.Api.Services;
 /// <summary>
 /// Implements <see cref="IBlizzardOAuthClient"/> using Battle.net OAuth 2.0 endpoints.
 ///
-/// State-handling approach (B2.1):
-///   The TS implementation seals { state, codeVerifier, redirect } into a signed
-///   HS256 JWT stored in a <c>login_state</c> HttpOnly cookie (5-min TTL). The
-///   callback verifies the cookie to reconstruct the PKCE verifier and validate state.
-///   For B2.1, we use a random GUID state (stateless, trivially non-empty). B2.2 will
-///   upgrade <see cref="GenerateState"/> to produce a DataProtection-sealed payload
-///   mirroring the TS JWT cookie approach, and the handler will set the cookie.
+/// State-handling approach (B2.2):
+///   The TS implementation seals { state, codeVerifier } into a signed HS256 JWT stored
+///   in a <c>login_state</c> HttpOnly cookie (5-min TTL). We use an IDataProtector
+///   (purpose "Lfm.OAuth.LoginState.v1") for the same goal — tamper-evident, time-limited
+///   payload — without adding a JWT dependency.
+///
+///   Login handler:
+///     1. GenerateState() → random GUID ("N")
+///     2. GenerateCodeVerifier() → random Base64url string
+///     3. ComputeCodeChallenge(verifier) → base64url(SHA-256(verifier))
+///     4. BuildAuthorizeUrl(state, codeChallenge) → Battle.net authorize URL
+///     5. ProtectLoginState(state, verifier) → protected cookie payload
+///
+///   Callback handler:
+///     1. UnprotectLoginState(cookiePayload) → (state, verifier)?
+///     2. Validate query-param state == cookie state
+///     3. ExchangeCodeAsync(code, verifier) → access token
+///     4. GetUserInfoAsync(accessToken) → user id + battletag
 /// </summary>
-public sealed class BlizzardOAuthClient(IOptions<BlizzardOptions> options) : IBlizzardOAuthClient
+public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
 {
-    private readonly BlizzardOptions _opts = options.Value;
+    private static readonly string LoginStatePurpose = "Lfm.OAuth.LoginState.v1";
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
+    private readonly BlizzardOptions _opts;
+    private readonly HttpClient _httpClient;
+    private readonly IDataProtector _loginStateProtector;
+
+    public BlizzardOAuthClient(
+        HttpClient httpClient,
+        IDataProtectionProvider dataProtectionProvider,
+        IOptions<BlizzardOptions> options)
+    {
+        _opts = options.Value;
+        _httpClient = httpClient;
+        _loginStateProtector = dataProtectionProvider.CreateProtector(LoginStatePurpose);
+    }
 
     /// <inheritdoc/>
     public string GenerateState() => Guid.NewGuid().ToString("N");
 
     /// <inheritdoc/>
-    public string BuildAuthorizeUrl(string state)
+    public string GenerateCodeVerifier()
+    {
+        // RFC 7636: 43-128 unreserved characters. Use 32 random bytes → 43 Base64url chars.
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Base64UrlEncode(bytes);
+    }
+
+    /// <inheritdoc/>
+    public string BuildAuthorizeUrl(string state, string codeChallenge)
     {
         if (string.IsNullOrEmpty(state))
             throw new ArgumentException("State must not be empty.", nameof(state));
+        if (string.IsNullOrEmpty(codeChallenge))
+            throw new ArgumentException("Code challenge must not be empty.", nameof(codeChallenge));
 
         var region = _opts.Region.ToLowerInvariant();
         var host = $"https://{region}.battle.net/oauth/authorize";
 
         var qb = new QueryBuilder
         {
-            { "response_type", "code" },
-            { "client_id",     _opts.ClientId },
-            { "redirect_uri",  _opts.RedirectUri },
-            { "scope",         "wow.profile" },
-            { "state",         state }
+            { "response_type",        "code" },
+            { "client_id",            _opts.ClientId },
+            { "redirect_uri",         _opts.RedirectUri },
+            { "scope",                "wow.profile" },
+            { "state",                state },
+            { "code_challenge",       codeChallenge },
+            { "code_challenge_method","S256" }
         };
 
         return host + qb.ToQueryString();
     }
 
-    // ---------------------------------------------------------------------------
-    // B2.2 stubs
-    // ---------------------------------------------------------------------------
+    /// <inheritdoc/>
+    public string ProtectLoginState(string state, string codeVerifier)
+    {
+        // Serialize state + verifier as "state:codeVerifier" (simple, no external deps).
+        // The protector adds authenticated encryption + expiry via SetApplicationName.
+        var payload = $"{state}:{codeVerifier}";
+        return _loginStateProtector.Protect(payload);
+    }
 
     /// <inheritdoc/>
-    public Task<BlizzardTokenResponse> ExchangeCodeAsync(string code, string codeVerifier, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException("ExchangeCodeAsync is implemented in B2.2.");
+    public (string state, string codeVerifier)? UnprotectLoginState(string payload)
+    {
+        try
+        {
+            var raw = _loginStateProtector.Unprotect(payload);
+            var idx = raw.IndexOf(':');
+            if (idx < 1) return null;
+            var state = raw[..idx];
+            var codeVerifier = raw[(idx + 1)..];
+            if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(codeVerifier))
+                return null;
+            return (state, codeVerifier);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     /// <inheritdoc/>
-    public Task<BlizzardUserInfo> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException("GetUserInfoAsync is implemented in B2.2.");
+    public async Task<BlizzardTokenResponse> ExchangeCodeAsync(
+        string code,
+        string codeVerifier,
+        CancellationToken cancellationToken = default)
+    {
+        var region = _opts.Region.ToLowerInvariant();
+        var tokenUrl = $"https://{region}.battle.net/oauth/token";
+
+        var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"]    = "authorization_code",
+            ["code"]          = code,
+            ["redirect_uri"]  = _opts.RedirectUri,
+            ["code_verifier"] = codeVerifier,
+        });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl)
+        {
+            Content = requestBody,
+        };
+
+        // Basic auth: Authorization: Basic base64(clientId:clientSecret)
+        var credentials = Convert.ToBase64String(
+            Encoding.UTF8.GetBytes($"{_opts.ClientId}:{_opts.ClientSecret}"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var tokenDto = JsonSerializer.Deserialize<TokenEndpointResponse>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Battle.net token endpoint returned empty response.");
+
+        return new BlizzardTokenResponse(tokenDto.AccessToken, tokenDto.ExpiresIn);
+    }
+
+    /// <inheritdoc/>
+    public async Task<BlizzardUserInfo> GetUserInfoAsync(
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        var region = _opts.Region.ToLowerInvariant();
+        var userInfoUrl = $"https://{region}.battle.net/oauth/userinfo";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var userDto = JsonSerializer.Deserialize<UserInfoEndpointResponse>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Battle.net userinfo endpoint returned empty response.");
+
+        return new BlizzardUserInfo(userDto.Id, userDto.BattleTag);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+
+    /// <summary>Computes a PKCE S256 code challenge from a verifier.</summary>
+    public static string ComputeCodeChallenge(string codeVerifier)
+    {
+        var bytes = SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier));
+        return Base64UrlEncode(bytes);
+    }
+
+    private static string Base64UrlEncode(byte[] bytes)
+        => Convert.ToBase64String(bytes)
+               .TrimEnd('=')
+               .Replace('+', '-')
+               .Replace('/', '_');
+
+    // ---------------------------------------------------------------------------
+    // Private DTOs — not part of the public contract
+    // ---------------------------------------------------------------------------
+
+    private sealed class TokenEndpointResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string AccessToken { get; init; } = string.Empty;
+
+        [JsonPropertyName("expires_in")]
+        public int ExpiresIn { get; init; }
+    }
+
+    private sealed class UserInfoEndpointResponse
+    {
+        [JsonPropertyName("id")]
+        public long Id { get; init; }
+
+        [JsonPropertyName("battletag")]
+        public string BattleTag { get; init; } = string.Empty;
+    }
 }
