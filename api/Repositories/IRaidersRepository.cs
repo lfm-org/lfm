@@ -43,13 +43,28 @@ public sealed record StoredSpecializationsSummary(
 
 public sealed record StoredSpecializationsEntry(StoredCharacterSpecialization Specialization);
 
+/// <summary>
+/// A single asset entry in a Blizzard character media summary.
+/// Field names match the snake_case Blizzard API response (e.g. "avatar", "main").
+/// </summary>
+public sealed record BlizzardCharacterMediaAsset(string Key, string Value);
+
+/// <summary>
+/// The Blizzard character media summary response.
+/// Mirrors <c>BlizzardCharacterMediaSummary</c> from
+/// <c>functions/src/types/blizzard.ts</c>.
+/// </summary>
+public sealed record BlizzardCharacterMediaSummary(
+    IReadOnlyList<BlizzardCharacterMediaAsset>? Assets = null);
+
 public sealed record StoredSelectedCharacter(
     string Id,
     string Region,
     string Realm,
     string Name,
     string? PortraitUrl = null,
-    StoredSpecializationsSummary? SpecializationsSummary = null);
+    StoredSpecializationsSummary? SpecializationsSummary = null,
+    BlizzardCharacterMediaSummary? MediaSummary = null);
 
 /// <summary>
 /// Raider document as stored in the Cosmos "raiders" container.

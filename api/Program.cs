@@ -117,6 +117,14 @@ builder.Services.AddScoped<Lfm.Api.Repositories.IRaidersRepository, Lfm.Api.Repo
 builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Repositories.RunsRepository>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
 
+// WAF/Reliability: Typed HttpClient for portrait fetches.
+// CharacterPortraitService constructs the full Blizzard API URL itself (cross-region support),
+// so the base address is intentionally left at the root; resilience policy still applies.
+builder.Services.AddHttpClient<Lfm.Api.Services.ICharacterPortraitService, Lfm.Api.Services.CharacterPortraitService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+}).AddStandardResilienceHandler();
+
 // WAF/Reliability: Typed HttpClient with standard resilience handler (retry + circuit breaker).
 // Replaces the old AddSingleton registration — typed clients are registered as transient with
 // IHttpClientFactory managing lifetime, which is correct for HttpClient usage.
