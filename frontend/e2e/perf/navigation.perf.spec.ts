@@ -11,11 +11,6 @@ const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
 test.describe("Navigation responsiveness", () => {
   test("runs list loads within budget", async ({ page }) => {
-    // Auth fixture already navigated to /runs. Navigate away first so the
-    // measured goto("/runs") is a cold navigation, not a warm reload.
-    await page.goto("/");
-    await page.getByRole("heading", { name: "Plan runs in one place" }).waitFor({ state: "visible" });
-
     const heading = page.getByRole("heading", { name: "Runs" });
     const main = page.getByRole("main");
     const firstCard = page.getByTestId("run-card").first();
@@ -54,8 +49,6 @@ test.describe("Navigation responsiveness", () => {
     // clicks a no-op for the visible list. Measure actual pagination behavior
     // under the mobile layout, where the list view is not coupled to selection.
     await page.setViewportSize(MOBILE_VIEWPORT);
-    await page.goto("/");
-    await page.getByRole("heading", { name: "Plan runs in one place" }).waitFor({ state: "visible" });
     await page.goto("/runs");
     await page.getByTestId("run-card").first().waitFor({ state: "visible" });
 

@@ -34,8 +34,10 @@ test.describe("Mobile responsiveness", () => {
     await page.goto("/runs");
     await page.getByTestId("run-card").first().waitFor({ state: "visible" });
 
+    // "Heroic farm night" is on page 1 in the default seed — confirmed by
+    // existing runs.spec.ts which references it without pagination.
     const targetCard = page.getByTestId("run-card").filter({ hasText: "Heroic farm night" });
-    const expandButton = targetCard.locator('[role="button"][aria-expanded="false"]');
+    const expandButton = targetCard.getByRole("button", { expanded: false });
     const signupRegion = targetCard.getByRole("region", { name: "Your Signup for Heroic farm night" });
 
     const result = await measureInteraction(

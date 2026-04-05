@@ -8,6 +8,11 @@ export const ACK_BUDGET = {
   ENTRY: 500,
 } as const;
 
+// Prefer distinct acknowledgement and completion markers. When the UI exposes
+// no durable intermediate state on the local test backend, perf tests may
+// intentionally collapse ack===completion and assert both against a completion
+// budget instead of a stricter acknowledgement budget.
+
 /** Flow completion budgets (ms) */
 export const COMPLETION_BUDGET = {
   /** Fast transitions with local/cached data */
