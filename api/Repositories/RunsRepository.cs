@@ -9,6 +9,62 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
     private const string ContainerName = "runs";
     private readonly Container _container = client.GetContainer(cosmosOpts.Value.DatabaseName, ContainerName);
 
+    public async Task<IReadOnlyList<RunDocument>> ListForGuildAsync(
+        string guildId, string battleNetId, CancellationToken ct)
+    {
+        // Mirrors the guild-scoped query in runs-list.ts:
+        //   PUBLIC runs | runs created by this user | GUILD runs from the same guild
+        //   Ordered by startTime ascending.
+        if (!int.TryParse(guildId, out var numericGuildId))
+            return Array.Empty<RunDocument>();
+
+        const string query = """
+            SELECT * FROM c
+            WHERE c.visibility = 'PUBLIC'
+               OR c.creatorBattleNetId = @battleNetId
+               OR (c.visibility = 'GUILD' AND c.creatorGuildId = @guildId)
+            ORDER BY c.startTime ASC
+            """;
+
+        return await QueryRunsAsync(
+            new QueryDefinition(query)
+                .WithParameter("@battleNetId", battleNetId)
+                .WithParameter("@guildId", numericGuildId),
+            ct);
+    }
+
+    public async Task<IReadOnlyList<RunDocument>> ListForUserAsync(
+        string battleNetId, CancellationToken ct)
+    {
+        // Mirrors the no-guild branch in runs-list.ts:
+        //   PUBLIC runs | runs created by this user
+        //   Ordered by startTime ascending.
+        const string query = """
+            SELECT * FROM c
+            WHERE c.visibility = 'PUBLIC'
+               OR c.creatorBattleNetId = @battleNetId
+            ORDER BY c.startTime ASC
+            """;
+
+        return await QueryRunsAsync(
+            new QueryDefinition(query)
+                .WithParameter("@battleNetId", battleNetId),
+            ct);
+    }
+
+    private async Task<IReadOnlyList<RunDocument>> QueryRunsAsync(
+        QueryDefinition queryDef, CancellationToken ct)
+    {
+        var feedIterator = _container.GetItemQueryIterator<RunDocument>(queryDef);
+        var results = new List<RunDocument>();
+        while (feedIterator.HasMoreResults)
+        {
+            var page = await feedIterator.ReadNextAsync(ct);
+            results.AddRange(page);
+        }
+        return results;
+    }
+
     public async Task ScrubRaiderAsync(string battleNetId, CancellationToken ct)
     {
         // Cross-partition query: find runs where this raider is creator or participant.

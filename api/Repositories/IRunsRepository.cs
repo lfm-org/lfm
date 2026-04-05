@@ -50,4 +50,23 @@ public interface IRunsRepository
     /// scrubRaiderFromRuns implementation in functions/src/lib/raider-cleanup.ts.
     /// </summary>
     Task ScrubRaiderAsync(string battleNetId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns all runs visible to a user who belongs to the given guild.
+    /// Visibility rules (mirrors runs-list.ts):
+    ///   - PUBLIC runs (visible to everyone)
+    ///   - GUILD runs created by the same guild (creatorGuildId matches)
+    ///   - runs created by the user themselves (creatorBattleNetId matches)
+    /// Ordered by startTime ascending.
+    /// </summary>
+    Task<IReadOnlyList<RunDocument>> ListForGuildAsync(string guildId, string battleNetId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns all runs visible to a user who has no guild.
+    /// Visibility rules:
+    ///   - PUBLIC runs
+    ///   - runs created by the user themselves
+    /// Ordered by startTime ascending.
+    /// </summary>
+    Task<IReadOnlyList<RunDocument>> ListForUserAsync(string battleNetId, CancellationToken ct);
 }
