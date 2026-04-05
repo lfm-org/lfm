@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { HttpResponseInit } from "@azure/functions";
 
 const APP_ORIGIN = (() => {
@@ -36,6 +37,49 @@ export function jsonResponse(body: unknown, status = 200): HttpResponseInit {
 
 export function errorResponse(status: number, message: string): HttpResponseInit {
   return jsonResponse({ error: message }, status);
+}
+
+export interface CacheDirective {
+  maxAge: number;
+  sMaxAge?: number;
+  staleWhileRevalidate?: number;
+  private?: boolean;
+}
+
+function buildCacheControl(d: CacheDirective): string {
+  const parts: string[] = [];
+  parts.push(d.private === false ? "public" : "private");
+  parts.push(`max-age=${d.maxAge}`);
+  if (d.sMaxAge !== undefined) parts.push(`s-maxage=${d.sMaxAge}`);
+  if (d.staleWhileRevalidate) parts.push(`stale-while-revalidate=${d.staleWhileRevalidate}`);
+  return parts.join(", ");
+}
+
+function weakEtag(body: string): string {
+  return `W/"${createHash("sha1").update(body).digest("base64url")}"`;
+}
+
+export function cachedJsonResponse(
+  body: unknown,
+  cache: CacheDirective,
+  requestHeaders: Headers | undefined,
+  status = 200,
+): HttpResponseInit {
+  const serialized = JSON.stringify(body);
+  const etag = weakEtag(serialized);
+  const ifNoneMatch = requestHeaders?.get("if-none-match") ?? null;
+  const notModified = ifNoneMatch === etag;
+
+  return withSecurityHeaders({
+    status: notModified ? 304 : status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": buildCacheControl(cache),
+      ETag: etag,
+      Vary: "Cookie, Accept-Encoding",
+    },
+    body: notModified ? undefined : serialized,
+  });
 }
 
 export function redirectResponse(url: string, cookies?: Array<{ name: string; value: string; options: Record<string, unknown> }>): HttpResponseInit {
