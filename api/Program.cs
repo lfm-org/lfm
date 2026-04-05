@@ -112,6 +112,8 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         : new CosmosClient(opts.Endpoint, opts.AuthKey, clientOptions);
 });
 
+builder.Services.AddScoped<Lfm.Api.Repositories.IInstancesRepository, Lfm.Api.Repositories.InstancesRepository>();
+
 // WAF/Reliability + Security: Data Protection keys are persisted to a blob and
 // wrapped with a Key Vault key. Both pieces are necessary:
 //   - ProtectKeysWithAzureKeyVault encrypts the key ring at rest but DISABLES
