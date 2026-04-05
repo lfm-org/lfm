@@ -12,10 +12,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
-          cache: 'pnpm'
-          cache-dependency-path: |
-            frontend/pnpm-lock.yaml
-            functions/pnpm-lock.yaml
+      - name: Cache functions pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: functions/.cache/pnpm-store
+          key: pnpm-functions-${{ runner.os }}-${{ hashFiles('functions/pnpm-lock.yaml') }}
+          restore-keys: pnpm-functions-${{ runner.os }}-
       - name: Restore functions tsbuildinfo cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -37,10 +39,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
-          cache: 'pnpm'
-          cache-dependency-path: |
-            frontend/pnpm-lock.yaml
-            functions/pnpm-lock.yaml
+      - name: Cache frontend pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: frontend/.cache/pnpm-store
+          key: pnpm-frontend-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-frontend-${{ runner.os }}-
       - name: Restore frontend tsbuildinfo cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -67,10 +71,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
-          cache: 'pnpm'
-          cache-dependency-path: |
-            frontend/pnpm-lock.yaml
-            functions/pnpm-lock.yaml
+      - name: Cache frontend pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: frontend/.cache/pnpm-store
+          key: pnpm-frontend-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-frontend-${{ runner.os }}-
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile

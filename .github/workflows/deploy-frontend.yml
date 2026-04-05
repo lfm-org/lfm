@@ -20,10 +20,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
-          cache: 'pnpm'
-          cache-dependency-path: |
-            frontend/pnpm-lock.yaml
-            functions/pnpm-lock.yaml
+      - name: Cache frontend pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: frontend/.cache/pnpm-store
+          key: pnpm-frontend-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-frontend-${{ runner.os }}-
 
       - name: Install and build
         working-directory: frontend
