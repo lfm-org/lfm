@@ -17,8 +17,15 @@ export async function up(client: CosmosClient): Promise<void> {
   const cutoff = new Date().toISOString();
   console.log(`[20260321-raid-guild] Backfilling raid guild data. Cutoff: ${cutoff}`);
 
-  const raidsContainer = client.database(DB_NAME).container("raids");
-  const raidersContainer = client.database(DB_NAME).container("raiders");
+  const database = client.database(DB_NAME);
+  const { resources: containers } = await database.containers.readAll().fetchAll();
+  if (!containers.some((c) => c.id === "raids")) {
+    console.log("[20260321-raid-guild] No raids container present — skipping (already superseded by runs).");
+    return;
+  }
+
+  const raidsContainer = database.container("raids");
+  const raidersContainer = database.container("raiders");
 
   const { resources: raids } = await raidsContainer.items
     .query<RunDocument>({

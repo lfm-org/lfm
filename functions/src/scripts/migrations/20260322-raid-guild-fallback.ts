@@ -25,8 +25,15 @@ const DB_NAME = process.env.COSMOS_DATABASE!;
 export async function up(client: CosmosClient): Promise<void> {
   console.log("[20260322-raid-guild-fallback] Backfilling guild data for raids missed by 20260321 migration");
 
-  const raidsContainer = client.database(DB_NAME).container("raids");
-  const raidersContainer = client.database(DB_NAME).container("raiders");
+  const database = client.database(DB_NAME);
+  const { resources: containers } = await database.containers.readAll().fetchAll();
+  if (!containers.some((c) => c.id === "raids")) {
+    console.log("[20260322-raid-guild-fallback] No raids container present — skipping (already superseded by runs).");
+    return;
+  }
+
+  const raidsContainer = database.container("raids");
+  const raidersContainer = database.container("raiders");
 
   const { resources: raids } = await raidsContainer.items
     .query<RunDocument>({

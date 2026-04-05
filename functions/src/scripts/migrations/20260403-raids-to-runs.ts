@@ -32,12 +32,21 @@ export async function up(client: CosmosClient): Promise<void> {
 
   console.log("[20260403-raids-to-runs] Part A: copying raids container to runs container");
 
-  const raidsContainer = client.database(DB_NAME).container("raids");
-  const runsContainer = client.database(DB_NAME).container("runs");
+  const database = client.database(DB_NAME);
+  const { resources: containerList } = await database.containers.readAll().fetchAll();
+  const hasRaids = containerList.some((c) => c.id === "raids");
 
-  const { resources: raids } = await raidsContainer.items
-    .query({ query: "SELECT * FROM c" })
-    .fetchAll();
+  if (!hasRaids) {
+    console.log("[20260403-raids-to-runs] No raids container present — skipping Part A (nothing to copy).");
+  }
+
+  const runsContainer = database.container("runs");
+  const raids = hasRaids
+    ? (await database
+        .container("raids")
+        .items.query({ query: "SELECT * FROM c" })
+        .fetchAll()).resources
+    : [];
 
   console.log(`[20260403-raids-to-runs] Found ${raids.length} documents in raids container`);
 
