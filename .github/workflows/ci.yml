@@ -12,6 +12,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
+      - name: Restore tsbuildinfo and ESLint caches
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            frontend/.cache/.tsbuildinfo
+            functions/.cache/.tsbuildinfo
+            frontend/.cache/eslint
+            functions/.cache/eslint
+          key: tscache-${{ runner.os }}-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
+          restore-keys: tscache-${{ runner.os }}-
       - name: Install dependencies
         working-directory: functions
         run: pnpm install --frozen-lockfile
@@ -27,6 +37,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
+      - name: Restore tsbuildinfo and ESLint caches
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            frontend/.cache/.tsbuildinfo
+            functions/.cache/.tsbuildinfo
+            frontend/.cache/eslint
+            functions/.cache/eslint
+          key: tscache-${{ runner.os }}-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
+          restore-keys: tscache-${{ runner.os }}-
       - name: Install dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
@@ -45,6 +65,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
+      - name: Restore tsbuildinfo and ESLint caches
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            frontend/.cache/.tsbuildinfo
+            functions/.cache/.tsbuildinfo
+            frontend/.cache/eslint
+            functions/.cache/eslint
+          key: tscache-${{ runner.os }}-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
+          restore-keys: tscache-${{ runner.os }}-
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
