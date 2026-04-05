@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
 
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 builder.Services.ConfigureFunctionsApplicationInsights();
