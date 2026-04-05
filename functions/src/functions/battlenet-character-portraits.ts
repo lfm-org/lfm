@@ -110,6 +110,7 @@ export async function handler(request: HttpRequest, context: InvocationContext):
       ...raider,
       characters,
       portraitCache,
+      ttl: 180 * 86400,
     });
   }
 

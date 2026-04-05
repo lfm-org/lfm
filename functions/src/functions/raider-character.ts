@@ -158,6 +158,7 @@ export async function handler(request: HttpRequest, context: InvocationContext):
     };
   }
 
+  raider.ttl = 180 * 86400;
   await container.item(raider.id, raider.battleNetId).replace(raider);
   const staticSpecs = await readWowSpecializationMap();
 
@@ -203,6 +204,7 @@ export async function listHandler(request: HttpRequest, context: InvocationConte
       ...raider,
       characters: repairedCharacters,
       portraitCache,
+      ttl: 180 * 86400,
     });
   }
   const staticSpecs = await readWowSpecializationMap();

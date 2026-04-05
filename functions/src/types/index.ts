@@ -67,6 +67,7 @@ export interface RaiderDocument {
   characters: StoredSelectedCharacter[];
   portraitCache?: Record<string, string>;
   locale?: string;
+  ttl?: number;
 }
 
 // Guild document (Cosmos container: guilds, partition key: /id)

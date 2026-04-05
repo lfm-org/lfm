@@ -20,7 +20,7 @@ export async function meUpdateHandler(request: HttpRequest, _context: Invocation
 
   if (!raider) return errorResponse(404, "Raider not found");
 
-  const updated = { ...raider, locale: body.locale };
+  const updated = { ...raider, locale: body.locale, ttl: 180 * 86400 };
   await container.item(identity.battleNetId, identity.battleNetId).replace(updated);
 
   return jsonResponse({ locale: body.locale });

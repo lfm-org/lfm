@@ -315,12 +315,13 @@ export class BattlenetService {
           createdAt: now,
           lastSeenAt: now,
           characters: [],
+          ttl: 180 * 86400,
         };
         const { resource } = await container.items.create<RaiderDocument>(newDoc);
         if (!resource) return null;
         raider = resource;
       } else {
-        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>({ ...existing, lastSeenAt: now });
+        const { resource } = await container.item(testIdentity.battleNetId, testIdentity.battleNetId).replace<RaiderDocument>({ ...existing, lastSeenAt: now, ttl: 180 * 86400 });
         if (!resource) return null;
         raider = resource;
       }
@@ -352,12 +353,13 @@ export class BattlenetService {
         createdAt: now,
         lastSeenAt: now,
         characters: [],
+        ttl: 180 * 86400,
       };
       const { resource } = await container.items.create<RaiderDocument>(newDoc);
       if (!resource) return null;
       raider = resource;
     } else {
-      const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>({ ...existing, lastSeenAt: now });
+      const { resource } = await container.item(battleNetId, battleNetId).replace<RaiderDocument>({ ...existing, lastSeenAt: now, ttl: 180 * 86400 });
       if (!resource) return null;
       raider = resource;
     }

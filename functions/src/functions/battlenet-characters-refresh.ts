@@ -37,6 +37,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       accountProfileSummary,
       accountProfileFetchedAt: now,
       accountProfileRefreshedAt: now,
+      ttl: 180 * 86400,
     });
     return jsonResponse(toAccountCharacterViews(accountProfileSummary, process.env.BATTLE_NET_REGION || "eu", raider.characters, raider.portraitCache));
   } catch {
