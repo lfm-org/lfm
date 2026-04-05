@@ -1,0 +1,41 @@
+using Bunit;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Lfm.App.Pages;
+using Lfm.App.Services;
+using Lfm.Contracts.Instances;
+using Xunit;
+
+namespace Lfm.App.Tests;
+
+public class InstancesPageTests : ComponentTestBase
+{
+    [Fact]
+    public void Renders_loading_ring_on_mount()
+    {
+        var client = new Mock<IInstancesClient>();
+        var tcs = new TaskCompletionSource<IReadOnlyList<InstanceDto>>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
+        Services.AddSingleton(client.Object);
+
+        var cut = RenderComponent<InstancesPage>();
+
+        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void Renders_grid_with_items_after_load()
+    {
+        var client = new Mock<IInstancesClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto>
+            {
+                new("liberation", "Liberation of Undermine", "raid", "tww")
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = RenderComponent<InstancesPage>();
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Liberation of Undermine"));
+    }
+}
