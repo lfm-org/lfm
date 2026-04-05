@@ -44,6 +44,19 @@ builder.Services.AddOptions<StorageOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        var corsOpts = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>()
+            ?? throw new InvalidOperationException("CorsOptions not configured");
+        policy.WithOrigins(corsOpts.AllowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 // Cosmos client (singleton) — WAF/Reliability: single instance per AppDomain for
 // efficient connection management (Cosmos .NET SDK best practice). Direct mode +
 // TCP optimizes for low latency when colocated in the same region.
