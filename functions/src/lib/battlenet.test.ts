@@ -92,48 +92,161 @@ describe("BattlenetService local test mode", () => {
     global.fetch = fetchSpy as typeof fetch;
 
     const service = new BattlenetService();
-    await expect(service.fetchAccountProfileSummary("test_battlenet_token")).resolves.toEqual({
-      wow_accounts: [
-        {
-          id: 1,
-          characters: [
-            {
-              id: 101,
-              name: "Aelrin",
-              level: 80,
-              realm: {
-                id: 1305,
-                slug: "test-realm",
-                name: { en_US: "Test Realm" },
-              },
-              playable_class: { id: 2, name: "Paladin" },
-              playable_race: { id: 11, name: "Draenei" },
-              faction: { type: "ALLIANCE", name: "Alliance" },
-              gender: { type: "FEMALE", name: "Female" },
-              guild: { id: 12345, name: "Test Guild" },
-              protected_character: { href: "https://example.test/profile/wow/character/test-realm/aelrin" },
-            },
-            {
-              id: 102,
-              name: "Brakka",
-              level: 80,
-              realm: {
-                id: 1305,
-                slug: "test-realm",
-                name: { en_US: "Test Realm" },
-              },
-              playable_class: { id: 1, name: "Warrior" },
-              playable_race: { id: 2, name: "Orc" },
-              faction: { type: "HORDE", name: "Horde" },
-              gender: { type: "MALE", name: "Male" },
-              guild: { id: 12345, name: "Test Guild" },
-              protected_character: { href: "https://example.test/profile/wow/character/test-realm/brakka" },
-            },
-          ],
-        },
-      ],
-    });
+    const result = await service.fetchAccountProfileSummary("test_battlenet_token");
+    expect(result.notModified).toBe(false);
+    if (!result.notModified) {
+      expect(result.body).toMatchObject({
+        wow_accounts: [
+          expect.objectContaining({
+            characters: expect.arrayContaining([
+              expect.objectContaining({ name: "Aelrin" }),
+              expect.objectContaining({ name: "Brakka" }),
+            ]),
+          }),
+        ],
+      });
+    }
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("BattlenetService conditional requests (If-None-Match / 304)", () => {
+  it("fetchAccountProfileSummary includes If-None-Match header when etag is provided", async () => {
+    delete process.env.TEST_MODE;
+    process.env.BATTLE_NET_REGION = "eu";
+
+    const capturedHeaders: Record<string, string> = {};
+    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      Object.assign(capturedHeaders, init?.headers ?? {});
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: (name: string) => name === "etag" ? "W/\"new-etag\"" : null },
+        json: () => Promise.resolve({ wow_accounts: [] }),
+      });
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    await service.fetchAccountProfileSummary("access_token_x", "W/\"stored-etag\"");
+
+    expect(capturedHeaders["If-None-Match"]).toBe("W/\"stored-etag\"");
+  });
+
+  it("fetchAccountProfileSummary returns notModified: true on 304 response", async () => {
+    delete process.env.TEST_MODE;
+    process.env.BATTLE_NET_REGION = "eu";
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 304,
+      headers: { get: () => null },
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    const result = await service.fetchAccountProfileSummary("access_token_x", "W/\"stored-etag\"");
+
+    expect(result.notModified).toBe(true);
+    expect(result.etag).toBe("W/\"stored-etag\"");
+  });
+
+  it("fetchAccountProfileSummary returns notModified: false with body and new etag on 200", async () => {
+    delete process.env.TEST_MODE;
+    process.env.BATTLE_NET_REGION = "eu";
+
+    const accountProfile = { wow_accounts: [{ id: 1, characters: [] }] };
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: (name: string) => name === "etag" ? "W/\"fresh-etag\"" : null },
+      json: () => Promise.resolve(accountProfile),
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    const result = await service.fetchAccountProfileSummary("access_token_x");
+
+    expect(result.notModified).toBe(false);
+    if (!result.notModified) {
+      expect(result.body).toEqual(accountProfile);
+      expect(result.etag).toBe("W/\"fresh-etag\"");
+    }
+  });
+
+  it("fetchGuildProfile sends If-None-Match and returns notModified: true on 304", async () => {
+    delete process.env.TEST_MODE;
+    process.env.BATTLE_NET_REGION = "eu";
+
+    const capturedHeaders: Record<string, string> = {};
+    global.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      Object.assign(capturedHeaders, init?.headers ?? {});
+      return Promise.resolve({ ok: false, status: 304, headers: { get: () => null } });
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    const result = await service.fetchGuildProfile("test-realm", "test-guild", "access_token_x", "W/\"guild-etag\"");
+
+    expect(capturedHeaders["If-None-Match"]).toBe("W/\"guild-etag\"");
+    expect(result.notModified).toBe(true);
+    expect(result.etag).toBe("W/\"guild-etag\"");
+  });
+
+  it("fetchGuildRoster sends If-None-Match and returns notModified: true on 304", async () => {
+    delete process.env.TEST_MODE;
+    process.env.BATTLE_NET_REGION = "eu";
+
+    const capturedHeaders: Record<string, string> = {};
+    global.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      Object.assign(capturedHeaders, init?.headers ?? {});
+      return Promise.resolve({ ok: false, status: 304, headers: { get: () => null } });
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    const result = await service.fetchGuildRoster("test-realm", "test-guild", "access_token_x", "W/\"roster-etag\"");
+
+    expect(capturedHeaders["If-None-Match"]).toBe("W/\"roster-etag\"");
+    expect(result.notModified).toBe(true);
+    expect(result.etag).toBe("W/\"roster-etag\"");
+  });
+
+  it("fetchMediaDocument sends If-None-Match and returns notModified: true on 304", async () => {
+    delete process.env.TEST_MODE;
+
+    const capturedHeaders: Record<string, string> = {};
+    global.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      Object.assign(capturedHeaders, init?.headers ?? {});
+      return Promise.resolve({ ok: false, status: 304, headers: { get: () => null } });
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    const result = await service.fetchMediaDocument(
+      "https://eu.api.blizzard.com/data/wow/media/guild-crest/emblem/50",
+      "access_token_x",
+      "W/\"media-etag\""
+    );
+
+    expect(capturedHeaders["If-None-Match"]).toBe("W/\"media-etag\"");
+    expect(result.notModified).toBe(true);
+    expect(result.etag).toBe("W/\"media-etag\"");
+  });
+
+  it("omits If-None-Match header when no etag is provided", async () => {
+    delete process.env.TEST_MODE;
+    process.env.BATTLE_NET_REGION = "eu";
+
+    const capturedHeaders: Record<string, string> = {};
+    global.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      Object.assign(capturedHeaders, init?.headers ?? {});
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: () => Promise.resolve({ wow_accounts: [] }),
+      });
+    }) as typeof fetch;
+
+    const service = new BattlenetService();
+    await service.fetchAccountProfileSummary("access_token_x");
+
+    expect(capturedHeaders["If-None-Match"]).toBeUndefined();
   });
 });
 

@@ -68,12 +68,24 @@ export interface RaiderDocument {
   portraitCache?: Record<string, string>;
   locale?: string;
   ttl?: number;
+  blizzardEtags?: {
+    accountProfile?: string;
+    characterProfile?: Record<string, string>;
+    guildRoster?: string;
+    media?: Record<string, string>;
+  };
 }
 
 // Guild document (Cosmos container: guilds, partition key: /id)
 export interface GuildDocument {
   id: string;                              // guildId as string
   guildId: number;
+  blizzardEtags?: {
+    accountProfile?: string;
+    characterProfile?: Record<string, string>;
+    guildRoster?: string;
+    media?: Record<string, string>;
+  };
   realmSlug: string;
   slogan?: string | null;
   profileSummary?: BlizzardGuildProfileResponse;

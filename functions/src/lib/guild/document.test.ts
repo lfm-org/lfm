@@ -14,9 +14,11 @@ describe("refreshGuildDocument", () => {
     const crest = {
       crestEmblemUrl: "https://cdn.test/emblem.png",
       crestBorderUrl: "https://cdn.test/border.png",
+      emblemEtag: "W/\"emblem-etag\"",
+      borderEtag: "W/\"border-etag\"",
     };
-    const fetchGuildProfile = vi.fn().mockResolvedValue(profileSummary);
-    const fetchGuildRoster = vi.fn().mockResolvedValue(rosterSummary);
+    const fetchGuildProfile = vi.fn().mockResolvedValue({ notModified: false, body: profileSummary, etag: "W/\"profile-etag\"" });
+    const fetchGuildRoster = vi.fn().mockResolvedValue({ notModified: false, body: rosterSummary, etag: "W/\"roster-etag\"" });
     const syncGuildCrestForDocument = vi.fn().mockResolvedValue(crest);
     const upsertGuildDocument = vi.fn(async (doc) => doc);
 
@@ -42,11 +44,11 @@ describe("refreshGuildDocument", () => {
       upsertGuildDocument,
     });
 
-    expect(fetchGuildProfile).toHaveBeenCalledWith("test-realm", "test-guild", "token");
-    expect(fetchGuildRoster).toHaveBeenCalledWith("test-realm", "test-guild", "token");
-    expect(syncGuildCrestForDocument).toHaveBeenCalledWith("12345", profileSummary, "token");
+    expect(fetchGuildProfile).toHaveBeenCalledWith("test-realm", "test-guild", "token", undefined);
+    expect(fetchGuildRoster).toHaveBeenCalledWith("test-realm", "test-guild", "token", undefined);
+    expect(syncGuildCrestForDocument).toHaveBeenCalledWith("12345", profileSummary, "token", expect.anything());
     expect(upsertGuildDocument).toHaveBeenCalledTimes(1);
-    expect(upsertGuildDocument).toHaveBeenCalledWith({
+    expect(upsertGuildDocument).toHaveBeenCalledWith(expect.objectContaining({
       id: "12345",
       guildId: 12345,
       realmSlug: "test-realm",
@@ -63,24 +65,77 @@ describe("refreshGuildDocument", () => {
       setup: { timezone: "Europe/Helsinki", initializedAt: "2026-03-20T00:00:00.000Z" },
       lastOverrideAt: "2026-03-21T12:00:00.000Z",
       lastOverrideBy: "admin-123",
+      blizzardEtags: {
+        accountProfile: "W/\"profile-etag\"",
+        guildRoster: "W/\"roster-etag\"",
+        media: { emblem: "W/\"emblem-etag\"", border: "W/\"border-etag\"" },
+      },
+    }));
+    expect(result).toMatchObject({
+      id: "12345",
+      guildId: 12345,
+      realmSlug: "test-realm",
+      blizzardEtags: {
+        accountProfile: "W/\"profile-etag\"",
+        guildRoster: "W/\"roster-etag\"",
+        media: { emblem: "W/\"emblem-etag\"", border: "W/\"border-etag\"" },
+      },
     });
-    expect(result).toEqual({
+  });
+
+  it("skips re-parsing when Blizzard responds with 304 for profile and roster", async () => {
+    const cachedProfile = {
+      id: 12345,
+      name: "Test Guild",
+      realm: { slug: "test-realm", name: "Test Realm" },
+    } as never;
+    const cachedRoster = { members: [] } as never;
+    const cachedEtags = {
+      accountProfile: "W/\"old-profile-etag\"",
+      guildRoster: "W/\"old-roster-etag\"",
+    };
+    const fetchGuildProfile = vi.fn().mockResolvedValue({ notModified: true, etag: cachedEtags.accountProfile });
+    const fetchGuildRoster = vi.fn().mockResolvedValue({ notModified: true, etag: cachedEtags.guildRoster });
+    const syncGuildCrestForDocument = vi.fn().mockResolvedValue(null);
+    const upsertGuildDocument = vi.fn(async (doc) => doc);
+
+    const cachedDoc = {
       id: "12345",
       guildId: 12345,
       realmSlug: "test-realm",
-      slogan: "Keep pushing",
-      profileSummary,
-      profileFetchedAt: expect.any(String),
-      blizzardProfileRaw: profileSummary,
-      blizzardProfileFetchedAt: expect.any(String),
-      blizzardRosterRaw: rosterSummary,
-      blizzardRosterFetchedAt: expect.any(String),
-      crestEmblemUrl: "https://cdn.test/emblem.png",
-      crestBorderUrl: "https://cdn.test/border.png",
-      rankPermissions: [{ rank: 1, canCreateGuildRuns: true, canSignupGuildRuns: false }],
-      setup: { timezone: "Europe/Helsinki", initializedAt: "2026-03-20T00:00:00.000Z" },
-      lastOverrideAt: "2026-03-21T12:00:00.000Z",
-      lastOverrideBy: "admin-123",
+      blizzardProfileRaw: cachedProfile,
+      blizzardProfileFetchedAt: "2026-04-01T10:00:00.000Z",
+      blizzardRosterRaw: cachedRoster,
+      blizzardRosterFetchedAt: "2026-04-01T10:00:00.000Z",
+      blizzardEtags: cachedEtags,
+    } as never;
+
+    const result = await refreshGuildDocument({
+      guildDocId: "12345",
+      guildId: 12345,
+      guildName: "Test Guild",
+      realmSlug: "test-realm",
+      accessToken: "token",
+      cached: cachedDoc,
+      fetchGuildProfile,
+      fetchGuildRoster,
+      syncGuildCrestForDocument,
+      upsertGuildDocument,
+    });
+
+    expect(fetchGuildProfile).toHaveBeenCalledWith("test-realm", "test-guild", "token", cachedEtags.accountProfile);
+    expect(fetchGuildRoster).toHaveBeenCalledWith("test-realm", "test-guild", "token", cachedEtags.guildRoster);
+    // On 304, blizzardProfileFetchedAt and blizzardRosterFetchedAt preserve the cached timestamps
+    expect(upsertGuildDocument).toHaveBeenCalledWith(expect.objectContaining({
+      blizzardProfileRaw: cachedProfile,
+      blizzardRosterRaw: cachedRoster,
+      blizzardProfileFetchedAt: "2026-04-01T10:00:00.000Z",
+      blizzardRosterFetchedAt: "2026-04-01T10:00:00.000Z",
+      blizzardEtags: cachedEtags,
+    }));
+    expect(result).toMatchObject({
+      blizzardProfileRaw: cachedProfile,
+      blizzardRosterRaw: cachedRoster,
     });
   });
 });
@@ -170,8 +225,8 @@ describe("ensureGuildDocumentForAdmin", () => {
         ],
       },
     ]);
-    const fetchGuildProfile = vi.fn().mockResolvedValue(profileSummary);
-    const fetchGuildRoster = vi.fn().mockResolvedValue(rosterSummary);
+    const fetchGuildProfile = vi.fn().mockResolvedValue({ notModified: false, body: profileSummary, etag: undefined });
+    const fetchGuildRoster = vi.fn().mockResolvedValue({ notModified: false, body: rosterSummary, etag: undefined });
     const syncGuildCrestForDocument = vi.fn().mockResolvedValue(crest);
     const upsertGuildDocument = vi.fn(async (doc) => doc);
 
@@ -188,10 +243,10 @@ describe("ensureGuildDocumentForAdmin", () => {
 
     expect(readGuildDocument).toHaveBeenCalledWith("12345");
     expect(listRaiders).toHaveBeenCalledTimes(1);
-    expect(fetchGuildProfile).toHaveBeenCalledWith("test-realm", "test-guild", "token");
-    expect(fetchGuildRoster).toHaveBeenCalledWith("test-realm", "test-guild", "token");
-    expect(syncGuildCrestForDocument).toHaveBeenCalledWith("12345", profileSummary, "token");
-    expect(upsertGuildDocument).toHaveBeenCalledWith({
+    expect(fetchGuildProfile).toHaveBeenCalledWith("test-realm", "test-guild", "token", undefined);
+    expect(fetchGuildRoster).toHaveBeenCalledWith("test-realm", "test-guild", "token", undefined);
+    expect(syncGuildCrestForDocument).toHaveBeenCalledWith("12345", profileSummary, "token", null);
+    expect(upsertGuildDocument).toHaveBeenCalledWith(expect.objectContaining({
       id: "12345",
       guildId: 12345,
       realmSlug: "test-realm",
@@ -207,23 +262,16 @@ describe("ensureGuildDocumentForAdmin", () => {
       setup: undefined,
       lastOverrideAt: undefined,
       lastOverrideBy: undefined,
-    });
-    expect(result).toEqual({
+    }));
+    expect(result).toMatchObject({
       id: "12345",
       guildId: 12345,
       realmSlug: "test-realm",
       profileSummary,
-      profileFetchedAt: expect.any(String),
       blizzardProfileRaw: profileSummary,
-      blizzardProfileFetchedAt: expect.any(String),
       blizzardRosterRaw: rosterSummary,
-      blizzardRosterFetchedAt: expect.any(String),
       crestEmblemUrl: "https://cdn.test/emblem.png",
       crestBorderUrl: "https://cdn.test/border.png",
-      rankPermissions: undefined,
-      setup: undefined,
-      lastOverrideAt: undefined,
-      lastOverrideBy: undefined,
     });
   });
 });

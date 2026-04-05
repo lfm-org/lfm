@@ -67,10 +67,15 @@ function toAdminEditorView() {
 async function syncGuildCrestForDocument(
   guildDocId: string,
   profileSummary: BlizzardGuildProfileResponse,
-  accessToken: string
+  accessToken: string,
+  cachedDoc?: GuildDocument | null
 ) {
   return syncGuildCrest(guildDocId, profileSummary, {
-    fetchMediaDocument: (href) => battlenet.fetchMediaDocument(href, accessToken),
+    fetchMediaDocument: (href, etag) => battlenet.fetchMediaDocument(href, accessToken, etag),
+    cachedEmblemEtag: cachedDoc?.blizzardEtags?.media?.["emblem"],
+    cachedBorderEtag: cachedDoc?.blizzardEtags?.media?.["border"],
+    cachedEmblemMedia: cachedDoc?.blizzardCrestEmblemMediaRaw,
+    cachedBorderMedia: cachedDoc?.blizzardCrestBorderMediaRaw,
   });
 }
 
@@ -89,12 +94,22 @@ async function ensureMirroredGuildCrest(args: {
   }
   args.log?.(`guild: crest CDN URLs missing for guild ${args.guildDocId}; re-syncing`);
 
-  const crest = await syncGuildCrestForDocument(args.guildDocId, profileSummary, args.accessToken);
+  const crest = await syncGuildCrestForDocument(args.guildDocId, profileSummary, args.accessToken, args.cached);
   if (!crest) return args.cached;
+
+  const { emblemEtag, borderEtag, ...crestFields } = crest;
+  const updatedEtags: GuildDocument["blizzardEtags"] = { ...args.cached.blizzardEtags };
+  if (emblemEtag !== undefined) {
+    updatedEtags.media = { ...updatedEtags.media, emblem: emblemEtag };
+  }
+  if (borderEtag !== undefined) {
+    updatedEtags.media = { ...updatedEtags.media, border: borderEtag };
+  }
 
   return args.upsertGuildDocument({
     ...args.cached,
-    ...crest,
+    ...crestFields,
+    blizzardEtags: updatedEtags,
   });
 }
 

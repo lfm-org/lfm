@@ -22,6 +22,10 @@ import type { BattleNetIdentity, RaiderDocument, LoginResponse } from "../types/
 
 type BattleNetRegion = "eu" | "us" | "kr" | "tw" | "cn";
 
+export type BlizzardFetchResult<T> =
+  | { notModified: true; etag: string | undefined }
+  | { notModified: false; body: T; etag: string | undefined };
+
 interface BattleNetTokenResponse {
   access_token: string;
   token_type: string;
@@ -200,81 +204,101 @@ export class BattlenetService {
   }
 
   public async fetchAccountProfileSummary(
-    accessToken: string
-  ): Promise<BlizzardAccountProfileSummary> {
+    accessToken: string,
+    etag?: string
+  ): Promise<BlizzardFetchResult<BlizzardAccountProfileSummary>> {
     const testSummary = getTestModeAccountProfileSummary(accessToken);
-    if (testSummary) return testSummary;
+    if (testSummary) return { notModified: false, body: testSummary, etag: undefined };
 
     const url = new URL(`https://${API_HOSTS[this.region]}/profile/user/wow`);
     url.searchParams.set("namespace", this.profileNamespace);
-    const response = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+    if (etag) headers["If-None-Match"] = etag;
+    const response = await fetch(url.toString(), { headers });
+    if (response.status === 304) {
+      return { notModified: true, etag };
+    }
     if (!response.ok) {
       throw new Error(`fetchAccountProfileSummary failed: ${response.status}`);
     }
-    return response.json() as Promise<BlizzardAccountProfileSummary>;
+    const body = await response.json() as BlizzardAccountProfileSummary;
+    return { notModified: false, body, etag: response.headers.get("etag") ?? undefined };
   }
 
   public async fetchGuildProfile(
     realmSlug: string,
     guildNameSlug: string,
-    accessToken: string
-  ): Promise<BlizzardGuildProfileResponse> {
+    accessToken: string,
+    etag?: string
+  ): Promise<BlizzardFetchResult<BlizzardGuildProfileResponse>> {
     const testGuildProfile = getTestModeGuildProfile(accessToken, realmSlug, guildNameSlug);
-    if (testGuildProfile) return testGuildProfile;
+    if (testGuildProfile) return { notModified: false, body: testGuildProfile, etag: undefined };
 
     const url = new URL(
       `https://${API_HOSTS[this.region]}/data/wow/guild/${encodeURIComponent(realmSlug)}/${encodeURIComponent(guildNameSlug)}`
     );
     url.searchParams.set("namespace", this.profileNamespace);
-    const response = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) {
-      const body = await response.text().catch(() => "(unreadable)");
-      throw new Error(`fetchGuildProfile failed: ${response.status} ${body}`);
+    const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+    if (etag) headers["If-None-Match"] = etag;
+    const response = await fetch(url.toString(), { headers });
+    if (response.status === 304) {
+      return { notModified: true, etag };
     }
-    return response.json() as Promise<BlizzardGuildProfileResponse>;
+    if (!response.ok) {
+      const text = await response.text().catch(() => "(unreadable)");
+      throw new Error(`fetchGuildProfile failed: ${response.status} ${text}`);
+    }
+    const body = await response.json() as BlizzardGuildProfileResponse;
+    return { notModified: false, body, etag: response.headers.get("etag") ?? undefined };
   }
 
   public async fetchGuildRoster(
     realmSlug: string,
     guildNameSlug: string,
-    accessToken: string
-  ): Promise<BlizzardGuildRosterResponse> {
+    accessToken: string,
+    etag?: string
+  ): Promise<BlizzardFetchResult<BlizzardGuildRosterResponse>> {
     const testGuildRoster = getTestModeGuildRoster(accessToken, realmSlug, guildNameSlug);
-    if (testGuildRoster) return testGuildRoster;
+    if (testGuildRoster) return { notModified: false, body: testGuildRoster, etag: undefined };
 
     const url = new URL(
       `https://${API_HOSTS[this.region]}/data/wow/guild/${encodeURIComponent(realmSlug)}/${encodeURIComponent(guildNameSlug)}/roster`
     );
     url.searchParams.set("namespace", this.profileNamespace);
-    const response = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) {
-      const body = await response.text().catch(() => "(unreadable)");
-      throw new Error(`fetchGuildRoster failed: ${response.status} ${body}`);
+    const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+    if (etag) headers["If-None-Match"] = etag;
+    const response = await fetch(url.toString(), { headers });
+    if (response.status === 304) {
+      return { notModified: true, etag };
     }
-    return response.json() as Promise<BlizzardGuildRosterResponse>;
+    if (!response.ok) {
+      const text = await response.text().catch(() => "(unreadable)");
+      throw new Error(`fetchGuildRoster failed: ${response.status} ${text}`);
+    }
+    const body = await response.json() as BlizzardGuildRosterResponse;
+    return { notModified: false, body, etag: response.headers.get("etag") ?? undefined };
   }
 
   public async fetchMediaDocument(
     href: string,
-    accessToken: string
-  ): Promise<BlizzardMediaSummary> {
+    accessToken: string,
+    etag?: string
+  ): Promise<BlizzardFetchResult<BlizzardMediaSummary>> {
     const testMedia = getTestModeGuildCrestMedia(accessToken, href);
-    if (testMedia) return testMedia;
+    if (testMedia) return { notModified: false, body: testMedia, etag: undefined };
 
-    const response = await fetch(href, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) {
-      const body = await response.text().catch(() => "(unreadable)");
-      throw new Error(`fetchMediaDocument failed: ${response.status} ${body}`);
+    const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+    if (etag) headers["If-None-Match"] = etag;
+    const response = await fetch(href, { headers });
+    if (response.status === 304) {
+      return { notModified: true, etag };
     }
-    return response.json() as Promise<BlizzardMediaSummary>;
+    if (!response.ok) {
+      const text = await response.text().catch(() => "(unreadable)");
+      throw new Error(`fetchMediaDocument failed: ${response.status} ${text}`);
+    }
+    const body = await response.json() as BlizzardMediaSummary;
+    return { notModified: false, body, etag: response.headers.get("etag") ?? undefined };
   }
 
   public async resolveIdentity(

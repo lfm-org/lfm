@@ -1,7 +1,12 @@
 import type { BlizzardGuildProfileResponse, BlizzardMediaSummary } from "../types/blizzard.js";
+import type { BlizzardFetchResult } from "./battlenet.js";
 
 interface GuildCrestSyncDeps {
-  fetchMediaDocument: (href: string) => Promise<BlizzardMediaSummary>;
+  fetchMediaDocument: (href: string, etag?: string) => Promise<BlizzardFetchResult<BlizzardMediaSummary>>;
+  cachedEmblemEtag?: string;
+  cachedBorderEtag?: string;
+  cachedEmblemMedia?: BlizzardMediaSummary;
+  cachedBorderMedia?: BlizzardMediaSummary;
   now?: string;
 }
 
@@ -11,6 +16,8 @@ interface GuildCrestSyncResult {
   blizzardCrestMediaFetchedAt: string;
   crestEmblemUrl: string;
   crestBorderUrl: string;
+  emblemEtag?: string;
+  borderEtag?: string;
 }
 
 export function pickPreferredAssetUrl(media: BlizzardMediaSummary): string | null {
@@ -28,10 +35,21 @@ export async function syncGuildCrest(
   const borderHref = profile.crest?.border?.media?.key?.href;
   if (!emblemHref || !borderHref) return null;
 
-  const [emblemMedia, borderMedia] = await Promise.all([
-    deps.fetchMediaDocument(emblemHref),
-    deps.fetchMediaDocument(borderHref),
+  const [emblemResult, borderResult] = await Promise.all([
+    deps.fetchMediaDocument(emblemHref, deps.cachedEmblemEtag),
+    deps.fetchMediaDocument(borderHref, deps.cachedBorderEtag),
   ]);
+
+  // On 304, use the cached media if available; otherwise fall through to null
+  const emblemMedia = emblemResult.notModified
+    ? deps.cachedEmblemMedia ?? null
+    : emblemResult.body;
+  const borderMedia = borderResult.notModified
+    ? deps.cachedBorderMedia ?? null
+    : borderResult.body;
+
+  if (!emblemMedia || !borderMedia) return null;
+
   const crestEmblemUrl = pickPreferredAssetUrl(emblemMedia);
   const crestBorderUrl = pickPreferredAssetUrl(borderMedia);
   if (!crestEmblemUrl || !crestBorderUrl) return null;
@@ -42,5 +60,7 @@ export async function syncGuildCrest(
     blizzardCrestMediaFetchedAt: deps.now ?? new Date().toISOString(),
     crestEmblemUrl,
     crestBorderUrl,
+    emblemEtag: emblemResult.notModified ? deps.cachedEmblemEtag : emblemResult.etag,
+    borderEtag: borderResult.notModified ? deps.cachedBorderEtag : borderResult.etag,
   };
 }
