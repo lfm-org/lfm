@@ -102,6 +102,21 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         return response.Resource;
     }
 
+    public async Task DeleteAsync(string id, CancellationToken ct)
+    {
+        try
+        {
+            await _container.DeleteItemAsync<RunDocument>(
+                id,
+                new PartitionKey(id),
+                cancellationToken: ct);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Idempotent: document already gone — treat as success.
+        }
+    }
+
     public async Task ScrubRaiderAsync(string battleNetId, CancellationToken ct)
     {
         // Cross-partition query: find runs where this raider is creator or participant.

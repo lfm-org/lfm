@@ -90,4 +90,11 @@ public interface IRunsRepository
     /// Mirrors <c>getRunsContainer().item(id, id).replace(updated)</c> in runs-update.ts.
     /// </summary>
     Task<RunDocument> UpdateAsync(RunDocument run, CancellationToken ct);
+
+    /// <summary>
+    /// Deletes a run document by its id. Idempotent: if the document does not
+    /// exist (Cosmos 404), the call succeeds silently.
+    /// Mirrors <c>getRunsContainer().item(id, id).delete()</c> in runs-delete.ts.
+    /// </summary>
+    Task DeleteAsync(string id, CancellationToken ct);
 }

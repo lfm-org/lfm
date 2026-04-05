@@ -25,4 +25,15 @@ public interface IGuildPermissions
     /// the raider is not in the roster, or the rank permission is not set.
     /// </summary>
     Task<bool> CanCreateGuildRunsAsync(SessionPrincipal principal, CancellationToken ct);
+
+    /// <summary>
+    /// Returns true if the principal's matched guild rank has the
+    /// <c>canDeleteGuildRuns</c> permission, mirroring the TypeScript
+    /// <c>getEffectiveGuildPermissions(...).canDeleteGuildRuns</c> check in
+    /// <c>functions/src/lib/guild-permissions.ts</c>.
+    /// Returns false when the principal has no guild, the roster is not fresh,
+    /// the raider is not in the roster, or the rank permission is not set.
+    /// Default: only rank 0 (guild master) can delete guild runs.
+    /// </summary>
+    Task<bool> CanDeleteGuildRunsAsync(SessionPrincipal principal, CancellationToken ct);
 }
