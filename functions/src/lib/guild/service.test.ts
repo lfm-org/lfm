@@ -4,6 +4,7 @@ import type { GuildDocument, RaiderDocument } from "../../types/index.js";
 import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "./document.js";
 import {
   BlizzardGuildRefreshError,
+  guildMemoryCache,
   loadAdminGuildHome,
   loadCurrentGuildHome,
   resolveAdminGuild,
@@ -28,6 +29,7 @@ const { syncGuildCrest } = await import("../guild-crest.js");
 
 afterEach(() => {
   vi.clearAllMocks();
+  guildMemoryCache.clear();
 });
 
 function createRoster(): BlizzardGuildRosterResponse {

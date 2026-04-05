@@ -5,10 +5,20 @@ import { toGuildHomeView } from "../blizzard-adapters.js";
 import { ensureGuildDocumentForAdmin, refreshGuildDocument } from "./document.js";
 import { resolveGuildEditor, resolveRealmSlug } from "./context.js";
 import { applyGuildSettings, parseGuildSettingsInput } from "./settings.js";
+import { MemoryCache } from "../memory-cache.js";
 import type { BlizzardGuildProfileResponse } from "../../types/blizzard.js";
 import type { GuildDocument, RaiderDocument } from "../../types/index.js";
 
 const PROFILE_CACHE_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Process-level guild document cache. Keyed by guildId (string).
+ * Avoids redundant Blizzard fetches across warm invocations within the TTL.
+ * Stores the full GuildDocument so Workstream F can later add ETag fields
+ * to the cached value without requiring changes here.
+ * Exported for test isolation only — do not use outside this module.
+ */
+export const guildMemoryCache = new MemoryCache<GuildDocument>(PROFILE_CACHE_TTL_MS);
 
 type ReadGuildDocument = (guildDocId: string) => Promise<GuildDocument | null>;
 type ReadRaider = (battleNetId: string) => Promise<RaiderDocument | null>;
@@ -148,8 +158,18 @@ export async function loadCurrentGuildHome(args: {
   }
 
   const guildDocId = String(args.guildId);
-  const cached = await args.readGuildDocument(guildDocId);
   const raider = await args.readRaider(args.battleNetId);
+
+  // Check process-level memory cache first — avoids Cosmos read + Blizzard
+  // fetch on warm invocations within the 60-min TTL.
+  const memoryCacheKey = `${args.guildId}`;
+  const memHit = guildMemoryCache.get(memoryCacheKey);
+  if (memHit) {
+    args.log?.(`guild: memory cache hit for guild ${guildDocId}`);
+    return buildGuildHomeView(memHit, raider);
+  }
+
+  const cached = await args.readGuildDocument(guildDocId);
 
   if (
     cached?.blizzardProfileRaw &&
@@ -168,9 +188,11 @@ export async function loadCurrentGuildHome(args: {
           upsertGuildDocument: args.upsertGuildDocument,
           log: args.log,
         });
+        guildMemoryCache.set(memoryCacheKey, hydrated);
         return buildGuildHomeView(hydrated, raider);
       } catch (error) {
         args.log?.(`guild: crest re-sync failed for guild ${guildDocId}:`, error instanceof Error ? error.message : error);
+        guildMemoryCache.set(memoryCacheKey, cached);
         return buildGuildHomeView(cached, raider);
       }
     }
@@ -195,6 +217,7 @@ export async function loadCurrentGuildHome(args: {
       syncGuildCrestForDocument,
       upsertGuildDocument: args.upsertGuildDocument,
     });
+    guildMemoryCache.set(memoryCacheKey, doc);
     return buildGuildHomeView(doc, raider);
   } catch (error) {
     args.log?.(`guild: fetch failed for guild ${guildDocId}:`, error instanceof Error ? error.message : error);
