@@ -4,7 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "composite": true
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.cache/.tsbuildinfo.node"
   },
   "include": ["vite.config.ts"]
 }
