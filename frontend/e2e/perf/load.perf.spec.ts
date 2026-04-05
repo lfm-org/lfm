@@ -71,4 +71,24 @@ test.describe("Entry and load responsiveness", () => {
     expectCompletionWithin(result, COMPLETION_BUDGET.REDIRECT);
     expectStableInteraction(result);
   });
+
+  test("login click transitions to protected create run route within budget", async ({ page }) => {
+    await page.goto("/login?redirect=%2Fruns%2Fnew");
+    await page.getByRole("heading", { name: "Sign in with Battle.net" }).waitFor({ state: "visible" });
+
+    const loginLink = page.getByRole("link", { name: "Continue with Battle.net" });
+    const createRunHeading = page.getByRole("heading", { name: "Create Run" });
+
+    const result = await measureInteraction(
+      page,
+      () => loginLink.click(),
+      { ackMarker: createRunHeading, completionMarker: createRunHeading },
+    );
+
+    await expect(page).toHaveURL(/\/runs\/new(?:\?.*)?$/);
+
+    expectAcknowledgementWithin(result, COMPLETION_BUDGET.REDIRECT);
+    expectCompletionWithin(result, COMPLETION_BUDGET.REDIRECT);
+    expectStableInteraction(result);
+  });
 });

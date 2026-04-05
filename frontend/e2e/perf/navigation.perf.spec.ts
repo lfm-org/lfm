@@ -7,6 +7,8 @@ import {
 } from "./helpers/perfAssertions";
 import { ACK_BUDGET, COMPLETION_BUDGET } from "./helpers/flowBudgets";
 
+const MOBILE_VIEWPORT = { width: 390, height: 844 };
+
 test.describe("Navigation responsiveness", () => {
   test("runs list loads within budget", async ({ page }) => {
     // Auth fixture already navigated to /runs. Navigate away first so the
@@ -30,13 +32,11 @@ test.describe("Navigation responsiveness", () => {
   });
 
   test("selecting a different run updates the detail panel within budget", async ({ page }) => {
-    await page.goto("/runs");
-    // Wait for initial load to settle — first run auto-selected on desktop
-    await page.getByTestId("run-card").first().waitFor({ state: "visible" });
+    await page.goto("/runs?run=run-edit-closed-deadmines");
+    await page.getByText("Edit closed test run").waitFor({ state: "visible" });
 
-    // Click a different raid summary in the left panel
-    const targetButton = page.getByRole("button", { name: /Deadmines Normal/ });
-    const detailText = page.getByText("Public dungeon warmup");
+    const targetButton = page.getByRole("button", { name: /Icecrown Citadel Heroic \(10 players\)/ });
+    const detailText = page.getByText("Closed progression lockout");
 
     const result = await measureInteraction(
       page,
@@ -50,14 +50,17 @@ test.describe("Navigation responsiveness", () => {
   });
 
   test("pagination updates run list within budget", async ({ page }) => {
+    // Desktop auto-select keeps a `run=` query pinned, which makes page-button
+    // clicks a no-op for the visible list. Measure actual pagination behavior
+    // under the mobile layout, where the list view is not coupled to selection.
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto("/");
+    await page.getByRole("heading", { name: "Plan runs in one place" }).waitFor({ state: "visible" });
     await page.goto("/runs");
     await page.getByTestId("run-card").first().waitFor({ state: "visible" });
 
     const page2Button = page.getByRole("button", { name: "2", exact: true });
-    // Pagination is a synchronous client-side data swap — ack and completion
-    // are the same event (new content appears). Using STANDARD budget since
-    // no route change or async work is involved.
-    const page2Content = page.getByText("Guild ten-player alt run");
+    const page2Content = page.getByTestId("run-card").filter({ hasText: "Guild ten-player alt run" });
 
     const result = await measureInteraction(
       page,
