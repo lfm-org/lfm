@@ -65,6 +65,24 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         return results;
     }
 
+    public async Task<RunDocument?> GetByIdAsync(string id, CancellationToken ct)
+    {
+        try
+        {
+            // Point read: partition key == id (as stored in the "runs" container).
+            // Mirrors: container.item(id, id).read<RunDocument>() in runs-detail.ts.
+            var response = await _container.ReadItemAsync<RunDocument>(
+                id,
+                new PartitionKey(id),
+                cancellationToken: ct);
+            return response.Resource;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async Task ScrubRaiderAsync(string battleNetId, CancellationToken ct)
     {
         // Cross-partition query: find runs where this raider is creator or participant.

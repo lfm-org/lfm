@@ -69,4 +69,11 @@ public interface IRunsRepository
     /// Ordered by startTime ascending.
     /// </summary>
     Task<IReadOnlyList<RunDocument>> ListForUserAsync(string battleNetId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns a single run by its document id, or null if it does not exist.
+    /// Uses a point read (partition key == id) for minimal RU cost.
+    /// Mirrors container.item(id, id).read() in runs-detail.ts.
+    /// </summary>
+    Task<RunDocument?> GetByIdAsync(string id, CancellationToken ct);
 }
