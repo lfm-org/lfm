@@ -127,6 +127,15 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardOAuthClient, Lfm.Api.Se
     client.Timeout = TimeSpan.FromSeconds(20);
 }).AddStandardResilienceHandler();
 
+// WAF/Reliability: Typed HttpClient for the Blizzard Profile/Game Data APIs.
+// Used by battlenet-characters-refresh (B2.5) and portrait refresh (B2.6).
+builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardProfileClient, Lfm.Api.Services.BlizzardProfileClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Lfm.Api.Options.BlizzardOptions>>().Value;
+    client.BaseAddress = new Uri($"https://{opts.Region.ToLowerInvariant()}.api.blizzard.com/");
+    client.Timeout = TimeSpan.FromSeconds(20);
+}).AddStandardResilienceHandler();
+
 // WAF/Reliability + Security: Data Protection keys are persisted to a blob and
 // wrapped with a Key Vault key. Both pieces are necessary:
 //   - ProtectKeysWithAzureKeyVault encrypts the key ring at rest but DISABLES

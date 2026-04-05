@@ -1,11 +1,61 @@
+using System.Text.Json.Serialization;
+
 namespace Lfm.Api.Repositories;
+
+// ---------------------------------------------------------------------------
+// Blizzard account profile — stored verbatim as returned by the Blizzard API.
+// Field names follow Blizzard's snake_case convention; STJ [JsonPropertyName]
+// attributes are required because the Cosmos client is configured for camelCase
+// only at the *top-level document* boundary, not for nested objects.
+// ---------------------------------------------------------------------------
+
+public sealed record BlizzardRealmRef(
+    [property: JsonPropertyName("slug")] string Slug,
+    [property: JsonPropertyName("name")] string? Name = null);
+
+public sealed record BlizzardNamedRef(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string? Name = null);
+
+public sealed record BlizzardAccountCharacter(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("level")] int Level,
+    [property: JsonPropertyName("realm")] BlizzardRealmRef Realm,
+    [property: JsonPropertyName("playable_class")] BlizzardNamedRef? PlayableClass = null);
+
+public sealed record BlizzardWowAccount(
+    [property: JsonPropertyName("id")] int? Id,
+    [property: JsonPropertyName("characters")] IReadOnlyList<BlizzardAccountCharacter>? Characters = null);
+
+public sealed record BlizzardAccountProfileSummary(
+    [property: JsonPropertyName("wow_accounts")] IReadOnlyList<BlizzardWowAccount>? WowAccounts = null);
+
+// ---------------------------------------------------------------------------
+// Stored selected character — minimal fields required for character mapping.
+// Field names match the camelCase keys the TS refresh handler writes to Cosmos.
+// ---------------------------------------------------------------------------
+
+public sealed record StoredCharacterSpecialization(int Id, string? Name = null);
+
+public sealed record StoredSpecializationsSummary(
+    StoredCharacterSpecialization? ActiveSpecialization = null,
+    IReadOnlyList<StoredSpecializationsEntry>? Specializations = null);
+
+public sealed record StoredSpecializationsEntry(StoredCharacterSpecialization Specialization);
+
+public sealed record StoredSelectedCharacter(
+    string Id,
+    string Region,
+    string Realm,
+    string Name,
+    string? PortraitUrl = null,
+    StoredSpecializationsSummary? SpecializationsSummary = null);
 
 /// <summary>
 /// Raider document as stored in the Cosmos "raiders" container.
 /// Partition key: /battleNetId
 /// Only the fields needed for the current set of ported endpoints are modelled here.
-/// Additional fields will be added incrementally as B1.3 (me-delete),
-/// and B5.1 (raider-character) are ported.
+/// Additional fields will be added incrementally as further endpoints are ported.
 /// </summary>
 public sealed record RaiderDocument(
     string Id,
@@ -14,7 +64,15 @@ public sealed record RaiderDocument(
     string? Locale,
     // Cosmos TTL in seconds. Set by me-update (180 * 86400 = ~180 days).
     // Null means no TTL override; the container default applies.
-    int? Ttl = null);
+    int? Ttl = null,
+    // accountProfileSummary: cached Blizzard profile response (populated by battlenet-characters-refresh).
+    BlizzardAccountProfileSummary? AccountProfileSummary = null,
+    // accountProfileRefreshedAt: ISO-8601 timestamp of last successful profile fetch.
+    string? AccountProfileRefreshedAt = null,
+    // characters: stored selected character details (populated by raider-character flow).
+    IReadOnlyList<StoredSelectedCharacter>? Characters = null,
+    // portraitCache: map of "{region}-{realm}-{name}" → portrait URL (populated by portrait refresh).
+    IReadOnlyDictionary<string, string>? PortraitCache = null);
 
 public interface IRaidersRepository
 {
