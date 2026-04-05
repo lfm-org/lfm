@@ -67,8 +67,10 @@ public sealed record RaiderDocument(
     int? Ttl = null,
     // accountProfileSummary: cached Blizzard profile response (populated by battlenet-characters-refresh).
     BlizzardAccountProfileSummary? AccountProfileSummary = null,
-    // accountProfileRefreshedAt: ISO-8601 timestamp of last successful profile fetch.
+    // accountProfileRefreshedAt: ISO-8601 timestamp of last cooldown reset (even on 304 / not-modified).
     string? AccountProfileRefreshedAt = null,
+    // accountProfileFetchedAt: ISO-8601 timestamp of last full Blizzard fetch (only updated on 200 OK).
+    string? AccountProfileFetchedAt = null,
     // characters: stored selected character details (populated by raider-character flow).
     IReadOnlyList<StoredSelectedCharacter>? Characters = null,
     // portraitCache: map of "{region}-{realm}-{name}" → portrait URL (populated by portrait refresh).

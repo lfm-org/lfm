@@ -105,7 +105,8 @@ public class BattleNetCallbackFunction(
             GuildId: null,
             GuildName: null,
             IssuedAt: now,
-            ExpiresAt: now.AddHours(_authOpts.CookieMaxAgeHours));
+            ExpiresAt: now.AddHours(_authOpts.CookieMaxAgeHours),
+            AccessToken: token.AccessToken);
 
         var encryptedToken = sessionCipher.Protect(principal);
 
