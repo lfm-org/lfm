@@ -144,3 +144,7 @@ jobs:
   deploy-functions:
     needs: infra
     uses: ./.github/workflows/deploy-functions.yml
+
+  deploy-frontend:
+    needs: infra
+    uses: ./.github/workflows/deploy-frontend.yml
