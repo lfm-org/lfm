@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { readWowSpecializations } from "../lib/reference-data.js";
-import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { cachedJsonResponse, errorResponse } from "../middleware/security-headers.js";
 
 export async function handler(request: HttpRequest): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -10,7 +10,7 @@ export async function handler(request: HttpRequest): Promise<HttpResponseInit> {
   const specializations = await readWowSpecializations();
   if (!specializations) return errorResponse(503, "Specialization data not available");
 
-  return jsonResponse({ specializations });
+  return cachedJsonResponse({ specializations }, { maxAge: 604800, private: false }, request.headers);
 }
 
 app.http("specializations-list", {

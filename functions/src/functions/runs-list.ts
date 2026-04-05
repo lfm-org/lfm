@@ -2,7 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { requireAuth } from "../lib/auth.js";
 import { getRunsContainer } from "../lib/cosmos.js";
 import { sanitizeRunDocumentForResponse } from "../lib/runResponseSanitizer.js";
-import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { cachedJsonResponse, errorResponse } from "../middleware/security-headers.js";
 import type { RunDocument } from "../types/index.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -23,7 +23,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
       };
 
   const { resources } = await getRunsContainer().items.query<RunDocument>(querySpec).fetchAll();
-  return jsonResponse(resources.map((run) => sanitizeRunDocumentForResponse(run, identity.battleNetId)));
+  return cachedJsonResponse(resources.map((run) => sanitizeRunDocumentForResponse(run, identity.battleNetId)), { maxAge: 15 }, request.headers);
 }
 
 app.http("runs-list", {

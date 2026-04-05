@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { readWowInstances } from "../lib/reference-data.js";
-import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { cachedJsonResponse, errorResponse } from "../middleware/security-headers.js";
 
 async function handler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -10,7 +10,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
   const instances = await readWowInstances();
   if (!instances) return errorResponse(503, "Instance data not available");
 
-  return jsonResponse(instances);
+  return cachedJsonResponse(instances, { maxAge: 86400 }, request.headers);
 }
 
 app.http("instances-list", {

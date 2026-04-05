@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { requireAuth } from "../lib/auth.js";
 import { isSiteAdmin } from "../lib/site-admin-config.js";
-import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { cachedJsonResponse, errorResponse } from "../middleware/security-headers.js";
 
 export async function meHandler(request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   const identity = await requireAuth(request);
@@ -11,13 +11,13 @@ export async function meHandler(request: HttpRequest, _context: InvocationContex
   const container = getRaidersContainer();
   const { resource: raider } = await container.item(identity.battleNetId, identity.battleNetId).read();
 
-  return jsonResponse({
+  return cachedJsonResponse({
     battleNetId: identity.battleNetId,
     guildName: identity.guildName,
     selectedCharacterId: raider?.selectedCharacterId ?? null,
     isSiteAdmin: await isSiteAdmin(identity.battleNetId),
     locale: raider?.locale ?? null,
-  });
+  }, { maxAge: 60 }, request.headers);
 }
 
 app.http("me", {

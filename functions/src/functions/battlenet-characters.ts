@@ -4,7 +4,7 @@ import { toAccountCharacterViews } from "../lib/blizzard-adapters.js";
 import { cooldownRemaining, ACCOUNT_CHARS_COOLDOWN_MS } from "../lib/cache.js";
 import { getRaidersContainer } from "../lib/cosmos.js";
 import { getTestModeIdentity } from "../lib/test-mode.js";
-import { jsonResponse, errorResponse, withSecurityHeaders } from "../middleware/security-headers.js";
+import { cachedJsonResponse, errorResponse, withSecurityHeaders } from "../middleware/security-headers.js";
 import type { RaiderDocument } from "../types/index.js";
 
 export function shouldServeCachedAccountProfile(
@@ -29,7 +29,7 @@ async function handler(request: HttpRequest, context: InvocationContext): Promis
 
   if (shouldServeCachedAccountProfile(raider, auth.accessToken)) {
     const region = process.env.BATTLE_NET_REGION || "eu";
-    return jsonResponse(toAccountCharacterViews(raider.accountProfileSummary!, region, raider.characters, raider.portraitCache));
+    return cachedJsonResponse(toAccountCharacterViews(raider.accountProfileSummary!, region, raider.characters, raider.portraitCache), { maxAge: 300 }, request.headers);
   }
 
   // No cached data — caller should POST /battlenet/characters/refresh

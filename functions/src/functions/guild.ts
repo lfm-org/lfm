@@ -11,7 +11,7 @@ import {
   saveAdminGuildSettings,
   saveCurrentGuildSettings,
 } from "../lib/guild/service.js";
-import { errorResponse, jsonResponse } from "../middleware/security-headers.js";
+import { cachedJsonResponse, errorResponse, jsonResponse } from "../middleware/security-headers.js";
 import type { GuildDocument, RaiderDocument } from "../types/index.js";
 
 async function readGuildDocument(guildDocId: string): Promise<GuildDocument | null> {
@@ -52,7 +52,7 @@ export async function currentGuildHandler(request: HttpRequest, context: Invocat
       upsertGuildDocument,
       log: context.log.bind(context),
     });
-    return jsonResponse(view);
+    return cachedJsonResponse(view, { maxAge: 300 }, request.headers);
   } catch (error) {
     if (error instanceof BlizzardGuildRefreshError) {
       return errorResponse(502, "Failed to fetch guild profile from Blizzard");

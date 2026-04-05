@@ -3,7 +3,7 @@ import { getRaidersContainer } from "../lib/cosmos.js";
 import { requireAuth, requireAuthWithToken } from "../lib/auth.js";
 import { toSelectedCharacterView } from "../lib/blizzard-adapters.js";
 import { getServedCharacterPortraitUrl } from "../lib/character-portrait.js";
-import { jsonResponse, errorResponse } from "../middleware/security-headers.js";
+import { cachedJsonResponse, jsonResponse, errorResponse } from "../middleware/security-headers.js";
 import { isFresh, CHARACTER_PROFILE_TTL_MS } from "../lib/cache.js";
 import { getTestModeIdentity } from "../lib/test-mode.js";
 import { readWowSpecializationMap } from "../lib/reference-data.js";
@@ -207,10 +207,10 @@ export async function listHandler(request: HttpRequest, context: InvocationConte
   }
   const staticSpecs = await readWowSpecializationMap();
 
-  return jsonResponse({
+  return cachedJsonResponse({
     characters: repairedCharacters.map((character) => toSelectedCharacterView(character, staticSpecs)),
     selectedCharacterId: raider.selectedCharacterId,
-  });
+  }, { maxAge: 300 }, request.headers);
 }
 
 app.http("raider-characters-list", {
