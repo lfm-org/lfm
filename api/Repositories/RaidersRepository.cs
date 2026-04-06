@@ -47,4 +47,26 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
             // Idempotent: raider already deleted, treat as success.
         }
     }
+
+    public async Task<IReadOnlyList<RaiderDocument>> ListExpiredAsync(string cutoff, CancellationToken ct)
+    {
+        // Cross-partition query: raiders inactive for > 90 days or with no lastSeenAt.
+        // Mirrors the TS query in raider-cleanup.ts.
+        // Only id and battleNetId are projected to minimise RU cost.
+        const string query = """
+            SELECT c.id, c.battleNetId FROM c
+            WHERE c.lastSeenAt < @cutoff OR NOT IS_DEFINED(c.lastSeenAt)
+            """;
+
+        var feedIterator = _container.GetItemQueryIterator<RaiderDocument>(
+            new QueryDefinition(query).WithParameter("@cutoff", cutoff));
+
+        var results = new List<RaiderDocument>();
+        while (feedIterator.HasMoreResults)
+        {
+            var page = await feedIterator.ReadNextAsync(ct);
+            results.AddRange(page);
+        }
+        return results;
+    }
 }

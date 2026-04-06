@@ -77,6 +77,9 @@ public sealed record RaiderDocument(
     string BattleNetId,
     string? SelectedCharacterId,
     string? Locale,
+    // lastSeenAt: ISO-8601 timestamp updated on every login (set by battlenet-callback).
+    // Used by the raider-cleanup timer to identify inactive accounts (> 90 days).
+    string? LastSeenAt = null,
     // Cosmos TTL in seconds. Set by me-update (180 * 86400 = ~180 days).
     // Null means no TTL override; the container default applies.
     int? Ttl = null,
@@ -109,4 +112,13 @@ public interface IRaidersRepository
     /// document id and partition key). Treats NotFound as success (idempotent).
     /// </summary>
     Task DeleteAsync(string battleNetId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns all raider documents where lastSeenAt is older than the given cutoff,
+    /// or where lastSeenAt is not defined. These are candidates for cleanup.
+    /// Mirrors the query in raider-cleanup.ts:
+    ///   SELECT c.id, c.battleNetId FROM c WHERE c.lastSeenAt &lt; @cutoff OR NOT IS_DEFINED(c.lastSeenAt)
+    /// Only id and battleNetId are projected (minimises RU cost).
+    /// </summary>
+    Task<IReadOnlyList<RaiderDocument>> ListExpiredAsync(string cutoff, CancellationToken ct);
 }
