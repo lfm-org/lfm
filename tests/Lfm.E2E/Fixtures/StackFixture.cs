@@ -61,15 +61,31 @@ public class StackFixture : IAsyncLifetime
         _apiPort = DefaultApiPort + Random.Shared.Next(0, 100);
         _appPort = DefaultAppPort + Random.Shared.Next(0, 100);
 
+        // Publish the API to a temp directory. func start must run from the
+        // published output (not the project dir) — running from the project dir
+        // triggers an internal build that conflicts with the isolated worker model.
+        var apiPublishDir = Path.Combine(Path.GetTempPath(), $"lfm-e2e-api-{_apiPort}");
+        var publishResult = RunProcess("dotnet",
+            $"publish {Path.Combine(repoRoot, "api", "Lfm.Api.csproj")} -c Release -o {apiPublishDir} --no-build",
+            repoRoot, timeoutSec: 30);
+        if (publishResult != 0)
+            throw new InvalidOperationException($"dotnet publish failed with exit code {publishResult}");
+
         _apiProcess = StartFunc(
-            Path.Combine(repoRoot, "api"),
+            apiPublishDir,
             _apiPort,
             new Dictionary<string, string>
             {
-                ["Cosmos__Endpoint"] = Cosmos.GetConnectionString(),
+                // Testcontainers returns "AccountEndpoint=https://host:port/;AccountKey=..."
+                // but CosmosOptions.Endpoint expects just the URI. Also provide the key
+                // so CosmosClient uses key-based auth (not DefaultAzureCredential).
+                ["Cosmos__Endpoint"] = ExtractCosmosEndpoint(Cosmos.GetConnectionString()),
+                ["Cosmos__AuthKey"] = ExtractCosmosKey(Cosmos.GetConnectionString()),
                 ["Cosmos__DatabaseName"] = "lfm-e2e",
-                // IMPORTANT: the Linux Cosmos DB emulator only supports Gateway mode.
+                // IMPORTANT: the Linux Cosmos DB emulator only supports Gateway mode
+                // and uses a self-signed TLS certificate.
                 ["Cosmos__ConnectionMode"] = "Gateway",
+                ["Cosmos__SkipCertValidation"] = "true",
                 // UseDevelopmentStorage=true is the well-known shorthand that resolves to
                 // the default Azurite ports (10000/10001/10002) on localhost — the ports
                 // the container is bound to via WithPortBinding above.
@@ -137,7 +153,7 @@ public class StackFixture : IAsyncLifetime
         Dictionary<string, string> env,
         StringBuilder output)
     {
-        var psi = new ProcessStartInfo("func", $"start --port {port} --dotnet-isolated-debug")
+        var psi = new ProcessStartInfo("func", $"start --port {port} --no-build")
         {
             WorkingDirectory = projectDir,
             RedirectStandardOutput = true,
@@ -179,6 +195,44 @@ public class StackFixture : IAsyncLifetime
         proc.BeginOutputReadLine();
         proc.BeginErrorReadLine();
         return proc;
+    }
+
+    private static string ExtractCosmosEndpoint(string connectionString)
+    {
+        // "AccountEndpoint=https://localhost:PORT/;AccountKey=..."
+        foreach (var part in connectionString.Split(';'))
+        {
+            var trimmed = part.Trim();
+            if (trimmed.StartsWith("AccountEndpoint=", StringComparison.OrdinalIgnoreCase))
+                return trimmed["AccountEndpoint=".Length..].TrimEnd('/');
+        }
+        throw new InvalidOperationException($"Could not extract AccountEndpoint from: {connectionString}");
+    }
+
+    private static string ExtractCosmosKey(string connectionString)
+    {
+        foreach (var part in connectionString.Split(';'))
+        {
+            var trimmed = part.Trim();
+            if (trimmed.StartsWith("AccountKey=", StringComparison.OrdinalIgnoreCase))
+                return trimmed["AccountKey=".Length..];
+        }
+        throw new InvalidOperationException($"Could not extract AccountKey from: {connectionString}");
+    }
+
+    /// <summary>Runs a process synchronously and returns the exit code.</summary>
+    private static int RunProcess(string fileName, string args, string workingDir, int timeoutSec = 60)
+    {
+        var psi = new ProcessStartInfo(fileName, args)
+        {
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        using var proc = Process.Start(psi)!;
+        proc.WaitForExit(timeoutSec * 1000);
+        return proc.ExitCode;
     }
 
     private static void KillProcess(Process? proc)

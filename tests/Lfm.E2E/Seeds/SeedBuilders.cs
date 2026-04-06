@@ -96,6 +96,17 @@ public static class SeedBuilders
                 {
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
                 },
+                // The Linux Cosmos DB emulator uses a self-signed TLS certificate.
+                // Bypass validation in E2E tests only — never in production code.
+                HttpClientFactory = () =>
+                {
+                    var handler = new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback =
+                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+                    };
+                    return new HttpClient(handler);
+                },
             });
 
         var dbResponse = await client.CreateDatabaseIfNotExistsAsync(DatabaseName);
@@ -726,21 +737,21 @@ public static class SeedBuilders
         var chars = (List<Dictionary<string, object?>>)raider["characters"]!;
         var primaryChar = chars.Count > 0 ? chars[0] : null;
 
-        var charId = primaryChar?["id"] as string ?? "";
-        var charName = primaryChar?["name"] as string ?? "";
-        var charRealm = primaryChar?["realm"] as string ?? "";
-        var charLevel = primaryChar?["level"] is int lvl ? lvl : 80;
-        var charClassId = primaryChar?["classId"] is int cid ? cid : 0;
-        var charRaceId = primaryChar?["raceId"] is int rid ? rid : 0;
+        var charId = primaryChar?.GetValueOrDefault("id") as string ?? "";
+        var charName = primaryChar?.GetValueOrDefault("name") as string ?? "";
+        var charRealm = primaryChar?.GetValueOrDefault("realm") as string ?? "";
+        var charLevel = primaryChar?.GetValueOrDefault("level") is int lvl ? lvl : 80;
+        var charClassId = primaryChar?.GetValueOrDefault("classId") is int cid ? cid : 0;
+        var charRaceId = primaryChar?.GetValueOrDefault("raceId") is int rid ? rid : 0;
 
         // Get class/race names from stored character template reference
         var (className, raceName) = GetCharClassRaceNames(charClassId, charRaceId);
 
         // Get active spec from specializationsSummary
-        var specSummary = primaryChar?["specializationsSummary"] as Dictionary<string, object?>;
-        var activeSpec = specSummary?["active_specialization"] as Dictionary<string, object?>;
-        int? specId = activeSpec?["id"] as int?;
-        string? specName = activeSpec?["name"] as string;
+        var specSummary = primaryChar?.GetValueOrDefault("specializationsSummary") as Dictionary<string, object?>;
+        var activeSpec = specSummary?.GetValueOrDefault("active_specialization") as Dictionary<string, object?>;
+        int? specId = activeSpec?.GetValueOrDefault("id") as int?;
+        string? specName = activeSpec?.GetValueOrDefault("name") as string;
         string? role = specId.HasValue && SpecData.TryGetValue(specId.Value.ToString(), out var sd) ? sd.Role : null;
 
         return new Dictionary<string, object?>

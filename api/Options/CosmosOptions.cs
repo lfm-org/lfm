@@ -11,4 +11,9 @@ public sealed class CosmosOptions
     // the Linux Cosmos DB emulator, which does NOT support Direct mode per MS docs).
     // E2E test stack sets this to "Gateway" via Cosmos__ConnectionMode env var.
     public string ConnectionMode { get; init; } = "Direct";
+
+    // When true, bypasses TLS certificate validation for the Cosmos endpoint.
+    // ONLY for use with the Linux Cosmos DB emulator (self-signed cert).
+    // Never set in production — enforced by App Service TLS 1.2 minimum.
+    public bool SkipCertValidation { get; init; }
 }

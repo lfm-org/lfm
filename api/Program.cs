@@ -105,8 +105,22 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         MaxRetryAttemptsOnRateLimitedRequests = 9,
         MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30),
         // WAF/Security: prefer managed identity; fall back to key only for local dev.
-        ApplicationName = "Lfm.Api"
+        ApplicationName = "Lfm.Api",
     };
+    // Cosmos emulator uses a self-signed TLS cert — bypass validation when configured.
+    // NEVER set SkipCertValidation in production (enforced by App Service TLS minimum).
+    if (opts.SkipCertValidation)
+    {
+        clientOptions.HttpClientFactory = () =>
+        {
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+            };
+            return new HttpClient(handler);
+        };
+    }
     return string.IsNullOrEmpty(opts.AuthKey)
         ? new CosmosClient(opts.Endpoint, new DefaultAzureCredential(), clientOptions)
         : new CosmosClient(opts.Endpoint, opts.AuthKey, clientOptions);
