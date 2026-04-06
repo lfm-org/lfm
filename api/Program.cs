@@ -147,6 +147,18 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardProfileClient, Lfm.Api.
     client.Timeout = TimeSpan.FromSeconds(20);
 }).AddStandardResilienceHandler();
 
+// WAF/Reliability: Typed HttpClient for the Blizzard Game Data API (client-credentials / static data).
+// Used by wow-update (B6.4) to fetch reference data (instances, specializations).
+// Longer timeout because the sync fetches many individual detail documents sequentially.
+builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardGameDataClient, Lfm.Api.Services.BlizzardGameDataClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Lfm.Api.Options.BlizzardOptions>>().Value;
+    client.BaseAddress = new Uri($"https://{opts.Region.ToLowerInvariant()}.api.blizzard.com/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+}).AddStandardResilienceHandler();
+
+builder.Services.AddScoped<Lfm.Api.Services.IReferenceSync, Lfm.Api.Services.ReferenceSync>();
+
 // WAF/Reliability + Security: Data Protection keys are persisted to a blob and
 // wrapped with a Key Vault key. Both pieces are necessary:
 //   - ProtectKeysWithAzureKeyVault encrypts the key ring at rest but DISABLES

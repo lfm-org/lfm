@@ -12,7 +12,9 @@ public sealed class InstancesRepository(CosmosClient client, IOptions<CosmosOpti
 
     public async Task<IReadOnlyList<InstanceDto>> ListAsync(CancellationToken ct)
     {
-        var query = new QueryDefinition("SELECT c.id, c.name, c.modeKey, c.expansion FROM c");
+        // Each row is one (instanceId, modeKey) pair. The document id is "{instanceId}:{modeKey}".
+        // We project instanceId as 'id' so that InstanceDto.Id receives the instance id string.
+        var query = new QueryDefinition("SELECT c.instanceId AS id, c.name, c.modeKey, c.expansion FROM c");
         var results = new List<InstanceDto>();
         using var iterator = _container.GetItemQueryIterator<InstanceDto>(query);
         while (iterator.HasMoreResults)
@@ -21,5 +23,13 @@ public sealed class InstancesRepository(CosmosClient client, IOptions<CosmosOpti
             results.AddRange(page);
         }
         return results;
+    }
+
+    public async Task UpsertBatchAsync(IEnumerable<InstanceDocument> documents, CancellationToken ct)
+    {
+        foreach (var doc in documents)
+        {
+            await _container.UpsertItemAsync(doc, new Microsoft.Azure.Cosmos.PartitionKey(doc.Id), cancellationToken: ct);
+        }
     }
 }

@@ -12,7 +12,9 @@ public sealed class SpecializationsRepository(CosmosClient client, IOptions<Cosm
 
     public async Task<IReadOnlyList<SpecializationDto>> ListAsync(CancellationToken ct)
     {
-        var query = new QueryDefinition("SELECT c.id, c.name, c.classId, c.role, c.iconUrl FROM c");
+        // Project specId → id so that SpecializationDto.Id (int) receives the numeric
+        // spec id rather than the Cosmos string document id.
+        var query = new QueryDefinition("SELECT c.specId AS id, c.name, c.classId, c.role, c.iconUrl FROM c");
         var results = new List<SpecializationDto>();
         using var iterator = _container.GetItemQueryIterator<SpecializationDto>(query);
         while (iterator.HasMoreResults)
@@ -21,5 +23,13 @@ public sealed class SpecializationsRepository(CosmosClient client, IOptions<Cosm
             results.AddRange(page);
         }
         return results;
+    }
+
+    public async Task UpsertBatchAsync(IEnumerable<SpecializationDocument> documents, CancellationToken ct)
+    {
+        foreach (var doc in documents)
+        {
+            await _container.UpsertItemAsync(doc, new Microsoft.Azure.Cosmos.PartitionKey(doc.Id), cancellationToken: ct);
+        }
     }
 }
