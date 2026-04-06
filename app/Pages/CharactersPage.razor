@@ -1,0 +1,221 @@
+@page "/characters"
+@page "/me"
+@using Lfm.App.Services
+@using Lfm.Contracts.Characters
+@attribute [Authorize]
+@inject IBattleNetClient BattleNetClient
+@inject IMeClient MeClient
+@inject NavigationManager Nav
+
+<PageTitle>Characters — LFM</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+        <FluentLabel Typo="Typography.H3" Style="flex:1">My Characters</FluentLabel>
+        <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshCharacters" Disabled="@loading">
+            Refresh from Battle.net
+        </FluentButton>
+    </FluentStack>
+
+    @switch (state)
+    {
+        case LoadingState<IReadOnlyList<CharacterDto>>.Idle:
+        case LoadingState<IReadOnlyList<CharacterDto>>.Loading:
+            <FluentProgressRing />
+            break;
+
+        case LoadingState<IReadOnlyList<CharacterDto>>.Failure f:
+            <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+            break;
+
+        case LoadingState<IReadOnlyList<CharacterDto>>.Success s when s.Value.Count == 0:
+            <FluentMessageBar Intent="MessageIntent.Info">
+                No characters found. Try refreshing from Battle.net.
+            </FluentMessageBar>
+            break;
+
+        case LoadingState<IReadOnlyList<CharacterDto>>.Success s:
+            <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+                @foreach (var c in s.Value)
+                {
+                    var portraitSrc = c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null);
+                    <FluentCard @key="@CharKey(c)" Style="padding:12px">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+                            @if (!string.IsNullOrEmpty(portraitSrc))
+                            {
+                                <img src="@portraitSrc" alt="@c.Name" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <div style="width:48px;height:48px;border-radius:50%;background:var(--neutral-fill-rest);display:flex;align-items:center;justify-content:center;font-weight:600">
+                                    @c.Name.Substring(0, 1).ToUpperInvariant()
+                                </div>
+                            }
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="2" Style="min-width:0;flex:1">
+                                <FluentLabel Style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@c.Name</FluentLabel>
+                                <FluentLabel Style="font-size:0.85em;color:var(--neutral-foreground-hint-rest)">@c.RealmName</FluentLabel>
+                                <FluentLabel Style="font-size:0.8em">
+                                    @(c.ClassName ?? "Unknown") · Level @c.Level
+                                    @if (!string.IsNullOrEmpty(c.SpecName))
+                                    {
+                                        <span> · @c.SpecName</span>
+                                    }
+                                </FluentLabel>
+                            </FluentStack>
+                        </FluentStack>
+                    </FluentCard>
+                }
+            </div>
+            break;
+    }
+
+    <!-- Forget Me section -->
+    <div style="border-top:1px solid var(--neutral-stroke-rest);padding-top:24px;margin-top:8px">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="max-width:420px">
+            <FluentLabel Typo="Typography.H4">Delete Account</FluentLabel>
+            <FluentLabel>
+                This will permanently remove all your data — characters, run signups, and preferences.
+                This action cannot be undone.
+            </FluentLabel>
+            <FluentLabel>
+                To confirm, type <strong>FORGET ME</strong> in the box below.
+            </FluentLabel>
+            <FluentTextField
+                @bind-Value="deleteConfirmation"
+                Placeholder="FORGET ME"
+                Disabled="@deleting"
+                Style="max-width:320px" />
+            @if (!string.IsNullOrEmpty(deleteError))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@deleteError</FluentMessageBar>
+            }
+            <FluentButton
+                Appearance="Appearance.Outline"
+                Disabled="@(!deleteConfirmationValid || deleting)"
+                OnClick="@HandleDeleteAccount">
+                @if (deleting)
+                {
+                    <FluentProgressRing Style="width:16px;height:16px" />
+                }
+                Delete My Account
+            </FluentButton>
+        </FluentStack>
+    </div>
+</FluentStack>
+
+@code {
+    private LoadingState<IReadOnlyList<CharacterDto>> state = new LoadingState<IReadOnlyList<CharacterDto>>.Idle();
+    private bool loading;
+    private Dictionary<string, string> portraits = [];
+    private string deleteConfirmation = "";
+    private string? deleteError;
+    private bool deleting;
+
+    private bool deleteConfirmationValid => deleteConfirmation == "FORGET ME";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCharacters();
+    }
+
+    private async Task LoadCharacters()
+    {
+        loading = true;
+        state = new LoadingState<IReadOnlyList<CharacterDto>>.Loading();
+        try
+        {
+            var chars = await BattleNetClient.GetCharactersAsync(CancellationToken.None);
+            if (chars is null)
+            {
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure("Failed to load characters.");
+            }
+            else
+            {
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
+                _ = LoadPortraitsAsync(chars);
+            }
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure(ex.Message);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task RefreshCharacters()
+    {
+        loading = true;
+        state = new LoadingState<IReadOnlyList<CharacterDto>>.Loading();
+        try
+        {
+            var chars = await BattleNetClient.RefreshCharactersAsync(CancellationToken.None);
+            if (chars is null)
+            {
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure("Failed to refresh characters.");
+            }
+            else
+            {
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
+                portraits = [];
+                _ = LoadPortraitsAsync(chars);
+            }
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure(ex.Message);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadPortraitsAsync(IReadOnlyList<CharacterDto> chars)
+    {
+        var requests = chars
+            .Where(c => string.IsNullOrEmpty(c.PortraitUrl))
+            .Select(c => new CharacterPortraitRequest(c.Region, c.Realm, c.Name));
+
+        var result = await BattleNetClient.GetPortraitsAsync(requests, CancellationToken.None);
+        if (result is not null)
+        {
+            portraits = result.ToDictionary(kv => kv.Key, kv => kv.Value);
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDeleteAccount()
+    {
+        if (!deleteConfirmationValid || deleting)
+            return;
+
+        deleting = true;
+        deleteError = null;
+        try
+        {
+            var ok = await MeClient.DeleteAsync(CancellationToken.None);
+            if (ok)
+            {
+                Nav.NavigateTo("/goodbye", forceLoad: false);
+            }
+            else
+            {
+                deleteError = "Failed to delete account. Please try again.";
+            }
+        }
+        catch
+        {
+            deleteError = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            deleting = false;
+        }
+    }
+
+    private static string CharKey(CharacterDto c) =>
+        $"{c.Region}-{c.Realm}-{c.Name.ToLowerInvariant()}";
+}

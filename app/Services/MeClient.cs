@@ -17,4 +17,18 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
             return null;
         }
     }
+
+    public async Task<bool> DeleteAsync(CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.DeleteAsync("api/me", ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
+    }
 }

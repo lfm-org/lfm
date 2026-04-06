@@ -1,8 +1,52 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <main>
-        <article class="content px-4">
-            @Body
-        </article>
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Lfm.App.Auth
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<div style="min-height:100vh;display:flex;flex-direction:column">
+    <!-- Skip-to-content link for keyboard users -->
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <!-- Top navbar -->
+    <header style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:0 16px">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center;height:48px">
+            <FluentAnchor Href="/runs" Style="font-weight:700;font-size:1.1rem;text-decoration:none">LFM</FluentAnchor>
+
+            <AuthorizeView>
+                <Authorized>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Style="margin-left:16px">
+                        <FluentAnchor Href="/runs">Runs</FluentAnchor>
+                        <FluentAnchor Href="/guild">Guild</FluentAnchor>
+                        <FluentAnchor Href="/characters">Characters</FluentAnchor>
+                    </FluentStack>
+                    <div style="margin-left:auto">
+                        <FluentButton Appearance="Appearance.Outline" OnClick="@HandleLogout">
+                            Sign Out
+                        </FluentButton>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div style="margin-left:auto">
+                        <FluentAnchor Href="/login">Sign In</FluentAnchor>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </FluentStack>
+    </header>
+
+    <!-- Page content -->
+    <main id="main-content" tabindex="-1" style="flex:1;padding:24px 16px;outline:none">
+        @Body
     </main>
 </div>
+
+@code {
+    private async Task HandleLogout()
+    {
+        Nav.NavigateTo("/api/battlenet/logout", forceLoad: true);
+        if (AuthStateProvider is AppAuthenticationStateProvider asp)
+            asp.NotifyStateChanged();
+        await Task.CompletedTask;
+    }
+}
