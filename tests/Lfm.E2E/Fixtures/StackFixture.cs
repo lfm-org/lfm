@@ -180,7 +180,7 @@ public class StackFixture : IAsyncLifetime
         Dictionary<string, string> env,
         StringBuilder output)
     {
-        var psi = new ProcessStartInfo("dotnet", $"run --project {csproj} --no-build --urls http://localhost:{port}")
+        var psi = new ProcessStartInfo("dotnet", $"run --project {csproj} -c Release --no-build --urls http://localhost:{port}")
         {
             WorkingDirectory = workingDir,
             RedirectStandardOutput = true,
