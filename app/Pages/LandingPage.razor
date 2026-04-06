@@ -1,0 +1,36 @@
+@page "/"
+
+<PageTitle>LFM</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="24">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H3">LFM</FluentLabel>
+        <FluentLabel Typo="Typography.H1">Looking For More</FluentLabel>
+        <FluentLabel>Coordinate your guild's raid schedule, track role coverage, and sign in with Battle.net.</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                <FluentLabel Typo="Typography.H4">Shared Schedule</FluentLabel>
+                <FluentLabel>Keep your whole raid on the same page with a shared run calendar.</FluentLabel>
+            </FluentStack>
+        </FluentCard>
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                <FluentLabel Typo="Typography.H4">Role Coverage</FluentLabel>
+                <FluentLabel>See at a glance which roles are filled and where you still need signups.</FluentLabel>
+            </FluentStack>
+        </FluentCard>
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                <FluentLabel Typo="Typography.H4">Battle.net Sign-In</FluentLabel>
+                <FluentLabel>No extra accounts — log in with your existing Battle.net credentials.</FluentLabel>
+            </FluentStack>
+        </FluentCard>
+    </FluentStack>
+
+    <a href="/api/battlenet/login">
+        <FluentButton Appearance="Appearance.Accent">Sign in with Battle.net</FluentButton>
+    </a>
+</FluentStack>

@@ -1,0 +1,20 @@
+@page "/login/success"
+@inject NavigationManager Nav
+
+<PageTitle>Signing In — LFM</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="8" HorizontalAlignment="HorizontalAlignment.Center">
+    <FluentProgressRing />
+    <FluentLabel>Signing in…</FluentLabel>
+</FluentStack>
+
+@code {
+    [SupplyParameterFromQuery(Name = "redirect")]
+    public string? Redirect { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var redirect = string.IsNullOrEmpty(Redirect) ? "/runs" : Redirect;
+        Nav.NavigateTo(redirect, replace: true);
+    }
+}

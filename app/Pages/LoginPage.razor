@@ -1,0 +1,21 @@
+@page "/login"
+@inject NavigationManager Nav
+
+<PageTitle>Sign In — LFM</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" HorizontalAlignment="HorizontalAlignment.Center">
+    <FluentLabel Typo="Typography.H2">Sign In</FluentLabel>
+    <FluentLabel>Connect your Battle.net account to get started.</FluentLabel>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@NavigateToLogin">Sign in with Battle.net</FluentButton>
+</FluentStack>
+
+@code {
+    [SupplyParameterFromQuery(Name = "redirect")]
+    public string? Redirect { get; set; }
+
+    private void NavigateToLogin()
+    {
+        var redirect = string.IsNullOrEmpty(Redirect) ? "/runs" : Redirect;
+        Nav.NavigateTo($"/api/battlenet/login?redirect={Uri.EscapeDataString(redirect)}", forceLoad: true);
+    }
+}

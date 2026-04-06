@@ -22,5 +22,6 @@ builder.Services.AddHttpClient("api", client =>
 }).AddHttpMessageHandler<CredentialsHandler>();
 
 builder.Services.AddScoped<IInstancesClient, InstancesClient>();
+builder.Services.AddScoped<IMeClient, MeClient>();
 
 await builder.Build().RunAsync();
