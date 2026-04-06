@@ -160,7 +160,7 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardGameDataClient, Lfm.Api
 builder.Services.AddScoped<Lfm.Api.Services.IReferenceSync, Lfm.Api.Services.ReferenceSync>();
 
 // WAF/Reliability + Security: Data Protection keys are persisted to a blob and
-// wrapped with a Key Vault key. Both pieces are necessary:
+// wrapped with a Key Vault key in production. Both pieces are necessary:
 //   - ProtectKeysWithAzureKeyVault encrypts the key ring at rest but DISABLES
 //     the default persistence location discovery. Without PersistKeysTo*, keys
 //     would only live in memory and every Functions instance/slot swap would
@@ -168,17 +168,33 @@ builder.Services.AddScoped<Lfm.Api.Services.IReferenceSync, Lfm.Api.Services.Ref
 //   - PersistKeysToAzureBlobStorage gives the ring a durable shared home so
 //     every instance in every slot reads the same keys.
 // Use the VERSIONLESS Key Vault key URI so automatic key rotation works.
-var authOpts = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>()
-    ?? throw new InvalidOperationException("AuthOptions not configured");
-var storageOpts = builder.Configuration.GetSection(StorageOptions.SectionName).Get<StorageOptions>()
-    ?? throw new InvalidOperationException("StorageOptions not configured");
-var credential = new DefaultAzureCredential();
+//
+// When the blob URI or KV key URI are not configured (local dev / E2E), fall
+// back to filesystem persistence with no encryption — keys are ephemeral and
+// sessions don't survive restarts, which is acceptable for dev/test.
+var authOpts = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>();
+var storageOpts = builder.Configuration.GetSection(StorageOptions.SectionName).Get<StorageOptions>();
 
-builder.Services.AddDataProtection()
+var dpBuilder = builder.Services.AddDataProtection()
     .SetApplicationName("Lfm")
-    .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
-    .PersistKeysToAzureBlobStorage(new Uri(storageOpts.DataProtectionBlobUri), credential)
-    .ProtectKeysWithAzureKeyVault(new Uri(authOpts.DataProtectionKeyUri), credential);
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
+if (!string.IsNullOrEmpty(storageOpts?.DataProtectionBlobUri) &&
+    !string.IsNullOrEmpty(authOpts?.DataProtectionKeyUri))
+{
+    var credential = new DefaultAzureCredential();
+    dpBuilder
+        .PersistKeysToAzureBlobStorage(new Uri(storageOpts.DataProtectionBlobUri), credential)
+        .ProtectKeysWithAzureKeyVault(new Uri(authOpts.DataProtectionKeyUri), credential);
+}
+else
+{
+    // Local dev / E2E: persist to a local directory so keys survive process restarts
+    // within a single test run, but don't require Azure infra.
+    var dpKeysDir = Path.Combine(Path.GetTempPath(), "lfm-dp-keys");
+    Directory.CreateDirectory(dpKeysDir);
+    dpBuilder.PersistKeysToFileSystem(new DirectoryInfo(dpKeysDir));
+}
 
 builder.Services.AddSingleton<ISessionCipher, DataProtectionSessionCipher>();
 

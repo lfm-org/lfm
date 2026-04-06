@@ -11,7 +11,14 @@ namespace Lfm.E2E.Fixtures;
 public class StackFixture : IAsyncLifetime
 {
     public CosmosDbContainer Cosmos { get; } = new CosmosDbBuilder().Build();
-    public AzuriteContainer Azurite { get; } = new AzuriteBuilder().Build();
+    // Bind Azurite to the well-known default ports (10000/10001/10002) so that
+    // AzureWebJobsStorage = "UseDevelopmentStorage=true" works out of the box.
+    // This is the format the Functions host natively supports for local storage.
+    public AzuriteContainer Azurite { get; } = new AzuriteBuilder()
+        .WithPortBinding(10000, 10000)
+        .WithPortBinding(10001, 10001)
+        .WithPortBinding(10002, 10002)
+        .Build();
     public IBrowser Browser { get; private set; } = null!;
     public string AppBaseUrl => $"http://localhost:{_appPort}";
     public string ApiBaseUrl => $"http://localhost:{_apiPort}";
@@ -63,8 +70,23 @@ public class StackFixture : IAsyncLifetime
                 ["Cosmos__DatabaseName"] = "lfm-e2e",
                 // IMPORTANT: the Linux Cosmos DB emulator only supports Gateway mode.
                 ["Cosmos__ConnectionMode"] = "Gateway",
-                ["AzureWebJobsStorage"] = Azurite.GetConnectionString(),
+                // UseDevelopmentStorage=true is the well-known shorthand that resolves to
+                // the default Azurite ports (10000/10001/10002) on localhost — the ports
+                // the container is bound to via WithPortBinding above.
+                ["AzureWebJobsStorage"] = "UseDevelopmentStorage=true",
                 ["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated",
+                // Stub auth options — Data Protection falls back to filesystem when
+                // these are empty (see Program.cs conditional DP wiring).
+                ["Auth__CookieName"] = "battlenet_token",
+                ["Auth__CookieMaxAgeHours"] = "24",
+                // Stub Blizzard options so ValidateOnStart doesn't throw.
+                ["Blizzard__ClientId"] = "e2e-stub",
+                ["Blizzard__ClientSecret"] = "e2e-stub",
+                ["Blizzard__Region"] = "eu",
+                ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
+                ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
+                // CORS: allow the app origin
+                ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
             },
             _apiOutput);
 

@@ -6,7 +6,8 @@ public sealed class AuthOptions
 
     // Versionless Key Vault key URI (e.g. https://lfm-kv.vault.azure.net/keys/dataprotection).
     // Versionless is required to support automatic key rotation per MS Data Protection guidance.
-    public required string DataProtectionKeyUri { get; init; }
+    // When null/empty, Program.cs falls back to unencrypted filesystem persistence (local dev / E2E).
+    public string? DataProtectionKeyUri { get; init; }
 
     public required string CookieName { get; init; } = "battlenet_token";
     public int CookieMaxAgeHours { get; init; } = 24;
