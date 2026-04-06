@@ -26,8 +26,10 @@ public class CharactersEmptySpec(CharactersEmptyFixture fixture) : IAsyncLifetim
     {
         await _page.GotoAsync(fixture.ApiBaseUrl + "/api/battlenet/login?redirect=%2Fcharacters");
 
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Select your character" })).ToBeVisibleAsync();
-        await Expect(_page.GetByText("No Battle.net characters found.")).ToBeVisibleAsync();
+        // Blazor CharactersPage renders "My Characters" as H3
+        await Expect(_page.GetByText("My Characters")).ToBeVisibleAsync();
+        // Empty state message from the Blazor page
+        await Expect(_page.GetByText("No characters found")).ToBeVisibleAsync();
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>

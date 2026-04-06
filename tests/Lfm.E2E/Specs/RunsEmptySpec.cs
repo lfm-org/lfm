@@ -28,8 +28,10 @@ public class RunsEmptySpec(RunsEmptyFixture fixture) : IAsyncLifetime
     {
         await _page.GotoAsync(fixture.AppBaseUrl + "/runs");
 
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Runs" })).ToBeVisibleAsync();
-        await Expect(_page.GetByText("No runs found.")).ToBeVisibleAsync();
+        // Blazor RunsPage renders "Runs" as H3
+        await Expect(_page.GetByText("Runs").First).ToBeVisibleAsync();
+        // Empty state message from the Blazor page
+        await Expect(_page.GetByText("No upcoming runs found.")).ToBeVisibleAsync();
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>

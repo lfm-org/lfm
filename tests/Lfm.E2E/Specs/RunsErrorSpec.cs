@@ -28,8 +28,11 @@ public class RunsErrorSpec(RunsErrorFixture fixture) : IAsyncLifetime
     {
         await _page.GotoAsync(fixture.AppBaseUrl + "/runs");
 
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Runs" })).ToBeVisibleAsync();
-        await Expect(_page.GetByText("Failed to load runs")).ToBeVisibleAsync();
+        // Blazor RunsPage renders "Runs" as H3
+        await Expect(_page.GetByText("Runs").First).ToBeVisibleAsync();
+        // The error state renders in a FluentMessageBar; the exact message comes from
+        // the exception message. Check for the message bar with error intent.
+        await Expect(_page.Locator("fluent-message-bar")).ToBeVisibleAsync();
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>

@@ -30,25 +30,32 @@ public class AccountDeleteSpec(DefaultSeedFixture fixture) : IAsyncLifetime
 
         await Expect(_page).ToHaveURLAsync(new Regex(@"\/characters$"));
 
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Select your character" })).ToBeVisibleAsync();
-        await Expect(_page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Farewell", RegexOptions.IgnoreCase) })).ToBeVisibleAsync();
+        // Blazor CharactersPage renders "My Characters" as H3 and "Delete Account" as H4
+        await Expect(_page.GetByText("My Characters")).ToBeVisibleAsync();
+        await Expect(_page.GetByText("Delete Account")).ToBeVisibleAsync();
 
-        var deleteButton = _page.GetByRole(AriaRole.Button, new() { Name = "Forget me" });
+        // The delete button text is "Delete My Account"
+        var deleteButton = _page.GetByRole(AriaRole.Button, new() { Name = "Delete My Account" });
         await Expect(deleteButton).ToBeDisabledAsync();
 
-        await _page.GetByLabel("Type FORGET ME to confirm").FillAsync("forget me");
+        // Fill in the confirmation text — the FluentTextField has Placeholder="FORGET ME"
+        // The text input is a fluent-text-field; fill it via its input element
+        var confirmInput = _page.Locator("fluent-text-field input");
+        await confirmInput.FillAsync("wrong text");
         await Expect(deleteButton).ToBeDisabledAsync();
 
-        await _page.GetByLabel("Type FORGET ME to confirm").FillAsync("FORGET ME");
+        await confirmInput.FillAsync("FORGET ME");
         await Expect(deleteButton).ToBeEnabledAsync();
         await deleteButton.ClickAsync();
 
         await Expect(_page).ToHaveURLAsync(new Regex(@"\/goodbye$"));
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Account deleted" })).ToBeVisibleAsync();
+        // Blazor GoodbyePage renders "Goodbye" as H2
+        await Expect(_page.GetByText("Goodbye")).ToBeVisibleAsync();
+        await Expect(_page.GetByText("Your account has been deleted")).ToBeVisibleAsync();
 
         await _page.GotoAsync(fixture.AppBaseUrl + "/runs", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Expect(_page).ToHaveURLAsync(new Regex(@"\/login\?redirect=%2Fruns$"));
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Sign in with Battle.net" })).ToBeVisibleAsync();
+        await Expect(_page.GetByText("Sign In")).ToBeVisibleAsync();
     }
 
     private static IPageAssertions Expect(IPage page) =>

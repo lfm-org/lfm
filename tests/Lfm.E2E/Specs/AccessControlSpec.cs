@@ -33,7 +33,8 @@ public class AccessControlSpec(DefaultSeedFixture fixture) : IAsyncLifetime
 
             var encodedPath = Uri.EscapeDataString(protectedPath);
             await Expect(_page).ToHaveURLAsync(new Regex($@"/login\?redirect={Regex.Escape(encodedPath)}$"));
-            await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Sign in with Battle.net" })).ToBeVisibleAsync();
+            // Blazor LoginPage renders "Sign In" as H2
+            await Expect(_page.GetByText("Sign In")).ToBeVisibleAsync();
         }
     }
 

@@ -29,18 +29,19 @@ public class LandingPageSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         var main = _page.GetByRole(AriaRole.Main);
 
         await Expect(_page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"\/$"));
-        await Expect(main.GetByText("\ud83c\udf00 LFM", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(main.GetByRole(AriaRole.Heading, new() { Name = "Plan runs in one place" })).ToBeVisibleAsync();
-        await Expect(main.GetByText("Create runs, collect signups, and check roster coverage before invite time.")).ToBeVisibleAsync();
-        await Expect(_page.GetByRole(AriaRole.Link, new() { Name = "Login" })).ToBeVisibleAsync();
-        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Sign In To Plan Runs" })).ToHaveCountAsync(0);
-        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Battle.net Login" })).ToHaveCountAsync(0);
-        await Expect(main.GetByText("Shared schedule")).ToBeVisibleAsync();
-        await Expect(main.GetByText("Keep upcoming runs and signups in one place.")).ToBeVisibleAsync();
-        await Expect(main.GetByText("Role coverage")).ToBeVisibleAsync();
-        await Expect(main.GetByText("See tank, healer, and DPS coverage at a glance.")).ToBeVisibleAsync();
-        await Expect(main.GetByText("Battle.net sign-in")).ToBeVisibleAsync();
-        await Expect(main.GetByText("Players sign in with Battle.net and use their saved characters.")).ToBeVisibleAsync();
+        // Blazor LandingPage renders "LFM" as H3 and "Looking For More" as H1
+        await Expect(main.GetByText("LFM")).ToBeVisibleAsync();
+        await Expect(main.GetByText("Looking For More")).ToBeVisibleAsync();
+        await Expect(main.GetByText("Coordinate your guild's raid schedule")).ToBeVisibleAsync();
+        // Navbar shows "Sign In" link for unauthenticated users
+        await Expect(_page.Locator("fluent-anchor[href='/login']")).ToBeVisibleAsync();
+        // Feature cards
+        await Expect(main.GetByText("Shared Schedule")).ToBeVisibleAsync();
+        await Expect(main.GetByText("Keep your whole raid on the same page")).ToBeVisibleAsync();
+        await Expect(main.GetByText("Role Coverage")).ToBeVisibleAsync();
+        await Expect(main.GetByText("See at a glance which roles are filled")).ToBeVisibleAsync();
+        await Expect(main.GetByText("Battle.net Sign-In")).ToBeVisibleAsync();
+        await Expect(main.GetByText("No extra accounts")).ToBeVisibleAsync();
     }
 
     private static IPageAssertions Expect(IPage page) =>

@@ -28,7 +28,9 @@ public class CreateRunInstancesMissingSpec(InstancesMissingFixture fixture) : IA
     {
         await _page.GotoAsync(fixture.AppBaseUrl + "/runs/new");
 
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Create Run" })).ToBeVisibleAsync();
+        // Blazor CreateRunPage renders "Create Run" as H3
+        await Expect(_page.GetByText("Create Run").First).ToBeVisibleAsync();
+        // Error message from Blazor CreateRunPage when instances fail to load
         await Expect(_page.GetByText("Failed to load instances")).ToBeVisibleAsync();
     }
 

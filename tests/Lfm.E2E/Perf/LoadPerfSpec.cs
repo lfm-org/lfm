@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Microsoft.Playwright;
@@ -8,7 +7,7 @@ using Xunit;
 namespace Lfm.E2E.Perf;
 
 /// <summary>
-/// Perf port of frontend/e2e/perf/load.perf.spec.ts — entry and load responsiveness.
+/// Perf port — entry and load responsiveness.
 /// Tagged [Trait("Category", "Perf")] so CI can exclude with --filter "Category!=Perf".
 /// Collection: default (full seed data).
 /// </summary>
@@ -34,7 +33,8 @@ public class LoadPerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
     public async Task Landing_page_loads_within_budget()
     {
         var main = _page.GetByRole(AriaRole.Main);
-        var heading = _page.GetByRole(AriaRole.Heading, new() { Name = "Plan runs in one place" });
+        // Blazor LandingPage renders "Looking For More" as the prominent heading
+        var heading = _page.GetByText("Looking For More");
 
         var result = await PerfHelper.MeasureInteractionAsync(
             _page,
@@ -52,7 +52,8 @@ public class LoadPerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
     public async Task Login_page_loads_within_budget()
     {
         var main = _page.GetByRole(AriaRole.Main);
-        var heading = _page.GetByRole(AriaRole.Heading, new() { Name = "Sign in with Battle.net" });
+        // Blazor LoginPage renders "Sign In" as H2
+        var heading = _page.GetByText("Sign In");
 
         var result = await PerfHelper.MeasureInteractionAsync(
             _page,
@@ -72,19 +73,15 @@ public class LoadPerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
     public async Task Login_click_transitions_to_authenticated_state_within_budget()
     {
         await _page.GotoAsync(fixture.AppBaseUrl + "/login?redirect=%2Fruns");
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Sign in with Battle.net" }))
-            .ToBeVisibleAsync();
+        await Expect(_page.GetByText("Sign In")).ToBeVisibleAsync();
 
-        var loginLink = _page.GetByRole(AriaRole.Link, new() { Name = "Continue with Battle.net" });
-        var runsHeading = _page.GetByRole(AriaRole.Heading, new() { Name = "Runs" });
+        // Blazor LoginPage has a button (not a link) for sign-in
+        var loginButton = _page.GetByRole(AriaRole.Button, new() { Name = "Sign in with Battle.net" });
+        var runsHeading = _page.GetByText("Runs").First;
 
-        // Note: login click triggers a full-page navigation through /api/battlenet/login.
-        // Browser observers installed before the click are lost when the page context changes.
-        // Stability data reflects only the post-redirect render. This is acceptable —
-        // the redirect is server-side, and we care about the user-visible authenticated landing state.
         var result = await PerfHelper.MeasureInteractionAsync(
             _page,
-            () => loginLink.ClickAsync(),
+            () => loginButton.ClickAsync(),
             ackMarker: runsHeading,
             completionMarker: runsHeading);
 
@@ -100,15 +97,14 @@ public class LoadPerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
     public async Task Login_click_transitions_to_protected_create_run_route_within_budget()
     {
         await _page.GotoAsync(fixture.AppBaseUrl + "/login?redirect=%2Fruns%2Fnew");
-        await Expect(_page.GetByRole(AriaRole.Heading, new() { Name = "Sign in with Battle.net" }))
-            .ToBeVisibleAsync();
+        await Expect(_page.GetByText("Sign In")).ToBeVisibleAsync();
 
-        var loginLink = _page.GetByRole(AriaRole.Link, new() { Name = "Continue with Battle.net" });
-        var createRunHeading = _page.GetByRole(AriaRole.Heading, new() { Name = "Create Run" });
+        var loginButton = _page.GetByRole(AriaRole.Button, new() { Name = "Sign in with Battle.net" });
+        var createRunHeading = _page.GetByText("Create Run").First;
 
         var result = await PerfHelper.MeasureInteractionAsync(
             _page,
-            () => loginLink.ClickAsync(),
+            () => loginButton.ClickAsync(),
             ackMarker: createRunHeading,
             completionMarker: createRunHeading);
 
