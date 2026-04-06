@@ -113,6 +113,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 });
 
 builder.Services.AddScoped<Lfm.Api.Repositories.IInstancesRepository, Lfm.Api.Repositories.InstancesRepository>();
+builder.Services.AddScoped<Lfm.Api.Repositories.ISpecializationsRepository, Lfm.Api.Repositories.SpecializationsRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IRaidersRepository, Lfm.Api.Repositories.RaidersRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Repositories.RunsRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IGuildRepository, Lfm.Api.Repositories.GuildRepository>();
