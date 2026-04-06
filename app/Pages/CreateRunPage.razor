@@ -1,0 +1,169 @@
+@page "/runs/new"
+@using Lfm.App.Services
+@using Lfm.Contracts.Instances
+@using Lfm.Contracts.Runs
+@inject IInstancesClient InstancesClient
+@inject IRunsClient RunsClient
+@inject NavigationManager Nav
+
+<PageTitle>Create Run</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:600px">
+    <FluentLabel Typo="Typography.H3">Create Run</FluentLabel>
+
+    @if (loadError != null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
+    }
+
+    @if (submitError != null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@submitError</FluentMessageBar>
+    }
+
+    @if (loading)
+    {
+        <FluentProgressRing />
+    }
+    else
+    {
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <FluentSelect
+                    Id="instance-select"
+                    Label="Instance"
+                    TOption="string"
+                    Value="@instanceId"
+                    ValueChanged="@(v => { instanceId = v; modeKey = string.Empty; })"
+                    Disabled="@submitting">
+                    <FluentOption Value="">— Select instance —</FluentOption>
+                    @foreach (var inst in instances)
+                    {
+                        <FluentOption Value="@inst.Id">@inst.Name (@inst.ModeKey)</FluentOption>
+                    }
+                </FluentSelect>
+
+                <FluentTextField
+                    Id="modekey-input"
+                    Label="Mode Key"
+                    Value="@modeKey"
+                    ValueChanged="@(v => modeKey = v)"
+                    Disabled="@submitting"
+                    Placeholder="e.g. normal, heroic, mythic" />
+
+                <FluentTextField
+                    Id="starttime-input"
+                    Label="Start Time (ISO 8601)"
+                    Value="@startTime"
+                    ValueChanged="@(v => startTime = v)"
+                    Disabled="@submitting"
+                    Placeholder="2026-05-01T20:00:00Z" />
+
+                <FluentTextField
+                    Id="signupclose-input"
+                    Label="Signup Close Time (ISO 8601)"
+                    Value="@signupCloseTime"
+                    ValueChanged="@(v => signupCloseTime = v)"
+                    Disabled="@submitting"
+                    Placeholder="2026-05-01T18:00:00Z" />
+
+                <FluentSelect
+                    Id="visibility-select"
+                    Label="Visibility"
+                    TOption="string"
+                    Value="@visibility"
+                    ValueChanged="@(v => visibility = v)"
+                    Disabled="@submitting">
+                    <FluentOption Value="PUBLIC">Public</FluentOption>
+                    <FluentOption Value="GUILD">Guild only</FluentOption>
+                </FluentSelect>
+
+                <FluentTextField
+                    Id="description-input"
+                    Label="Description"
+                    Value="@description"
+                    ValueChanged="@(v => description = v)"
+                    Disabled="@submitting" />
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                    <FluentButton
+                        Appearance="Appearance.Accent"
+                        OnClick="@HandleSubmit"
+                        Disabled="@(submitting || string.IsNullOrWhiteSpace(instanceId) || string.IsNullOrWhiteSpace(startTime) || string.IsNullOrWhiteSpace(modeKey))">
+                        @(submitting ? "Creating…" : "Create Run")
+                    </FluentButton>
+                    <FluentButton
+                        Appearance="Appearance.Outline"
+                        OnClick="@(() => Nav.NavigateTo("/runs"))"
+                        Disabled="@submitting">
+                        Cancel
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>
+
+@code {
+    private IReadOnlyList<InstanceDto> instances = [];
+    private bool loading = true;
+    private bool submitting;
+    private string? loadError;
+    private string? submitError;
+
+    private string instanceId = string.Empty;
+    private string modeKey = string.Empty;
+    private string startTime = string.Empty;
+    private string signupCloseTime = string.Empty;
+    private string visibility = "PUBLIC";
+    private string description = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            instances = await InstancesClient.ListAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Failed to load instances: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        submitting = true;
+        submitError = null;
+        var selectedInstance = instances.FirstOrDefault(i => i.Id == instanceId);
+        try
+        {
+            var request = new CreateRunRequest(
+                StartTime: startTime,
+                SignupCloseTime: string.IsNullOrWhiteSpace(signupCloseTime) ? null : signupCloseTime,
+                Description: string.IsNullOrWhiteSpace(description) ? null : description,
+                ModeKey: modeKey,
+                Visibility: visibility,
+                InstanceId: selectedInstance != null ? (int?)Convert.ToInt32(selectedInstance.Id) : null,
+                InstanceName: selectedInstance?.Name);
+
+            var created = await RunsClient.CreateAsync(request, CancellationToken.None);
+            if (created is null)
+            {
+                submitError = "Failed to create run. Please try again.";
+                submitting = false;
+                return;
+            }
+
+            Nav.NavigateTo($"/runs/{Uri.EscapeDataString(created.Id)}");
+        }
+        catch
+        {
+            submitError = "Failed to create run. Please try again.";
+            submitting = false;
+        }
+    }
+}

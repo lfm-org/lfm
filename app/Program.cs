@@ -24,5 +24,6 @@ builder.Services.AddHttpClient("api", client =>
 builder.Services.AddScoped<IInstancesClient, InstancesClient>();
 builder.Services.AddScoped<IMeClient, MeClient>();
 builder.Services.AddScoped<IGuildClient, GuildClient>();
+builder.Services.AddScoped<IRunsClient, RunsClient>();
 
 await builder.Build().RunAsync();

@@ -1,0 +1,199 @@
+@page "/runs"
+@page "/runs/{RunId}"
+@using Lfm.App.Services
+@using Lfm.Contracts.Runs
+@inject IRunsClient RunsClient
+@inject NavigationManager Nav
+
+<PageTitle>Runs</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+        <FluentLabel Typo="Typography.H3" Style="flex:1">Runs</FluentLabel>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@(() => Nav.NavigateTo("/runs/new"))">
+            Create Run
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Outline" OnClick="@LoadRuns" Disabled="@loading">
+            Refresh
+        </FluentButton>
+    </FluentStack>
+
+    @switch (state)
+    {
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Idle:
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Loading:
+            <FluentProgressRing />
+            break;
+
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Failure f:
+            <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+            break;
+
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s when s.Value.Count == 0:
+            <FluentMessageBar Intent="MessageIntent.Info">
+                No upcoming runs found.
+                <FluentAnchor Href="/runs/new">Create the first one.</FluentAnchor>
+            </FluentMessageBar>
+            break;
+
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Style="align-items:flex-start">
+                <!-- Run list panel -->
+                <FluentCard Style="width:300px;flex-shrink:0;padding:0;overflow:hidden">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+                        @foreach (var run in s.Value)
+                        {
+                            var isSelected = run.Id == selectedRunId;
+                            <div @key="run.Id"
+                                 @onclick="@(() => SelectRun(run.Id))"
+                                 style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--neutral-stroke-rest);@(isSelected ? "background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest)" : "")">
+                                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                                    <strong>@run.InstanceName</strong>
+                                    <span style="font-size:0.85em">@run.ModeKey</span>
+                                    <span style="font-size:0.8em">@FormatDate(run.StartTime)</span>
+                                    <span style="font-size:0.8em">@run.RunCharacters.Count signed up</span>
+                                </FluentStack>
+                            </div>
+                        }
+                    </FluentStack>
+                </FluentCard>
+
+                <!-- Detail panel -->
+                <div style="flex:1;min-width:0">
+                    @if (selectedRun != null)
+                    {
+                        <FluentCard>
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center">
+                                    <FluentLabel Typo="Typography.H4" Style="flex:1">@selectedRun.InstanceName</FluentLabel>
+                                    <FluentButton Appearance="Appearance.Outline"
+                                                  OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))">
+                                        Edit
+                                    </FluentButton>
+                                </FluentStack>
+
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16">
+                                    <span><strong>Mode:</strong> @selectedRun.ModeKey</span>
+                                    <span><strong>Visibility:</strong> @selectedRun.Visibility</span>
+                                    <span><strong>Guild:</strong> @selectedRun.CreatorGuild</span>
+                                </FluentStack>
+
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16">
+                                    <span><strong>Start:</strong> @FormatDate(selectedRun.StartTime)</span>
+                                    <span><strong>Signup closes:</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
+                                </FluentStack>
+
+                                @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
+                                {
+                                    <FluentLabel>@selectedRun.Description</FluentLabel>
+                                }
+
+                                @if (selectedRun.RunCharacters.Count > 0)
+                                {
+                                    <FluentLabel Typo="Typography.H5">Roster (@selectedRun.RunCharacters.Count)</FluentLabel>
+                                    <FluentDataGrid Items="@selectedRun.RunCharacters.AsQueryable()" TGridItem="RunCharacterDto">
+                                        <PropertyColumn Property="@(c => c.CharacterName)" Title="Character" />
+                                        <PropertyColumn Property="@(c => c.CharacterRealm)" Title="Realm" />
+                                        <PropertyColumn Property="@(c => c.Role)" Title="Role" />
+                                        <PropertyColumn Property="@(c => c.DesiredAttendance)" Title="Attendance" />
+                                        <PropertyColumn Property="@(c => c.SpecName)" Title="Spec" />
+                                    </FluentDataGrid>
+                                }
+                                else
+                                {
+                                    <FluentLabel>No signups yet.</FluentLabel>
+                                }
+                            </FluentStack>
+                        </FluentCard>
+                    }
+                    else
+                    {
+                        <FluentLabel>Select a run to see details.</FluentLabel>
+                    }
+                </div>
+            </FluentStack>
+            break;
+    }
+</FluentStack>
+
+@code {
+    [Parameter] public string? RunId { get; set; }
+
+    private LoadingState<IReadOnlyList<RunSummaryDto>> state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Idle();
+    private bool loading;
+    private string? selectedRunId;
+    private RunDetailDto? selectedRun;
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedRunId = RunId;
+        await LoadRuns();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (RunId != selectedRunId)
+        {
+            selectedRunId = RunId;
+            if (selectedRunId != null)
+            {
+                await LoadRunDetail(selectedRunId);
+            }
+            else
+            {
+                selectedRun = null;
+            }
+        }
+    }
+
+    private async Task LoadRuns()
+    {
+        loading = true;
+        state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Loading();
+        try
+        {
+            var items = await RunsClient.ListAsync(CancellationToken.None);
+            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(items);
+
+            if (selectedRunId != null)
+            {
+                await LoadRunDetail(selectedRunId);
+            }
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Failure(ex.Message);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SelectRun(string id)
+    {
+        selectedRunId = id;
+        Nav.NavigateTo($"/runs/{Uri.EscapeDataString(id)}", replace: true);
+        await LoadRunDetail(id);
+    }
+
+    private async Task LoadRunDetail(string id)
+    {
+        try
+        {
+            selectedRun = await RunsClient.GetAsync(id, CancellationToken.None);
+        }
+        catch
+        {
+            selectedRun = null;
+        }
+    }
+
+    private static string FormatDate(string? isoDate)
+    {
+        if (string.IsNullOrEmpty(isoDate)) return "—";
+        if (DateTimeOffset.TryParse(isoDate, out var dto))
+            return dto.ToString("yyyy-MM-dd HH:mm");
+        return isoDate;
+    }
+}
