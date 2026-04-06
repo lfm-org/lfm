@@ -56,10 +56,7 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Install Azure Functions Core Tools
-        run: |
-          curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null
-          echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli-extensions/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/azure-functions-core-tools.list
-          sudo apt-get update && sudo apt-get install -y azure-functions-core-tools-4
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Restore
         run: dotnet restore lfm.sln
