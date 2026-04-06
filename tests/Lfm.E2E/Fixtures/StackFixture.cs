@@ -91,6 +91,8 @@ public class StackFixture : IAsyncLifetime
                 // the container is bound to via WithPortBinding above.
                 ["AzureWebJobsStorage"] = "UseDevelopmentStorage=true",
                 ["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated",
+                // Enable the test-only /api/e2e/login endpoint for auth bypass.
+                ["E2E_TEST_MODE"] = "true",
                 // Stub auth options — Data Protection falls back to filesystem when
                 // these are empty (see Program.cs conditional DP wiring).
                 ["Auth__CookieName"] = "battlenet_token",
