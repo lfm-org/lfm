@@ -91,49 +91,49 @@ public class BattleNetCharactersFunction(
 
         var result = new List<CharacterDto>();
         foreach (var account in summary.WowAccounts ?? [])
-        foreach (var character in account.Characters ?? [])
-        {
-            var realmSlug = character.Realm.Slug.ToLowerInvariant();
-            var realmName = character.Realm.Name ?? character.Realm.Slug;
-            storedByKey.TryGetValue($"{character.Name.ToLowerInvariant()}:{realmSlug}", out var stored);
-
-            // TS: classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id
-            // We don't model stored.profileSummary, so fall back to the Blizzard account-char field.
-            var classId = character.PlayableClass?.Id;
-
-            var cachedId = $"{region}-{character.Realm.Slug.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
-            string? portraitUrl = null;
-            if (stored?.PortraitUrl is not null)
+            foreach (var character in account.Characters ?? [])
             {
-                portraitUrl = stored.PortraitUrl;
-            }
-            else if (portraitCache is not null && portraitCache.TryGetValue(cachedId, out var cached)
-                     && IsBlizzardRenderUrl(cached))
-            {
-                portraitUrl = cached;
-            }
+                var realmSlug = character.Realm.Slug.ToLowerInvariant();
+                var realmName = character.Realm.Name ?? character.Realm.Slug;
+                storedByKey.TryGetValue($"{character.Name.ToLowerInvariant()}:{realmSlug}", out var stored);
 
-            var activeSpecId = stored?.SpecializationsSummary?.ActiveSpecialization?.Id;
-            string? specName = null;
-            if (activeSpecId is not null && stored?.SpecializationsSummary?.Specializations is not null)
-            {
-                var spec = stored.SpecializationsSummary.Specializations
-                    .FirstOrDefault(s => s.Specialization.Id == activeSpecId);
-                specName = spec?.Specialization.Name;
-            }
+                // TS: classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id
+                // We don't model stored.profileSummary, so fall back to the Blizzard account-char field.
+                var classId = character.PlayableClass?.Id;
 
-            result.Add(new CharacterDto(
-                Name: character.Name,
-                Realm: character.Realm.Slug,
-                RealmName: realmName,
-                Level: character.Level,
-                Region: region,
-                ClassId: classId,
-                ClassName: null,           // stored.profileSummary.character_class.name not yet modelled
-                PortraitUrl: portraitUrl,
-                ActiveSpecId: activeSpecId,
-                SpecName: specName));
-        }
+                var cachedId = $"{region}-{character.Realm.Slug.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
+                string? portraitUrl = null;
+                if (stored?.PortraitUrl is not null)
+                {
+                    portraitUrl = stored.PortraitUrl;
+                }
+                else if (portraitCache is not null && portraitCache.TryGetValue(cachedId, out var cached)
+                         && IsBlizzardRenderUrl(cached))
+                {
+                    portraitUrl = cached;
+                }
+
+                var activeSpecId = stored?.SpecializationsSummary?.ActiveSpecialization?.Id;
+                string? specName = null;
+                if (activeSpecId is not null && stored?.SpecializationsSummary?.Specializations is not null)
+                {
+                    var spec = stored.SpecializationsSummary.Specializations
+                        .FirstOrDefault(s => s.Specialization.Id == activeSpecId);
+                    specName = spec?.Specialization.Name;
+                }
+
+                result.Add(new CharacterDto(
+                    Name: character.Name,
+                    Realm: character.Realm.Slug,
+                    RealmName: realmName,
+                    Level: character.Level,
+                    Region: region,
+                    ClassId: classId,
+                    ClassName: null,           // stored.profileSummary.character_class.name not yet modelled
+                    PortraitUrl: portraitUrl,
+                    ActiveSpecId: activeSpecId,
+                    SpecName: specName));
+            }
 
         return result;
     }

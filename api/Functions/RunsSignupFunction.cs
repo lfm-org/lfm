@@ -68,7 +68,7 @@ public class RunsSignupFunction(
             var canSignup = await guildPermissions.CanSignupGuildRunsAsync(principal, ct);
             if (!canSignup)
                 return new ObjectResult(new { error = "Guild signup is not enabled for your rank" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
         }
 
         // 3. Parse and validate request body.

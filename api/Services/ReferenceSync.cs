@@ -173,7 +173,7 @@ public sealed class ReferenceSync(
     private static string ToRole(string blizzardRoleType) => blizzardRoleType switch
     {
         "HEALER" => "HEALER",
-        "TANK"   => "TANK",
-        _        => "DPS",
+        "TANK" => "TANK",
+        _ => "DPS",
     };
 }

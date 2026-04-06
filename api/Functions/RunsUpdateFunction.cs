@@ -63,13 +63,13 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
                 || principal.GuildId != existing.CreatorGuildId.ToString())
             {
                 return new ObjectResult(new { error = "Only the run creator can update this run" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
             }
 
             var canEdit = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
             if (!canEdit)
                 return new ObjectResult(new { error = "Your guild rank does not have permission to edit guild runs" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
         }
 
         // 3. Parse and validate request body.
@@ -100,7 +100,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
         if (IsEditingClosed(existing.SignupCloseTime, existing.StartTime, DateTimeOffset.UtcNow))
         {
             return new ObjectResult(new { error = "Editing is closed for this run" })
-                { StatusCode = 409 };
+            { StatusCode = 409 };
         }
 
         // 5. Locked-field check — mirrors getLockedFields in run-editability.ts.
@@ -125,7 +125,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
             var canCreate = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
             if (!canCreate)
                 return new ObjectResult(new { error = "Guild run creation is not enabled for your rank" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
         }
 
         // 7. Resolve effective instanceId + modeKey and look up the instance name.

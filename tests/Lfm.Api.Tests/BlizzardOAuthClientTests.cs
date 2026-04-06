@@ -58,11 +58,11 @@ public class BlizzardOAuthClientTests
         uri.Host.Should().Be("eu.battle.net");
         uri.AbsolutePath.Should().Be("/oauth/authorize");
 
-        query["response_type"].Should().Be("code",    "OAuth code grant requires response_type=code");
+        query["response_type"].Should().Be("code", "OAuth code grant requires response_type=code");
         query["client_id"].Should().Be("test-client", "client_id must match BlizzardOptions.ClientId");
         query["redirect_uri"].Should().Be("https://example.com/api/battlenet/callback");
-        query["scope"].Should().Be("wow.profile",     "WoW profile scope is required");
-        query["state"].Should().Be(state,             "state must round-trip intact");
+        query["scope"].Should().Be("wow.profile", "WoW profile scope is required");
+        query["state"].Should().Be(state, "state must round-trip intact");
         query["code_challenge"].Should().Be(codeChallenge, "PKCE code_challenge must be present");
         query["code_challenge_method"].Should().Be("S256", "PKCE S256 method is required");
     }
@@ -96,9 +96,9 @@ public class BlizzardOAuthClientTests
     }
 
     [Theory]
-    [InlineData("eu",  "eu.battle.net")]
-    [InlineData("us",  "us.battle.net")]
-    [InlineData("EU",  "eu.battle.net")]   // region is normalised to lower-case
+    [InlineData("eu", "eu.battle.net")]
+    [InlineData("us", "us.battle.net")]
+    [InlineData("EU", "eu.battle.net")]   // region is normalised to lower-case
     public void BuildAuthorizeUrl_uses_correct_regional_host(string region, string expectedHost)
     {
         var client = MakeClient(region: region);
@@ -139,8 +139,8 @@ public class BlizzardOAuthClientTests
         // RFC 7636 §4.6: BASE64URL(SHA256(ASCII(code_verifier)))
         // Known vector: verifier "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
         // → challenge "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
-        const string verifier  = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-        const string expected  = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+        const string verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+        const string expected = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 
         BlizzardOAuthClient.ComputeCodeChallenge(verifier).Should().Be(expected);
     }

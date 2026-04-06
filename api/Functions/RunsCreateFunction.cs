@@ -71,7 +71,7 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
             var canCreate = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
             if (!canCreate)
                 return new ObjectResult(new { error = "Guild run creation is not enabled for your rank" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
         }
 
         var runId = Guid.NewGuid().ToString();

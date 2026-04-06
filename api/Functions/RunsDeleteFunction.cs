@@ -50,13 +50,13 @@ public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPer
                 || principal.GuildId != existing.CreatorGuildId.ToString())
             {
                 return new ObjectResult(new { error = "Only the run creator can delete this run" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
             }
 
             var canDelete = await guildPermissions.CanDeleteGuildRunsAsync(principal, ct);
             if (!canDelete)
                 return new ObjectResult(new { error = "Your guild rank does not have permission to delete guild runs" })
-                    { StatusCode = 403 };
+                { StatusCode = 403 };
         }
 
         // 3. Delete the run document. Signups are embedded — they are removed with the document.

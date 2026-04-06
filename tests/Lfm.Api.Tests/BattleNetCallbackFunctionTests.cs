@@ -25,14 +25,14 @@ namespace Lfm.Api.Tests;
 /// </summary>
 public class BattleNetCallbackFunctionTests
 {
-    private const string AppBaseUrl    = "https://example.com";
-    private const string FailureUrl    = "https://example.com/auth/failure";
+    private const string AppBaseUrl = "https://example.com";
+    private const string FailureUrl = "https://example.com/auth/failure";
     private const string FakeCookieName = "battlenet_token";
 
-    private const string FakeState     = "test-state-xyz";
-    private const string FakeVerifier  = "test-verifier-abc";
-    private const string FakeCode      = "auth-code-123";
-    private const string FakeToken     = "access-token-456";
+    private const string FakeState = "test-state-xyz";
+    private const string FakeVerifier = "test-verifier-abc";
+    private const string FakeCode = "auth-code-123";
+    private const string FakeToken = "access-token-456";
     private const string FakeEncrypted = "encrypted-session-payload";
 
     private static readonly BlizzardUserInfo FakeUser = new(Id: 999L, BattleTag: "TestUser#1234");
@@ -45,17 +45,17 @@ public class BattleNetCallbackFunctionTests
     {
         var blizzardOpts = MsOptions.Create(new BlizzardOptions
         {
-            ClientId     = "test-client",
+            ClientId = "test-client",
             ClientSecret = "test-secret",
-            Region       = "eu",
-            RedirectUri  = "https://example.com/api/battlenet/callback",
-            AppBaseUrl   = AppBaseUrl,
+            Region = "eu",
+            RedirectUri = "https://example.com/api/battlenet/callback",
+            AppBaseUrl = AppBaseUrl,
         });
         var authOpts = MsOptions.Create(new AuthOptions
         {
             DataProtectionKeyUri = "https://kv.example.com/keys/dp",
-            CookieName           = FakeCookieName,
-            CookieMaxAgeHours    = 24,
+            CookieName = FakeCookieName,
+            CookieMaxAgeHours = 24,
         });
 
         var fn = new BattleNetCallbackFunction(
@@ -104,9 +104,9 @@ public class BattleNetCallbackFunctionTests
     public async Task Run_happy_path_sets_auth_cookie_and_redirects_to_app_base_url()
     {
         // Arrange
-        var oauthMock  = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
-        var repoMock   = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
@@ -131,7 +131,7 @@ public class BattleNetCallbackFunctionTests
 
         var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
         var req = BuildRequest(httpContext,
-            query:   new() { ["code"] = FakeCode, ["state"] = FakeState },
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState },
             cookies: new() { ["login_state"] = "protected-payload" });
 
         // Act
@@ -169,9 +169,9 @@ public class BattleNetCallbackFunctionTests
     public async Task Run_missing_login_state_cookie_redirects_to_failure()
     {
         // Arrange — no login_state cookie, state query param present
-        var oauthMock  = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
-        var repoMock   = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
 
         var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
         var req = BuildRequest(httpContext,
@@ -197,9 +197,9 @@ public class BattleNetCallbackFunctionTests
     public async Task Run_mismatched_state_redirects_to_failure()
     {
         // Arrange — cookie decodes to a different state than the query param
-        var oauthMock  = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
-        var repoMock   = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
@@ -207,7 +207,7 @@ public class BattleNetCallbackFunctionTests
 
         var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
         var req = BuildRequest(httpContext,
-            query:   new() { ["code"] = FakeCode, ["state"] = "different-state" },
+            query: new() { ["code"] = FakeCode, ["state"] = "different-state" },
             cookies: new() { ["login_state"] = "some-protected-payload" });
 
         // Act
@@ -231,9 +231,9 @@ public class BattleNetCallbackFunctionTests
     public async Task Run_failed_code_exchange_redirects_to_failure()
     {
         // Arrange — state validates OK but ExchangeCodeAsync throws
-        var oauthMock  = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
-        var repoMock   = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
@@ -244,7 +244,7 @@ public class BattleNetCallbackFunctionTests
 
         var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
         var req = BuildRequest(httpContext,
-            query:   new() { ["code"] = FakeCode, ["state"] = FakeState },
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState },
             cookies: new() { ["login_state"] = "some-protected-payload" });
 
         // Act

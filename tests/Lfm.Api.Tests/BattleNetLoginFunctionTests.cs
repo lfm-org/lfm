@@ -17,11 +17,11 @@ namespace Lfm.Api.Tests;
 /// </summary>
 public class BattleNetLoginFunctionTests
 {
-    private const string FakeState       = "abc123statexyz";
-    private const string FakeVerifier    = "fake-code-verifier-abc";
-    private const string FakeChallenge   = "fake-code-challenge-xyz";
-    private const string FakeLoginState  = "protected-login-state-payload";
-    private const string FakeAuthUrl     =
+    private const string FakeState = "abc123statexyz";
+    private const string FakeVerifier = "fake-code-verifier-abc";
+    private const string FakeChallenge = "fake-code-challenge-xyz";
+    private const string FakeLoginState = "protected-login-state-payload";
+    private const string FakeAuthUrl =
         "https://eu.battle.net/oauth/authorize?response_type=code&client_id=test"
         + "&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&scope=wow.profile"
         + "&state=abc123statexyz&code_challenge=fake-code-challenge-xyz&code_challenge_method=S256";

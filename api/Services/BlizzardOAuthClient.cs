@@ -130,9 +130,9 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
 
         var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["grant_type"]    = "authorization_code",
-            ["code"]          = code,
-            ["redirect_uri"]  = _opts.RedirectUri,
+            ["grant_type"] = "authorization_code",
+            ["code"] = code,
+            ["redirect_uri"] = _opts.RedirectUri,
             ["code_verifier"] = codeVerifier,
         });
 

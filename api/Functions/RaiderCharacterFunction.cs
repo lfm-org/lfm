@@ -47,7 +47,7 @@ public class RaiderCharacterFunction(IRaidersRepository repo)
         var ownedCharacter = raider.Characters?.FirstOrDefault(c => c.Id == id);
         if (ownedCharacter is null)
             return new ObjectResult(new { error = "Character not found in your profile" })
-                { StatusCode = 403 };
+            { StatusCode = 403 };
 
         // 3. Update selectedCharacterId and persist.
         var updated = raider with { SelectedCharacterId = id };
