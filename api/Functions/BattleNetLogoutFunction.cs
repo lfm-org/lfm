@@ -26,7 +26,7 @@ public class BattleNetLogoutFunction(
     [RequireAuth]
     [Function("battlenet-logout")]
     public IActionResult Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "battlenet/logout")] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "battlenet/logout")] HttpRequest req,
         FunctionContext ctx)
     {
         // Clear the auth cookie by deleting it (MaxAge=0).

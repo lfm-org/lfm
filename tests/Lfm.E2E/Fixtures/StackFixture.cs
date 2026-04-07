@@ -108,6 +108,10 @@ public class StackFixture : IAsyncLifetime
         // Overwrite appsettings.json in wwwroot so the Blazor WASM client
         // (which runs in the browser and cannot read server-side env vars) picks up
         // the dynamically assigned API port. The original is restored in DisposeAsync.
+        //
+        // RISK: This overwrites a git-tracked file (app/wwwroot/appsettings.json).
+        // If the test process is killed before DisposeAsync runs the restore is skipped,
+        // leaving the file in a mutated state. Manual recovery: git checkout -- app/wwwroot/appsettings.json
         var appWwwroot = Path.Combine(repoRoot, "app", "wwwroot");
         _appSettingsPath = Path.Combine(appWwwroot, "appsettings.json");
         _appSettingsOriginal = File.Exists(_appSettingsPath)
@@ -146,13 +150,22 @@ public class StackFixture : IAsyncLifetime
         _playwright?.Dispose();
         KillProcess(_appProcess);
         KillProcess(_apiProcess);
+        CosmosClient?.Dispose();
         await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
+        // Best-effort restore of the git-tracked appsettings.json (see InitializeAsync comment).
         if (_appSettingsPath is not null)
         {
-            if (_appSettingsOriginal is not null)
-                await File.WriteAllTextAsync(_appSettingsPath, _appSettingsOriginal);
-            else if (File.Exists(_appSettingsPath))
-                File.Delete(_appSettingsPath);
+            try
+            {
+                if (_appSettingsOriginal is not null)
+                    await File.WriteAllTextAsync(_appSettingsPath, _appSettingsOriginal);
+                else if (File.Exists(_appSettingsPath))
+                    File.Delete(_appSettingsPath);
+            }
+            catch
+            {
+                // Best effort — do not mask the primary test failure.
+            }
         }
     }
 
@@ -213,7 +226,11 @@ public class StackFixture : IAsyncLifetime
             UseShellExecute = false,
         };
         using var proc = Process.Start(psi)!;
-        proc.WaitForExit(timeoutSec * 1000);
+        if (!proc.WaitForExit(timeoutSec * 1000))
+        {
+            proc.Kill(entireProcessTree: true);
+            throw new TimeoutException($"{fileName} did not exit within {timeoutSec}s");
+        }
         return proc.ExitCode;
     }
 

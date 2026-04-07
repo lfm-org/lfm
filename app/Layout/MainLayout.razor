@@ -4,6 +4,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject IConfiguration Config
+@inject IHttpClientFactory HttpClientFactory
 
 <div style="min-height:100vh;display:flex;flex-direction:column">
     <!-- Skip-to-content link for keyboard users -->
@@ -45,10 +46,15 @@
 @code {
     private async Task HandleLogout()
     {
-        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
-        Nav.NavigateTo($"{apiBase}/api/battlenet/logout", forceLoad: true);
+        // POST to the logout endpoint — sends the auth cookie via CredentialsHandler
+        // (BrowserRequestCredentials.Include) so the server can clear it.
+        var http = HttpClientFactory.CreateClient("api");
+        try { await http.PostAsync("api/battlenet/logout", null); }
+        catch { /* best effort — navigate regardless */ }
+
         if (AuthStateProvider is AppAuthenticationStateProvider asp)
             asp.NotifyStateChanged();
-        await Task.CompletedTask;
+
+        Nav.NavigateTo("/", forceLoad: true);
     }
 }

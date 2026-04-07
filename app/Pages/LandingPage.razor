@@ -1,4 +1,6 @@
 @page "/"
+@inject NavigationManager Nav
+@inject IConfiguration Config
 
 <PageTitle>LFM</PageTitle>
 
@@ -30,7 +32,13 @@
         </FluentCard>
     </FluentStack>
 
-    <a href="/api/battlenet/login">
-        <FluentButton Appearance="Appearance.Accent">Sign in with Battle.net</FluentButton>
-    </a>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@NavigateToLogin">Sign in with Battle.net</FluentButton>
 </FluentStack>
+
+@code {
+    private void NavigateToLogin()
+    {
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/login", forceLoad: true);
+    }
+}
