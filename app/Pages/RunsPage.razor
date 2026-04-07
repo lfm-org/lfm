@@ -1,5 +1,6 @@
 @page "/runs"
 @page "/runs/{RunId}"
+@attribute [Authorize]
 @using Lfm.App.Services
 @using Lfm.Contracts.Runs
 @inject IRunsClient RunsClient

@@ -21,6 +21,7 @@ builder.Services.AddHttpClient("api", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<CredentialsHandler>();
 
 builder.Services.AddScoped<IInstancesClient, InstancesClient>();

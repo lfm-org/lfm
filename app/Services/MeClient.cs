@@ -12,7 +12,7 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         {
             return await http.GetFromJsonAsync<MeResponse>("api/me", ct);
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
             return null;
         }

@@ -3,6 +3,7 @@
 @using Lfm.App.Auth
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
+@inject IConfiguration Config
 
 <div style="min-height:100vh;display:flex;flex-direction:column">
     <!-- Skip-to-content link for keyboard users -->
@@ -44,7 +45,8 @@
 @code {
     private async Task HandleLogout()
     {
-        Nav.NavigateTo("/api/battlenet/logout", forceLoad: true);
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/logout", forceLoad: true);
         if (AuthStateProvider is AppAuthenticationStateProvider asp)
             asp.NotifyStateChanged();
         await Task.CompletedTask;

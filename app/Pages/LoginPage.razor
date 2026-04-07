@@ -1,5 +1,6 @@
 @page "/login"
 @inject NavigationManager Nav
+@inject IConfiguration Config
 
 <PageTitle>Sign In — LFM</PageTitle>
 
@@ -16,6 +17,7 @@
     private void NavigateToLogin()
     {
         var redirect = string.IsNullOrEmpty(Redirect) ? "/runs" : Redirect;
-        Nav.NavigateTo($"/api/battlenet/login?redirect={Uri.EscapeDataString(redirect)}", forceLoad: true);
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/login?redirect={Uri.EscapeDataString(redirect)}", forceLoad: true);
     }
 }
