@@ -7,6 +7,12 @@ param functionAppName string
 @description('Storage account name')
 param storageAccountName string
 
+@description('Storage account blob endpoint URL (e.g. https://<account>.blob.core.windows.net/)')
+param storageAccountBlobEndpoint string
+
+@description('Blob container name for Flex Consumption deployment packages')
+param deploymentContainerName string
+
 @description('Cosmos DB account endpoint')
 param cosmosAccountEndpoint string
 
@@ -64,7 +70,8 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${functionAppName}-plan'
   location: location
   tags: tags
-  sku: { name: 'Y1', tier: 'Dynamic' }
+  kind: 'functionapp'
+  sku: { name: 'FC1', tier: 'FlexConsumption' }
   properties: { reserved: true }
 }
 
@@ -86,8 +93,27 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     serverFarmId: hostingPlan.id
     httpsOnly: true
     clientAffinityEnabled: false
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storageAccountBlobEndpoint}${deploymentContainerName}'
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 40
+        instanceMemoryMB: 2048
+      }
+      runtime: {
+        name: 'dotnet-isolated'
+        version: '10.0'
+      }
+    }
     siteConfig: {
-      linuxFxVersion: 'NODE|22'
+      alwaysOn: false
       ftpsState: 'Disabled'
       http20Enabled: true
       minTlsVersion: '1.2'
@@ -100,8 +126,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       appSettings: [
         { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
 
-        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
-        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }
+        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'Authorization=AAD' }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
@@ -114,12 +139,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'LFM_CLIENT_ID', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-id)' }
         { name: 'LFM_CLIENT_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
         { name: 'BATTLE_NET_REDIRECT_URI', value: battleNetRedirectUri }
-        { name: 'HMAC_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=hmac-secret)' }
-        { name: 'SESSION_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
         { name: 'KEY_VAULT_URL', value: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/' }
         { name: 'PRIVACY_EMAIL', value: privacyEmail }
-        { name: 'DATA_PROTECTION_KEY_URI', value: dataProtectionKeyUri }
-        { name: 'DATA_PROTECTION_BLOB_URI', value: dataProtectionBlobUri }
+        { name: 'Auth__DataProtectionKeyUri', value: dataProtectionKeyUri }
+        { name: 'Storage__DataProtectionBlobUri', value: dataProtectionBlobUri }
       ]
     }
   }

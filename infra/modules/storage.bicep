@@ -59,6 +59,14 @@ resource dataProtectionContainer 'Microsoft.Storage/storageAccounts/blobServices
   }
 }
 
+resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+  parent: blobServices
+  name: 'deployments'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 resource blobDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'blob-diagnostics'
   scope: blobServices
@@ -84,3 +92,4 @@ resource storageLock 'Microsoft.Authorization/locks@2020-05-01' = {
 output storageAccountId string = storageAccount.id
 output blobEndpoint string = storageAccount.properties.primaryEndpoints.blob
 output dataProtectionBlobUri string = '${storageAccount.properties.primaryEndpoints.blob}dataprotection/keys.xml'
+output deploymentContainerName string = deploymentContainer.name
