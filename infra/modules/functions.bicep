@@ -37,6 +37,12 @@ param logAnalyticsWorkspaceId string
 @description('Privacy contact email address')
 param privacyEmail string
 
+@description('Data Protection KV key URI (versionless) for wrapping the key ring')
+param dataProtectionKeyUri string
+
+@description('Data Protection blob URI where the key ring XML is persisted')
+param dataProtectionBlobUri string
+
 @description('Resource tags')
 param tags object
 
@@ -112,6 +118,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'SESSION_ENCRYPTION_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=token-encryption-key)' }
         { name: 'KEY_VAULT_URL', value: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/' }
         { name: 'PRIVACY_EMAIL', value: privacyEmail }
+        { name: 'DATA_PROTECTION_KEY_URI', value: dataProtectionKeyUri }
+        { name: 'DATA_PROTECTION_BLOB_URI', value: dataProtectionBlobUri }
       ]
     }
   }

@@ -92,7 +92,6 @@ module storage 'modules/storage.bicep' = {
 
 module functions 'modules/functions.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-functions'
-  dependsOn: [storage, keyVault]
   params: {
     location: location
     functionAppName: functionAppName
@@ -107,7 +106,18 @@ module functions 'modules/functions.bicep' = {
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
     privacyEmail: privacyEmail
+    dataProtectionKeyUri: keyVault.outputs.dataProtectionKeyUri
+    dataProtectionBlobUri: storage.outputs.dataProtectionBlobUri
     tags: tags
+  }
+}
+
+module dataProtection 'modules/dataprotection.bicep' = {
+  name: '${uniqueString(resourceGroup().id, location)}-dataprotection'
+  params: {
+    keyVaultName: keyVaultName
+    storageAccountName: storageAccountName
+    functionsManagedIdentityPrincipalId: functions.outputs.functionAppPrincipalId
   }
 }
 

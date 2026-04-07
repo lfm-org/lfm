@@ -56,5 +56,16 @@ resource kvDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview
   }
 }
 
+resource dataProtectionKey 'Microsoft.KeyVault/vaults/keys@2024-11-01' = {
+  parent: keyVault
+  name: 'dataprotection'
+  properties: {
+    kty: 'RSA'
+    keySize: 2048
+    keyOps: ['wrapKey', 'unwrapKey']
+  }
+}
+
 output keyVaultId string = keyVault.id
 output keyVaultUri string = keyVault.properties.vaultUri
+output dataProtectionKeyUri string = '${keyVault.properties.vaultUri}keys/${dataProtectionKey.name}'
