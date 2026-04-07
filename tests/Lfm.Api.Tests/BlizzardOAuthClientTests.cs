@@ -109,18 +109,36 @@ public class BlizzardOAuthClientTests
     }
 
     [Fact]
-    public void ProtectLoginState_then_UnprotectLoginState_round_trips()
+    public void ProtectLoginState_then_UnprotectLoginState_round_trips_without_redirect()
     {
         var client = MakeClient();
         var state = client.GenerateState();
         var verifier = client.GenerateCodeVerifier();
 
-        var payload = client.ProtectLoginState(state, verifier);
+        var payload = client.ProtectLoginState(state, verifier, redirect: null);
         var result = client.UnprotectLoginState(payload);
 
         result.Should().NotBeNull("valid protected payload must round-trip");
         result!.Value.state.Should().Be(state);
         result.Value.codeVerifier.Should().Be(verifier);
+        result.Value.redirect.Should().BeNull("no redirect was stored");
+    }
+
+    [Fact]
+    public void ProtectLoginState_then_UnprotectLoginState_round_trips_with_redirect()
+    {
+        var client = MakeClient();
+        var state = client.GenerateState();
+        var verifier = client.GenerateCodeVerifier();
+        const string redirect = "/runs/new";
+
+        var payload = client.ProtectLoginState(state, verifier, redirect);
+        var result = client.UnprotectLoginState(payload);
+
+        result.Should().NotBeNull("valid protected payload must round-trip");
+        result!.Value.state.Should().Be(state);
+        result.Value.codeVerifier.Should().Be(verifier);
+        result.Value.redirect.Should().Be(redirect, "redirect path must survive the round-trip");
     }
 
     [Fact]

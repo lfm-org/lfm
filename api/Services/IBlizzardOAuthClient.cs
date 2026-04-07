@@ -38,18 +38,24 @@ public interface IBlizzardOAuthClient
     string BuildAuthorizeUrl(string state, string codeChallenge);
 
     /// <summary>
-    /// Seals the login state (state + codeVerifier) into a tamper-evident
+    /// Seals the login state (state + codeVerifier + redirect) into a tamper-evident
     /// payload using Data Protection. Used by the login handler to set the
     /// <c>login_state</c> cookie.
     /// </summary>
-    string ProtectLoginState(string state, string codeVerifier);
+    /// <param name="state">A non-empty CSRF state token.</param>
+    /// <param name="codeVerifier">The PKCE code verifier.</param>
+    /// <param name="redirect">
+    /// Optional relative path to redirect to after a successful login (e.g. "/runs/new").
+    /// Must start with "/" and must NOT start with "//". Null or empty means no post-login redirect.
+    /// </param>
+    string ProtectLoginState(string state, string codeVerifier, string? redirect);
 
     /// <summary>
     /// Unseals and validates a <c>login_state</c> cookie payload previously
     /// created by <see cref="ProtectLoginState"/>.
     /// Returns null if the payload is invalid, tampered, or expired.
     /// </summary>
-    (string state, string codeVerifier)? UnprotectLoginState(string payload);
+    (string state, string codeVerifier, string? redirect)? UnprotectLoginState(string payload);
 
     /// <summary>
     /// Exchanges an authorization code for an access token.

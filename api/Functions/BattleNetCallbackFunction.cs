@@ -15,12 +15,12 @@ namespace Lfm.Api.Functions;
 ///
 /// Happy path:
 ///   1. Read login_state cookie and state query parameter.
-///   2. Unprotect login_state → {state, codeVerifier}. Validate state matches.
+///   2. Unprotect login_state → {state, codeVerifier, redirect}. Validate state matches.
 ///   3. Exchange code + codeVerifier for an access token.
 ///   4. Fetch Battle.net user info (id + battletag).
 ///   5. Upsert raider document (create on first login, touch lastSeenAt on return).
 ///   6. Create SessionPrincipal and encrypt via ISessionCipher.
-///   7. Set auth cookie, clear login_state cookie, redirect to AppBaseUrl.
+///   7. Set auth cookie, clear login_state cookie, redirect to AppBaseUrl + redirect.
 ///
 /// Error paths (all redirect to {AppBaseUrl}/auth/failure to avoid leaking details):
 ///   - Missing or mismatched state / login_state cookie.
@@ -57,6 +57,7 @@ public class BattleNetCallbackFunction(
             return RejectWithClearedCookie(req);
 
         var codeVerifier = loginState.Value.codeVerifier;
+        var postLoginRedirect = loginState.Value.redirect;
 
         // Exchange the authorization code for an access token.
         BlizzardTokenResponse token;
@@ -123,7 +124,11 @@ public class BattleNetCallbackFunction(
         // Clear the login_state cookie.
         ClearLoginStateCookie(req);
 
-        return new RedirectResult(_blizzardOpts.AppBaseUrl, permanent: false);
+        // Redirect to the originally-requested page (if any) or fall back to AppBaseUrl.
+        var destination = !string.IsNullOrEmpty(postLoginRedirect)
+            ? $"{_blizzardOpts.AppBaseUrl}{postLoginRedirect}"
+            : _blizzardOpts.AppBaseUrl;
+        return new RedirectResult(destination, permanent: false);
     }
 
     // ---------------------------------------------------------------------------

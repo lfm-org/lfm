@@ -24,10 +24,10 @@ namespace Lfm.Api.Services;
 ///     2. GenerateCodeVerifier() → random Base64url string
 ///     3. ComputeCodeChallenge(verifier) → base64url(SHA-256(verifier))
 ///     4. BuildAuthorizeUrl(state, codeChallenge) → Battle.net authorize URL
-///     5. ProtectLoginState(state, verifier) → protected cookie payload
+///     5. ProtectLoginState(state, verifier, redirect) → protected cookie payload
 ///
 ///   Callback handler:
-///     1. UnprotectLoginState(cookiePayload) → (state, verifier)?
+///     1. UnprotectLoginState(cookiePayload) → (state, verifier, redirect)?
 ///     2. Validate query-param state == cookie state
 ///     3. ExchangeCodeAsync(code, verifier) → access token
 ///     4. GetUserInfoAsync(accessToken) → user id + battletag
@@ -91,27 +91,35 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
     }
 
     /// <inheritdoc/>
-    public string ProtectLoginState(string state, string codeVerifier)
+    public string ProtectLoginState(string state, string codeVerifier, string? redirect)
     {
-        // Serialize state + verifier as "state:codeVerifier" (simple, no external deps).
+        // Serialize as "state:codeVerifier:redirect" (redirect may be empty).
+        // Using '|' as the delimiter — it is not a valid URL character in paths,
+        // so it cannot appear in state, codeVerifier, or a relative redirect path.
         // The protector adds authenticated encryption + expiry via SetApplicationName.
-        var payload = $"{state}:{codeVerifier}";
+        var encodedRedirect = redirect ?? string.Empty;
+        var payload = $"{state}|{codeVerifier}|{encodedRedirect}";
         return _loginStateProtector.Protect(payload);
     }
 
     /// <inheritdoc/>
-    public (string state, string codeVerifier)? UnprotectLoginState(string payload)
+    public (string state, string codeVerifier, string? redirect)? UnprotectLoginState(string payload)
     {
         try
         {
             var raw = _loginStateProtector.Unprotect(payload);
-            var idx = raw.IndexOf(':');
-            if (idx < 1) return null;
-            var state = raw[..idx];
-            var codeVerifier = raw[(idx + 1)..];
+            // Expected format: "state|codeVerifier|redirect"
+            var parts = raw.Split('|');
+            if (parts.Length < 2) return null;
+            var state = parts[0];
+            var codeVerifier = parts[1];
+            // redirect is the third segment; absent or empty → null
+            var redirect = parts.Length >= 3 && !string.IsNullOrEmpty(parts[2])
+                ? parts[2]
+                : null;
             if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(codeVerifier))
                 return null;
-            return (state, codeVerifier);
+            return (state, codeVerifier, redirect);
         }
         catch
         {

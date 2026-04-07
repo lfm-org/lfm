@@ -27,19 +27,24 @@ public class BattleNetLoginFunctionTests
         + "&state=abc123statexyz&code_challenge=fake-code-challenge-xyz&code_challenge_method=S256";
 
     private static (BattleNetLoginFunction fn, HttpContext httpContext) MakeFunction(
-        out Mock<IBlizzardOAuthClient> clientMock)
+        out Mock<IBlizzardOAuthClient> clientMock,
+        string? redirect = null)
     {
         clientMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         clientMock.Setup(c => c.GenerateState()).Returns(FakeState);
         clientMock.Setup(c => c.GenerateCodeVerifier()).Returns(FakeVerifier);
         // ComputeCodeChallenge is a static helper; we control BuildAuthorizeUrl directly.
         clientMock.Setup(c => c.BuildAuthorizeUrl(FakeState, It.IsAny<string>())).Returns(FakeAuthUrl);
-        clientMock.Setup(c => c.ProtectLoginState(FakeState, FakeVerifier)).Returns(FakeLoginState);
+        clientMock.Setup(c => c.ProtectLoginState(FakeState, FakeVerifier, It.IsAny<string?>())).Returns(FakeLoginState);
 
         var fn = new BattleNetLoginFunction(clientMock.Object);
 
         // Build a real HttpContext so Response.Cookies.Append works.
         var httpContext = new DefaultHttpContext();
+        if (!string.IsNullOrEmpty(redirect))
+        {
+            httpContext.Request.QueryString = new QueryString($"?redirect={Uri.EscapeDataString(redirect)}");
+        }
         return (fn, httpContext);
     }
 
@@ -97,5 +102,64 @@ public class BattleNetLoginFunctionTests
         method.Should().NotBeNull();
         method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
             .Should().BeEmpty("battlenet-login is an anonymous endpoint; adding RequireAuth would break login");
+    }
+
+    [Fact]
+    public void Run_passes_valid_redirect_to_ProtectLoginState()
+    {
+        // Arrange: supply a valid relative redirect path
+        const string redirectPath = "/runs/new";
+        var (fn, httpContext) = MakeFunction(out var clientMock, redirect: redirectPath);
+        var req = httpContext.Request;
+
+        // Act
+        fn.Run(req, CancellationToken.None);
+
+        // Assert: ProtectLoginState was called with the redirect path
+        clientMock.Verify(c => c.ProtectLoginState(FakeState, FakeVerifier, redirectPath), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("//evil.com")]
+    [InlineData("https://evil.com")]
+    [InlineData("evil")]
+    public void Run_passes_null_redirect_to_ProtectLoginState_for_invalid_values(string? badRedirect)
+    {
+        // Arrange: supply an invalid or missing redirect value
+        var clientMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        clientMock.Setup(c => c.GenerateState()).Returns(FakeState);
+        clientMock.Setup(c => c.GenerateCodeVerifier()).Returns(FakeVerifier);
+        clientMock.Setup(c => c.BuildAuthorizeUrl(FakeState, It.IsAny<string>())).Returns(FakeAuthUrl);
+        clientMock.Setup(c => c.ProtectLoginState(FakeState, FakeVerifier, null)).Returns(FakeLoginState);
+
+        var fn = new BattleNetLoginFunction(clientMock.Object);
+        var httpContext = new DefaultHttpContext();
+        if (badRedirect is not null)
+        {
+            httpContext.Request.QueryString = new QueryString($"?redirect={Uri.EscapeDataString(badRedirect)}");
+        }
+
+        // Act
+        fn.Run(httpContext.Request, CancellationToken.None);
+
+        // Assert: ProtectLoginState called with null redirect (open-redirect rejected)
+        clientMock.Verify(c => c.ProtectLoginState(FakeState, FakeVerifier, null), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("/runs/new", true)]
+    [InlineData("/", true)]
+    [InlineData("/characters", true)]
+    [InlineData("//evil.com", false)]
+    [InlineData("https://evil.com", false)]
+    [InlineData("evil", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsValidRedirect_accepts_only_relative_paths_that_are_not_protocol_relative(
+        string? input, bool expected)
+    {
+        BattleNetLoginFunction.IsValidRedirect(input).Should().Be(expected);
     }
 }

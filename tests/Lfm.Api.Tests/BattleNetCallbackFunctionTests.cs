@@ -103,14 +103,14 @@ public class BattleNetCallbackFunctionTests
     [Fact]
     public async Task Run_happy_path_sets_auth_cookie_and_redirects_to_app_base_url()
     {
-        // Arrange
+        // Arrange — no redirect stored in login state (falls back to AppBaseUrl)
         var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
         var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
-            .Returns((FakeState, FakeVerifier));
+            .Returns((FakeState, FakeVerifier, (string?)null));
         oauthMock
             .Setup(o => o.ExchangeCodeAsync(FakeCode, FakeVerifier, It.IsAny<CancellationToken>()))
             .ReturnsAsync(FakeTokenResponse);
@@ -140,7 +140,7 @@ public class BattleNetCallbackFunctionTests
         // Assert: redirects to AppBaseUrl (not failure URL)
         var redirect = result.Should().BeOfType<RedirectResult>().Subject;
         redirect.Url.Should().Be(AppBaseUrl,
-            "successful callback must redirect to AppBaseUrl");
+            "successful callback without a stored redirect must redirect to AppBaseUrl");
         redirect.Permanent.Should().BeFalse("OAuth callback redirects must be 302");
 
         // Assert: auth cookie set in response
@@ -159,6 +159,52 @@ public class BattleNetCallbackFunctionTests
         repoMock.Verify(r => r.UpsertAsync(
             It.Is<RaiderDocument>(d => d.BattleNetId == "999"),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_happy_path_with_redirect_appends_path_to_app_base_url()
+    {
+        // Arrange — redirect stored in login state
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
+
+        const string postLoginPath = "/runs/new";
+
+        oauthMock
+            .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
+            .Returns((FakeState, FakeVerifier, (string?)postLoginPath));
+        oauthMock
+            .Setup(o => o.ExchangeCodeAsync(FakeCode, FakeVerifier, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeTokenResponse);
+        oauthMock
+            .Setup(o => o.GetUserInfoAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeUser);
+
+        repoMock
+            .Setup(r => r.GetByBattleNetIdAsync("999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+        repoMock
+            .Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        cipherMock
+            .Setup(c => c.Protect(It.IsAny<SessionPrincipal>()))
+            .Returns(FakeEncrypted);
+
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
+        var req = BuildRequest(httpContext,
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState },
+            cookies: new() { ["login_state"] = "protected-payload" });
+
+        // Act
+        var result = await fn.Run(req, CancellationToken.None);
+
+        // Assert: redirects to AppBaseUrl + redirect path
+        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
+        redirect.Url.Should().Be($"{AppBaseUrl}{postLoginPath}",
+            "successful callback must redirect to AppBaseUrl + the stored redirect path");
+        redirect.Permanent.Should().BeFalse("OAuth callback redirects must be 302");
     }
 
     // -----------------------------------------------------------------------
@@ -203,7 +249,7 @@ public class BattleNetCallbackFunctionTests
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
-            .Returns(("expected-state", FakeVerifier)); // state in cookie ≠ state in URL
+            .Returns(("expected-state", FakeVerifier, (string?)null)); // state in cookie ≠ state in URL
 
         var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
         var req = BuildRequest(httpContext,
@@ -237,7 +283,7 @@ public class BattleNetCallbackFunctionTests
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
-            .Returns((FakeState, FakeVerifier));
+            .Returns((FakeState, FakeVerifier, (string?)null));
         oauthMock
             .Setup(o => o.ExchangeCodeAsync(FakeCode, FakeVerifier, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Battle.net returned 400 Bad Request"));
