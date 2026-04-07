@@ -1,3 +1,4 @@
+#if E2E
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -69,3 +70,4 @@ public class E2ELoginFunction(ISessionCipher cipher, IOptions<AuthOptions> authO
         return new RedirectResult(redirect, permanent: false);
     }
 }
+#endif

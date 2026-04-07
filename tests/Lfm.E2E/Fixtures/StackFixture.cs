@@ -76,7 +76,7 @@ public class StackFixture : IAsyncLifetime
         // Publish API
         var apiPublishDir = Path.Combine(Path.GetTempPath(), $"lfm-e2e-api-{_apiPort}");
         var publishExitCode = RunProcess("dotnet",
-            $"publish {Path.Combine(repoRoot, "api", "Lfm.Api.csproj")} -c Release -o {apiPublishDir}",
+            $"publish {Path.Combine(repoRoot, "api", "Lfm.Api.csproj")} -c Release -p:E2ETest=true -o {apiPublishDir}",
             repoRoot, timeoutSec: 120);
         if (publishExitCode != 0)
             throw new InvalidOperationException($"dotnet publish failed with exit code {publishExitCode}");

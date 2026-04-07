@@ -11,6 +11,9 @@
          because we use System.Text.Json serialization, not Newtonsoft. -->
     <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(E2ETest)' == 'true'">
+    <DefineConstants>$(DefineConstants);E2E</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
