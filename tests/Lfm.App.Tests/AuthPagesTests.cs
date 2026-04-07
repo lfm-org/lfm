@@ -33,6 +33,20 @@ public class AuthPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void LoginPage_Button_Navigates_With_Custom_Redirect()
+    {
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        nav.NavigateTo("/login?redirect=%2Fguild");
+
+        var cut = RenderComponent<LoginPage>();
+
+        cut.Find("fluent-button").Click();
+
+        var forceEntry = nav.History.Should().Contain(e => e.Options.ForceLoad).Subject;
+        forceEntry.Uri.Should().Contain("redirect=%2Fguild");
+    }
+
+    [Fact]
     public void LoginSuccessPage_Renders_And_Redirects_To_Default()
     {
         var nav = Services.GetRequiredService<FakeNavigationManager>();
