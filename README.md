@@ -2,109 +2,81 @@
 
 LFM has three parts:
 
-- `frontend/`: a Vite + React single-page app
-- `functions/`: an Azure Functions backend
+- `app/`: a Blazor WebAssembly single-page app
+- `api/`: an Azure Functions backend (.NET 10 isolated)
 - `infra/`: Azure infrastructure defined with Bicep
 
 ## Prerequisites
 
-This project uses [fnm](https://github.com/Schniz/fnm) (Fast Node Manager) to pin the Node.js version (see `.node-version`) and **pnpm** as the package manager (provided via corepack). Always run Node/pnpm commands through `fnm exec`:
-
-```bash
-fnm exec pnpm -C frontend install
-fnm exec pnpm -C functions install
-```
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (version pinned in `global.json`)
+- [Docker](https://www.docker.com/) (for E2E tests and local stack)
 
 ## Run Locally
 
-### Preferred runner
+### Start local stack
 
 ```bash
-./scripts/dev-env.mjs serve
+docker compose -f docker-compose.local.yml up
 ```
 
-This starts the local dev stack with:
+This starts:
 
-- Vite on `http://localhost:5173`
-- Azure Functions in Docker on `http://localhost:7071`
-- Cosmos emulator on `http://127.0.0.1:8081`
+- Cosmos emulator on `https://127.0.0.1:8081`
 - Azurite blob storage on `http://127.0.0.1:10000`
+- Azure Functions on `http://localhost:7071`
 
-`serve` uses real local auth/secrets from the repo-root `.env`, reuses the live WoW reference-data cache behavior, and keeps its local state isolated under `.tmp/dev/`.
-
-Useful companion commands:
-
-- `./scripts/dev-env.mjs test`
-- `./scripts/dev-env.mjs test runs-error`
-- `./scripts/dev-env.mjs test signup`
-- `./scripts/e2e-all.sh`
-- `./scripts/dev-env.mjs refresh-reference`
-- `./scripts/dev-env.mjs reset`
-- `./scripts/dev-env.mjs down`
-
-`./scripts/e2e.sh ...` remains available as a compatibility wrapper for `./scripts/dev-env.mjs test ...`.
-
-`./scripts/e2e-all.sh` is the intended full e2e suite. It runs the default Playwright-discovered specs plus the scenario-specific specs that require separate seed states.
-
-Default Playwright discovery currently runs with `workers: 1`. The local Docker-backed test stack seeds a shared database, so serial execution is intentional until each spec gets fully isolated state.
-
-The `test` runner uses a separate stack on different ports (`4173`, `7072`, `8082`, `10001`) and separate scratch/data paths under `.tmp/e2e/`, so local dev and e2e can run at the same time without mixing data.
-
-Copy `example.env` before using `serve`. The runner overrides local emulator URLs automatically, so the important values in `.env` are your Blizzard credentials plus `SESSION_ENCRYPTION_KEY` and `HMAC_SECRET`.
-
-### Frontend
+### Run the Blazor app
 
 ```bash
-fnm exec pnpm -C frontend install
-fnm exec pnpm -C frontend dev
+dotnet run --project app/Lfm.App.csproj
 ```
 
-### Backend
+Copy `example.env` and set your local overrides. Key values: Blizzard OAuth credentials (`LFM_CLIENT_ID`, `LFM_CLIENT_SECRET`), `HMAC_SECRET` (64 hex chars via `openssl rand -hex 32`), and `APP_BASE_URL`.
+
+## Build and Test
 
 ```bash
-fnm exec pnpm -C functions install
-fnm exec pnpm -C functions build
-fnm exec pnpm -C functions start
+dotnet restore lfm.sln
+dotnet build lfm.sln -c Release
+dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release
+dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release
 ```
 
-Useful checks:
+Format check:
 
-- `fnm exec pnpm -C frontend build`
-- `fnm exec pnpm -C functions build`
-- `fnm exec pnpm -C functions test`
+```bash
+dotnet format lfm.sln --verify-no-changes --no-restore --severity error
+```
 
-## Local Verification
+Bundle size gate (after publish):
 
-Use the repo-level verifier to keep the quality bar explicit:
+```bash
+dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app
+./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
+```
 
-- `./scripts/verify-local.sh fast`
-  - backend build + tests
-  - frontend lint + unit tests + build + bundle budget gate
-- `./scripts/verify-local.sh browser`
-  - everything in `fast`
-  - full Playwright journey suite
-- `./scripts/verify-local.sh full`
-  - everything in `browser`
-  - frontend Playwright perf suite
+## E2E Tests
 
-Use `fast` for ordinary local iterations, `browser` for user-flow changes, and `full` as the final integrated verifier for this program.
+```bash
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category!=Perf"
+```
 
-Copy `example.env` and `frontend/example.env` before running locally. Do not commit populated `.env` files.
+Requires the Docker test stack from `docker-compose.test.yml`.
 
 ## Structure
 
-- `frontend/src/features`: feature modules (`auth`, `characters`, `guild`, `runs`)
-- `frontend/src/components`: shared UI components
-- `frontend/src/lib`: shared frontend logic
-- `functions/src/functions`: Azure Function handlers
-- `functions/src/lib`: shared backend helpers
+- `app/`: Blazor WASM pages, components, services
+- `api/Functions/`: Azure Function handlers
+- `api/Migrations/`: database migration scripts
+- `shared/`: shared models and contracts used by both app and api
+- `tests/Lfm.Api.Tests/`: xUnit tests for API handlers
+- `tests/Lfm.App.Tests/`: bUnit component tests for Blazor
+- `tests/Lfm.E2E/`: Playwright .NET end-to-end tests
 - `infra/main.bicep`: main infrastructure entry point
-
-Register new backend functions in `functions/src/index.ts` so Azure Functions can discover them.
 
 ## Notes
 
-Use the existing TypeScript style in the repo: 2-space indentation, double quotes, and semicolons. Keep commits short and imperative.
+Use standard C# conventions: 4-space indentation. Run `dotnet format` before committing. Keep commits short and imperative.
 
 ## AI Assistance
 

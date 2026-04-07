@@ -1,7 +1,9 @@
 # Repository Guidelines
 
-- `frontend/` — Vite React SPA → Static Web Apps
-- `functions/` — Azure Functions backend (Node.js)
+- `app/` — Blazor WASM SPA → Static Web Apps
+- `api/` — Azure Functions backend (.NET 10 isolated)
+- `shared/` — shared models and contracts (C#)
+- `tests/` — xUnit test projects (unit, bUnit, E2E)
 - `infra/` — Bicep IaC templates
 
 When working on Azure-related tasks, use the `microsoft-docs` skill to look up official documentation before making changes.
@@ -29,28 +31,21 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 ## Tool Configuration
 
-**fnm:** Always prefix `node`/`pnpm` calls with `fnm exec`. Never call them directly. Project uses `.node-version` + corepack for pnpm.
+**dotnet:** Use `dotnet` CLI directly. The solution targets .NET 10.
 
 **Config preference:** config file > CLI argument > environment variable.
 
-**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. pnpm store: `frontend/.npmrc`; ESLint cache: `--cache-location` in lint scripts. Prefer `-C` flags over `cd &&`:
-
-```bash
-# Good
-fnm exec pnpm -C /absolute/path/frontend install
-# Avoid
-cd frontend && pnpm install
-```
+**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. NuGet packages cache: `~/.nuget/packages` (CI caches this). Prefer `-C` flags or absolute paths over `cd &&`.
 
 **Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching. **JSON:** use `jq`, not Python one-liners. **YAML:** use `yq`, not Python one-liners.
 
 ## Verification
 
-- Run `./scripts/verify-local.sh fast` before claiming work complete (lint + tests + build + bundle check, both packages).
-- Per-package: `fnm exec pnpm -C frontend verify:fast` / `fnm exec pnpm -C functions verify:fast`.
-- `./scripts/verify-local.sh browser` adds E2E; `full` adds perf specs.
-- Run `fnm exec pnpm -C <package> audit` after adding/upgrading deps — deploy workflows fail on vulnerabilities.
-- **Knip** for unused exports/files: `fnm exec pnpm -C frontend exec knip` / `fnm exec pnpm -C functions exec knip`.
+- Run `dotnet build lfm.sln -c Release` before claiming work complete.
+- Per-project tests: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release`.
+- Format check: `dotnet format lfm.sln --verify-no-changes --no-restore --severity error`. **Run `dotnet format lfm.sln` before committing C# changes** — CI format check fails on whitespace.
+- Bundle size check: `./scripts/check-bundle-size.sh ./publish/app/wwwroot 5` (after publish).
+- Audit: `dotnet list lfm.sln package --vulnerable --include-transitive` after adding/upgrading packages.
 
 ## Testing
 
@@ -58,34 +53,33 @@ Three lanes with distinct purpose, environment, and file convention:
 
 | Lane | Runner | Environment | File pattern | Location | Docker? |
 |------|--------|-------------|--------------|----------|---------|
-| Unit | Vitest | Node (no DOM) | `*.test.ts` | `frontend/src/`, `functions/src/` | No |
-| Integration | Vitest | jsdom | `*.integration.test.tsx` | `frontend/src/` | No |
-| E2E | Playwright | Chromium | `*.spec.ts` | `frontend/e2e/` | Yes |
+| Unit | xUnit | .NET (no DOM) | `*Tests.cs` | `tests/Lfm.Api.Tests/`, `tests/Lfm.App.Tests/` | No |
+| Component | bUnit | DOM (bUnit) | `*Tests.cs` | `tests/Lfm.App.Tests/` | No |
+| E2E | Playwright .NET | Chromium | `*Tests.cs` | `tests/Lfm.E2E/` | Yes |
 
 ### Choosing the right lane
 
 | What you're testing | Lane |
 |---------------------|------|
-| Pure functions, utilities, data transforms, validation, backend handlers with mocked deps | Unit |
-| Component structure via `renderToStaticMarkup` (no interaction needed) | Unit |
-| Interactive behavior (clicks, menus, state), responsive breakpoints, accessible markup | Integration |
+| Pure functions, utilities, data transforms, validation, API handlers with mocked deps | Unit |
+| Blazor component rendering, state, events, interactions | Component (bUnit) |
 | Auth flows, multi-step journeys, protected routes, axe audits, perf budgets | E2E |
 
 ### Unit tests
 
-Vitest in Node (`environment: "node"`), no DOM. **Use for:** pure logic, validation, mocked handlers, static component structure (`renderToStaticMarkup`). **Not for:** click handlers, state changes, DOM events. Commands: `fnm exec pnpm -C frontend test:unit` / `fnm exec pnpm -C functions test`. Config: `frontend/vitest.config.ts`, `functions/vitest.config.ts`.
+xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers. Commands: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj`. Config: each project's `.csproj`.
 
-### Integration tests
+### Component tests
 
-Frontend-only. Vitest + jsdom + `@testing-library/react` + `userEvent`. **Use for:** DOM interaction — clicks, keyboard nav, responsive layout, `aria-expanded`, focus management. Render with `renderWithProviders` (MemoryRouter + ThemeRegistry + AuthContext). **Not for:** pure logic (unit) or full-stack journeys (E2E). Commands: `fnm exec pnpm -C frontend test:integration`. Config: `frontend/vitest.integration.config.ts`. Helpers: `frontend/src/test/renderWithProviders.tsx`, `setupDomTests.ts`.
+`tests/Lfm.App.Tests/` with bUnit + `AngleSharp`. **Use for:** Blazor component lifecycle, user interactions, rendered markup. **Not for:** pure logic (unit) or full-stack journeys (E2E). Commands: `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj`.
 
 ### E2E tests
 
-Playwright against full Docker stack (Cosmos, Azurite, Functions, frontend preview). `scripts/dev-env.mjs` manages lifecycle. Scenarios: `default`, `runs-empty`, `runs-error`, `characters-empty`, `instances-missing` — each seeds differently. Perf specs in `frontend/e2e/perf/`, excluded from default discovery.
+Playwright .NET against full Docker stack (Cosmos, Azurite, Functions, Blazor app). `docker-compose.test.yml` manages the stack. Filter categories: `dotnet test --filter "Category!=Perf"` for default run, omit filter for perf specs.
 
-Commands: `fnm exec pnpm -C frontend e2e:list`, `./scripts/dev-env.mjs test signup`, `./scripts/e2e.sh runs-empty runs-empty.spec.ts`, `./scripts/e2e-all.sh` (full suite).
+Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category!=Perf"`.
 
-**Rules:** Only claim "full e2e passed" after `./scripts/e2e-all.sh`. Default runs are single-worker (shared seed state). New scenario spec → update `E2E_SCENARIOS` in `scripts/dev-env.mjs`, `SCENARIO_SPECS` in `frontend/playwright.config.ts`, and `scripts/e2e-all.sh`. New perf spec → update `PERF_SPECS` in `frontend/playwright.config.ts` and `run_perf` in `scripts/verify-local.sh`. Keep coverage deterministic and local-first — no routine real Battle.net deps.
+**Rules:** Only claim "full e2e passed" after running the full E2E suite without filters. Keep coverage deterministic and local-first — no routine real Battle.net deps.
 
 ## Infrastructure Development
 
@@ -122,8 +116,6 @@ Deploy workflows use GitHub repo variables for all project-specific values. Neve
 | `PARAMETER_FILE` | Bicep parameter file path | `infra/parameters.prod.lfm.json` |
 | `PRIVACY_EMAIL` | Privacy contact email | *(set in GitHub)* |
 
-`VITE_API_BASE_URL` is derived from `API_HOSTNAME` in the frontend workflow — not a separate var.
-
 ### `az` CLI usage
 
 Acceptable for exploration/debugging. Any `az` CLI change is **temporary and must be reverted**. The fix must be captured in Bicep (`infra/`) or `deploy-infra.yml`. Production state is always defined by `deploy-infra.yml`.
@@ -138,17 +130,17 @@ Acceptable for exploration/debugging. Any `az` CLI change is **temporary and mus
 
 ## Azure Functions
 
-New endpoint file → add `import "./functions/<name>.js"` to `functions/src/index.ts`. The v4 runtime only registers `app.http()` calls from files imported by the entrypoint; missing imports produce silent 404s (tests pass, deploy succeeds).
+New endpoint → add a new file under `api/Functions/` and register `app.MapXxx()` (or use attribute routing on the function class). The .NET isolated model auto-discovers functions in the assembly; no manual import list needed.
 
 ## Database Migrations
 
-Migrations in `functions/src/scripts/migrations/` run via umzug before every functions deploy. The migrations container in Cosmos tracks execution; each runs at most once.
+Migrations in `api/Migrations/` run via the migration runner before every functions deploy. The migrations container in Cosmos tracks execution; each runs at most once.
 
 **Migrations must be additive (expand-only)** — never remove/rename fields the deployed code reads. Migrations run before new code deploys; if deploy fails, old code runs against the migrated database.
 
 For breaking changes, use expand/contract: (1) **Expand** — add new field alongside old; deploy code handling both. (2) **Contract** — later deploy removes old field once no code references it.
 
-**Never hardcode the database name.** Use `process.env.COSMOS_DATABASE!` — migrations run against different databases per environment. Manual run: `COSMOS_ENDPOINT=<endpoint> COSMOS_DATABASE=lfm fnm exec pnpm -C functions exec tsx src/scripts/run-migrations.ts`.
+**Never hardcode the database name.** Use `Environment.GetEnvironmentVariable("COSMOS_DATABASE")` — migrations run against different databases per environment.
 
 ## Documentation Separation
 
