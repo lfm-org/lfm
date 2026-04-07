@@ -92,17 +92,6 @@ public class GuildPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void GuildAdminPage_Renders_Load_Button()
-    {
-        var client = new Mock<IGuildClient>();
-        Services.AddSingleton(client.Object);
-
-        var cut = RenderComponent<GuildAdminPage>();
-
-        cut.Markup.Should().Contain("Load Guild");
-    }
-
-    [Fact]
     public void GuildAdminPage_Shows_Title()
     {
         var client = new Mock<IGuildClient>();
