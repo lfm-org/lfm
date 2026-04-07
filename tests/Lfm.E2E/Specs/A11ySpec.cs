@@ -1,7 +1,5 @@
-// axe-core assertions are skipped because there is no officially supported axe-core
-// integration for Microsoft.Playwright (.NET). The keyboard-reachability assertions
-// and page-heading visibility checks are preserved as live tests. Re-enable axe checks
-// once an integration is available (e.g. via a community package or a JS-injection helper).
+using Deque.AxeCore.Playwright;
+using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Microsoft.Playwright;
@@ -35,13 +33,14 @@ public class A11ySpec(DefaultSeedFixture fixture) : IAsyncLifetime
 
     // --- Unauthenticated pages ---
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Landing_page_is_axe_clean()
     {
         await _unauthPage.GotoAsync(fixture.AppBaseUrl + "/");
-        // Blazor LandingPage renders FluentLabel with Typography.H1 (not an <h1> tag)
         await Expect(_unauthPage.GetByText("Looking For More")).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _unauthPage.RunAxe();
+        result.Violations.Should().BeEmpty("landing page should have no WCAG violations");
     }
 
     [Fact]
@@ -57,36 +56,44 @@ public class A11ySpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await TabUntilFocusedAsync(_unauthPage, battleNetButton);
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Login_page_is_axe_clean()
     {
         await _unauthPage.GotoAsync(fixture.AppBaseUrl + "/login");
         await Expect(_unauthPage.GetByText("Sign In")).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _unauthPage.RunAxe();
+        result.Violations.Should().BeEmpty("login page should have no WCAG violations");
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Login_failed_page_is_axe_clean()
     {
         await _unauthPage.GotoAsync(fixture.AppBaseUrl + "/login/failed");
         await Expect(_unauthPage.GetByText("Login Failed")).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _unauthPage.RunAxe();
+        result.Violations.Should().BeEmpty("login failed page should have no WCAG violations");
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Goodbye_page_is_axe_clean()
     {
         await _unauthPage.GotoAsync(fixture.AppBaseUrl + "/goodbye");
         await Expect(_unauthPage.GetByText("Goodbye")).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _unauthPage.RunAxe();
+        result.Violations.Should().BeEmpty("goodbye page should have no WCAG violations");
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Privacy_policy_page_is_axe_clean()
     {
         await _unauthPage.GotoAsync(fixture.AppBaseUrl + "/privacy");
         await Expect(_unauthPage.GetByText("Privacy Policy")).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _unauthPage.RunAxe();
+        result.Violations.Should().BeEmpty("privacy page should have no WCAG violations");
     }
 
     // --- Authenticated pages ---
@@ -101,48 +108,50 @@ public class A11ySpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await TabUntilFocusedAsync(_authPage, createRunButton);
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Runs_list_is_axe_clean()
     {
         await _authPage.GotoAsync(fixture.AppBaseUrl + "/runs");
+        await _authPage.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
         await Expect(_authPage.GetByRole(AriaRole.Button, new() { Name = "Create Run" })).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _authPage.RunAxe();
+        result.Violations.Should().BeEmpty("runs page should have no WCAG violations");
     }
 
-    [Fact(Skip = "Blazor RunsPage does not have run-card testid or inline signup region")]
-    public async Task Combined_run_card_detail_is_keyboard_reachable()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Blazor RunsPage does not have run-card testid")]
-    public async Task Combined_run_card_detail_is_axe_clean()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Characters_page_is_axe_clean()
     {
         await _authPage.GotoAsync(fixture.AppBaseUrl + "/characters");
         await Expect(_authPage.GetByText("My Characters")).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _authPage.RunAxe();
+        result.Violations.Should().BeEmpty("characters page should have no WCAG violations");
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Guild_page_is_axe_clean()
     {
         await _authPage.GotoAsync(fixture.AppBaseUrl + "/guild");
+        await _authPage.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
         await Expect(_authPage.GetByText("Guild").First).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _authPage.RunAxe();
+        result.Violations.Should().BeEmpty("guild page should have no WCAG violations");
     }
 
-    [Fact(Skip = "axe-core .NET integration not yet available")]
+    [Fact]
     public async Task Create_run_page_is_axe_clean()
     {
         await _authPage.GotoAsync(fixture.AppBaseUrl + "/runs/new");
+        await _authPage.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
         await Expect(_authPage.GetByText("Create Run").First).ToBeVisibleAsync();
-        await Task.CompletedTask;
+
+        var result = await _authPage.RunAxe();
+        result.Violations.Should().BeEmpty("create run page should have no WCAG violations");
     }
 
     private static async Task TabUntilFocusedAsync(IPage page, ILocator locator, int maxTabs = 8)
