@@ -1,10 +1,8 @@
 name: Deploy Infrastructure
 
 on:
+  workflow_call:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: [infra/**, .github/workflows/deploy-infra.yml]
 
 permissions:
   id-token: write
@@ -140,8 +138,3 @@ jobs:
           else
             echo "No auto-created action group found."
           fi
-
-  deploy-app:
-    needs: infra
-    uses: ./.github/workflows/deploy-app.yml
-    secrets: inherit
