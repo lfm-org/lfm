@@ -43,6 +43,8 @@ public class GuildPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("No guild found"));
+
+        client.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -63,6 +65,8 @@ public class GuildPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Stormchasers"));
+
+        client.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -76,6 +80,8 @@ public class GuildPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Failed to load guild data."));
+
+        client.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ── GuildAdminPage ───────────────────────────────────────────────────────
