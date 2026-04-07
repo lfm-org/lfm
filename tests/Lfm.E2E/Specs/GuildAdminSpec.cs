@@ -1,4 +1,5 @@
 using Lfm.E2E.Fixtures;
+using Lfm.E2E.Helpers;
 using Microsoft.Playwright;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -13,7 +14,10 @@ public class GuildAdminSpec(DefaultSeedFixture fixture) : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _context = await fixture.Browser.NewContextAsync();
+        _context = await AuthHelper.CreateAuthenticatedContextAsync(
+            fixture.Browser, fixture.ApiBaseUrl, fixture.AppBaseUrl,
+            redirect: "/guild/admin",
+            battleNetId: "test-bnet-id-admin");
         _page = await _context.NewPageAsync();
     }
 
@@ -25,15 +29,13 @@ public class GuildAdminSpec(DefaultSeedFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Site_admins_can_load_guild_through_guild_admin()
     {
-        await _page.GotoAsync(
-            fixture.ApiBaseUrl + "/api/battlenet/login?redirect=%2Fguild%2Fadmin&testAuthScenario=site-admin");
+        await _page.GotoAsync(fixture.AppBaseUrl + "/guild/admin");
 
         await Expect(_page).ToHaveURLAsync(new Regex(@"\/guild\/admin$"));
         // Blazor GuildAdminPage renders "Guild Admin" as H3
         await Expect(_page.GetByText("Guild Admin").First).ToBeVisibleAsync();
 
         // The Guild ID input has Id="guild-id-input" and Label="Guild ID"
-        // FluentTextField with Label renders a <label>; fill via the text field directly
         await _page.Locator("#guild-id-input").FillAsync("54321");
         await _page.GetByRole(AriaRole.Button, new() { Name = "Load Guild" }).ClickAsync();
 
