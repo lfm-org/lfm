@@ -42,12 +42,12 @@ public class PrivacyContactFunctionTests
         ok.StatusCode.Should().Be(200);
         ok.Value.Should().NotBeNull();
 
-        // Verify the request was logged
+        // Verify the request was logged (without PII — only type)
         log.Verify(
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("john@example.com")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("data_request")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

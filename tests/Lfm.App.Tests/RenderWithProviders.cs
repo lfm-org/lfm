@@ -21,5 +21,8 @@ public abstract class ComponentTestBase : TestContext
             })
             .Build();
         Services.AddSingleton<IConfiguration>(config);
+
+        // MainLayout injects IHttpClientFactory for the logout POST.
+        Services.AddHttpClient("api", c => c.BaseAddress = new Uri("http://localhost:7071"));
     }
 }
