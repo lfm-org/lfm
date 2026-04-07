@@ -100,7 +100,7 @@ jobs:
       - name: Verify API health
         run: |
           set -euo pipefail
-          url="https://${{ vars.API_HOSTNAME }}/api/health"
+          url="https://${{ vars.API_HOSTNAME }}/api/health/ready"
           for i in $(seq 1 12); do
             status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
             if [ "$status" = "200" ]; then

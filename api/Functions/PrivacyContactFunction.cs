@@ -27,12 +27,8 @@ public class PrivacyContactFunction(ILogger<PrivacyContactFunction> log)
         if (!validationResult.IsValid)
             return new BadRequestObjectResult(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
 
-        // Log the contact request to App Insights.
-        log.LogInformation(
-            "Privacy contact request received: name={Name}, email={Email}, type={Type}",
-            body.Name,
-            body.Email,
-            body.Type);
+        // Log the contact request to App Insights (no PII).
+        log.LogInformation("Privacy contact request received: type={Type}", body.Type);
 
         return new OkObjectResult(new { message = "Contact request received" });
     }

@@ -141,10 +141,15 @@ jobs:
             echo "No auto-created action group found."
           fi
 
-  deploy-functions:
-    needs: infra
-    uses: ./.github/workflows/deploy-functions.yml
-
-  deploy-frontend:
-    needs: infra
-    uses: ./.github/workflows/deploy-frontend.yml
+  # TODO: deploy-functions.yml and deploy-frontend.yml were replaced by the
+  # unified deploy-app.yml workflow. deploy-app.yml is a standalone workflow
+  # (no workflow_call trigger) and cannot be called as a reusable workflow here.
+  # Either add a workflow_call trigger to deploy-app.yml and wire up inputs/secrets,
+  # or trigger deploy-app.yml via repository_dispatch after infra completes.
+  # deploy-functions:
+  #   needs: infra
+  #   uses: ./.github/workflows/deploy-functions.yml
+  #
+  # deploy-frontend:
+  #   needs: infra
+  #   uses: ./.github/workflows/deploy-frontend.yml
