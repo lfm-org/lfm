@@ -13,13 +13,18 @@ public static class AuthHelper
         IBrowser browser,
         string apiBaseUrl,
         string appBaseUrl,
-        string redirect = "/runs")
+        string redirect = "/runs",
+        string? battleNetId = null)
     {
         // Perform login via the E2E backdoor endpoint in a throw-away context.
         var setupContext = await browser.NewContextAsync();
         var setupPage = await setupContext.NewPageAsync();
 
         var loginUrl = $"{apiBaseUrl}/api/e2e/login?redirect={Uri.EscapeDataString(redirect)}";
+        if (battleNetId != null)
+        {
+            loginUrl += $"&battleNetId={Uri.EscapeDataString(battleNetId)}";
+        }
         await setupPage.GotoAsync(loginUrl, new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         // The endpoint sets the auth cookie and redirects to the app.

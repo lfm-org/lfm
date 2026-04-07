@@ -26,11 +26,20 @@ public class E2ELoginFunction(ISessionCipher cipher, IOptions<AuthOptions> authO
         var auth = authOpts.Value;
         var blizzard = blizzardOpts.Value;
 
+        var battleNetId = req.Query["battleNetId"].FirstOrDefault() ?? "test-bnet-id";
+
+        // Known test identities: site-admin has no guild, others share the default guild.
+        var (guildId, guildName) = battleNetId switch
+        {
+            "test-bnet-id-admin" => ((string?)null, (string?)null),
+            _ => ("test-guild-id", (string?)"Test Guild"),
+        };
+
         var principal = new SessionPrincipal(
-            BattleNetId: "test-bnet-id",
+            BattleNetId: battleNetId,
             BattleTag: "TestUser#1234",
-            GuildId: "test-guild-id",
-            GuildName: "Test Guild",
+            GuildId: guildId,
+            GuildName: guildName,
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(auth.CookieMaxAgeHours));
 
