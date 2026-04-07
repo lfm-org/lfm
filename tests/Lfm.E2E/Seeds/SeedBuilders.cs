@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Azure.Cosmos;
 
 namespace Lfm.E2E.Seeds;
@@ -92,9 +93,13 @@ public static class SeedBuilders
             new CosmosClientOptions
             {
                 ConnectionMode = ConnectionMode.Gateway,
-                // The Linux Cosmos DB emulator can be slow to become ready on CI.
-                // Increase request timeout to survive cold-start delays.
-                RequestTimeout = TimeSpan.FromSeconds(120),
+                // The Linux Cosmos DB emulator can take 2-3 min to warm up on CI.
+                // The SDK's GatewayStoreClient has an internal 65s timeout that can't
+                // be overridden directly. Setting RequestTimeout higher than 65s helps
+                // with some paths, but the real fix is retry logic (see RetryCosmosAsync).
+                RequestTimeout = TimeSpan.FromSeconds(180),
+                // Increase max connection limit for gateway mode (default 50).
+                GatewayModeMaxConnectionLimit = 10,
                 SerializerOptions = new CosmosSerializationOptions
                 {
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
@@ -112,21 +117,9 @@ public static class SeedBuilders
                 },
             });
 
-        // The emulator may still be warming up — retry database creation with backoff.
-        Database db = null!;
-        for (var attempt = 1; attempt <= 5; attempt++)
-        {
-            try
-            {
-                var dbResponse = await client.CreateDatabaseIfNotExistsAsync(DatabaseName);
-                db = dbResponse.Database;
-                break;
-            }
-            catch (CosmosException ex) when (attempt < 5 && (int)ex.StatusCode is 408 or 503 or 0)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(attempt * 5));
-            }
-        }
+        // The emulator may still be warming up — retry all Cosmos operations.
+        var dbResponse = await RetryCosmosAsync(() => client.CreateDatabaseIfNotExistsAsync(DatabaseName));
+        var db = dbResponse.Database;
 
         var createdAt = SeedNow.AddHours(-72).ToString("O");
 
@@ -144,8 +137,8 @@ public static class SeedBuilders
 
         if (seedRunsContainer)
         {
-            var runsContainerResponse = await db.CreateContainerIfNotExistsAsync(
-                new ContainerProperties("runs", "/id"));
+            var runsContainerResponse = await RetryCosmosAsync(() =>
+                db.CreateContainerIfNotExistsAsync(new ContainerProperties("runs", "/id")));
             var runsContainer = runsContainerResponse.Container;
 
             if (seedRuns)
@@ -155,7 +148,7 @@ public static class SeedBuilders
                 {
                     var runDict = (Dictionary<string, object?>)run;
                     var runId = (string)runDict["id"]!;
-                    await runsContainer.UpsertItemAsync(run, new PartitionKey(runId));
+                    await RetryCosmosAsync(() => runsContainer.UpsertItemAsync(run, new PartitionKey(runId)));
                 }
             }
         }
@@ -167,23 +160,23 @@ public static class SeedBuilders
 
     private static async Task SeedInstancesAsync(Database db)
     {
-        var container = (await db.CreateContainerIfNotExistsAsync(
-            new ContainerProperties("instances", "/id"))).Container;
+        var container = (await RetryCosmosAsync(() =>
+            db.CreateContainerIfNotExistsAsync(new ContainerProperties("instances", "/id")))).Container;
 
         foreach (var doc in BuildInstanceDocuments())
         {
-            await container.UpsertItemAsync(doc, new PartitionKey((string)doc["id"]!));
+            await RetryCosmosAsync(() => container.UpsertItemAsync(doc, new PartitionKey((string)doc["id"]!)));
         }
     }
 
     private static async Task SeedSpecializationsAsync(Database db)
     {
-        var container = (await db.CreateContainerIfNotExistsAsync(
-            new ContainerProperties("specializations", "/id"))).Container;
+        var container = (await RetryCosmosAsync(() =>
+            db.CreateContainerIfNotExistsAsync(new ContainerProperties("specializations", "/id")))).Container;
 
         foreach (var doc in BuildSpecializationDocuments())
         {
-            await container.UpsertItemAsync(doc, new PartitionKey((string)doc["id"]!));
+            await RetryCosmosAsync(() => container.UpsertItemAsync(doc, new PartitionKey((string)doc["id"]!)));
         }
     }
 
@@ -193,15 +186,15 @@ public static class SeedBuilders
 
     private static async Task SeedRaidersAsync(Database db, List<object> raiders)
     {
-        var container = (await db.CreateContainerIfNotExistsAsync(
-            new ContainerProperties("raiders", "/battleNetId"))).Container;
+        var container = (await RetryCosmosAsync(() =>
+            db.CreateContainerIfNotExistsAsync(new ContainerProperties("raiders", "/battleNetId")))).Container;
 
         foreach (var raider in raiders)
         {
             // Each raider document is a Dictionary; battleNetId is also the id.
             var dict = (Dictionary<string, object?>)raider;
             var battleNetId = (string)dict["battleNetId"]!;
-            await container.UpsertItemAsync(raider, new PartitionKey(battleNetId));
+            await RetryCosmosAsync(() => container.UpsertItemAsync(raider, new PartitionKey(battleNetId)));
         }
     }
 
@@ -211,14 +204,14 @@ public static class SeedBuilders
 
     private static async Task SeedGuildsAsync(Database db, List<object> guilds)
     {
-        var container = (await db.CreateContainerIfNotExistsAsync(
-            new ContainerProperties("guilds", "/id"))).Container;
+        var container = (await RetryCosmosAsync(() =>
+            db.CreateContainerIfNotExistsAsync(new ContainerProperties("guilds", "/id")))).Container;
 
         foreach (var guild in guilds)
         {
             var dict = (Dictionary<string, object?>)guild;
             var id = (string)dict["id"]!;
-            await container.UpsertItemAsync(guild, new PartitionKey(id));
+            await RetryCosmosAsync(() => container.UpsertItemAsync(guild, new PartitionKey(id)));
         }
     }
 
@@ -937,4 +930,44 @@ public static class SeedBuilders
 
         return defs;
     }
+
+    /// <summary>
+    /// Retry wrapper for Cosmos operations that may fail during emulator warm-up.
+    /// Catches 408 (RequestTimeout), 503 (ServiceUnavailable), and TaskCanceledException.
+    /// </summary>
+    private static async Task<T> RetryCosmosAsync<T>(Func<Task<T>> operation, int maxAttempts = 5)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex) when (attempt < maxAttempts && IsTransientCosmosError(ex))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(attempt * 5));
+            }
+        }
+    }
+
+    private static async Task RetryCosmosAsync(Func<Task> operation, int maxAttempts = 5)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await operation();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts && IsTransientCosmosError(ex))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(attempt * 5));
+            }
+        }
+    }
+
+    private static bool IsTransientCosmosError(Exception ex) =>
+        ex is CosmosException ce && ce.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.ServiceUnavailable
+        || ex is TaskCanceledException
+        || ex is IOException;
 }
