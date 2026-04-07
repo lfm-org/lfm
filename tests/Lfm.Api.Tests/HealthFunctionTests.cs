@@ -57,6 +57,8 @@ public class HealthFunctionTests
         var body = ok.Value.Should().BeOfType<HealthResponse>().Subject;
         body.Status.Should().Be("ready");
         body.Timestamp.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+
+        mockDb.Verify(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
