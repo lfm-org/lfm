@@ -98,8 +98,6 @@ public static class SeedBuilders
                 // be overridden directly. Setting RequestTimeout higher than 65s helps
                 // with some paths, but the real fix is retry logic (see RetryCosmosAsync).
                 RequestTimeout = TimeSpan.FromSeconds(180),
-                // Increase max connection limit for gateway mode (default 50).
-                GatewayModeMaxConnectionLimit = 10,
                 SerializerOptions = new CosmosSerializationOptions
                 {
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
