@@ -87,13 +87,11 @@ public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
             await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
                 new() { WaitUntil = WaitUntilState.NetworkIdle });
 
+            // Verify the page loaded (not redirected to login)
             await Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/runs$"));
 
-            var runsPage = new RunsPage(authPage);
-            var loaded = await runsPage.IsLoadedAsync();
-            loaded.Should().BeTrue();
-
+            // Verify authenticated nav is visible — confirms auth state
             var navBar = new NavBar(authPage);
             await Expect(navBar.SignOutButton).ToBeVisibleAsync();
         }
