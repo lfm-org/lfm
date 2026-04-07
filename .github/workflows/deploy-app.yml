@@ -3,17 +3,6 @@ name: Deploy App
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'api/**'
-      - 'app/**'
-      - 'shared/**'
-      - 'lfm.sln'
-      - 'global.json'
-      - 'Directory.Packages.props'
-      - 'scripts/check-bundle-size.sh'
-      - '.github/workflows/deploy-app.yml'
 
 permissions:
   id-token: write
