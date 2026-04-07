@@ -44,12 +44,17 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        await loginPage.ClickSignInAsync();
-
-        // forceLoad: true navigates to /api/battlenet/login — verify URL change
-        await _page.WaitForURLAsync(
+        // forceLoad: true navigates to /api/battlenet/login, which immediately
+        // redirects to the external Battle.net OAuth URL (unavailable in test).
+        // Wait for the request to /api/battlenet/login to be initiated, which
+        // confirms the button wired up the correct navigation URL.
+        var loginRequestTask = _page.WaitForRequestAsync(
             new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
             new() { Timeout = 10000 });
+
+        await loginPage.ClickSignInAsync();
+
+        await loginRequestTask;
     }
 
     [Fact]
