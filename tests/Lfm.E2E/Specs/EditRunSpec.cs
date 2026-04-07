@@ -63,6 +63,24 @@ public class EditRunSpec(DefaultSeedFixture fixture) : IAsyncLifetime
             new Regex(@"\/runs\/run-guild-sparse-icc10$"));
     }
 
+    [Fact]
+    public async Task Instance_and_start_time_are_disabled_when_run_has_signups()
+    {
+        // run-guild-sparse-icc10 includes the test raider's signup (IncludeTestRaider: true)
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs/run-guild-sparse-icc10/edit");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // Instance select and start time should be disabled because run has signups
+        await Expect(_page.Locator("#instance-select")).ToBeDisabledAsync();
+        await Expect(_page.Locator("#starttime-input")).ToBeDisabledAsync();
+
+        // Other fields should remain enabled
+        await Expect(_page.Locator("#modekey-input")).ToBeEnabledAsync();
+        await Expect(_page.Locator("#description-input")).ToBeEnabledAsync();
+    }
+
     private static IPageAssertions Expect(IPage page) =>
         Microsoft.Playwright.Assertions.Expect(page);
 

@@ -52,7 +52,7 @@
                         TOption="string"
                         Value="@instanceId"
                         ValueChanged="@(v => instanceId = v)"
-                        Disabled="@saving">
+                        Disabled="@(saving || hasSignups)">
                         <FluentOption Value="">— Select instance —</FluentOption>
                         @foreach (var inst in instances)
                         {
@@ -72,7 +72,7 @@
                         Label="Start Time (ISO 8601)"
                         Value="@startTime"
                         ValueChanged="@(v => startTime = v)"
-                        Disabled="@saving" />
+                        Disabled="@(saving || hasSignups)" />
 
                     <FluentTextField
                         Id="signupclose-input"
@@ -185,6 +185,7 @@
     private bool deleting;
     private bool showDeleteConfirm;
     private bool saveSuccess;
+    private bool hasSignups;
     private string? saveError;
     private string? deleteError;
 
@@ -215,6 +216,7 @@
             }
 
             instances = insts;
+            hasSignups = run.RunCharacters.Count > 0;
             PopulateForm(run);
             state = new LoadingState<RunDetailDto>.Success(run);
         }

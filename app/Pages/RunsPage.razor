@@ -45,6 +45,7 @@
                         {
                             var isSelected = run.Id == selectedRunId;
                             <div @key="run.Id"
+                                 data-testid="run-item-@run.Id"
                                  @onclick="@(() => SelectRun(run.Id))"
                                  style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--neutral-stroke-rest);@(isSelected ? "background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest)" : "")">
                                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
@@ -67,7 +68,8 @@
                                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center">
                                     <FluentLabel Typo="Typography.H4" Style="flex:1">@selectedRun.InstanceName</FluentLabel>
                                     <FluentButton Appearance="Appearance.Outline"
-                                                  OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))">
+                                                  OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
+                                                  Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
                                         Edit
                                     </FluentButton>
                                 </FluentStack>
@@ -195,5 +197,11 @@
         if (DateTimeOffset.TryParse(isoDate, out var dto))
             return dto.ToString("yyyy-MM-dd HH:mm");
         return isoDate;
+    }
+
+    private static bool IsSignupClosed(string? signupCloseTime)
+    {
+        if (string.IsNullOrEmpty(signupCloseTime)) return false;
+        return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
     }
 }

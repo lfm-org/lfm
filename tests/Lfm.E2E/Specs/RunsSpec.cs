@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Microsoft.Playwright;
@@ -63,6 +64,34 @@ public class RunsSpec(DefaultSeedFixture fixture) : IAsyncLifetime
 
         // Edit button in the detail panel
         await Expect(_page.GetByRole(AriaRole.Button, new() { Name = "Edit" })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Run_list_items_have_data_testid_attributes()
+    {
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // Run list items should have data-testid attributes
+        var runItems = _page.Locator("[data-testid^='run-item-']");
+        var count = await runItems.CountAsync();
+        count.Should().BeGreaterThan(0, "seed data should produce at least one run item");
+    }
+
+    [Fact]
+    public async Task Edit_button_is_disabled_when_signup_close_time_has_passed()
+    {
+        // run-edit-closed-deadmines has signupCloseTime = SeedNow - 1h (in the past)
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs/run-edit-closed-deadmines");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // Edit button should be disabled because signup close time has passed
+        var editButton = _page.GetByRole(AriaRole.Button, new() { Name = "Edit" });
+        await Expect(editButton).ToBeDisabledAsync();
     }
 
     private static IPageAssertions Expect(IPage page) =>
