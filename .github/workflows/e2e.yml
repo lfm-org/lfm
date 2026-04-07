@@ -1,17 +1,7 @@
-name: E2E (.NET)
+name: E2E
 
 on:
   workflow_dispatch:
-  push:
-    branches: [claude/dotnet-refactor]
-    paths:
-      - 'api/**'
-      - 'app/**'
-      - 'shared/**'
-      - 'tests/**'
-      - 'lfm.sln'
-      - 'global.json'
-      - '.github/workflows/e2e-dotnet.yml'
   pull_request:
     branches: [main]
     paths:
@@ -21,13 +11,13 @@ on:
       - 'tests/**'
       - 'lfm.sln'
       - 'global.json'
-      - '.github/workflows/e2e-dotnet.yml'
+      - '.github/workflows/e2e.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: e2e-dotnet-${{ github.ref }}
+  group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
 env:

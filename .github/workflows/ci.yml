@@ -1,19 +1,7 @@
-name: CI (.NET)
+name: CI
 
 on:
   workflow_dispatch:
-  push:
-    branches: [claude/dotnet-refactor]
-    paths:
-      - 'api/**'
-      - 'app/**'
-      - 'shared/**'
-      - 'tests/**'
-      - 'lfm.sln'
-      - 'global.json'
-      - 'Directory.Packages.props'
-      - 'scripts/check-bundle-size.sh'
-      - '.github/workflows/ci-dotnet.yml'
   pull_request:
     branches: [main]
     paths:
@@ -25,13 +13,13 @@ on:
       - 'global.json'
       - 'Directory.Packages.props'
       - 'scripts/check-bundle-size.sh'
-      - '.github/workflows/ci-dotnet.yml'
+      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-dotnet-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
