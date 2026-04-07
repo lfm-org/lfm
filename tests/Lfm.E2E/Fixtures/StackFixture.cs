@@ -10,7 +10,16 @@ namespace Lfm.E2E.Fixtures;
 
 public class StackFixture : IAsyncLifetime
 {
-    public CosmosDbContainer Cosmos { get; } = new CosmosDbBuilder().Build();
+    // The Linux Cosmos DB emulator can take 2-3 minutes to become ready on
+    // CI runners. The default Testcontainers wait strategy times out too early.
+    public CosmosDbContainer Cosmos { get; } = new CosmosDbBuilder()
+        .WithStartupCallback(async (container, ct) =>
+        {
+            // The emulator reports "ready" to Testcontainers before it can
+            // actually serve requests. Give it extra warm-up time.
+            await Task.Delay(TimeSpan.FromSeconds(10), ct);
+        })
+        .Build();
     // Bind Azurite to the well-known default ports (10000/10001/10002) so that
     // AzureWebJobsStorage = "UseDevelopmentStorage=true" works out of the box.
     // This is the format the Functions host natively supports for local storage.

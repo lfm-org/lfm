@@ -92,6 +92,9 @@ public static class SeedBuilders
             new CosmosClientOptions
             {
                 ConnectionMode = ConnectionMode.Gateway,
+                // The Linux Cosmos DB emulator can be slow to become ready on CI.
+                // Increase request timeout to survive cold-start delays.
+                RequestTimeout = TimeSpan.FromSeconds(120),
                 SerializerOptions = new CosmosSerializationOptions
                 {
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
@@ -105,12 +108,25 @@ public static class SeedBuilders
                         ServerCertificateCustomValidationCallback =
                             HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
                     };
-                    return new HttpClient(handler);
+                    return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(120) };
                 },
             });
 
-        var dbResponse = await client.CreateDatabaseIfNotExistsAsync(DatabaseName);
-        var db = dbResponse.Database;
+        // The emulator may still be warming up — retry database creation with backoff.
+        Database db = null!;
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            try
+            {
+                var dbResponse = await client.CreateDatabaseIfNotExistsAsync(DatabaseName);
+                db = dbResponse.Database;
+                break;
+            }
+            catch (CosmosException ex) when (attempt < 5 && (int)ex.StatusCode is 408 or 503 or 0)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(attempt * 5));
+            }
+        }
 
         var createdAt = SeedNow.AddHours(-72).ToString("O");
 
