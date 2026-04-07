@@ -1,12 +1,13 @@
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Lfm.E2E.Perf;
 
 /// <summary>
-/// Perf port — form responsiveness.
+/// Perf port -- form responsiveness.
 /// Tagged [Trait("Category", "Perf")] so CI can exclude with --filter "Category!=Perf".
 /// Collection: default (full seed data, authenticated context).
 /// </summary>
@@ -51,18 +52,28 @@ public class FormsPerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         PerfHelper.AssertStableInteraction(result);
     }
 
-    [Fact(Skip = "Blazor CreateRunPage does not implement client-side validation with 'Instance is required' text on empty submit")]
+    [Fact]
     [Trait("Category", "Perf")]
-    public async Task Validation_errors_appear_within_budget_on_empty_submit()
+    public async Task Edit_run_page_loads_within_budget()
     {
-        await Task.CompletedTask;
-    }
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs");
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
 
-    [Fact(Skip = "Blazor CreateRunPage uses ISO 8601 text fields, not date picker spinbuttons; full submit flow differs from React")]
-    [Trait("Category", "Perf")]
-    public async Task Create_run_submit_completes_within_budget()
-    {
-        await Task.CompletedTask;
+        var main = _page.GetByRole(AriaRole.Main);
+        var heading = _page.GetByText("Edit Run").First;
+
+        var result = await PerfHelper.MeasureInteractionAsync(
+            _page,
+            async () => await _page.GotoAsync(
+                fixture.AppBaseUrl + "/runs/run-guild-sparse-icc10/edit",
+                new() { WaitUntil = WaitUntilState.Commit }),
+            ackMarker: main,
+            completionMarker: heading);
+
+        PerfHelper.AssertAcknowledgementWithin(result, AckBudget.Entry);
+        PerfHelper.AssertCompletionWithin(result, CompletionBudget.Network);
+        PerfHelper.AssertStableInteraction(result);
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>

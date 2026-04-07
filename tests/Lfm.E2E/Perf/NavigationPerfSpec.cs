@@ -6,7 +6,7 @@ using Xunit;
 namespace Lfm.E2E.Perf;
 
 /// <summary>
-/// Perf port — navigation responsiveness.
+/// Perf port -- navigation responsiveness.
 /// Tagged [Trait("Category", "Perf")] so CI can exclude with --filter "Category!=Perf".
 /// Collection: default (full seed data, authenticated context).
 /// </summary>
@@ -47,20 +47,28 @@ public class NavigationPerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         PerfHelper.AssertStableInteraction(result);
     }
 
-    [Fact(Skip = "Blazor RunsPage does not have run-card testid or sidebar button selection with detail panel text")]
+    [Fact]
     [Trait("Category", "Perf")]
-    public async Task Selecting_a_different_run_updates_the_detail_panel_within_budget()
+    public async Task Selecting_a_run_updates_detail_panel_within_budget()
     {
-        await Task.CompletedTask;
-    }
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs");
 
-    [Fact(Skip = "Blazor RunsPage does not implement pagination")]
-    [Trait("Category", "Perf")]
-    public async Task Pagination_updates_run_list_within_budget()
-    {
-        await Task.CompletedTask;
-    }
+        // Wait for run list to load
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
 
-    private static ILocatorAssertions Expect(ILocator locator) =>
-        Microsoft.Playwright.Assertions.Expect(locator);
+        // Click the first run in the list to select it
+        var firstRunItem = _page.Locator("[data-testid^='run-item-']").First;
+        var detailHeading = _page.Locator("fluent-label[typo] >> text=Mode:");
+
+        var result = await PerfHelper.MeasureInteractionAsync(
+            _page,
+            () => firstRunItem.ClickAsync(),
+            ackMarker: detailHeading,
+            completionMarker: detailHeading);
+
+        PerfHelper.AssertAcknowledgementWithin(result, AckBudget.Heavy);
+        PerfHelper.AssertCompletionWithin(result, CompletionBudget.Network);
+        PerfHelper.AssertStableInteraction(result);
+    }
 }

@@ -45,29 +45,28 @@ public class RunsSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await Expect(_page.GetByText("Select a run to see details.")).ToBeVisibleAsync();
     }
 
-    [Fact(Skip = "Blazor RunsPage does not implement run= query param selection, pagination, or passed-runs section")]
-    public async Task Runs_page_focuses_requested_run_query_on_correct_page()
+    [Fact]
+    public async Task Navigating_to_run_by_id_shows_detail_panel()
     {
-        await Task.CompletedTask;
+        // Navigate directly to a known run's detail page via URL parameter
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs/run-guild-sparse-icc10");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // The detail panel should show the run's instance name
+        await Expect(_page.GetByText("Icecrown Citadel")).ToBeVisibleAsync();
+
+        // Detail panel should show Mode and Visibility fields
+        await Expect(_page.GetByText("Mode:")).ToBeVisibleAsync();
+        await Expect(_page.GetByText("Visibility:")).ToBeVisibleAsync();
+
+        // Edit button in the detail panel
+        await Expect(_page.GetByRole(AriaRole.Button, new() { Name = "Edit" })).ToBeVisibleAsync();
     }
 
-    [Fact(Skip = "Blazor RunsPage does not implement a collapsed passed-runs section")]
-    public async Task Passed_runs_section_is_collapsed_by_default_and_expandable()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Blazor RunsPage does not implement deep-link auto-expand for passed runs")]
-    public async Task Deep_link_to_passed_run_auto_expands_passed_section()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Blazor RunsPage does not implement mobile card expand/collapse")]
-    public async Task Mobile_runs_page_keeps_cards_compact_until_expanded()
-    {
-        await Task.CompletedTask;
-    }
+    private static IPageAssertions Expect(IPage page) =>
+        Microsoft.Playwright.Assertions.Expect(page);
 
     private static ILocatorAssertions Expect(ILocator locator) =>
         Microsoft.Playwright.Assertions.Expect(locator);

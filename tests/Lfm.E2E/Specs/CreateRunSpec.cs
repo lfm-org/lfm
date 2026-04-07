@@ -50,11 +50,36 @@ public class CreateRunSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await Expect(_page.GetByRole(AriaRole.Button, new() { Name = "Cancel" })).ToBeVisibleAsync();
     }
 
-    [Fact(Skip = "Blazor CreateRunPage uses ISO 8601 text fields, not date picker spinbuttons; form validation and POST payload differ from React version")]
-    public async Task Authenticated_raider_can_create_run_with_modeKey_and_land_on_new_run_card()
+    [Fact]
+    public async Task Authenticated_raider_can_fill_and_submit_create_run_form()
     {
-        await Task.CompletedTask;
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs/new");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // Select an instance — Deadmines NORMAL:5 (value "63:NORMAL:5")
+        var instanceSelect = _page.Locator("#instance-select");
+        await instanceSelect.EvaluateAsync(
+            "(el, val) => { el.value = val; el.dispatchEvent(new Event('change', {bubbles: true})); }",
+            "63:NORMAL:5");
+
+        // Fill ISO 8601 text fields
+        await _page.Locator("#modekey-input").FillAsync("NORMAL:5");
+        await _page.Locator("#starttime-input").FillAsync("2026-06-01T20:00:00Z");
+        await _page.Locator("#signupclose-input").FillAsync("2026-06-01T18:00:00Z");
+        await _page.Locator("#description-input").FillAsync("E2E test run");
+
+        // Submit the form — button should be enabled now
+        var createButton = _page.GetByRole(AriaRole.Button, new() { Name = "Create Run" });
+        await createButton.ClickAsync();
+
+        // After successful creation, should redirect to the new run's detail page
+        await Expect(_page).ToHaveURLAsync(new Regex(@"\/runs\/[^/]+$"), new() { Timeout = 10_000 });
     }
+
+    private static IPageAssertions Expect(IPage page) =>
+        Microsoft.Playwright.Assertions.Expect(page);
 
     private static ILocatorAssertions Expect(ILocator locator) =>
         Microsoft.Playwright.Assertions.Expect(locator);

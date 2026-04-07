@@ -49,34 +49,18 @@ public class EditRunSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await Expect(_page.GetByRole(AriaRole.Button, new() { Name = "Delete Run" })).ToBeVisibleAsync();
     }
 
-    [Fact(Skip = "Blazor RunsPage does not have inline Edit button on run cards; edit is accessed via direct URL")]
-    public async Task Creator_sees_edit_button_on_own_run_with_no_signups()
+    [Fact]
+    public async Task Cancel_button_navigates_back_to_run_detail()
     {
-        await Task.CompletedTask;
-    }
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs/run-guild-sparse-icc10/edit");
 
-    [Fact(Skip = "Blazor RunsPage does not have inline Edit button on run cards")]
-    public async Task No_edit_button_on_runs_created_by_someone_else()
-    {
-        await Task.CompletedTask;
-    }
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
 
-    [Fact(Skip = "Blazor RunsPage does not have inline Edit button with closed-time disabling")]
-    public async Task Edit_button_disabled_when_signup_close_time_passed()
-    {
-        await Task.CompletedTask;
-    }
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
 
-    [Fact(Skip = "Blazor EditRunPage does not implement instance/start-time locking when run has signups")]
-    public async Task Creator_sees_locked_instance_and_start_time_when_run_has_signups()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Blazor RunsPage does not have inline Edit button on run cards; full edit-save flow differs from React")]
-    public async Task Creator_can_edit_own_run_with_no_signups_and_save_changes()
-    {
-        await Task.CompletedTask;
+        await Expect(_page).ToHaveURLAsync(
+            new Regex(@"\/runs\/run-guild-sparse-icc10$"));
     }
 
     private static IPageAssertions Expect(IPage page) =>

@@ -23,10 +23,17 @@ public class RunsLocalizedNamesSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await _context.CloseAsync();
     }
 
-    [Fact(Skip = "Blazor RunsPage uses typed DTOs; localized name objects require app-side handling")]
-    public async Task Runs_page_renders_localized_api_names_without_crashing()
+    [Fact]
+    public async Task Runs_page_renders_instance_names_from_seed_data()
     {
-        await Task.CompletedTask;
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // Seed data includes runs with these instance names — verify they render
+        await Expect(_page.GetByText("Icecrown Citadel").First).ToBeVisibleAsync();
+        await Expect(_page.GetByText("Deadmines").First).ToBeVisibleAsync();
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>

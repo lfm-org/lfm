@@ -23,10 +23,17 @@ public class SignupSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await _context.CloseAsync();
     }
 
-    [Fact(Skip = "Blazor RunsPage does not implement inline signup UI (run-card, attendance buttons, character select)")]
-    public async Task Authenticated_raider_can_create_update_and_cancel_a_signup_from_the_combined_runs_page()
+    [Fact]
+    public async Task Run_detail_shows_roster_for_run_with_signups()
     {
-        await Task.CompletedTask;
+        // run-guild-sparse-icc10 includes the test raider's signup
+        await _page.GotoAsync(fixture.AppBaseUrl + "/runs/run-guild-sparse-icc10");
+
+        await _page.Locator("fluent-progress-ring").WaitForAsync(
+            new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
+
+        // Detail panel shows the Roster heading with signup count
+        await Expect(_page.GetByText("Roster")).ToBeVisibleAsync();
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>
