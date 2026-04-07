@@ -1,0 +1,97 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Deploy stage (all runs both, infra/app runs one)'
+        type: choice
+        options:
+          - all
+          - infra
+          - app
+        default: all
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - 'api/**'
+      - 'app/**'
+      - 'shared/**'
+      - 'lfm.sln'
+      - 'global.json'
+      - 'Directory.Packages.props'
+      - 'scripts/check-bundle-size.sh'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-infra.yml'
+      - '.github/workflows/deploy-app.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      infra: ${{ steps.resolve.outputs.infra }}
+      app: ${{ steps.resolve.outputs.app }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.3
+        id: filter
+        if: github.event_name == 'push'
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+              - '.github/workflows/deploy-infra.yml'
+            app:
+              - 'api/**'
+              - 'app/**'
+              - 'shared/**'
+              - 'lfm.sln'
+              - 'global.json'
+              - 'Directory.Packages.props'
+              - 'scripts/check-bundle-size.sh'
+              - '.github/workflows/deploy-app.yml'
+
+      - name: Resolve change flags
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            STAGE="${{ inputs.stage }}"
+            if [ "$STAGE" = "all" ] || [ "$STAGE" = "infra" ]; then
+              echo "infra=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "infra=false" >> "$GITHUB_OUTPUT"
+            fi
+            if [ "$STAGE" = "all" ] || [ "$STAGE" = "app" ]; then
+              echo "app=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "app=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "infra=${{ steps.filter.outputs.infra }}" >> "$GITHUB_OUTPUT"
+            echo "app=${{ steps.filter.outputs.app }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-infra:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infra == 'true'
+    uses: ./.github/workflows/deploy-infra.yml
+    secrets: inherit
+
+  deploy-app:
+    needs: [detect-changes, deploy-infra]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.app == 'true' &&
+      (needs.deploy-infra.result == 'success' || needs.deploy-infra.result == 'skipped')
+    uses: ./.github/workflows/deploy-app.yml
+    secrets: inherit
