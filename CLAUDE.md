@@ -33,11 +33,17 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 **dotnet:** Use `dotnet` CLI directly. The solution targets .NET 10.
 
+**GitHub:** Use `mcp__plugin_github_github__*` MCP tools for all GitHub operations (PRs, issues, comments, reviews, branch creation, file contents). **Do not use the `gh` CLI.** MCP tools are structured, sandboxed, and avoid auth/env issues that derail `gh` in long sessions.
+
+**git:** **Always use `git -C /home/souroldgeezer/repos/lfm`** — never `cd` into the repo then run bare `git`. This applies to every git command: status, add, commit, push, switch, diff, log, rebase. Subagents must follow the same rule. Bare `git` in a wrong cwd silently operates on the wrong repo.
+
 **Config preference:** config file > CLI argument > environment variable.
 
-**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. NuGet packages cache: `~/.nuget/packages` (CI caches this). Prefer `-C` flags or absolute paths over `cd &&`.
+**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. NuGet packages cache: `~/.nuget/packages` (CI caches this).
 
-**Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching. **JSON:** use `jq`, not Python one-liners. **YAML:** use `yq`, not Python one-liners.
+**Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching.
+
+**JSON/YAML:** **Always** use `jq` for JSON and `yq` for YAML — never Python one-liners, `sed`, or `awk` on structured data. This is a hard rule, not a preference.
 
 ## Verification
 
