@@ -43,7 +43,7 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 **Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching.
 
-**JSON/YAML:** **Always** use `jq` for JSON and `yq` for YAML — never Python one-liners, `sed`, or `awk` on structured data. This is a hard rule, not a preference.
+**JSON/YAML:** Use `jq` for JSON and `yq` for YAML. **No exceptions.** Never use Python (`python3 -c "import json/yaml"`), `sed`, `awk`, or any other tool to parse, validate, query, or transform structured data. This includes YAML validation — use `yq eval '.' file.yml`, not Python's `yaml.safe_load`. Subagents must follow the same rule.
 
 ## Verification
 
