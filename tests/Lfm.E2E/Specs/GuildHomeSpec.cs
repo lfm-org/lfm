@@ -44,12 +44,6 @@ public class GuildHomeSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         await Expect(_page.GetByText("Test Guild")).ToBeVisibleAsync();
     }
 
-    [Fact(Skip = "Blazor GuildPage does not implement guild-master setup flow with slogan/timezone editing")]
-    public async Task Guild_masters_can_save_slogan_and_timezone_before_entering_raids()
-    {
-        await Task.CompletedTask;
-    }
-
     private static IPageAssertions Expect(IPage page) =>
         Microsoft.Playwright.Assertions.Expect(page);
 

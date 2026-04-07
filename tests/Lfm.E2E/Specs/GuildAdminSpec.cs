@@ -44,18 +44,6 @@ public class GuildAdminSpec(DefaultSeedFixture fixture) : IAsyncLifetime
             new() { State = WaitForSelectorState.Hidden, Timeout = 10_000 });
     }
 
-    [Fact(Skip = "Blazor GuildAdminPage stale-data locking depends on seed data with stale guild setup")]
-    public async Task Site_admins_see_stale_guild_data_as_locked_in_guild_admin()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Blazor GuildAdminPage does not implement non-admin access restriction in the UI")]
-    public async Task Non_admin_users_cannot_access_guild_admin()
-    {
-        await Task.CompletedTask;
-    }
-
     private static IPageAssertions Expect(IPage page) =>
         Microsoft.Playwright.Assertions.Expect(page);
 

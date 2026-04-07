@@ -50,20 +50,6 @@ public class MobilePerfSpec(DefaultSeedFixture fixture) : IAsyncLifetime
         PerfHelper.AssertStableInteraction(result);
     }
 
-    [Fact(Skip = "Blazor RunsPage does not implement mobile card expand/collapse or inline signup region")]
-    [Trait("Category", "Perf")]
-    public async Task Mobile_card_expand_shows_details_within_budget()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Blazor RunsPage does not implement mobile inline signup flow")]
-    [Trait("Category", "Perf")]
-    public async Task Mobile_run_signup_shows_busy_state_and_completes_within_budget()
-    {
-        await Task.CompletedTask;
-    }
-
     private static ILocatorAssertions Expect(ILocator locator) =>
         Microsoft.Playwright.Assertions.Expect(locator);
 }
