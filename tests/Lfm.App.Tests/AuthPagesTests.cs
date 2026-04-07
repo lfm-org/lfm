@@ -18,11 +18,18 @@ public class AuthPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void LoginPage_Renders_Without_Crash()
+    public void LoginPage_Button_Navigates_To_BattleNet_Login_With_Default_Redirect()
     {
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+
         var cut = RenderComponent<LoginPage>();
 
-        cut.Markup.Should().NotBeEmpty();
+        cut.Find("fluent-button").Click();
+
+        var entry = nav.History.Should().ContainSingle().Subject;
+        entry.Uri.Should().StartWith("http://localhost:7071/api/battlenet/login");
+        entry.Uri.Should().Contain("redirect=%2Fruns");
+        entry.Options.ForceLoad.Should().BeTrue();
     }
 
     [Fact]
