@@ -2,6 +2,7 @@
 @using Lfm.App.Services
 @using Lfm.Contracts.Instances
 @using Lfm.Contracts.Runs
+@attribute [Authorize]
 @inject IInstancesClient InstancesClient
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav

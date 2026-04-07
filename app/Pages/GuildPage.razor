@@ -1,6 +1,7 @@
 @page "/guild"
 @using Lfm.App.Services
 @using Lfm.Contracts.Guild
+@attribute [Authorize]
 @inject IGuildClient GuildClient
 
 <PageTitle>Guild</PageTitle>

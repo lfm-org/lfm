@@ -2,13 +2,13 @@
 @using Lfm.App.Services
 @using Lfm.App.Components.Guild
 @using Lfm.Contracts.Guild
+@attribute [Authorize]
 @inject IGuildClient GuildClient
 
 <PageTitle>Guild Admin</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.H3">Guild Admin</FluentLabel>
-    <FluentLabel>Override guild settings for any guild by its Battle.net guild ID.</FluentLabel>
 
     @if (error != null)
     {
@@ -19,25 +19,6 @@
     {
         <FluentMessageBar Intent="MessageIntent.Success">@success</FluentMessageBar>
     }
-
-    <FluentCard>
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12">
-            <FluentTextField
-                Id="guild-id-input"
-                Label="Guild ID"
-                Value="@guildId"
-                ValueChanged="@(v => guildId = v)"
-                Style="max-width:240px" />
-            <div style="align-self:flex-end">
-                <FluentButton
-                    Appearance="Appearance.Accent"
-                    OnClick="@HandleLoad"
-                    Disabled="@(loading || string.IsNullOrWhiteSpace(guildId))">
-                    @(loading ? "Loading…" : "Load Guild")
-                </FluentButton>
-            </div>
-        </FluentStack>
-    </FluentCard>
 
     @if (loading)
     {
@@ -88,7 +69,6 @@
 </FluentStack>
 
 @code {
-    private string guildId = string.Empty;
     private bool loading;
     private bool saving;
     private string? error;
@@ -100,11 +80,10 @@
     private string draftSlogan = string.Empty;
     private IReadOnlyList<UpdateGuildRankPermission> draftPermissions = [];
 
-    private async Task HandleLoad()
+    protected override async Task OnInitializedAsync()
     {
         loading = true;
         error = null;
-        success = null;
         guildData = null;
 
         try
