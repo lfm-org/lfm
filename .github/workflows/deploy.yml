@@ -37,6 +37,7 @@ concurrency:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       infra: ${{ steps.resolve.outputs.infra }}
       app: ${{ steps.resolve.outputs.app }}
@@ -63,9 +64,13 @@ jobs:
 
       - name: Resolve change flags
         id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          STAGE: ${{ inputs.stage }}
+          FILTER_INFRA: ${{ steps.filter.outputs.infra }}
+          FILTER_APP: ${{ steps.filter.outputs.app }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            STAGE="${{ inputs.stage }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             if [ "$STAGE" = "all" ] || [ "$STAGE" = "infra" ]; then
               echo "infra=true" >> "$GITHUB_OUTPUT"
             else
@@ -77,8 +82,8 @@ jobs:
               echo "app=false" >> "$GITHUB_OUTPUT"
             fi
           else
-            echo "infra=${{ steps.filter.outputs.infra }}" >> "$GITHUB_OUTPUT"
-            echo "app=${{ steps.filter.outputs.app }}" >> "$GITHUB_OUTPUT"
+            echo "infra=$FILTER_INFRA" >> "$GITHUB_OUTPUT"
+            echo "app=$FILTER_APP" >> "$GITHUB_OUTPUT"
           fi
 
   deploy-infra:
