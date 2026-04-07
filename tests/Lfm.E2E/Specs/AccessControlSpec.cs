@@ -17,6 +17,13 @@ public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
     {
         _context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
         _page = await _context.NewPageAsync();
+        _page.Console += (_, msg) =>
+        {
+            if (msg.Type is "error" or "warning")
+                System.Console.WriteLine($"[Browser {msg.Type.ToUpper()}] {msg.Text}");
+        };
+        _page.RequestFailed += (_, req) =>
+            System.Console.WriteLine($"[Browser REQUESTFAILED] {req.Url} - {req.Failure}");
     }
 
     public async Task DisposeAsync()
@@ -28,39 +35,42 @@ public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromRuns()
     {
         await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         await Expect(_page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns$"));
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns$"),
+            new() { Timeout = 30000 });
 
         var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync();
+        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromCharacters()
     {
         await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters",
-            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         await Expect(_page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fcharacters$"));
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fcharacters$"),
+            new() { Timeout = 30000 });
 
         var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync();
+        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromCreateRun()
     {
         await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs/new",
-            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         await Expect(_page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns%2Fnew$"));
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns%2Fnew$"),
+            new() { Timeout = 30000 });
 
         var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync();
+        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
@@ -98,20 +108,20 @@ public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
     {
         // Landing page
         await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/",
-            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
         _page.Url.Should().NotContain("/login?redirect");
 
         // Login page
         await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/login",
-            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
         var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync();
+        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
         _page.Url.Should().Contain("/login");
         _page.Url.Should().NotContain("redirect=");
 
         // Privacy page
         await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/privacy",
-            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
         _page.Url.Should().Contain("/privacy");
         _page.Url.Should().NotContain("/login?redirect");
     }

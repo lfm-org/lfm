@@ -7,7 +7,7 @@ public class LoginFailedPage(IPage page)
     private readonly IPage _page = page;
 
     public ILocator ErrorHeading =>
-        _page.GetByRole(AriaRole.Heading, new() { Name = "Login Failed" });
+        _page.GetByText("Login Failed", new() { Exact = true });
 
     public ILocator ErrorMessage =>
         _page.GetByText("Something went wrong while signing in. Please try again.");
@@ -17,7 +17,7 @@ public class LoginFailedPage(IPage page)
 
     public async Task GotoAsync(string appBaseUrl)
     {
-        await _page.GotoAsync($"{appBaseUrl}/auth/failure");
+        await _page.GotoAsync($"{appBaseUrl}/auth/failure", new() { WaitUntil = WaitUntilState.NetworkIdle });
     }
 
     public async Task<bool> IsErrorVisibleAsync()

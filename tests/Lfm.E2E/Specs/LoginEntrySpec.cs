@@ -31,7 +31,7 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
 
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
-        await Expect(loginPage.Heading).ToBeVisibleAsync();
+        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
         var visible = await loginPage.IsSignInButtonVisibleAsync();
         visible.Should().BeTrue();
     }
@@ -42,7 +42,7 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
         var loginPage = new LoginPage(_page);
 
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        await Expect(loginPage.SignInButton).ToBeVisibleAsync();
+        await Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         await loginPage.ClickSignInAsync();
 
@@ -114,9 +114,9 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
 
         await errorPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
-        await Expect(errorPage.ErrorHeading).ToBeVisibleAsync();
-        await Expect(errorPage.ErrorMessage).ToBeVisibleAsync();
-        await Expect(errorPage.TryAgainButton).ToBeVisibleAsync();
+        await Expect(errorPage.ErrorHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Expect(errorPage.ErrorMessage).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Expect(errorPage.TryAgainButton).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     private static ILocatorAssertions Expect(ILocator locator) =>

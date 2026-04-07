@@ -40,6 +40,7 @@ public class StackFixture : IAsyncLifetime
     private IPlaywright? _playwright;
     private readonly StringBuilder _apiOutput = new();
     private readonly StringBuilder _appOutput = new();
+    private string? _appSettingsDevPath;
 
     public async Task InitializeAsync()
     {
@@ -103,13 +104,24 @@ public class StackFixture : IAsyncLifetime
             },
             _apiOutput);
 
+        // Write appsettings.Development.json to wwwroot so the Blazor WASM client
+        // (which runs in the browser and cannot read server-side env vars) picks up
+        // the dynamically assigned API port. The file is cleaned up in DisposeAsync.
+        var appWwwroot = Path.Combine(repoRoot, "app", "wwwroot");
+        _appSettingsDevPath = Path.Combine(appWwwroot, "appsettings.Development.json");
+        // Remove any stale file from a previous failed run before writing.
+        if (File.Exists(_appSettingsDevPath))
+            File.Delete(_appSettingsDevPath);
+        await File.WriteAllTextAsync(_appSettingsDevPath,
+            $$"""{"ApiBaseUrl":"http://localhost:{{_apiPort}}"}""");
+
         // Start Blazor app
         _appProcess = StartBackground("dotnet",
             $"run --project {Path.Combine(repoRoot, "app", "Lfm.App.csproj")} -c Release --no-build --urls http://localhost:{_appPort}",
             repoRoot,
             new Dictionary<string, string>
             {
-                ["ApiBaseUrl"] = $"http://localhost:{_apiPort}",
+                ["ASPNETCORE_ENVIRONMENT"] = "Development",
             },
             _appOutput);
 
@@ -137,6 +149,8 @@ public class StackFixture : IAsyncLifetime
         KillProcess(_appProcess);
         KillProcess(_apiProcess);
         await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
+        if (_appSettingsDevPath is not null && File.Exists(_appSettingsDevPath))
+            File.Delete(_appSettingsDevPath);
     }
 
     private static string FindRepoRoot()
