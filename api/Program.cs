@@ -38,10 +38,6 @@ builder.Services.AddOptions<CorsOptions>()
     .Bind(builder.Configuration.GetSection(CorsOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
-builder.Services.AddOptions<RateLimitOptions>()
-    .Bind(builder.Configuration.GetSection(RateLimitOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
 builder.Services.AddOptions<StorageOptions>()
     .Bind(builder.Configuration.GetSection(StorageOptions.SectionName))
     .ValidateDataAnnotations()
@@ -58,33 +54,6 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials();
     });
-});
-
-builder.Services.AddRateLimiter(options =>
-{
-    var rl = builder.Configuration.GetSection(RateLimitOptions.SectionName).Get<RateLimitOptions>()
-        ?? new RateLimitOptions();
-    options.AddPolicy("per-ip", httpContext =>
-    {
-        // WAF/Security+Reliability: Functions sits behind the App Service front-door,
-        // so Connection.RemoteIpAddress is an internal Azure IP and partitioning on it
-        // would rate-limit the *platform*, not real clients. Use the first X-Forwarded-For
-        // hop, which the front-door populates with the caller's IP.
-        var forwardedFor = httpContext.Request.Headers["X-Forwarded-For"].ToString();
-        var clientIp = string.IsNullOrEmpty(forwardedFor)
-            ? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"
-            : forwardedFor.Split(',', 2)[0].Trim().Split(':', 2)[0]; // strip port if present
-        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: clientIp,
-            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = rl.PermitLimit,
-                Window = TimeSpan.FromSeconds(rl.WindowSeconds),
-                QueueLimit = 0,
-                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst
-            });
-    });
-    options.RejectionStatusCode = 429;
 });
 
 // Cosmos client (singleton) — WAF/Reliability: single instance per AppDomain for
