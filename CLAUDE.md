@@ -124,7 +124,7 @@ Deploy workflows use GitHub repo variables for all project-specific values. Neve
 
 ### `az` CLI usage
 
-Acceptable for exploration/debugging. Any `az` CLI change is **temporary and must be reverted**. The fix must be captured in Bicep (`infra/`) or `deploy-infra.yml`. Production state is always defined by `deploy-infra.yml`.
+Acceptable for cleanup or exploration or debugging. Any `az` CLI change is either **cleanup** or **temporary and must be reverted**. The fix must be captured in Bicep (`infra/`) or `deploy-infra.yml`. Production state is always defined by `deploy-infra.yml`.
 
 ### Validation
 
