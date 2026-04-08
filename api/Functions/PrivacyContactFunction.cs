@@ -2,13 +2,25 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Lfm.Contracts.Privacy;
 
 namespace Lfm.Api.Functions;
 
-public class PrivacyContactFunction(ILogger<PrivacyContactFunction> log)
+public class PrivacyContactFunction(ILogger<PrivacyContactFunction> log, IConfiguration config)
 {
+    [Function("privacy-email")]
+    public IActionResult GetEmail(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "privacy-contact/email")] HttpRequest req)
+    {
+        var email = config["PRIVACY_EMAIL"];
+        if (string.IsNullOrEmpty(email))
+            return new NotFoundResult();
+
+        return new OkObjectResult(new { email });
+    }
+
     [Function("privacy-contact")]
     public async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "privacy/contact")] HttpRequest req,

@@ -33,6 +33,9 @@ param keyVaultName string
 @maxLength(63)
 param logAnalyticsWorkspaceName string
 
+@description('Privacy contact email address')
+param privacyEmail string
+
 @description('Cosmos DB database name')
 param cosmosDatabase string
 
@@ -98,6 +101,7 @@ module functions 'modules/functions.bicep' = {
     battleNetRegion: battleNetRegion
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    privacyEmail: privacyEmail
     dataProtectionKeyUri: keyVault.outputs.dataProtectionKeyUri
     dataProtectionBlobUri: storage.outputs.dataProtectionBlobUri
     tags: tags

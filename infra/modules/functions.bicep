@@ -31,6 +31,9 @@ param battleNetRegion string
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
 
+@description('Privacy contact email address')
+param privacyEmail string
+
 @description('Data Protection KV key URI (versionless) for wrapping the key ring')
 param dataProtectionKeyUri string
 
@@ -114,6 +117,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'Cors__AllowedOrigins__0', value: frontendOrigin }
         // StorageOptions (section: Storage)
         { name: 'Storage__DataProtectionBlobUri', value: dataProtectionBlobUri }
+        // Site
+        { name: 'PRIVACY_EMAIL', value: privacyEmail }
       ]
     }
   }

@@ -3,6 +3,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Functions;
@@ -13,6 +14,9 @@ namespace Lfm.Api.Tests;
 
 public class PrivacyContactFunctionTests
 {
+    private static readonly IConfiguration EmptyConfig =
+        new ConfigurationBuilder().Build();
+
     private static HttpRequest MakeRequest(object body)
     {
         var json = JsonSerializer.Serialize(body);
@@ -26,7 +30,7 @@ public class PrivacyContactFunctionTests
     public async Task Returns_ok_when_contact_request_is_valid()
     {
         var log = new Mock<ILogger<PrivacyContactFunction>>();
-        var fn = new PrivacyContactFunction(log.Object);
+        var fn = new PrivacyContactFunction(log.Object, EmptyConfig);
 
         var req = MakeRequest(new
         {
@@ -57,7 +61,7 @@ public class PrivacyContactFunctionTests
     public async Task Returns_bad_request_when_email_is_missing()
     {
         var log = new Mock<ILogger<PrivacyContactFunction>>();
-        var fn = new PrivacyContactFunction(log.Object);
+        var fn = new PrivacyContactFunction(log.Object, EmptyConfig);
 
         var req = MakeRequest(new
         {
@@ -76,7 +80,7 @@ public class PrivacyContactFunctionTests
     public async Task Returns_bad_request_when_email_is_invalid()
     {
         var log = new Mock<ILogger<PrivacyContactFunction>>();
-        var fn = new PrivacyContactFunction(log.Object);
+        var fn = new PrivacyContactFunction(log.Object, EmptyConfig);
 
         var req = MakeRequest(new
         {
@@ -96,7 +100,7 @@ public class PrivacyContactFunctionTests
     public async Task Returns_bad_request_when_name_is_missing()
     {
         var log = new Mock<ILogger<PrivacyContactFunction>>();
-        var fn = new PrivacyContactFunction(log.Object);
+        var fn = new PrivacyContactFunction(log.Object, EmptyConfig);
 
         var req = MakeRequest(new
         {
@@ -115,7 +119,7 @@ public class PrivacyContactFunctionTests
     public async Task Returns_bad_request_when_message_is_missing()
     {
         var log = new Mock<ILogger<PrivacyContactFunction>>();
-        var fn = new PrivacyContactFunction(log.Object);
+        var fn = new PrivacyContactFunction(log.Object, EmptyConfig);
 
         var req = MakeRequest(new
         {
@@ -134,7 +138,7 @@ public class PrivacyContactFunctionTests
     public async Task Returns_bad_request_when_type_is_missing()
     {
         var log = new Mock<ILogger<PrivacyContactFunction>>();
-        var fn = new PrivacyContactFunction(log.Object);
+        var fn = new PrivacyContactFunction(log.Object, EmptyConfig);
 
         var req = MakeRequest(new
         {

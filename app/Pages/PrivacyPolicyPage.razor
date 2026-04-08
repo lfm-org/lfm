@@ -1,4 +1,5 @@
 @page "/privacy"
+@inject IHttpClientFactory HttpFactory
 
 <PageTitle>Privacy Policy — LFM</PageTitle>
 
@@ -10,7 +11,7 @@
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
         <FluentLabel Typo="Typography.H4">Data Controller</FluentLabel>
-        <FluentLabel>This application is operated by the guild master of the associated World of Warcraft guild. You can contact us via the privacy contact form.</FluentLabel>
+        <FluentLabel>This application is operated by the guild master of the associated World of Warcraft guild.</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
@@ -35,12 +36,19 @@
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
         <FluentLabel Typo="Typography.H4">Your Rights</FluentLabel>
-        <FluentLabel>You have the right to access, rectify, and erase your personal data. Contact us using the privacy contact form to exercise these rights.</FluentLabel>
+        <FluentLabel>You have the right to access, rectify, and erase your personal data. Contact us at the address below to exercise these rights.</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
         <FluentLabel Typo="Typography.H4">Contact</FluentLabel>
-        <FluentLabel>For privacy-related enquiries, please use the contact form linked in the application footer.</FluentLabel>
+        @if (_email is not null)
+        {
+            <FluentLabel>For privacy-related enquiries: <a href="mailto:@_email">@_email</a></FluentLabel>
+        }
+        else
+        {
+            <FluentLabel>Loading contact information...</FluentLabel>
+        }
     </FluentStack>
 </FluentStack>
 
@@ -51,3 +59,23 @@
    style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;">
     contact@example.com
 </a>
+
+@code {
+    private string? _email;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var http = HttpFactory.CreateClient("api");
+            var result = await http.GetFromJsonAsync<PrivacyEmailResponse>("api/privacy-contact/email");
+            _email = result?.Email;
+        }
+        catch
+        {
+            // Silently fail — contact section will not render the email link.
+        }
+    }
+
+    private sealed record PrivacyEmailResponse(string Email);
+}

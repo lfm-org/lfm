@@ -13,6 +13,7 @@
     "swaName": { "value": "myapp-swa" },
     "keyVaultName": { "value": "myapp-kv" },
     "logAnalyticsWorkspaceName": { "value": "myapp-logs" },
+    "privacyEmail": { "value": "privacy@example.com" },
     "cosmosDatabase": { "value": "myapp" },
     "frontendOrigin": { "value": "https://myapp.example.com" },
     "battleNetRedirectUri": { "value": "https://myapi.example.com/api/battlenet/callback" },
