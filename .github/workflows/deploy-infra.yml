@@ -59,6 +59,7 @@ jobs:
         run: |
           APP="${{ vars.FUNCTION_APP_NAME }}"
           RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+          KV="${{ vars.KEY_VAULT_NAME }}"
 
           CURRENT_PRINCIPAL=$(az functionapp identity show \
             --name "$APP" --resource-group "$RG" \
@@ -69,28 +70,60 @@ jobs:
             exit 0
           fi
 
-          # Bicep creates resource-scoped role assignments (not RG-scoped),
-          # so we must query each resource scope individually.
           echo "Current function app principal: $CURRENT_PRINCIPAL"
           SUB_ID=$(az account show --query "id" -o tsv)
-          SCOPES=(
-            "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/lfmstore"
-            "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/${{ vars.KEY_VAULT_NAME }}"
+
+          # Resources where Bicep creates role assignments, with their ARM
+          # resource types (needed for lock management). App Insights has no lock.
+          declare -A LOCKED_SCOPES=(
+            ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/lfmstore"]="Microsoft.Storage/storageAccounts lfmstore"
+            ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/$KV"]="Microsoft.KeyVault/vaults $KV"
+          )
+          UNLOCKED_SCOPES=(
             "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Insights/components/${APP}-insights"
           )
-          for SCOPE in "${SCOPES[@]}"; do
+
+          # Helper: remove CanNotDelete lock on a resource, returning the lock name
+          remove_lock() {
+            local rg="$1" rtype="$2" rname="$3"
+            local lock_name
+            lock_name=$(az lock list --resource-group "$rg" \
+              --resource-name "$rname" --resource-type "$rtype" \
+              --query "[?level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
+            if [ -n "$lock_name" ]; then
+              echo "Temporarily removing lock '$lock_name' on $rname..."
+              az lock delete --name "$lock_name" --resource-group "$rg" \
+                --resource-name "$rname" --resource-type "$rtype"
+            fi
+          }
+
+          # Clean stale RBAC assignments on locked resources
+          for SCOPE in "${!LOCKED_SCOPES[@]}"; do
+            STALE=$(az role assignment list --scope "$SCOPE" \
+              --query "[?principalId!='$CURRENT_PRINCIPAL' && principalId!='' && principalType=='ServicePrincipal'].id" \
+              -o tsv 2>/dev/null || echo "")
+            if [ -n "$STALE" ]; then
+              IFS=' ' read -r RTYPE RNAME <<< "${LOCKED_SCOPES[$SCOPE]}"
+              remove_lock "$RG" "$RTYPE" "$RNAME"
+              for ID in $STALE; do
+                echo "Deleting stale RBAC assignment: $ID"
+                az role assignment delete --ids "$ID" 2>/dev/null || true
+              done
+            fi
+          done
+
+          # Clean stale RBAC assignments on unlocked resources
+          for SCOPE in "${UNLOCKED_SCOPES[@]}"; do
             STALE=$(az role assignment list --scope "$SCOPE" \
               --query "[?principalId!='$CURRENT_PRINCIPAL' && principalId!='' && principalType=='ServicePrincipal'].id" \
               -o tsv 2>/dev/null || echo "")
             for ID in $STALE; do
               echo "Deleting stale RBAC assignment: $ID"
-              az role assignment delete --ids "$ID"
+              az role assignment delete --ids "$ID" 2>/dev/null || true
             done
           done
 
-          # Clean up stale Cosmos SQL role assignments.
-          # The Cosmos account has a CanNotDelete lock that blocks deletion —
-          # temporarily remove it, clean up, and let Bicep recreate the lock.
+          # Clean stale Cosmos SQL role assignments (separate API, also locked)
           COSMOS_ACCOUNT=$(az cosmosdb list --resource-group "$RG" \
             --query "[0].name" -o tsv 2>/dev/null || echo "")
           if [ -n "$COSMOS_ACCOUNT" ]; then
@@ -98,23 +131,17 @@ jobs:
               --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
               --query "[?principalId!='$CURRENT_PRINCIPAL'].id" -o tsv 2>/dev/null || echo "")
             if [ -n "$STALE_COSMOS" ]; then
-              LOCK_NAME=$(az lock list --resource-group "$RG" \
-                --resource-name "$COSMOS_ACCOUNT" --resource-type "Microsoft.DocumentDB/databaseAccounts" \
-                --query "[?level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
-              if [ -n "$LOCK_NAME" ]; then
-                echo "Temporarily removing CanNotDelete lock '$LOCK_NAME' on $COSMOS_ACCOUNT..."
-                az lock delete --name "$LOCK_NAME" --resource-group "$RG" \
-                  --resource-name "$COSMOS_ACCOUNT" --resource-type "Microsoft.DocumentDB/databaseAccounts"
-              fi
+              remove_lock "$RG" "Microsoft.DocumentDB/databaseAccounts" "$COSMOS_ACCOUNT"
               for ID in $STALE_COSMOS; do
                 echo "Deleting stale Cosmos SQL role assignment: $ID"
                 az cosmosdb sql role assignment delete \
                   --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
                   --role-assignment-id "$ID" --yes 2>/dev/null || true
               done
-              echo "Bicep will recreate the lock during deployment."
             fi
           fi
+
+          echo "Bicep will recreate any removed locks during deployment."
 
       - name: Preview infrastructure changes (what-if)
         env:
