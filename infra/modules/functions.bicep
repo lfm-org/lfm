@@ -7,12 +7,6 @@ param functionAppName string
 @description('Storage account name')
 param storageAccountName string
 
-@description('Storage account blob endpoint URL (e.g. https://<account>.blob.core.windows.net/)')
-param storageAccountBlobEndpoint string
-
-@description('Blob container name for Flex Consumption deployment packages')
-param deploymentContainerName string
-
 @description('Cosmos DB account endpoint')
 param cosmosAccountEndpoint string
 
@@ -71,8 +65,8 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   location: location
   tags: tags
   kind: 'functionapp'
-  sku: { name: 'FC1', tier: 'FlexConsumption' }
-  properties: { reserved: true }
+  sku: { name: 'Y1', tier: 'Dynamic' }
+  properties: {}
 }
 
 resource storageAccountRef 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
@@ -87,33 +81,16 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
   tags: tags
-  kind: 'functionapp,linux'
+  kind: 'functionapp'
   identity: { type: 'SystemAssigned' }
   properties: {
     serverFarmId: hostingPlan.id
     httpsOnly: true
-    functionAppConfig: {
-      deployment: {
-        storage: {
-          type: 'blobContainer'
-          value: '${storageAccountBlobEndpoint}${deploymentContainerName}'
-          authentication: {
-            type: 'SystemAssignedIdentity'
-          }
-        }
-      }
-      scaleAndConcurrency: {
-        maximumInstanceCount: 5
-        instanceMemoryMB: 2048
-      }
-      runtime: {
-        name: 'dotnet-isolated'
-        version: '10.0'
-      }
-    }
+    clientAffinityEnabled: false
     siteConfig: {
       http20Enabled: true
       minTlsVersion: '1.2'
+      netFrameworkVersion: 'v10.0'
       healthCheckPath: '/api/health'
       cors: {
         allowedOrigins: [frontendOrigin]
@@ -121,6 +98,9 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       }
       appSettings: [
         { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'Authorization=AAD' }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }

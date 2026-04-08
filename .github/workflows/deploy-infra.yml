@@ -34,7 +34,7 @@ jobs:
             echo "No soft-deleted Key Vault found, proceeding with fresh creation."
           fi
 
-      - name: Migrate Consumption plan to Flex Consumption (one-time)
+      - name: Migrate Flex Consumption back to Y1 Consumption (one-time)
         run: |
           APP="${{ vars.FUNCTION_APP_NAME }}"
           PLAN="${APP}-plan"
@@ -44,15 +44,15 @@ jobs:
             --name "$PLAN" --resource-group "$RG" \
             --query "sku.tier" -o tsv 2>/dev/null || echo "NotFound")
 
-          if [ "$SKU_TIER" = "Dynamic" ]; then
-            echo "Found Dynamic plan '$PLAN' — migrating to Flex Consumption..."
+          if [ "$SKU_TIER" = "FlexConsumption" ]; then
+            echo "Found FlexConsumption plan '$PLAN' — migrating to Y1 Consumption..."
             echo "Deleting function app '$APP'..."
             az functionapp delete --name "$APP" --resource-group "$RG"
             echo "Deleting App Service plan '$PLAN'..."
             az appservice plan delete --name "$PLAN" --resource-group "$RG" --yes
-            echo "Migration cleanup complete. Bicep will create fresh FC1 resources."
+            echo "Migration cleanup complete. Bicep will create fresh Y1 resources."
           else
-            echo "Plan '$PLAN' is '$SKU_TIER' (not Dynamic) — no migration needed."
+            echo "Plan '$PLAN' is '$SKU_TIER' (not FlexConsumption) — no migration needed."
           fi
 
       - name: Clean up stale role assignments from previous managed identity
@@ -204,31 +204,24 @@ jobs:
             echo "Hostname $HOSTNAME already bound."
           fi
 
-          # Look for an existing certificate (may survive from pre-Flex plan)
+          # Create managed certificate if one doesn't already exist
           THUMBPRINT=$(az webapp config ssl list --resource-group "$RG" \
             --query "[?subjectName=='$HOSTNAME'].thumbprint | [0]" -o tsv)
 
           if [ -z "$THUMBPRINT" ]; then
-            # Flex Consumption does not support managed certificates.
-            # Try creating one but handle failure gracefully.
-            echo "No existing certificate found. Attempting to create managed certificate..."
+            echo "Creating managed certificate for $HOSTNAME..."
             THUMBPRINT=$(az webapp config ssl create \
               --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" \
-              --query thumbprint -o tsv 2>&1) || {
-              echo "::warning::Managed certificate creation failed (expected on Flex Consumption). Custom domain will use hostname binding without platform-managed TLS."
-              THUMBPRINT=""
-            }
+              --query thumbprint -o tsv)
           else
             echo "Managed certificate already exists (thumbprint: $THUMBPRINT)."
           fi
 
-          # Bind certificate if available
-          if [ -n "$THUMBPRINT" ]; then
-            echo "Binding certificate to $HOSTNAME..."
-            az webapp config ssl bind \
-              --resource-group "$RG" --name "$APP" \
-              --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
-          fi
+          # Bind certificate with SNI (idempotent — re-binding same cert is a no-op)
+          echo "Binding certificate to $HOSTNAME..."
+          az webapp config ssl bind \
+            --resource-group "$RG" --name "$APP" \
+            --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
 
       - name: Configure SWA custom domain
         run: |

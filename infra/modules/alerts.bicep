@@ -10,6 +10,10 @@ param alertEmail string
 @description('Resource tags')
 param tags object
 
+resource functionApp 'Microsoft.Web/sites@2024-04-01' existing = {
+  name: functionAppName
+}
+
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
   name: cosmosAccountName
 }
@@ -27,8 +31,65 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   }
 }
 
-// Flex Consumption only exposes billing/infra metrics (no Http5xx, HttpResponseTime,
-// HealthCheckStatus, or Requests). HTTP error alerting relies on Application Insights.
+// Alert: Function App server errors (HTTP 5xx)
+resource functionErrorsAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-${functionAppName}-http5xx'
+  location: 'global'
+  tags: tags
+  properties: {
+    severity: 2
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    scopes: [functionApp.id]
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'Http5xx'
+          metricName: 'Http5xx'
+          metricNamespace: 'Microsoft.Web/sites'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: actionGroup.id }]
+  }
+}
+
+// Alert: Function App response time degradation
+resource functionLatencyAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-${functionAppName}-latency'
+  location: 'global'
+  tags: tags
+  properties: {
+    severity: 3
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    autoMitigate: true
+    scopes: [functionApp.id]
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'HighLatency'
+          metricName: 'HttpResponseTime'
+          metricNamespace: 'Microsoft.Web/sites'
+          operator: 'GreaterThan'
+          threshold: 5
+          timeAggregation: 'Average'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: actionGroup.id }]
+  }
+}
 
 // Alert: Cosmos DB request throttling (HTTP 429)
 resource cosmosThrottleAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {

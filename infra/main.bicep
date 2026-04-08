@@ -96,8 +96,6 @@ module functions 'modules/functions.bicep' = {
     location: location
     functionAppName: functionAppName
     storageAccountName: storageAccountName
-    storageAccountBlobEndpoint: storage.outputs.blobEndpoint
-    deploymentContainerName: storage.outputs.deploymentContainerName
     cosmosAccountEndpoint: cosmos.outputs.endpoint
     cosmosAccountName: cosmosAccountName
     cosmosDatabase: cosmosDatabase
