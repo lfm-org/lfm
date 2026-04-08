@@ -1,8 +1,11 @@
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Lfm.Api.Functions;
@@ -18,7 +21,8 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public class BattleNetLogoutFunction(
     IOptions<BlizzardOptions> blizzardOptions,
-    IOptions<AuthOptions> authOptions)
+    IOptions<AuthOptions> authOptions,
+    ILogger<BattleNetLogoutFunction> logger)
 {
     private readonly BlizzardOptions _blizzardOpts = blizzardOptions.Value;
     private readonly AuthOptions _authOpts = authOptions.Value;
@@ -29,6 +33,9 @@ public class BattleNetLogoutFunction(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "battlenet/logout")] HttpRequest req,
         FunctionContext ctx)
     {
+        var principal = ctx.GetPrincipal();
+        AuditLog.Emit(logger, new AuditEvent("logout", principal.BattleNetId, null, "success", null));
+
         // Clear the auth cookie by deleting it (MaxAge=0).
         req.HttpContext.Response.Cookies.Delete(_authOpts.CookieName, new CookieOptions
         {

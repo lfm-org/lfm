@@ -1,3 +1,4 @@
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
@@ -5,6 +6,7 @@ using Lfm.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Lfm.Api.Functions;
@@ -31,7 +33,8 @@ public class BattleNetCallbackFunction(
     ISessionCipher sessionCipher,
     IRaidersRepository raiders,
     IOptions<BlizzardOptions> blizzardOptions,
-    IOptions<AuthOptions> authOptions)
+    IOptions<AuthOptions> authOptions,
+    ILogger<BattleNetCallbackFunction> logger)
 {
     private readonly BlizzardOptions _blizzardOpts = blizzardOptions.Value;
     private readonly AuthOptions _authOpts = authOptions.Value;
@@ -49,12 +52,12 @@ public class BattleNetCallbackFunction(
 
         // Both cookie and state query param are required.
         if (string.IsNullOrEmpty(loginStateCookieRaw) || string.IsNullOrEmpty(urlState))
-            return RejectWithClearedCookie(req);
+            return RejectWithClearedCookie(req, "missing login_state or state");
 
         // Unprotect and validate the login state cookie.
         var loginState = oauthClient.UnprotectLoginState(loginStateCookieRaw);
         if (loginState is null || loginState.Value.state != urlState)
-            return RejectWithClearedCookie(req);
+            return RejectWithClearedCookie(req, "state mismatch");
 
         var codeVerifier = loginState.Value.codeVerifier;
         var postLoginRedirect = loginState.Value.redirect;
@@ -64,12 +67,12 @@ public class BattleNetCallbackFunction(
         try
         {
             if (string.IsNullOrEmpty(code))
-                return RejectWithClearedCookie(req);
+                return RejectWithClearedCookie(req, "missing authorization code");
             token = await oauthClient.ExchangeCodeAsync(code, codeVerifier, cancellationToken);
         }
         catch
         {
-            return RejectWithClearedCookie(req);
+            return RejectWithClearedCookie(req, "token exchange failed");
         }
 
         // Fetch user identity from Battle.net.
@@ -80,7 +83,7 @@ public class BattleNetCallbackFunction(
         }
         catch
         {
-            return RejectWithClearedCookie(req);
+            return RejectWithClearedCookie(req, "user info fetch failed");
         }
 
         var battleNetId = userInfo.Id.ToString();
@@ -121,6 +124,8 @@ public class BattleNetCallbackFunction(
             Expires = principal.ExpiresAt,
         });
 
+        AuditLog.Emit(logger, new AuditEvent("login.success", battleNetId, null, "success", null));
+
         // Clear the login_state cookie.
         ClearLoginStateCookie(req);
 
@@ -135,8 +140,9 @@ public class BattleNetCallbackFunction(
     // Helpers
     // ---------------------------------------------------------------------------
 
-    private IActionResult RejectWithClearedCookie(HttpRequest req)
+    private IActionResult RejectWithClearedCookie(HttpRequest req, string detail)
     {
+        AuditLog.Emit(logger, new AuditEvent("login.failure", "unknown", null, "failure", detail));
         ClearLoginStateCookie(req);
         return new RedirectResult($"{_blizzardOpts.AppBaseUrl}/auth/failure", permanent: false);
     }

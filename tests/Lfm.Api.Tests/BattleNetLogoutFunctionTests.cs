@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -34,10 +35,9 @@ public class BattleNetLogoutFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
-    [Fact]
-    public void Run_clears_auth_cookie_and_redirects_to_app_base_url()
+    private static BattleNetLogoutFunction MakeFunction(
+        Mock<ILogger<BattleNetLogoutFunction>>? loggerMock = null)
     {
-        // Arrange
         var blizzardOpts = MsOptions.Create(new BlizzardOptions
         {
             ClientId = "test-client",
@@ -52,8 +52,15 @@ public class BattleNetLogoutFunctionTests
             CookieName = FakeCookieName,
             CookieMaxAgeHours = 24,
         });
+        var logger = (loggerMock ?? new Mock<ILogger<BattleNetLogoutFunction>>()).Object;
+        return new BattleNetLogoutFunction(blizzardOpts, authOpts, logger);
+    }
 
-        var fn = new BattleNetLogoutFunction(blizzardOpts, authOpts);
+    [Fact]
+    public void Run_clears_auth_cookie_and_redirects_to_app_base_url()
+    {
+        // Arrange
+        var fn = MakeFunction();
         var principal = MakePrincipal();
         var ctx = MakeFunctionContext(principal);
         var httpContext = new DefaultHttpContext();
@@ -91,5 +98,36 @@ public class BattleNetLogoutFunctionTests
         method.Should().NotBeNull();
         method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
             .Should().HaveCount(1, "BattleNetLogoutFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
+    }
+
+    // -----------------------------------------------------------------------
+    // Audit events
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void Run_emits_logout_audit_event()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<BattleNetLogoutFunction>>();
+        var fn = MakeFunction(loggerMock);
+        var principal = MakePrincipal("bnet-42");
+        var ctx = MakeFunctionContext(principal);
+        var httpContext = new DefaultHttpContext();
+        var req = httpContext.Request;
+
+        // Act
+        fn.Run(req, ctx);
+
+        // Assert: logger called with "logout" and "success"
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("logout") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-42")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "logout must emit a logout audit event with result=success");
     }
 }
