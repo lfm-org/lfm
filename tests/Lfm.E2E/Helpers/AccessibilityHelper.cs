@@ -41,6 +41,14 @@ public static class AccessibilityHelper
             {
                 output.WriteLine($"  Target: {string.Join(" > ", node.Target)}");
                 output.WriteLine($"  HTML: {node.Html}");
+                var fixes = node.Any.Concat(node.All).Concat(node.None)
+                    .Select(c => c.Message)
+                    .Where(m => !string.IsNullOrWhiteSpace(m))
+                    .Distinct();
+                foreach (var fix in fixes)
+                {
+                    output.WriteLine($"  Fix: {fix}");
+                }
             }
         }
 
