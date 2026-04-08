@@ -109,22 +109,22 @@ Verify `timeAggregation` is valid for the chosen metric via `microsoft-docs`. Di
 
 Deploy workflows use GitHub repo variables for all project-specific values. Never hardcode in workflows.
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `AZURE_RESOURCE_GROUP` | Target resource group | `lfm` |
-| `AZURE_LOCATION` | Azure region | `westeurope` |
-| `COSMOS_ACCOUNT_NAME` | Cosmos DB account name | `lfm-cosmos` |
-| `STORAGE_ACCOUNT_NAME` | Storage account name | `lfmstore` |
-| `FUNCTION_APP_NAME` | Functions app name | `lfm-functions` |
-| `SWA_NAME` | Static Web App name | `lfm-swa` |
-| `KEY_VAULT_NAME` | Key Vault name | `lfm-kv-prot` |
-| `LOG_ANALYTICS_NAME` | Log Analytics workspace | `lfm-logs` |
-| `COSMOS_DATABASE` | Cosmos DB database name | `lfm` |
-| `API_HOSTNAME` | API custom domain | `lfm-api.dinosauruskeksi.com` |
-| `FRONTEND_HOSTNAME` | Frontend custom domain | `lfm.dinosauruskeksi.com` |
-| `COOKIE_DOMAIN` | Cookie domain | `.dinosauruskeksi.com` |
-| `PRIVACY_EMAIL` | Privacy contact email | *(set in GitHub)* |
-| `BATTLE_NET_REGION` | Battle.net region code | `eu` |
+| Variable | Purpose |
+|----------|---------|
+| `AZURE_RESOURCE_GROUP` | Target resource group |
+| `AZURE_LOCATION` | Azure region |
+| `COSMOS_ACCOUNT_NAME` | Cosmos DB account name |
+| `STORAGE_ACCOUNT_NAME` | Storage account name |
+| `FUNCTION_APP_NAME` | Functions app name |
+| `SWA_NAME` | Static Web App name |
+| `KEY_VAULT_NAME` | Key Vault name |
+| `LOG_ANALYTICS_NAME` | Log Analytics workspace |
+| `COSMOS_DATABASE` | Cosmos DB database name |
+| `API_HOSTNAME` | API custom domain |
+| `FRONTEND_HOSTNAME` | Frontend custom domain |
+| `COOKIE_DOMAIN` | Cookie domain |
+| `PRIVACY_EMAIL` | Privacy contact email |
+| `BATTLE_NET_REGION` | Battle.net region code |
 
 `frontendOrigin`, `battleNetRedirectUri`, and `tags` are derived from the above in the workflow.
 
