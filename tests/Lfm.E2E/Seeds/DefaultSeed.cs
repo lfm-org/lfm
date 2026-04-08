@@ -7,7 +7,8 @@ public static class DefaultSeed
     // Well-known test identifiers shared with AuthHelper and spec files.
     public const string PrimaryBattleNetId = "test-bnet-id";
     public const string SecondaryBattleNetId = "test-bnet-id-2";
-    public const string TestGuildId = "12345";
+    // Must match the guildId assigned by E2ELoginFunction for non-admin test users.
+    public const string TestGuildId = "test-guild-id";
     public const string TestRunId = "e2e-run-001";
 
     public static async Task SeedAsync(CosmosClient client, string databaseName)
@@ -72,6 +73,34 @@ public static class DefaultSeed
                                 {
                                     ["id"] = 62,
                                     ["name"] = "Arcane",
+                                },
+                            },
+                        },
+                    },
+                },
+                // Second character on the primary raider — used by SelectCharacter tests.
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "eu-test-realm-aelrin-alt",
+                    ["region"] = "eu",
+                    ["realm"] = "test-realm",
+                    ["name"] = "Aelrinalt",
+                    ["portraitUrl"] = null,
+                    ["specializationsSummary"] = new Dictionary<string, object?>
+                    {
+                        ["activeSpecialization"] = new Dictionary<string, object?>
+                        {
+                            ["id"] = 65,
+                            ["name"] = "Holy",
+                        },
+                        ["specializations"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["specialization"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 65,
+                                    ["name"] = "Holy",
                                 },
                             },
                         },
@@ -189,8 +218,8 @@ public static class DefaultSeed
     {
         var guild = new Dictionary<string, object?>
         {
-            ["id"] = TestGuildId,
-            ["guildId"] = 12345,
+            ["id"] = TestGuildId,       // matches E2ELoginFunction guildId = "test-guild-id"
+            ["guildId"] = 12345,        // Blizzard integer guild id
             ["realmSlug"] = "test-realm",
             ["slogan"] = "E2E test guild",
             ["setup"] = new Dictionary<string, object?>
@@ -230,6 +259,34 @@ public static class DefaultSeed
                 },
                 ["memberCount"] = 25,
                 ["achievementPoints"] = 1500,
+            },
+            // Roster makes the primary raider (Aelrin, test-realm) rank 0 (guild master),
+            // enabling GuildPermissions.IsAdminAsync to return true for guild admin tests.
+            // blizzardRosterFetchedAt is set to "now" so the roster is considered fresh.
+            ["blizzardRosterFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
+            ["blizzardRosterRaw"] = new Dictionary<string, object?>
+            {
+                ["members"] = new List<object>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["rank"] = 0,
+                        ["character"] = new Dictionary<string, object?>
+                        {
+                            ["name"] = "Aelrin",
+                            ["realm"] = new Dictionary<string, object?> { ["slug"] = "test-realm" },
+                        },
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["rank"] = 1,
+                        ["character"] = new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kaldris",
+                            ["realm"] = new Dictionary<string, object?> { ["slug"] = "test-realm" },
+                        },
+                    },
+                },
             },
         };
 
