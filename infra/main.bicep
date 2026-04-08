@@ -121,16 +121,9 @@ module dataProtection 'modules/dataprotection.bicep' = {
   }
 }
 
-module alerts 'modules/alerts.bicep' = {
-  name: '${uniqueString(resourceGroup().id, location)}-alerts'
-  dependsOn: [functions, cosmos]
-  params: {
-    functionAppName: functionAppName
-    cosmosAccountName: cosmosAccountName
-    alertEmail: privacyEmail
-    tags: tags
-  }
-}
+// Alerts are deployed separately (post-Bicep step in deploy-infra.yml)
+// because Http5xx/HttpResponseTime metrics only register after the
+// Function App has code deployed and has served HTTP traffic.
 
 module swa 'modules/swa.bicep' = {
   name: '${uniqueString(resourceGroup().id, location)}-swa'

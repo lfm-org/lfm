@@ -185,6 +185,18 @@ jobs:
               battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
               tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
 
+      - name: Deploy metric alerts (tolerates first-run failure)
+        continue-on-error: true
+        run: |
+          az deployment group create \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/modules/alerts.bicep \
+            --parameters \
+              functionAppName="${{ vars.FUNCTION_APP_NAME }}" \
+              cosmosAccountName="${{ vars.COSMOS_ACCOUNT_NAME }}" \
+              alertEmail="${{ vars.PRIVACY_EMAIL }}" \
+              tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
+
       - name: Configure Functions custom domain and managed certificate
         run: |
           HOSTNAME="${{ vars.API_HOSTNAME }}"
