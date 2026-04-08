@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -83,6 +84,14 @@ public class RunsCancelSignupFunctionTests
             SpecName: "Shadow",
             Role: null);
 
+    private static RunsCancelSignupFunction MakeFunction(
+        Mock<IRunsRepository> runsRepo,
+        Mock<ILogger<RunsCancelSignupFunction>>? loggerMock = null)
+    {
+        var logger = (loggerMock ?? new Mock<ILogger<RunsCancelSignupFunction>>()).Object;
+        return new RunsCancelSignupFunction(runsRepo.Object, logger);
+    }
+
     // ------------------------------------------------------------------
     // Test 1: Happy path — removes user's signup and returns 200
     // ------------------------------------------------------------------
@@ -102,7 +111,7 @@ public class RunsCancelSignupFunctionTests
         runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRun);
 
-        var fn = new RunsCancelSignupFunction(runsRepo.Object);
+        var fn = MakeFunction(runsRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
@@ -129,7 +138,7 @@ public class RunsCancelSignupFunctionTests
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
 
-        var fn = new RunsCancelSignupFunction(runsRepo.Object);
+        var fn = MakeFunction(runsRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
@@ -150,5 +159,44 @@ public class RunsCancelSignupFunctionTests
         method.Should().NotBeNull();
         method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
             .Should().HaveCount(1, "RunsCancelSignupFunction.Run must carry [RequireAuth]");
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: Happy path — emits signup.cancel audit event
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_signup_cancel_audit_event_on_success()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var entry = MakeCharacterEntry(battleNetId: "bnet-user");
+        var run = MakeRunDoc(runCharacters: [entry]);
+
+        var updatedRun = run with { RunCharacters = [] };
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedRun);
+
+        var loggerMock = new Mock<ILogger<RunsCancelSignupFunction>>();
+        var fn = MakeFunction(runsRepo, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+
+        await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("signup.cancel") &&
+                    v.ToString()!.Contains("bnet-user") &&
+                    v.ToString()!.Contains("success")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "success path must emit a signup.cancel audit event with the battleNetId and result");
     }
 }

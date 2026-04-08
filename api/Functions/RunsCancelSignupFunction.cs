@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
@@ -25,7 +27,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-cancel-signup.ts</c>.
 /// </summary>
-public class RunsCancelSignupFunction(IRunsRepository runsRepo)
+public class RunsCancelSignupFunction(IRunsRepository runsRepo, ILogger<RunsCancelSignupFunction> logger)
 {
     [Function("runs-cancel-signup")]
     [RequireAuth]
@@ -78,6 +80,8 @@ public class RunsCancelSignupFunction(IRunsRepository runsRepo)
         // 6. Persist the updated run document.
         var updated = run with { RunCharacters = updatedCharacters };
         var persisted = await runsRepo.UpdateAsync(updated, ct);
+
+        AuditLog.Emit(logger, new AuditEvent("signup.cancel", principal.BattleNetId, id, "success", null));
 
         // 7. Return sanitized run — mirrors sanitizeRunDocumentForResponse.
         return new OkObjectResult(Sanitize(persisted, principal.BattleNetId));

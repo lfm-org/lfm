@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
@@ -31,7 +33,8 @@ namespace Lfm.Api.Functions;
 public class RunsSignupFunction(
     IRunsRepository runsRepo,
     IRaidersRepository raidersRepo,
-    IGuildPermissions guildPermissions)
+    IGuildPermissions guildPermissions,
+    ILogger<RunsSignupFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -170,6 +173,8 @@ public class RunsSignupFunction(
         // 7. Persist the updated run document.
         var updated = run with { RunCharacters = updatedCharacters };
         var persisted = await runsRepo.UpdateAsync(updated, ct);
+
+        AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "success", null));
 
         // 8. Return sanitized run — mirrors sanitizeOptionalRunDocumentForResponse.
         return new OkObjectResult(Sanitize(persisted, principal.BattleNetId));

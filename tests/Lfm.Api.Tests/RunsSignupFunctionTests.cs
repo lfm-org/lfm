@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -47,6 +48,16 @@ public class RunsSignupFunctionTests
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
         httpContext.Request.ContentType = "application/json";
         return httpContext.Request;
+    }
+
+    private static RunsSignupFunction MakeFunction(
+        Mock<IRunsRepository> runsRepo,
+        Mock<IRaidersRepository> raidersRepo,
+        Mock<IGuildPermissions> permissions,
+        Mock<ILogger<RunsSignupFunction>>? loggerMock = null)
+    {
+        var logger = (loggerMock ?? new Mock<ILogger<RunsSignupFunction>>()).Object;
+        return new RunsSignupFunction(runsRepo.Object, raidersRepo.Object, permissions.Object, logger);
     }
 
     private static RunDocument MakeRunDoc(
@@ -138,7 +149,7 @@ public class RunsSignupFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = new RunsSignupFunction(runsRepo.Object, raidersRepo.Object, permissions.Object);
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
@@ -167,7 +178,7 @@ public class RunsSignupFunctionTests
         var raidersRepo = new Mock<IRaidersRepository>();
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = new RunsSignupFunction(runsRepo.Object, raidersRepo.Object, permissions.Object);
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
@@ -199,7 +210,7 @@ public class RunsSignupFunctionTests
         permissions.Setup(p => p.CanSignupGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = new RunsSignupFunction(runsRepo.Object, raidersRepo.Object, permissions.Object);
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
@@ -222,5 +233,77 @@ public class RunsSignupFunctionTests
         method.Should().NotBeNull();
         method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
             .Should().HaveCount(1, "RunsSignupFunction.Run must carry [RequireAuth]");
+    }
+
+    // ------------------------------------------------------------------
+    // Test 5: Happy path — emits signup.create audit event
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_signup_create_audit_event_on_success()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var run = MakeRunDoc();
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+
+        var requestBody = new
+        {
+            characterId = "char-1",
+            desiredAttendance = "IN",
+            specId = (int?)null,
+        };
+
+        var updatedRun = run with
+        {
+            RunCharacters = [
+                new RunCharacterEntry(
+                    Id: "new-entry-id",
+                    CharacterId: "char-1",
+                    CharacterName: "Testchar",
+                    CharacterRealm: "silvermoon",
+                    CharacterLevel: 0,
+                    CharacterClassId: 0,
+                    CharacterClassName: "",
+                    CharacterRaceId: 0,
+                    CharacterRaceName: "",
+                    RaiderBattleNetId: "bnet-user",
+                    DesiredAttendance: "IN",
+                    ReviewedAttendance: "IN",
+                    SpecId: null,
+                    SpecName: null,
+                    Role: null)
+            ]
+        };
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedRun);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var permissions = new Mock<IGuildPermissions>();
+
+        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+
+        await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("signup.create") &&
+                    v.ToString()!.Contains("bnet-user") &&
+                    v.ToString()!.Contains("success")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "success path must emit a signup.create audit event with the battleNetId and result");
     }
 }
