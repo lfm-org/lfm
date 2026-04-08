@@ -104,7 +104,7 @@ jobs:
             if [ -n "$STALE_COSMOS" ]; then
               LOCK_NAME=$(az lock list --resource-group "$RG" \
                 --resource-name "$COSMOS_ACCOUNT" --resource-type "Microsoft.DocumentDB/databaseAccounts" \
-                --query "[?properties.level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
+                --query "[?level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
               if [ -n "$LOCK_NAME" ]; then
                 echo "Temporarily removing CanNotDelete lock '$LOCK_NAME' on $COSMOS_ACCOUNT..."
                 az lock delete --name "$LOCK_NAME" --resource-group "$RG" \
