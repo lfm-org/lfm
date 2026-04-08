@@ -113,14 +113,20 @@ Deploy workflows use GitHub repo variables for all project-specific values. Neve
 |----------|---------|---------|
 | `AZURE_RESOURCE_GROUP` | Target resource group | `lfm` |
 | `AZURE_LOCATION` | Azure region | `westeurope` |
+| `COSMOS_ACCOUNT_NAME` | Cosmos DB account name | `lfm-cosmos` |
+| `STORAGE_ACCOUNT_NAME` | Storage account name | `lfmstore` |
 | `FUNCTION_APP_NAME` | Functions app name | `lfm-functions` |
-| `KEY_VAULT_NAME` | Key Vault name | `lfm-kv-prot` |
 | `SWA_NAME` | Static Web App name | `lfm-swa` |
+| `KEY_VAULT_NAME` | Key Vault name | `lfm-kv-prot` |
 | `LOG_ANALYTICS_NAME` | Log Analytics workspace | `lfm-logs` |
+| `COSMOS_DATABASE` | Cosmos DB database name | `lfm` |
 | `API_HOSTNAME` | API custom domain | `lfm-api.dinosauruskeksi.com` |
 | `FRONTEND_HOSTNAME` | Frontend custom domain | `lfm.dinosauruskeksi.com` |
-| `PARAMETER_FILE` | Bicep parameter file path | `infra/parameters.prod.lfm.json` |
+| `COOKIE_DOMAIN` | Cookie domain | `.dinosauruskeksi.com` |
 | `PRIVACY_EMAIL` | Privacy contact email | *(set in GitHub)* |
+| `BATTLE_NET_REGION` | Battle.net region code | `eu` |
+
+`frontendOrigin`, `battleNetRedirectUri`, and `tags` are derived from the above in the workflow.
 
 ### `az` CLI usage
 
@@ -132,7 +138,7 @@ Acceptable for cleanup or exploration or debugging. Any `az` CLI change is eithe
 
 ### Structure
 
-`infra/main.bicep` orchestrates `infra/modules/`. New params → add to both `main.bicep` and `infra/parameters.example.json`. Module params are required with no defaults — expanded through `main.bicep` via parameter files. Production param files (`parameters.prod.*.json`) are gitignored.
+`infra/main.bicep` orchestrates `infra/modules/`. New params → add to both `main.bicep` and `infra/parameters.example.json`, and add a corresponding GitHub variable to `deploy-infra.yml` inline overrides. Module params are required with no defaults. `parameters.example.json` serves as a reference for local deployments.
 
 ## Azure Functions
 

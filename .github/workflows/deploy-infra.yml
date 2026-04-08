@@ -148,16 +148,42 @@ jobs:
           az deployment group what-if \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/main.bicep \
-            --parameters "${{ vars.PARAMETER_FILE }}" \
-            --parameters "privacyEmail=${{ vars.PRIVACY_EMAIL }}"
+            --parameters \
+              location="${{ vars.AZURE_LOCATION }}" \
+              cosmosAccountName="${{ vars.COSMOS_ACCOUNT_NAME }}" \
+              storageAccountName="${{ vars.STORAGE_ACCOUNT_NAME }}" \
+              functionAppName="${{ vars.FUNCTION_APP_NAME }}" \
+              swaName="${{ vars.SWA_NAME }}" \
+              keyVaultName="${{ vars.KEY_VAULT_NAME }}" \
+              logAnalyticsWorkspaceName="${{ vars.LOG_ANALYTICS_NAME }}" \
+              privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
+              cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
+              frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
+              cookieDomain="${{ vars.COOKIE_DOMAIN }}" \
+              battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
+              battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
+              tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
 
       - name: Deploy Bicep
         run: |
           az deployment group create \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/main.bicep \
-            --parameters "${{ vars.PARAMETER_FILE }}" \
-            --parameters "privacyEmail=${{ vars.PRIVACY_EMAIL }}"
+            --parameters \
+              location="${{ vars.AZURE_LOCATION }}" \
+              cosmosAccountName="${{ vars.COSMOS_ACCOUNT_NAME }}" \
+              storageAccountName="${{ vars.STORAGE_ACCOUNT_NAME }}" \
+              functionAppName="${{ vars.FUNCTION_APP_NAME }}" \
+              swaName="${{ vars.SWA_NAME }}" \
+              keyVaultName="${{ vars.KEY_VAULT_NAME }}" \
+              logAnalyticsWorkspaceName="${{ vars.LOG_ANALYTICS_NAME }}" \
+              privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
+              cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
+              frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
+              cookieDomain="${{ vars.COOKIE_DOMAIN }}" \
+              battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
+              battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
+              tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
 
       - name: Configure Functions custom domain and managed certificate
         run: |

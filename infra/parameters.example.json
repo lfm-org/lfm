@@ -13,7 +13,7 @@
     "swaName": { "value": "myapp-swa" },
     "keyVaultName": { "value": "myapp-kv" },
     "logAnalyticsWorkspaceName": { "value": "myapp-logs" },
-    "privacyEmail": { "value": "REPLACED_BY_CI" },
+    "privacyEmail": { "value": "privacy@example.com" },
     "cosmosDatabase": { "value": "myapp" },
     "frontendOrigin": { "value": "https://myapp.example.com" },
     "cookieDomain": { "value": ".example.com" },

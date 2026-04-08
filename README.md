@@ -63,6 +63,57 @@ dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category!=Perf"
 
 Requires the Docker test stack from `docker-compose.test.yml`.
 
+## Deployment
+
+Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workflow. All Bicep parameters are passed inline from GitHub repository variables.
+
+### Required GitHub Actions Variables
+
+**Azure identity (OIDC):**
+
+| Variable | Purpose |
+|----------|---------|
+| `AZURE_CLIENT_ID` | Service principal client ID |
+| `AZURE_TENANT_ID` | Azure AD tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+
+**Resource names:**
+
+| Variable | Purpose |
+|----------|---------|
+| `AZURE_RESOURCE_GROUP` | Target resource group |
+| `AZURE_LOCATION` | Azure region |
+| `COSMOS_ACCOUNT_NAME` | Cosmos DB account name |
+| `STORAGE_ACCOUNT_NAME` | Storage account name |
+| `FUNCTION_APP_NAME` | Function App name |
+| `SWA_NAME` | Static Web App name |
+| `KEY_VAULT_NAME` | Key Vault name |
+| `LOG_ANALYTICS_NAME` | Log Analytics workspace name |
+| `COSMOS_DATABASE` | Cosmos DB database name |
+
+**Domains:**
+
+| Variable | Purpose |
+|----------|---------|
+| `API_HOSTNAME` | API custom domain |
+| `FRONTEND_HOSTNAME` | Frontend custom domain |
+| `COOKIE_DOMAIN` | Cookie domain (parent domain with dot prefix) |
+
+**Application:**
+
+| Variable | Purpose |
+|----------|---------|
+| `PRIVACY_EMAIL` | Privacy contact email |
+| `BATTLE_NET_REGION` | Battle.net region code |
+
+`frontendOrigin`, `battleNetRedirectUri`, and resource `tags` are derived from the above in the workflow.
+
+### Required GitHub Actions Secrets
+
+| Secret | Purpose |
+|--------|---------|
+| `SWA_DEPLOYMENT_TOKEN` | Static Web Apps deployment token |
+
 ## Structure
 
 - `app/`: Blazor WASM pages, components, services
