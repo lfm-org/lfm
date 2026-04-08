@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,6 +12,10 @@ namespace Lfm.E2E.Infrastructure;
 ///
 /// Subclasses must set <see cref="Page"/> and <see cref="Context"/> before
 /// tests execute (typically in <see cref="InitializeAsync"/>).
+///
+/// Diagnostics (screenshots, traces, DOM snapshots) are always captured in
+/// DisposeAsync. This ensures failure artifacts are available regardless of
+/// how the test fails. The overhead is minimal and artifacts are gitignored.
 /// </summary>
 public abstract class E2ETestBase : IAsyncLifetime
 {
@@ -21,9 +25,8 @@ public abstract class E2ETestBase : IAsyncLifetime
     private const string DomSnapshotsDir = $"{ArtifactsRoot}/dom-snapshots";
 
     private readonly ITestOutputHelper _output;
-    private readonly List<string> _consoleMessages = [];
-    private readonly List<string> _requestFailures = [];
-    private bool _failed;
+    private readonly ConcurrentQueue<string> _consoleMessages = new();
+    private readonly ConcurrentQueue<string> _requestFailures = new();
 
     protected E2ETestBase(ITestOutputHelper output)
     {
@@ -36,17 +39,30 @@ public abstract class E2ETestBase : IAsyncLifetime
     /// <summary>Browser context used by the current test. Set by subclasses.</summary>
     protected IBrowserContext? Context { get; set; }
 
+    /// <summary>Exposes the output helper for use by static helpers.</summary>
+    protected ITestOutputHelper Output => _output;
+
     /// <summary>
     /// Name used for artifact file names. Defaults to the runtime type name.
     /// Subclasses may override for more descriptive names.
     /// </summary>
     protected virtual string TestName => GetType().Name;
 
-    public virtual Task InitializeAsync() => Task.CompletedTask;
+    public virtual async Task InitializeAsync()
+    {
+        if (Context is not null)
+        {
+            await Context.Tracing.StartAsync(new TracingStartOptions
+            {
+                Screenshots = true,
+                Snapshots = true,
+            });
+        }
+    }
 
     public virtual async Task DisposeAsync()
     {
-        if (_failed && Page is not null)
+        if (Page is not null)
         {
             await CaptureFailureDiagnosticsAsync();
         }
@@ -67,22 +83,16 @@ public abstract class E2ETestBase : IAsyncLifetime
             if (msg.Type is "error" or "warning")
             {
                 var line = $"[Browser {msg.Type.ToUpper()}] {msg.Text}";
-                _consoleMessages.Add(line);
+                _consoleMessages.Enqueue(line);
             }
         };
 
         Page.RequestFailed += (_, req) =>
         {
             var line = $"[Browser REQUESTFAILED] {req.Url} - {req.Failure}";
-            _requestFailures.Add(line);
+            _requestFailures.Enqueue(line);
         };
     }
-
-    /// <summary>
-    /// Marks the current test as failed so that <see cref="DisposeAsync"/>
-    /// captures failure diagnostics. Call from catch blocks or test assertions.
-    /// </summary>
-    protected void MarkFailed() => _failed = true;
 
     /// <summary>
     /// Writes a PASS line to structured output.
@@ -176,12 +186,12 @@ public abstract class E2ETestBase : IAsyncLifetime
 
     private void LogCapturedMessages()
     {
-        foreach (var msg in _consoleMessages)
+        while (_consoleMessages.TryDequeue(out var msg))
         {
             _output.WriteLine(msg);
         }
 
-        foreach (var msg in _requestFailures)
+        while (_requestFailures.TryDequeue(out var msg))
         {
             _output.WriteLine(msg);
         }

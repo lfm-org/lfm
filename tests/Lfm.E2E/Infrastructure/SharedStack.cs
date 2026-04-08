@@ -1,3 +1,5 @@
+using Lfm.E2E.Seeds;
+
 namespace Lfm.E2E.Infrastructure;
 
 /// <summary>
@@ -5,6 +7,7 @@ namespace Lfm.E2E.Infrastructure;
 /// initialization per test run, regardless of how many collections exist.
 /// Each collection fixture calls <see cref="GetAsync"/> to share the stack,
 /// then creates its own IBrowserContext for isolation.
+/// Seed data is run once during initialization — fixtures do not need to seed.
 /// Cleanup is handled via <see cref="AppDomain.CurrentDomain.ProcessExit"/>.
 /// </summary>
 public static class SharedStack
@@ -14,6 +17,7 @@ public static class SharedStack
         {
             var stack = new StackFixture();
             await stack.InitializeAsync();
+            await DefaultSeed.SeedAsync(stack.CosmosClient, StackFixture.DatabaseName);
             return stack;
         },
         LazyThreadSafetyMode.ExecutionAndPublication);
