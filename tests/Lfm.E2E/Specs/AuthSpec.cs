@@ -1,37 +1,42 @@
 using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
+using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Pages;
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Lfm.E2E.Specs;
 
-[Collection("Default")]
-public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
+[Collection("Auth")]
+[Trait("Category", "Functional")]
+public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
+    : E2ETestBase(output), IAsyncLifetime
 {
-    private IBrowserContext _context = null!;
-    private IPage _page = null!;
-
-    public async Task InitializeAsync()
+    public override async Task InitializeAsync()
     {
-        _context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
-        _page = await _context.NewPageAsync();
+        await base.InitializeAsync();
+        Context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
+        Page = await Context.NewPageAsync();
+        AttachDiagnosticListeners();
     }
 
-    public async Task DisposeAsync()
+    public override async Task DisposeAsync()
     {
-        await _context.CloseAsync();
+        await base.DisposeAsync();
+        if (Context is not null)
+            await Context.CloseAsync();
     }
 
     [Fact]
     public async Task LoginPage_Renders_ShowsSignInButton()
     {
-        var loginPage = new LoginPage(_page);
+        var loginPage = new LoginPage(Page!);
 
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
-        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
         var visible = await loginPage.IsSignInButtonVisibleAsync();
         visible.Should().BeTrue();
     }
@@ -39,16 +44,16 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task SignIn_ClickButton_RedirectsToBattleNetOAuth()
     {
-        var loginPage = new LoginPage(_page);
+        var loginPage = new LoginPage(Page!);
 
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        await Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         // forceLoad: true navigates to /api/battlenet/login, which immediately
         // redirects to the external Battle.net OAuth URL (unavailable in test).
         // Wait for the request to /api/battlenet/login to be initiated, which
         // confirms the button wired up the correct navigation URL.
-        var loginRequestTask = _page.WaitForRequestAsync(
+        var loginRequestTask = Page!.WaitForRequestAsync(
             new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
             new() { Timeout = 10000 });
 
@@ -64,15 +69,15 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
             + $"?battleNetId=test-bnet-id"
             + $"&redirect={Uri.EscapeDataString("/runs")}";
 
-        await _page.GotoAsync(loginUrl, new() { WaitUntil = WaitUntilState.NetworkIdle });
+        await Page!.GotoAsync(loginUrl, new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        await _page.WaitForURLAsync(
+        await Page.WaitForURLAsync(
             new System.Text.RegularExpressions.Regex(@"/runs"),
             new() { Timeout = 15000 });
 
         // Verify auth cookie was set — nav bar shows Sign Out
-        var navBar = new NavBar(_page);
-        await Expect(navBar.SignOutButton).ToBeVisibleAsync();
+        var navBar = new NavBar(Page);
+        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -90,7 +95,7 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
                 new() { WaitUntil = WaitUntilState.NetworkIdle });
 
             var navBar = new NavBar(authPage);
-            await Expect(navBar.SignOutButton).ToBeVisibleAsync();
+            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync();
 
             // Sign out navigates to /api/battlenet/logout (forceLoad)
             // which clears the cookie and redirects to app base URL
@@ -103,7 +108,7 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
             // Verify session cleared — protected route redirects to login
             await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
                 new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await Expect(authPage).ToHaveURLAsync(
+            await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"));
         }
         finally
@@ -115,18 +120,12 @@ public class LoginEntrySpec(DefaultFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task AuthFailure_NavigateToErrorPage_ShowsErrorMessage()
     {
-        var errorPage = new LoginFailedPage(_page);
+        var errorPage = new LoginFailedPage(Page!);
 
         await errorPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
-        await Expect(errorPage.ErrorHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Expect(errorPage.ErrorMessage).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Expect(errorPage.TryAgainButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(errorPage.ErrorHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(errorPage.ErrorMessage).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(errorPage.TryAgainButton).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
-
-    private static ILocatorAssertions Expect(ILocator locator) =>
-        Assertions.Expect(locator);
-
-    private static IPageAssertions Expect(IPage page) =>
-        Assertions.Expect(page);
 }

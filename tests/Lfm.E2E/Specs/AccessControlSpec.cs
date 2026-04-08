@@ -1,76 +1,116 @@
 using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
+using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Pages;
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Lfm.E2E.Specs;
 
-[Collection("Default")]
-public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
+[Collection("AccessControl")]
+[Trait("Category", "Functional")]
+public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper output)
+    : E2ETestBase(output), IAsyncLifetime
 {
-    private IBrowserContext _context = null!;
-    private IPage _page = null!;
-
-    public async Task InitializeAsync()
+    public override async Task InitializeAsync()
     {
-        _context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
-        _page = await _context.NewPageAsync();
-        _page.Console += (_, msg) =>
-        {
-            if (msg.Type is "error" or "warning")
-                System.Console.WriteLine($"[Browser {msg.Type.ToUpper()}] {msg.Text}");
-        };
-        _page.RequestFailed += (_, req) =>
-            System.Console.WriteLine($"[Browser REQUESTFAILED] {req.Url} - {req.Failure}");
+        await base.InitializeAsync();
+        Context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
+        Page = await Context.NewPageAsync();
+        AttachDiagnosticListeners();
     }
 
-    public async Task DisposeAsync()
+    public override async Task DisposeAsync()
     {
-        await _context.CloseAsync();
+        await base.DisposeAsync();
+        if (Context is not null)
+            await Context.CloseAsync();
     }
 
     [Fact]
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromRuns()
     {
-        await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        await Expect(_page).ToHaveURLAsync(
+        await Assertions.Expect(Page).ToHaveURLAsync(
             new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns$"),
             new() { Timeout = 30000 });
 
-        var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromCharacters()
     {
-        await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters",
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        await Expect(_page).ToHaveURLAsync(
+        await Assertions.Expect(Page).ToHaveURLAsync(
             new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fcharacters$"),
             new() { Timeout = 30000 });
 
-        var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromCreateRun()
     {
-        await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs/new",
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs/new",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        await Expect(_page).ToHaveURLAsync(
+        await Assertions.Expect(Page).ToHaveURLAsync(
             new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns%2Fnew$"),
             new() { Timeout = 30000 });
 
-        var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
+    [Fact]
+    public async Task ProtectedRoute_Unauthenticated_RedirectsFromGuild()
+    {
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        await Assertions.Expect(Page).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fguild$"),
+            new() { Timeout = 30000 });
+
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
+    [Fact]
+    public async Task ProtectedRoute_Unauthenticated_RedirectsFromGuildAdmin()
+    {
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild-admin",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        await Assertions.Expect(Page).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fguild-admin$"),
+            new() { Timeout = 30000 });
+
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
+    [Fact]
+    public async Task ProtectedRoute_Unauthenticated_RedirectsFromInstances()
+    {
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/instances",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        await Assertions.Expect(Page).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Finstances$"),
+            new() { Timeout = 30000 });
+
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
@@ -88,12 +128,12 @@ public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
                 new() { WaitUntil = WaitUntilState.NetworkIdle });
 
             // Verify the page loaded (not redirected to login)
-            await Expect(authPage).ToHaveURLAsync(
+            await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/runs$"));
 
             // Verify authenticated nav is visible — confirms auth state
             var navBar = new NavBar(authPage);
-            await Expect(navBar.SignOutButton).ToBeVisibleAsync();
+            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync();
         }
         finally
         {
@@ -105,28 +145,22 @@ public class AccessControlSpec(DefaultFixture fixture) : IAsyncLifetime
     public async Task PublicRoute_Unauthenticated_RendersWithoutRedirect()
     {
         // Landing page
-        await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/",
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        _page.Url.Should().NotContain("/login?redirect");
+        Page.Url.Should().NotContain("/login?redirect");
 
         // Login page
-        await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/login",
+        await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/login",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        var loginPage = new LoginPage(_page);
-        await Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        _page.Url.Should().Contain("/login");
-        _page.Url.Should().NotContain("redirect=");
+        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        Page.Url.Should().Contain("/login");
+        Page.Url.Should().NotContain("redirect=");
 
         // Privacy page
-        await _page.GotoAsync($"{fixture.Stack.AppBaseUrl}/privacy",
+        await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/privacy",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        _page.Url.Should().Contain("/privacy");
-        _page.Url.Should().NotContain("/login?redirect");
+        Page.Url.Should().Contain("/privacy");
+        Page.Url.Should().NotContain("/login?redirect");
     }
-
-    private static ILocatorAssertions Expect(ILocator locator) =>
-        Assertions.Expect(locator);
-
-    private static IPageAssertions Expect(IPage page) =>
-        Assertions.Expect(page);
 }
