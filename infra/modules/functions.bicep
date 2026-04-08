@@ -113,8 +113,6 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       }
     }
     siteConfig: {
-      alwaysOn: false
-      ftpsState: 'Disabled'
       http20Enabled: true
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
@@ -125,8 +123,6 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       }
       appSettings: [
         { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
-
-        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'Authorization=AAD' }
         { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
