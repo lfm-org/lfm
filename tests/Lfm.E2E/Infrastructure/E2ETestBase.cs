@@ -44,9 +44,6 @@ public abstract class E2ETestBase : IAsyncLifetime
     /// <summary>Browser context used by the current test. Set by subclasses.</summary>
     protected IBrowserContext? Context { get; set; }
 
-    /// <summary>Exposes the output helper for use by static helpers.</summary>
-    protected ITestOutputHelper Output => _output;
-
     /// <summary>
     /// Name used for artifact file names. Defaults to the runtime type name.
     /// Subclasses may override for more descriptive names.
