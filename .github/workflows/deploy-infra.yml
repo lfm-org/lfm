@@ -92,19 +92,32 @@ jobs:
             echo "No stale RBAC role assignments found."
           fi
 
-          # Clean up stale Cosmos SQL role assignments
+          # Clean up stale Cosmos SQL role assignments.
+          # The Cosmos account has a CanNotDelete lock that blocks deletion —
+          # temporarily remove it, clean up, and let Bicep recreate the lock.
           COSMOS_ACCOUNT=$(az cosmosdb list --resource-group "$RG" \
             --query "[0].name" -o tsv 2>/dev/null || echo "")
           if [ -n "$COSMOS_ACCOUNT" ]; then
             STALE_COSMOS=$(az cosmosdb sql role assignment list \
               --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
               --query "[?principalId!='$CURRENT_PRINCIPAL'].id" -o tsv 2>/dev/null || echo "")
-            for ID in $STALE_COSMOS; do
-              echo "Deleting stale Cosmos SQL role assignment: $ID"
-              az cosmosdb sql role assignment delete \
-                --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
-                --role-assignment-id "$ID" --yes
-            done
+            if [ -n "$STALE_COSMOS" ]; then
+              LOCK_NAME=$(az lock list --resource-group "$RG" \
+                --resource-name "$COSMOS_ACCOUNT" --resource-type "Microsoft.DocumentDB/databaseAccounts" \
+                --query "[?properties.level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
+              if [ -n "$LOCK_NAME" ]; then
+                echo "Temporarily removing CanNotDelete lock '$LOCK_NAME' on $COSMOS_ACCOUNT..."
+                az lock delete --name "$LOCK_NAME" --resource-group "$RG" \
+                  --resource-name "$COSMOS_ACCOUNT" --resource-type "Microsoft.DocumentDB/databaseAccounts"
+              fi
+              for ID in $STALE_COSMOS; do
+                echo "Deleting stale Cosmos SQL role assignment: $ID"
+                az cosmosdb sql role assignment delete \
+                  --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
+                  --role-assignment-id "$ID" --yes
+              done
+              echo "Bicep will recreate the lock during deployment."
+            fi
           fi
 
       - name: Preview infrastructure changes (what-if)
