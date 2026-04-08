@@ -13,13 +13,13 @@ public class NavBar(IPage page)
         _page.Locator("fluent-anchor[href='/login']");
 
     public ILocator RunsLink =>
-        _page.Locator("fluent-anchor[href='/runs']");
+        _page.GetByRole(AriaRole.Link, new() { Name = "Runs", Exact = true });
 
     public ILocator GuildLink =>
-        _page.Locator("fluent-anchor[href='/guild']");
+        _page.GetByRole(AriaRole.Link, new() { Name = "Guild", Exact = true });
 
     public ILocator CharactersLink =>
-        _page.Locator("fluent-anchor[href='/characters']");
+        _page.GetByRole(AriaRole.Link, new() { Name = "Characters", Exact = true });
 
     public async Task<bool> IsSignOutVisibleAsync()
     {

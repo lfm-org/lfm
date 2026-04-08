@@ -14,9 +14,9 @@ public class GuildAdminPage(IPage page)
     public ILocator OverrideSettingsHeading =>
         _page.GetByText("Override Settings");
 
-    // The slogan textarea (id: guild-slogan)
+    // FluentTextArea wrapper — target the inner textarea for FillAsync to work
     public ILocator SloganField =>
-        _page.Locator("#guild-slogan");
+        _page.Locator("#guild-slogan textarea");
 
     // The "Save Settings" submit button
     public ILocator SaveButton =>

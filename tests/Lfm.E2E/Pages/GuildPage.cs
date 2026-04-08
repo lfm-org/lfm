@@ -6,9 +6,9 @@ public class GuildPage(IPage page)
 {
     private readonly IPage _page = page;
 
-    // The page heading — "Guild"
+    // Page heading rendered by FluentLabel Typo=H3. Use typo attribute to disambiguate from nav links.
     public ILocator Heading =>
-        _page.GetByText("Guild");
+        _page.Locator("[typo='h3']").Filter(new() { HasTextString = "Guild" });
 
     // The guild name heading rendered inside the card
     public ILocator GuildNameHeading =>

@@ -166,9 +166,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await page.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        // Wait for the Guild heading to confirm the page has rendered
+        // Wait for the Guild page heading (use typo attribute to disambiguate from nav)
         await Assertions.Expect(
-            page.GetByRole(AriaRole.Heading, new() { Name = "Guild" }))
+            page.Locator("[typo='h3']").Filter(new() { HasTextString = "Guild" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
 
         await AccessibilityHelper.ScanAndAssert(page, Output, "/guild");
@@ -350,15 +350,15 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         var navBar = new NavBar(page);
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Find the Instances nav link and activate it with Enter
-        var instancesLink = page.GetByRole(AriaRole.Link, new() { Name = "Instances" });
-        await Assertions.Expect(instancesLink).ToBeVisibleAsync(new() { Timeout = 10000 });
+        // Find the Characters nav link and activate it with Enter
+        var charactersLink = navBar.CharactersLink;
+        await Assertions.Expect(charactersLink).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        await instancesLink.FocusAsync();
+        await charactersLink.FocusAsync();
         await page.Keyboard.PressAsync("Enter");
 
         await Assertions.Expect(page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/instances"),
+            new System.Text.RegularExpressions.Regex(@"/characters"),
             new() { Timeout = 15000 });
     }
 
@@ -383,7 +383,8 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         // Find the delete confirmation text field, type partial text and press Enter.
         // The button is disabled when confirmation != "FORGET ME", so pressing Enter
         // in the field should not navigate away.
-        var deleteField = page.GetByPlaceholder("FORGET ME");
+        // Target the inner input of the FluentTextField wrapper
+        var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME'] input");
         await Assertions.Expect(deleteField).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         await deleteField.FocusAsync();

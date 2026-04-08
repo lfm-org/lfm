@@ -39,6 +39,18 @@ public static class DefaultSeed
                 new ContainerProperties("runs", "/id")))).Container;
 
         await SeedRunAsync(runsContainer);
+
+        // --- Instances container (partition key: /id) ---
+        var instancesContainer = (await RetryAsync(
+            () => db.CreateContainerIfNotExistsAsync(
+                new ContainerProperties("instances", "/id")))).Container;
+
+        await SeedInstancesAsync(instancesContainer);
+
+        // --- Specializations container (partition key: /id) ---
+        await RetryAsync(
+            () => db.CreateContainerIfNotExistsAsync(
+                new ContainerProperties("specializations", "/id")));
     }
 
     private static async Task SeedPrimaryRaiderAsync(Container container)
@@ -337,6 +349,22 @@ public static class DefaultSeed
 
         await RetryAsync(
             () => container.UpsertItemAsync(run, new PartitionKey(TestRunId)));
+    }
+
+    private static async Task SeedInstancesAsync(Container container)
+    {
+        // Matches InstanceDocument schema: id = "{instanceId}:{modeKey}", partition key = /id
+        var instance = new Dictionary<string, object?>
+        {
+            ["id"] = "67:NORMAL:25",
+            ["instanceId"] = "67",
+            ["name"] = "Liberation of Undermine",
+            ["modeKey"] = "NORMAL:25",
+            ["expansion"] = "The War Within",
+        };
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(instance, new PartitionKey("67:NORMAL:25")));
     }
 
     private static async Task<T> RetryAsync<T>(Func<Task<T>> action, int maxRetries = 5)
