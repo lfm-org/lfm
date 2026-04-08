@@ -114,7 +114,7 @@ jobs:
                 echo "Deleting stale Cosmos SQL role assignment: $ID"
                 az cosmosdb sql role assignment delete \
                   --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
-                  --role-assignment-id "$ID" --yes
+                  --role-assignment-id "$ID" --yes 2>/dev/null || true
               done
               echo "Bicep will recreate the lock during deployment."
             fi
