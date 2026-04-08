@@ -33,6 +33,11 @@ public abstract class E2ETestBase : IAsyncLifetime
         _output = output;
     }
 
+    /// <summary>
+    /// Exposes the xUnit test output helper for subclass use (e.g. passing to helpers).
+    /// </summary>
+    protected ITestOutputHelper Output => _output;
+
     /// <summary>Playwright page used by the current test. Set by subclasses.</summary>
     protected IPage? Page { get; set; }
 
