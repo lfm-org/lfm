@@ -216,33 +216,23 @@ jobs:
             echo "Hostname $HOSTNAME already bound."
           fi
 
-          # Find or create managed certificate
-          THUMBPRINT=$(az webapp config ssl list --resource-group "$RG" \
-            --query "[?subjectName=='$HOSTNAME'].thumbprint | [0]" -o tsv)
-
-          # Try binding; if the cert is stale (deleted with old app), delete and recreate
-          if [ -n "$THUMBPRINT" ]; then
-            echo "Found certificate (thumbprint: $THUMBPRINT). Binding..."
-            if ! az webapp config ssl bind \
-              --resource-group "$RG" --name "$APP" \
-              --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI 2>/dev/null; then
-              echo "Stale certificate — deleting and recreating..."
-              az webapp config ssl delete --resource-group "$RG" \
-                --certificate-thumbprint "$THUMBPRINT" --yes 2>/dev/null || true
-              THUMBPRINT=""
-            fi
+          # Delete any orphaned cert ARM resource that ssl-create would reuse
+          SUB_ID=$(az account show --query id -o tsv)
+          CERT_ID="/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Web/certificates/$HOSTNAME"
+          if az resource show --ids "$CERT_ID" &>/dev/null; then
+            echo "Deleting orphaned certificate resource for $HOSTNAME..."
+            az resource delete --ids "$CERT_ID"
           fi
 
-          if [ -z "$THUMBPRINT" ]; then
-            echo "Creating managed certificate for $HOSTNAME..."
-            THUMBPRINT=$(az webapp config ssl create \
-              --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" \
-              --query thumbprint -o tsv)
-            echo "Binding certificate to $HOSTNAME..."
-            az webapp config ssl bind \
-              --resource-group "$RG" --name "$APP" \
-              --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
-          fi
+          # Create managed certificate and bind
+          echo "Creating managed certificate for $HOSTNAME..."
+          THUMBPRINT=$(az webapp config ssl create \
+            --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" \
+            --query thumbprint -o tsv)
+          echo "Binding certificate to $HOSTNAME..."
+          az webapp config ssl bind \
+            --resource-group "$RG" --name "$APP" \
+            --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
 
       - name: Configure SWA custom domain
         run: |
