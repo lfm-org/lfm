@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -47,6 +48,15 @@ public class RunsCreateFunctionTests
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
         httpContext.Request.ContentType = "application/json";
         return httpContext.Request;
+    }
+
+    private static RunsCreateFunction MakeFunction(
+        Mock<IRunsRepository> repo,
+        Mock<IGuildPermissions> permissions,
+        Mock<ILogger<RunsCreateFunction>>? loggerMock = null)
+    {
+        var logger = (loggerMock ?? new Mock<ILogger<RunsCreateFunction>>()).Object;
+        return new RunsCreateFunction(repo.Object, permissions.Object, logger);
     }
 
     private static RunDocument MakeRunDoc(string id = "run-new") =>
@@ -95,7 +105,7 @@ public class RunsCreateFunctionTests
         permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var fn = new RunsCreateFunction(repo.Object, permissions.Object);
+        var fn = MakeFunction(repo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -126,7 +136,7 @@ public class RunsCreateFunctionTests
         var repo = new Mock<IRunsRepository>();
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = new RunsCreateFunction(repo.Object, permissions.Object);
+        var fn = MakeFunction(repo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -159,7 +169,7 @@ public class RunsCreateFunctionTests
         permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = new RunsCreateFunction(repo.Object, permissions.Object);
+        var fn = MakeFunction(repo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -181,5 +191,54 @@ public class RunsCreateFunctionTests
         method.Should().NotBeNull();
         method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
             .Should().HaveCount(1, "RunsCreateFunction.Run must carry [RequireAuth]");
+    }
+
+    // ------------------------------------------------------------------
+    // Test 5: Audit event emitted on success path
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_run_create_audit_event_on_success()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-admin", guildId: "12345");
+        var created = MakeRunDoc("run-new");
+        var loggerMock = new Mock<ILogger<RunsCreateFunction>>();
+
+        var requestBody = new
+        {
+            startTime = "2026-06-01T20:00:00Z",
+            signupCloseTime = "2026-06-01T18:00:00Z",
+            description = "Created run",
+            modeKey = "NORMAL:10",
+            visibility = "GUILD",
+            instanceId = 631,
+            instanceName = "Icecrown Citadel",
+        };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(created);
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var fn = MakeFunction(repo, permissions, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+
+        await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("run.create") &&
+                    v.ToString()!.Contains("bnet-admin") &&
+                    v.ToString()!.Contains("success")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "success path must emit a run.create audit event with the battleNetId and result");
     }
 }

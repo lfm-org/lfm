@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -75,6 +76,16 @@ public class RunsUpdateFunctionTests
             Ttl: 86400,
             RunCharacters: []);
 
+    private static RunsUpdateFunction MakeFunction(
+        Mock<IRunsRepository> repo,
+        Mock<IGuildPermissions> permissions,
+        Mock<IInstancesRepository> instancesRepo,
+        Mock<ILogger<RunsUpdateFunction>>? loggerMock = null)
+    {
+        var logger = (loggerMock ?? new Mock<ILogger<RunsUpdateFunction>>()).Object;
+        return new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object, logger);
+    }
+
     private static IReadOnlyList<InstanceDto> MakeInstances() =>
         new List<InstanceDto>
         {
@@ -106,7 +117,7 @@ public class RunsUpdateFunctionTests
         instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeInstances());
 
-        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var fn = MakeFunction(repo, permissions, instancesRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
@@ -134,7 +145,7 @@ public class RunsUpdateFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         var instancesRepo = new Mock<IInstancesRepository>();
 
-        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var fn = MakeFunction(repo, permissions, instancesRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { }), "missing-run", ctx, CancellationToken.None);
@@ -163,7 +174,7 @@ public class RunsUpdateFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         var instancesRepo = new Mock<IInstancesRepository>();
 
-        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var fn = MakeFunction(repo, permissions, instancesRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
@@ -207,7 +218,7 @@ public class RunsUpdateFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         var instancesRepo = new Mock<IInstancesRepository>();
 
-        var fn = new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object);
+        var fn = MakeFunction(repo, permissions, instancesRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Too late" }), "run-1", ctx, CancellationToken.None);
@@ -216,5 +227,49 @@ public class RunsUpdateFunctionTests
         objectResult.StatusCode.Should().Be(409);
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 5: Audit event emitted on success path
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_run_update_audit_event_on_success()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+        var updatedDoc = existing with { Description = "Updated description" };
+        var loggerMock = new Mock<ILogger<RunsUpdateFunction>>();
+
+        var requestBody = new { description = "Updated description" };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedDoc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+
+        await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("run.update") &&
+                    v.ToString()!.Contains("bnet-creator") &&
+                    v.ToString()!.Contains("success")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "success path must emit a run.update audit event with the battleNetId and result");
     }
 }

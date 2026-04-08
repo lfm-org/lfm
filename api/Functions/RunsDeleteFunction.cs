@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
@@ -22,7 +24,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-delete.ts</c>.
 /// </summary>
-public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPermissions)
+public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPermissions, ILogger<RunsDeleteFunction> logger)
 {
     [Function("runs-delete")]
     [RequireAuth]
@@ -61,6 +63,8 @@ public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPer
 
         // 3. Delete the run document. Signups are embedded — they are removed with the document.
         await repo.DeleteAsync(id, ct);
+
+        AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "success", null));
 
         // TS returns status 200 with { deleted: true }.
         return new OkObjectResult(new { deleted = true });

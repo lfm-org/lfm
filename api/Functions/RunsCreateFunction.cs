@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
@@ -28,7 +30,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-create.ts</c>.
 /// </summary>
-public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPermissions)
+public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPermissions, ILogger<RunsCreateFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -79,6 +81,8 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
 
         var run = BuildRunDocument(body, principal, runId, createdAt);
         var created = await repo.CreateAsync(run, ct);
+
+        AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, runId, "success", null));
 
         return new ObjectResult(MapToDto(created)) { StatusCode = 201 };
     }

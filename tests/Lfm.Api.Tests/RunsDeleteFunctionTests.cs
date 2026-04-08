@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -36,6 +37,15 @@ public class RunsDeleteFunctionTests
             GuildName: guildName,
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+    private static RunsDeleteFunction MakeFunction(
+        Mock<IRunsRepository> repo,
+        Mock<IGuildPermissions> permissions,
+        Mock<ILogger<RunsDeleteFunction>>? loggerMock = null)
+    {
+        var logger = (loggerMock ?? new Mock<ILogger<RunsDeleteFunction>>()).Object;
+        return new RunsDeleteFunction(repo.Object, permissions.Object, logger);
+    }
 
     private static RunDocument MakeRunDoc(
         string id = "run-1",
@@ -76,7 +86,7 @@ public class RunsDeleteFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = new RunsDeleteFunction(repo.Object, permissions.Object);
+        var fn = MakeFunction(repo, permissions);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
@@ -111,7 +121,7 @@ public class RunsDeleteFunctionTests
         permissions.Setup(p => p.CanDeleteGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = new RunsDeleteFunction(repo.Object, permissions.Object);
+        var fn = MakeFunction(repo, permissions);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
@@ -138,7 +148,7 @@ public class RunsDeleteFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = new RunsDeleteFunction(repo.Object, permissions.Object);
+        var fn = MakeFunction(repo, permissions);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
@@ -147,5 +157,44 @@ public class RunsDeleteFunctionTests
         result.Should().BeOfType<NotFoundObjectResult>();
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: Audit event emitted on success path
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_run_delete_audit_event_on_success()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeRunDoc(creatorBattleNetId: "bnet-creator");
+        var loggerMock = new Mock<ILogger<RunsDeleteFunction>>();
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.DeleteAsync("run-1", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var permissions = new Mock<IGuildPermissions>();
+
+        var fn = MakeFunction(repo, permissions, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+        var req = new DefaultHttpContext().Request;
+
+        await fn.Run(req, "run-1", ctx, CancellationToken.None);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("run.delete") &&
+                    v.ToString()!.Contains("bnet-creator") &&
+                    v.ToString()!.Contains("success")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "success path must emit a run.delete audit event with the battleNetId and result");
     }
 }

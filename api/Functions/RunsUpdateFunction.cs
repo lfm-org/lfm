@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
@@ -32,7 +34,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-update.ts</c>.
 /// </summary>
-public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPermissions, IInstancesRepository instancesRepo)
+public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPermissions, IInstancesRepository instancesRepo, ILogger<RunsUpdateFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -164,6 +166,9 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
 
         // 9. Replace in Cosmos.
         var persisted = await repo.UpdateAsync(updated, ct);
+
+        AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "success", null));
+
         return new OkObjectResult(MapToDto(persisted));
     }
 
