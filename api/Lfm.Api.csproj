@@ -16,29 +16,29 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.9.0" />
     <!-- Worker core packages: .NET 10 REQUIRES v2.50.0+ of Worker and v2.0.5+ of
          Worker.Sdk per MS docs. v2.x of Worker also brings IHostApplicationBuilder
          support (FunctionsApplication.CreateBuilder). -->
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.50.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
     <!-- Timer trigger extension for the raider-cleanup scheduled function. -->
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
     <!-- Extensions.Http.AspNetCore must be 2.0.0+ to use ASP.NET Core integration
          with IHostApplicationBuilder. -->
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0" />
-    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.50.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
     <!-- Cosmos SDK 3.x loads Newtonsoft.Json at runtime via DocumentClient even
          when AzureCosmosDisableNewtonsoftJsonCheck bypasses the build-time check.
          Without this the isolated worker crashes with FileNotFoundException. -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Azure.Identity" Version="1.13.1" />
-    <!-- 12.24.1: minimum required by Azure.Extensions.AspNetCore.DataProtection.Blobs 1.5.1 -->
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.1" />
-    <PackageReference Include="FluentValidation" Version="11.9.0" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Azure.Identity" Version="1.20.0" />
+    <!-- Min 12.24.1 required by Azure.Extensions.AspNetCore.DataProtection.Blobs 1.5.1 -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="FluentValidation" Version="11.12.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.12.0" />
     <!-- Microsoft.AspNetCore.DataProtection is supplied by the FrameworkReference
          above (matches net10.0). No explicit version pin needed. -->
     <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
@@ -46,7 +46,7 @@
          packages below, which address key security and stability issues. -->
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.1" />
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.1" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.4.0" />
     <!-- Microsoft.Extensions.Options.ConfigurationExtensions is provided transitively
          via FrameworkReference; explicit pin causes NU1510 warning-as-error. -->
   </ItemGroup>
