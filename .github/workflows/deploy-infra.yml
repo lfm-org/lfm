@@ -216,24 +216,33 @@ jobs:
             echo "Hostname $HOSTNAME already bound."
           fi
 
-          # Create managed certificate if one doesn't already exist
+          # Find or create managed certificate
           THUMBPRINT=$(az webapp config ssl list --resource-group "$RG" \
             --query "[?subjectName=='$HOSTNAME'].thumbprint | [0]" -o tsv)
+
+          # Try binding; if the cert is stale (deleted with old app), delete and recreate
+          if [ -n "$THUMBPRINT" ]; then
+            echo "Found certificate (thumbprint: $THUMBPRINT). Binding..."
+            if ! az webapp config ssl bind \
+              --resource-group "$RG" --name "$APP" \
+              --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI 2>/dev/null; then
+              echo "Stale certificate — deleting and recreating..."
+              az webapp config ssl delete --resource-group "$RG" \
+                --certificate-thumbprint "$THUMBPRINT" --yes 2>/dev/null || true
+              THUMBPRINT=""
+            fi
+          fi
 
           if [ -z "$THUMBPRINT" ]; then
             echo "Creating managed certificate for $HOSTNAME..."
             THUMBPRINT=$(az webapp config ssl create \
               --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" \
               --query thumbprint -o tsv)
-          else
-            echo "Managed certificate already exists (thumbprint: $THUMBPRINT)."
+            echo "Binding certificate to $HOSTNAME..."
+            az webapp config ssl bind \
+              --resource-group "$RG" --name "$APP" \
+              --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
           fi
-
-          # Bind certificate with SNI (idempotent — re-binding same cert is a no-op)
-          echo "Binding certificate to $HOSTNAME..."
-          az webapp config ssl bind \
-            --resource-group "$RG" --name "$APP" \
-            --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
 
       - name: Configure SWA custom domain
         run: |
