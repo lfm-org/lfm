@@ -26,8 +26,8 @@ services:
 
   functions:
     build:
-      context: ./functions
-      dockerfile: Dockerfile.e2e
+      context: .
+      dockerfile: api/Dockerfile
     depends_on:
       - cosmosdb
       - azurite

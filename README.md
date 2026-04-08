@@ -13,7 +13,42 @@ LFM has three parts:
 
 ## Run Locally
 
-### Start local stack
+### 1. Install the pre-commit hook
+
+```bash
+cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
+
+### 2. Configure environment
+
+```bash
+cp example.env .env
+```
+
+Edit `.env` and fill in the required values. See the table below for details.
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `LFM_CLIENT_ID` | Yes | Blizzard OAuth client ID |
+| `LFM_CLIENT_SECRET` | Yes | Blizzard OAuth client secret |
+| `HMAC_SECRET` | Yes | 64 hex chars. Generate: `openssl rand -hex 32` |
+| `SESSION_ENCRYPTION_KEY` | Yes | 64 hex chars. Generate: `openssl rand -hex 32` |
+| `COSMOS_KEY_CONTENT` | Yes | Cosmos emulator master key (base64). Generate: `openssl rand -base64 32` |
+| `COSMOS_ENDPOINT` | Yes | `http://127.0.0.1:8081` for the local emulator |
+| `COSMOS_KEY` | Yes | Must match the key derived from `COSMOS_KEY_CONTENT` |
+| `AzureWebJobsStorage` | Yes | Azurite connection string: `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;` |
+| `BLOB_STORAGE_URL` | Yes | `http://127.0.0.1:10000/devstoreaccount1` |
+| `PUBLIC_BLOB_STORAGE_URL` | Yes | Same as `BLOB_STORAGE_URL` for local |
+| `APP_BASE_URL` | Default ok | `http://localhost:5138` (Blazor dev server port) |
+| `BATTLE_NET_REDIRECT_URI` | Default ok | `http://localhost:7071/api/battlenet/callback` |
+| `BATTLE_NET_REGION` | Default ok | `eu` |
+| `BATTLE_NET_COOKIE_SECURE` | Default ok | `false` for local dev |
+| `COOKIE_DOMAIN` | Default ok | `localhost` |
+| `COSMOS_DATABASE` | Default ok | `lfm` |
+| `KEY_VAULT_URL` | No | Leave empty for local dev |
+| `TEST_MODE` | Default ok | `false` |
+
+### 3. Start local stack
 
 ```bash
 docker compose -f docker-compose.local.yml up
@@ -21,17 +56,17 @@ docker compose -f docker-compose.local.yml up
 
 This starts:
 
-- Cosmos emulator on `https://127.0.0.1:8081`
+- Cosmos emulator on `http://127.0.0.1:8081` (explorer on port 1234)
 - Azurite blob storage on `http://127.0.0.1:10000`
 - Azure Functions on `http://localhost:7071`
 
-### Run the Blazor app
+### 4. Run the Blazor app
 
 ```bash
 dotnet run --project app/Lfm.App.csproj
 ```
 
-Copy `example.env` and set your local overrides. Key values: Blizzard OAuth credentials (`LFM_CLIENT_ID`, `LFM_CLIENT_SECRET`), `HMAC_SECRET` (64 hex chars via `openssl rand -hex 32`), and `APP_BASE_URL`.
+The app serves on `http://localhost:5138`.
 
 ## Build and Test
 
@@ -118,7 +153,6 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 
 - `app/`: Blazor WASM pages, components, services
 - `api/Functions/`: Azure Function handlers
-- `api/Migrations/`: database migration scripts
 - `shared/`: shared models and contracts used by both app and api
 - `tests/Lfm.Api.Tests/`: xUnit tests for API handlers
 - `tests/Lfm.App.Tests/`: bUnit component tests for Blazor
