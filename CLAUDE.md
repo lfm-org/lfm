@@ -27,7 +27,7 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 
 ## Configuration & Secrets
 
-Do not commit populated `.env` files or real credentials. See `example.env` for required variables and templates; keep local overrides out of version control. Key vars: `LFM_CLIENT_ID`/`LFM_CLIENT_SECRET` (Blizzard OAuth), `BATTLE_NET_REGION`, `BATTLE_NET_REDIRECT_URI`/`APP_BASE_URL` (no trailing slash), `HMAC_SECRET` (64 hex chars via `openssl rand -hex 32`).
+Do not commit populated `.env` files or real credentials. See `example.env` for required variables and templates; keep local overrides out of version control. App settings use .NET options sections (`Section__Property`). Key vars: `Blizzard__ClientId`/`Blizzard__ClientSecret` (Blizzard OAuth, Key Vault refs in prod), `Blizzard__Region`, `Blizzard__RedirectUri`, `Blizzard__AppBaseUrl` (no trailing slash), `Cosmos__Endpoint`/`Cosmos__DatabaseName`, `Cors__AllowedOrigins__0` (frontend origin).
 
 ## Tool Configuration
 
@@ -122,7 +122,6 @@ Deploy workflows use GitHub repo variables for all project-specific values. Neve
 | `COSMOS_DATABASE` | Cosmos DB database name |
 | `API_HOSTNAME` | API custom domain |
 | `FRONTEND_HOSTNAME` | Frontend custom domain |
-| `COOKIE_DOMAIN` | Cookie domain |
 | `PRIVACY_EMAIL` | Privacy contact email |
 | `BATTLE_NET_REGION` | Battle.net region code |
 
@@ -152,7 +151,7 @@ Migrations in `api/Migrations/` run via the migration runner before every functi
 
 For breaking changes, use expand/contract: (1) **Expand** — add new field alongside old; deploy code handling both. (2) **Contract** — later deploy removes old field once no code references it.
 
-**Never hardcode the database name.** Use `Environment.GetEnvironmentVariable("COSMOS_DATABASE")` — migrations run against different databases per environment.
+**Never hardcode the database name.** Read `Cosmos__DatabaseName` from configuration — migrations run against different databases per environment.
 
 ## Documentation Separation
 

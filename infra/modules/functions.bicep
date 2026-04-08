@@ -19,11 +19,8 @@ param cosmosAccountName string
 @description('Cosmos DB database name')
 param cosmosDatabase string
 
-@description('Frontend origin URL for CORS and APP_BASE_URL (no trailing slash)')
+@description('Frontend origin URL for CORS (no trailing slash)')
 param frontendOrigin string
-
-@description('Cookie domain (include leading dot for subdomain sharing)')
-param cookieDomain string
 
 @description('Battle.net OAuth redirect URI')
 param battleNetRedirectUri string
@@ -33,9 +30,6 @@ param battleNetRegion string
 
 @description('Log Analytics workspace resource ID for diagnostic settings')
 param logAnalyticsWorkspaceId string
-
-@description('Privacy contact email address')
-param privacyEmail string
 
 @description('Data Protection KV key URI (versionless) for wrapping the key ring')
 param dataProtectionKeyUri string
@@ -97,25 +91,28 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         supportCredentials: true
       }
       appSettings: [
+        // Azure Functions runtime
         { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
         { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'Authorization=AAD' }
-        { name: 'COSMOS_ENDPOINT', value: cosmosAccountEndpoint }
-        { name: 'COSMOS_DATABASE', value: cosmosDatabase }
-        { name: 'BLOB_STORAGE_URL', value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}' }
-        { name: 'APP_BASE_URL', value: frontendOrigin }
-        { name: 'COOKIE_DOMAIN', value: cookieDomain }
-        { name: 'BATTLE_NET_REGION', value: battleNetRegion }
-        { name: 'BATTLE_NET_COOKIE_SECURE', value: 'true' }
-        { name: 'LFM_CLIENT_ID', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-id)' }
-        { name: 'LFM_CLIENT_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
-        { name: 'BATTLE_NET_REDIRECT_URI', value: battleNetRedirectUri }
-        { name: 'KEY_VAULT_URL', value: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/' }
-        { name: 'PRIVACY_EMAIL', value: privacyEmail }
+        // CosmosOptions (section: Cosmos)
+        { name: 'Cosmos__Endpoint', value: cosmosAccountEndpoint }
+        { name: 'Cosmos__DatabaseName', value: cosmosDatabase }
+        // BlizzardOptions (section: Blizzard)
+        { name: 'Blizzard__ClientId', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-id)' }
+        { name: 'Blizzard__ClientSecret', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=battlenet-client-secret)' }
+        { name: 'Blizzard__Region', value: battleNetRegion }
+        { name: 'Blizzard__RedirectUri', value: battleNetRedirectUri }
+        { name: 'Blizzard__AppBaseUrl', value: frontendOrigin }
+        // AuthOptions (section: Auth)
+        { name: 'Auth__KeyVaultUrl', value: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/' }
         { name: 'Auth__DataProtectionKeyUri', value: dataProtectionKeyUri }
+        // CorsOptions (section: Cors)
+        { name: 'Cors__AllowedOrigins__0', value: frontendOrigin }
+        // StorageOptions (section: Storage)
         { name: 'Storage__DataProtectionBlobUri', value: dataProtectionBlobUri }
       ]
     }
