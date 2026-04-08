@@ -40,12 +40,12 @@ public static class PerfHelper
     {
         var timing = await page.EvaluateAsync<TimingResult>("""
             () => {
-                const t = performance.timing;
+                const nav = performance.getEntriesByType('navigation')[0];
                 const lcp = window.__lcpValue ?? null;
                 return {
-                    ttfb: t.responseStart - t.navigationStart,
-                    domContentLoaded: t.domContentLoadedEventEnd - t.navigationStart,
-                    load: t.loadEventEnd - t.navigationStart,
+                    ttfb: nav ? nav.responseStart : -1,
+                    domContentLoaded: nav ? nav.domContentLoadedEventEnd : -1,
+                    load: nav ? nav.loadEventEnd : -1,
                     lcp: lcp
                 };
             }

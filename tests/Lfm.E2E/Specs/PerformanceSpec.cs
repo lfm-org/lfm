@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
+using Lfm.E2E.Pages;
 using Lfm.E2E.Seeds;
 using Microsoft.Playwright;
 using Xunit;
@@ -168,21 +169,23 @@ public class PerformanceSpec(PerformanceFixture fixture, ITestOutputHelper outpu
         Page = await Context.NewPageAsync();
         AttachDiagnosticListeners();
 
-        // Start at /runs (full navigation).
+        // Start at /runs (full navigation to establish initial page load).
         await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        // SPA transition: /runs → /characters
+        var navBar = new NavBar(Page);
+
+        // SPA transition: /runs → /characters via nav link click.
         var sw1 = Stopwatch.StartNew();
-        await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
+        await navBar.CharactersLink.ClickAsync();
+        await Page.WaitForSelectorAsync("h1", new() { Timeout = 10000 });
         sw1.Stop();
         var runsToCharacters = sw1.Elapsed.TotalMilliseconds;
 
-        // SPA transition: /characters → /guild
+        // SPA transition: /characters → /guild via nav link click.
         var sw2 = Stopwatch.StartNew();
-        await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
+        await navBar.GuildLink.ClickAsync();
+        await Page.WaitForSelectorAsync("h1", new() { Timeout = 10000 });
         sw2.Stop();
         var charactersToGuild = sw2.Elapsed.TotalMilliseconds;
 
