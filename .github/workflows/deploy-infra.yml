@@ -55,6 +55,58 @@ jobs:
             echo "Plan '$PLAN' is '$SKU_TIER' (not Dynamic) — no migration needed."
           fi
 
+      - name: Clean up stale role assignments from previous managed identity
+        run: |
+          APP="${{ vars.FUNCTION_APP_NAME }}"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
+          CURRENT_PRINCIPAL=$(az functionapp identity show \
+            --name "$APP" --resource-group "$RG" \
+            --query "principalId" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$CURRENT_PRINCIPAL" ]; then
+            echo "Function app has no identity yet — skipping cleanup."
+            exit 0
+          fi
+
+          # Bicep uses guid(scope, functionApp.id, roleId) for assignment names.
+          # After recreation the identity changes but the name stays the same,
+          # blocking deployment. Delete any RBAC assignments in the RG for
+          # Bicep-managed roles that belong to a stale ServicePrincipal.
+          echo "Current function app principal: $CURRENT_PRINCIPAL"
+          STALE_RBAC=$(az role assignment list --resource-group "$RG" --all \
+            --query "[?principalType=='ServicePrincipal' && principalId!='$CURRENT_PRINCIPAL' && (
+              roleDefinitionName=='Key Vault Secrets User' ||
+              roleDefinitionName=='Storage Blob Data Owner' ||
+              roleDefinitionName=='Storage Queue Data Contributor' ||
+              roleDefinitionName=='Storage Table Data Contributor' ||
+              roleDefinitionName=='Monitoring Metrics Publisher'
+            )].id" -o tsv 2>/dev/null || echo "")
+
+          if [ -n "$STALE_RBAC" ]; then
+            for ID in $STALE_RBAC; do
+              echo "Deleting stale RBAC assignment: $ID"
+              az role assignment delete --ids "$ID"
+            done
+          else
+            echo "No stale RBAC role assignments found."
+          fi
+
+          # Clean up stale Cosmos SQL role assignments
+          COSMOS_ACCOUNT=$(az cosmosdb list --resource-group "$RG" \
+            --query "[0].name" -o tsv 2>/dev/null || echo "")
+          if [ -n "$COSMOS_ACCOUNT" ]; then
+            STALE_COSMOS=$(az cosmosdb sql role assignment list \
+              --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
+              --query "[?principalId!='$CURRENT_PRINCIPAL'].id" -o tsv 2>/dev/null || echo "")
+            for ID in $STALE_COSMOS; do
+              echo "Deleting stale Cosmos SQL role assignment: $ID"
+              az cosmosdb sql role assignment delete \
+                --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
+                --role-assignment-id "$ID" --yes
+            done
+          fi
+
       - name: Preview infrastructure changes (what-if)
         env:
           PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
