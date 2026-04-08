@@ -24,6 +24,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             fixture.Stack.AppBaseUrl);
         Page = await Context.NewPageAsync();
         AttachDiagnosticListeners();
+        await StartTracingAsync();
     }
 
     public override async Task DisposeAsync()

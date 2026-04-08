@@ -27,6 +27,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         Context = _authContext;
         Page = await _authContext.NewPageAsync();
         AttachDiagnosticListeners();
+        await StartTracingAsync();
     }
 
     public override async Task DisposeAsync()

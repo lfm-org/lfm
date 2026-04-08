@@ -21,6 +21,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         Context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
         Page = await Context.NewPageAsync();
         AttachDiagnosticListeners();
+        await StartTracingAsync();
     }
 
     public override async Task DisposeAsync()

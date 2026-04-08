@@ -260,10 +260,11 @@ public class SecuritySpec(SecurityFixture fixture, ITestOutputHelper output)
         var bodyB = await responseB.Content.ReadAsStringAsync();
 
         // Each user should get their own data, not the other's.
-        bodyA.Should().Contain(DefaultSeed.PrimaryBattleNetId);
-        bodyB.Should().Contain(DefaultSeed.SecondaryBattleNetId);
-        bodyA.Should().NotContain(DefaultSeed.SecondaryBattleNetId);
-        bodyB.Should().NotContain(DefaultSeed.PrimaryBattleNetId);
+        // Use quoted form to avoid substring matches (e.g. "test-bnet-id" in "test-bnet-id-2").
+        bodyA.Should().Contain($"\"{DefaultSeed.PrimaryBattleNetId}\"");
+        bodyB.Should().Contain($"\"{DefaultSeed.SecondaryBattleNetId}\"");
+        bodyA.Should().NotContain($"\"{DefaultSeed.SecondaryBattleNetId}\"");
+        bodyB.Should().NotContain($"\"{DefaultSeed.PrimaryBattleNetId}\"");
     }
 
     // ---------------------------------------------------------------

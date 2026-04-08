@@ -18,7 +18,7 @@ public class LandingPage(IPage page)
         _page.GetByText("Shared Schedule");
 
     public ILocator RoleCoverageCard =>
-        _page.GetByText("Role Coverage");
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Role Coverage" });
 
     public ILocator BattleNetSignInCard =>
         _page.GetByText("Battle.net Sign-In");

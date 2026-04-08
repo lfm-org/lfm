@@ -20,6 +20,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         Context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
         Page = await Context.NewPageAsync();
         AttachDiagnosticListeners();
+        await StartTracingAsync();
     }
 
     public override async Task DisposeAsync()

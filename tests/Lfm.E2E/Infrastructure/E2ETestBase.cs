@@ -50,7 +50,13 @@ public abstract class E2ETestBase : IAsyncLifetime
     /// </summary>
     protected virtual string TestName => GetType().Name;
 
-    public virtual async Task InitializeAsync()
+    public virtual Task InitializeAsync() => Task.CompletedTask;
+
+    /// <summary>
+    /// Call after setting <see cref="Context"/> to start Playwright tracing.
+    /// Must be called before tests run so traces can be captured on failure.
+    /// </summary>
+    protected async Task StartTracingAsync()
     {
         if (Context is not null)
         {

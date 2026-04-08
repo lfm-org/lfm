@@ -8,7 +8,8 @@ public static class DefaultSeed
     public const string PrimaryBattleNetId = "test-bnet-id";
     public const string SecondaryBattleNetId = "test-bnet-id-2";
     // Must match the guildId assigned by E2ELoginFunction for non-admin test users.
-    public const string TestGuildId = "test-guild-id";
+    // Must be numeric — RunsRepository.ListForGuildAsync does int.TryParse on it.
+    public const string TestGuildId = "12345";
     public const string TestRunId = "e2e-run-001";
 
     public static async Task SeedAsync(CosmosClient client, string databaseName)

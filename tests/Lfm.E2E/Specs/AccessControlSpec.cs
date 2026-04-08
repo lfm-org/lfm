@@ -20,6 +20,7 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
         Context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
         Page = await Context.NewPageAsync();
         AttachDiagnosticListeners();
+        await StartTracingAsync();
     }
 
     public override async Task DisposeAsync()
@@ -88,11 +89,11 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
     [Fact]
     public async Task ProtectedRoute_Unauthenticated_RedirectsFromGuildAdmin()
     {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild-admin",
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild/admin",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fguild-admin$"),
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fguild%2Fadmin$"),
             new() { Timeout = 30000 });
 
         var loginPage = new LoginPage(Page);

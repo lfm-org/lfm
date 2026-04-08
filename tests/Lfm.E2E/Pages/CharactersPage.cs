@@ -18,9 +18,11 @@ public class CharactersPage(IPage page)
     public ILocator CharacterList =>
         _page.Locator("div[style*='grid-template-columns'] fluent-card");
 
-    // The delete account confirmation text field
+    // The delete account confirmation text field.
+    // FluentTextField renders both a wrapper and inner input with the same placeholder,
+    // so target the outer fluent-text-field element directly.
     public ILocator DeleteConfirmationField =>
-        _page.GetByPlaceholder("FORGET ME");
+        _page.Locator("fluent-text-field[placeholder='FORGET ME']");
 
     // The delete account button
     public ILocator DeleteAccountButton =>

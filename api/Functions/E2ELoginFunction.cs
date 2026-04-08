@@ -33,7 +33,7 @@ public class E2ELoginFunction(ISessionCipher cipher, IOptions<AuthOptions> authO
         var (guildId, guildName) = battleNetId switch
         {
             "test-bnet-id-admin" => ((string?)null, (string?)null),
-            _ => ("test-guild-id", (string?)"Test Guild"),
+            _ => ("12345", (string?)"Test Guild"),
         };
 
         var principal = new SessionPrincipal(
