@@ -6,7 +6,7 @@ using Testcontainers.Azurite;
 using Testcontainers.CosmosDb;
 using Xunit;
 
-namespace Lfm.E2E.Fixtures;
+namespace Lfm.E2E.Infrastructure;
 
 public class StackFixture : IAsyncLifetime
 {

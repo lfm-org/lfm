@@ -1,3 +1,4 @@
+using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Seeds;
 using Xunit;
 
