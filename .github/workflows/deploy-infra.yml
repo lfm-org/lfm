@@ -144,24 +144,20 @@ jobs:
           echo "Bicep will recreate any removed locks during deployment."
 
       - name: Preview infrastructure changes (what-if)
-        env:
-          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
         run: |
           az deployment group what-if \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/main.bicep \
             --parameters "${{ vars.PARAMETER_FILE }}" \
-            --parameters "privacyEmail=$PRIVACY_EMAIL"
+            --parameters "privacyEmail=${{ vars.PRIVACY_EMAIL }}"
 
       - name: Deploy Bicep
-        env:
-          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
         run: |
           az deployment group create \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/main.bicep \
             --parameters "${{ vars.PARAMETER_FILE }}" \
-            --parameters "privacyEmail=$PRIVACY_EMAIL"
+            --parameters "privacyEmail=${{ vars.PRIVACY_EMAIL }}"
 
       - name: Configure Functions custom domain and managed certificate
         run: |
