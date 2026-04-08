@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Lfm.Api.Functions;
@@ -171,5 +172,46 @@ public class RaiderCleanupFunctionTests
         var parsedCutoff = DateTimeOffset.Parse(capturedCutoff!);
         parsedCutoff.Should().BeOnOrAfter(before, "cutoff should be at most 90 days before now");
         parsedCutoff.Should().BeOnOrBefore(after.Add(TimeSpan.FromSeconds(5)), "cutoff should be approximately 90 days before now");
+    }
+
+    // ------------------------------------------------------------------
+    // Test 5: Audit event emitted for expired raiders
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_account_expired_audit_event()
+    {
+        // Arrange
+        var raider = MakeRaiderDoc("bnet-42");
+        var expiredRaiders = new List<RaiderDocument> { raider };
+
+        var raidersRepo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        raidersRepo
+            .Setup(r => r.ListExpiredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expiredRaiders);
+        raidersRepo
+            .Setup(r => r.DeleteAsync("bnet-42", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
+        runsRepo
+            .Setup(r => r.ScrubRaiderAsync("bnet-42", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var loggerMock = new Mock<ILogger<RaiderCleanupFunction>>();
+        var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, loggerMock.Object);
+        await fn.Run(MakeTimerInfo(), CancellationToken.None);
+
+        // Assert: logger called with "account.expired" and "success"
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("account.expired") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-42")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "cleanup of expired raiders must emit account.expired audit event with result=success");
     }
 }

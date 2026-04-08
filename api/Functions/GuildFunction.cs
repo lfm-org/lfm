@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
@@ -25,7 +27,7 @@ namespace Lfm.Api.Functions;
 ///         Mirrors the TypeScript <c>saveCurrentGuildSettings</c> logic in
 ///         <c>functions/src/lib/guild/service.ts</c>.
 /// </summary>
-public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPermissions)
+public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -117,6 +119,8 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
         };
 
         await guildRepo.UpsertAsync(updatedDoc, cancellationToken);
+
+        AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, principal.GuildId, "success", null));
 
         return new OkObjectResult(MapToDto(updatedDoc));
     }

@@ -1,5 +1,6 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using Lfm.Api.Audit;
 using Lfm.Api.Repositories;
 
 namespace Lfm.Api.Functions;
@@ -39,9 +40,7 @@ public class RaiderCleanupFunction(
                 // Mirror TS order: scrub run references first, then delete the raider document.
                 await runsRepo.ScrubRaiderAsync(raider.BattleNetId, cancellationToken);
                 await raidersRepo.DeleteAsync(raider.BattleNetId, cancellationToken);
-                logger.LogInformation(
-                    "Raider cleanup: removed account {BattleNetId} (account.expired)",
-                    raider.BattleNetId);
+                AuditLog.Emit(logger, new AuditEvent("account.expired", raider.BattleNetId, raider.BattleNetId, "success", null));
                 removed++;
             }
             catch (Exception ex)

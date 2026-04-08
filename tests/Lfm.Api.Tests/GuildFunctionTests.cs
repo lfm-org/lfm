@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -57,6 +58,14 @@ public class GuildFunctionTests
                 Timezone: "Europe/Helsinki",
                 Locale: "fi"));
 
+    private static GuildFunction MakeFunction(Mock<ILogger<GuildFunction>>? loggerMock = null)
+    {
+        var guildRepo = new Mock<IGuildRepository>();
+        var permissions = new Mock<IGuildPermissions>();
+        var logger = (loggerMock ?? new Mock<ILogger<GuildFunction>>()).Object;
+        return new GuildFunction(guildRepo.Object, permissions.Object, logger);
+    }
+
     // ------------------------------------------------------------------
     // Test 1: GET happy path
     // ------------------------------------------------------------------
@@ -73,7 +82,8 @@ public class GuildFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object);
+        var loggerMock = new Mock<ILogger<GuildFunction>>();
+        var fn = new GuildFunction(guildRepo.Object, permissions.Object, loggerMock.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
@@ -105,7 +115,8 @@ public class GuildFunctionTests
         permissions.Setup(p => p.IsAdminAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object);
+        var loggerMock = new Mock<ILogger<GuildFunction>>();
+        var fn = new GuildFunction(guildRepo.Object, permissions.Object, loggerMock.Object);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new
         {
@@ -139,7 +150,8 @@ public class GuildFunctionTests
         permissions.Setup(p => p.IsAdminAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object);
+        var loggerMock = new Mock<ILogger<GuildFunction>>();
+        var fn = new GuildFunction(guildRepo.Object, permissions.Object, loggerMock.Object);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" });
 
@@ -168,5 +180,50 @@ public class GuildFunctionTests
         patchMethod.Should().NotBeNull();
         patchMethod!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
             .Should().HaveCount(1, "GuildFunction.GuildUpdate must carry [RequireAuth]");
+    }
+
+    // -----------------------------------------------------------------------
+    // Audit events
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildUpdate_emits_guild_update_audit_event()
+    {
+        // Arrange
+        var principal = MakePrincipal("12345");
+        var guildDoc = MakeGuildDoc();
+        var loggerMock = new Mock<ILogger<GuildFunction>>();
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.IsAdminAsync(principal, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var logger = loggerMock.Object;
+        var fn = new GuildFunction(guildRepo.Object, permissions.Object, logger);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest(new
+        {
+            timezone = "Europe/London",
+            locale = "en-gb",
+            slogan = "Updated slogan",
+        });
+
+        // Act
+        await fn.GuildUpdate(req, ctx, CancellationToken.None);
+
+        // Assert: logger called with "guild.update" and "success"
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("guild.update") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-1")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "guild update must emit an audit event with action=guild.update and result=success");
     }
 }

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -30,6 +31,14 @@ public class MeDeleteFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static MeDeleteFunction MakeFunction(Mock<ILogger<MeDeleteFunction>>? loggerMock = null)
+    {
+        var runsRepo = new Mock<IRunsRepository>();
+        var raidersRepo = new Mock<IRaidersRepository>();
+        var logger = (loggerMock ?? new Mock<ILogger<MeDeleteFunction>>()).Object;
+        return new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
+    }
+
     [Fact]
     public async Task Returns_ok_and_calls_both_repos_in_order_when_raider_exists()
     {
@@ -49,7 +58,8 @@ public class MeDeleteFunctionTests
             .Callback<string, CancellationToken>((_, _) => callOrder.Add("delete"))
             .Returns(Task.CompletedTask);
 
-        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object);
+        var loggerMock = new Mock<ILogger<MeDeleteFunction>>();
+        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, loggerMock.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -59,6 +69,44 @@ public class MeDeleteFunctionTests
         runsRepo.Verify(r => r.ScrubRaiderAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
         raidersRepo.Verify(r => r.DeleteAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
         callOrder.Should().Equal(["scrub", "delete"], "runs must be scrubbed before the raider document is deleted");
+    }
+
+    // -----------------------------------------------------------------------
+    // Audit events
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_account_delete_audit_event()
+    {
+        // Arrange
+        var principal = MakePrincipal("bnet-42");
+        var loggerMock = new Mock<ILogger<MeDeleteFunction>>();
+        var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
+        runsRepo
+            .Setup(r => r.ScrubRaiderAsync("bnet-42", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var raidersRepo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        raidersRepo
+            .Setup(r => r.DeleteAsync("bnet-42", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var logger = loggerMock.Object;
+        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
+        var ctx = MakeFunctionContext(principal);
+
+        // Act
+        await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        // Assert: logger called with "account.delete" and "success"
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("account.delete") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-42")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "account delete must emit an audit event with action=account.delete and result=success");
     }
 
     // Verify that the [RequireAuth] attribute is present on the Run method.
