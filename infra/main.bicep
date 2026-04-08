@@ -42,9 +42,6 @@ param cosmosDatabase string
 @description('Frontend origin URL (no trailing slash)')
 param frontendOrigin string
 
-@description('Cookie domain')
-param cookieDomain string
-
 @description('Battle.net OAuth redirect URI')
 param battleNetRedirectUri string
 
@@ -100,12 +97,10 @@ module functions 'modules/functions.bicep' = {
     cosmosAccountName: cosmosAccountName
     cosmosDatabase: cosmosDatabase
     frontendOrigin: frontendOrigin
-    cookieDomain: cookieDomain
     battleNetRedirectUri: battleNetRedirectUri
     battleNetRegion: battleNetRegion
     keyVaultName: keyVaultName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
-    privacyEmail: privacyEmail
     dataProtectionKeyUri: keyVault.outputs.dataProtectionKeyUri
     dataProtectionBlobUri: storage.outputs.dataProtectionBlobUri
     tags: tags

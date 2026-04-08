@@ -16,7 +16,6 @@
     "privacyEmail": { "value": "privacy@example.com" },
     "cosmosDatabase": { "value": "myapp" },
     "frontendOrigin": { "value": "https://myapp.example.com" },
-    "cookieDomain": { "value": ".example.com" },
     "battleNetRedirectUri": { "value": "https://myapi.example.com/api/battlenet/callback" },
     "battleNetRegion": { "value": "eu" },
     "tags": {

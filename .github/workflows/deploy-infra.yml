@@ -159,7 +159,6 @@ jobs:
               privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
               cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
               frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
-              cookieDomain="${{ vars.COOKIE_DOMAIN }}" \
               battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
               battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
               tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
@@ -180,7 +179,6 @@ jobs:
               privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
               cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
               frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
-              cookieDomain="${{ vars.COOKIE_DOMAIN }}" \
               battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
               battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
               tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
