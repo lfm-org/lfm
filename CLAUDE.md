@@ -10,7 +10,7 @@ When working on Azure-related tasks, use the `microsoft-docs` skill to look up o
 
 ## Cost Guidance
 
-Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Consumption (Y1), Static Web Apps Free, workspace-based App Insights sharing Log Analytics 5 GB/month free ingestion. Small fixed costs (Key Vault ops, Storage LRS) are fine. Avoid significant recurring costs without discussing first.
+Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumption (FC1, on-demand with free grants; Linux Consumption Y1 is being retired Sept 2028), Static Web Apps Free, workspace-based App Insights sharing Log Analytics 5 GB/month free ingestion. Small fixed costs (Key Vault ops, Storage LRS) are fine. Avoid significant recurring costs without discussing first.
 
 ## Mandatory Git Workflow
 
@@ -33,7 +33,7 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 **dotnet:** Use `dotnet` CLI directly. The solution targets .NET 10.
 
-**GitHub:** Use `mcp__plugin_github_github__*` MCP tools for all GitHub operations (PRs, issues, comments, reviews, branch creation, file contents). **Do not use the `gh` CLI.** MCP tools are structured, sandboxed, and avoid auth/env issues that derail `gh` in long sessions.
+**GitHub:** Use `mcp__github__*` MCP tools for **all** GitHub interactions — PRs, issues, reviews, branch creation, file contents, repo search, and **reading files/code from external repositories**. **Do not use the `gh` CLI.** **Do not use WebSearch/WebFetch to browse GitHub** — use `mcp__github__get_file_contents`, `mcp__github__search_code`, `mcp__github__get_repository_tree`, and other MCP read tools instead. They return structured data, avoid rate limits, and work reliably. Subagents must follow the same rule.
 
 **git:** **Always use `git -C /home/souroldgeezer/repos/lfm`** — never `cd` into the repo then run bare `git`. This applies to every git command: status, add, commit, push, switch, diff, log, rebase. Subagents must follow the same rule. Bare `git` in a wrong cwd silently operates on the wrong repo.
 

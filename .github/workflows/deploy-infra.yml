@@ -33,6 +33,27 @@ jobs:
             echo "No soft-deleted Key Vault found, proceeding with fresh creation."
           fi
 
+      - name: Migrate Consumption plan to Flex Consumption (one-time)
+        run: |
+          APP="${{ vars.FUNCTION_APP_NAME }}"
+          PLAN="${APP}-plan"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
+          SKU_TIER=$(az appservice plan show \
+            --name "$PLAN" --resource-group "$RG" \
+            --query "sku.tier" -o tsv 2>/dev/null || echo "NotFound")
+
+          if [ "$SKU_TIER" = "Dynamic" ]; then
+            echo "Found Dynamic plan '$PLAN' — migrating to Flex Consumption..."
+            echo "Deleting function app '$APP'..."
+            az functionapp delete --name "$APP" --resource-group "$RG"
+            echo "Deleting App Service plan '$PLAN'..."
+            az appservice plan delete --name "$PLAN" --resource-group "$RG" --yes
+            echo "Migration cleanup complete. Bicep will create fresh FC1 resources."
+          else
+            echo "Plan '$PLAN' is '$SKU_TIER' (not Dynamic) — no migration needed."
+          fi
+
       - name: Preview infrastructure changes (what-if)
         env:
           PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}

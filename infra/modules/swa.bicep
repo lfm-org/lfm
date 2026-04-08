@@ -24,7 +24,8 @@ resource swaDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-previe
   properties: {
     workspaceId: logAnalyticsWorkspaceId
     logs: [
-      { category: 'StaticSiteAppLogs', enabled: true }
+      { category: 'StaticSiteDiagnosticLogs', enabled: true }
+      { category: 'StaticSiteHttpLogs', enabled: true }
     ]
   }
 }

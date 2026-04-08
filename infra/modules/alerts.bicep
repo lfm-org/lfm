@@ -1,6 +1,3 @@
-@description('Azure region')
-param location string
-
 @description('Function App name (must exist in the same resource group)')
 param functionAppName string
 
