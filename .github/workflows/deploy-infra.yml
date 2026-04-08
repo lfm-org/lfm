@@ -69,28 +69,24 @@ jobs:
             exit 0
           fi
 
-          # Bicep uses guid(scope, functionApp.id, roleId) for assignment names.
-          # After recreation the identity changes but the name stays the same,
-          # blocking deployment. Delete any RBAC assignments in the RG for
-          # Bicep-managed roles that belong to a stale ServicePrincipal.
+          # Bicep creates resource-scoped role assignments (not RG-scoped),
+          # so we must query each resource scope individually.
           echo "Current function app principal: $CURRENT_PRINCIPAL"
-          STALE_RBAC=$(az role assignment list --resource-group "$RG" --all \
-            --query "[?principalType=='ServicePrincipal' && principalId!='$CURRENT_PRINCIPAL' && (
-              roleDefinitionName=='Key Vault Secrets User' ||
-              roleDefinitionName=='Storage Blob Data Owner' ||
-              roleDefinitionName=='Storage Queue Data Contributor' ||
-              roleDefinitionName=='Storage Table Data Contributor' ||
-              roleDefinitionName=='Monitoring Metrics Publisher'
-            )].id" -o tsv 2>/dev/null || echo "")
-
-          if [ -n "$STALE_RBAC" ]; then
-            for ID in $STALE_RBAC; do
+          SUB_ID=$(az account show --query "id" -o tsv)
+          SCOPES=(
+            "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/lfmstore"
+            "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/${{ vars.KEY_VAULT_NAME }}"
+            "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Insights/components/${APP}-insights"
+          )
+          for SCOPE in "${SCOPES[@]}"; do
+            STALE=$(az role assignment list --scope "$SCOPE" \
+              --query "[?principalId!='$CURRENT_PRINCIPAL' && principalId!='' && principalType=='ServicePrincipal'].id" \
+              -o tsv 2>/dev/null || echo "")
+            for ID in $STALE; do
               echo "Deleting stale RBAC assignment: $ID"
               az role assignment delete --ids "$ID"
             done
-          else
-            echo "No stale RBAC role assignments found."
-          fi
+          done
 
           # Clean up stale Cosmos SQL role assignments.
           # The Cosmos account has a CanNotDelete lock that blocks deletion —
