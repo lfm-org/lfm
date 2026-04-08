@@ -216,20 +216,47 @@ jobs:
             echo "Hostname $HOSTNAME already bound."
           fi
 
-          # Delete any orphaned cert ARM resource that ssl-create would reuse
-          SUB_ID=$(az account show --query id -o tsv)
-          CERT_ID="/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Web/certificates/$HOSTNAME"
-          if az resource show --ids "$CERT_ID" &>/dev/null; then
-            echo "Deleting orphaned certificate resource for $HOSTNAME..."
-            az resource delete --ids "$CERT_ID"
+          # Check if a valid SSL binding already exists
+          SSL_STATE=$(az webapp config hostname list \
+            --webapp-name "$APP" --resource-group "$RG" \
+            --query "[?name=='$HOSTNAME'].sslState" -o tsv)
+
+          if [ "$SSL_STATE" = "SniEnabled" ]; then
+            echo "SSL binding already active for $HOSTNAME — skipping."
+            exit 0
           fi
 
-          # Create managed certificate and bind
-          echo "Creating managed certificate for $HOSTNAME..."
-          THUMBPRINT=$(az webapp config ssl create \
-            --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" \
-            --query thumbprint -o tsv)
-          echo "Binding certificate to $HOSTNAME..."
+          # Try to get existing cert thumbprint
+          THUMBPRINT=$(az webapp config ssl list -g "$RG" \
+            --query "[?name=='$HOSTNAME'].thumbprint | [0]" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$THUMBPRINT" ]; then
+            # No cert exists — create a managed certificate
+            echo "Creating managed certificate for $HOSTNAME..."
+            az webapp config ssl create \
+              --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" || true
+
+            # Poll until cert is provisioned (async operation)
+            echo "Waiting for certificate to be provisioned..."
+            for i in $(seq 1 30); do
+              THUMBPRINT=$(az webapp config ssl show \
+                -g "$RG" --certificate-name "$HOSTNAME" \
+                --query thumbprint -o tsv 2>/dev/null || echo "")
+              if [ -n "$THUMBPRINT" ]; then
+                echo "Certificate provisioned: $THUMBPRINT"
+                break
+              fi
+              echo "  Attempt $i/30 — certificate not ready yet..."
+              sleep 10
+            done
+
+            if [ -z "$THUMBPRINT" ]; then
+              echo "ERROR: Certificate was not provisioned within 5 minutes."
+              exit 1
+            fi
+          fi
+
+          echo "Binding certificate $THUMBPRINT to $HOSTNAME..."
           az webapp config ssl bind \
             --resource-group "$RG" --name "$APP" \
             --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
