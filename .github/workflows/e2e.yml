@@ -2,6 +2,11 @@ name: E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      include_perf:
+        description: 'Include performance tests'
+        type: boolean
+        default: false
   pull_request:
     branches: [main]
     paths:
@@ -78,7 +83,8 @@ jobs:
       - name: Run E2E
         run: >
           dotnet test tests/Lfm.E2E/Lfm.E2E.csproj
-          -c Release --no-build --filter "Category!=Perf"
+          -c Release --no-build
+          ${{ inputs.include_perf != true && '--filter "Category!=Perf"' || '' }}
           --logger "trx;LogFileName=e2e.trx"
           --logger "console;verbosity=normal"
           --results-directory ./artifacts/e2e-results
@@ -90,7 +96,5 @@ jobs:
           name: e2e-results
           path: |
             ./artifacts/e2e-results
-            tests/Lfm.E2E/bin/Release/net10.0/playwright-traces
-            tests/Lfm.E2E/bin/Release/net10.0/TestResults
           if-no-files-found: ignore
           retention-days: 14
