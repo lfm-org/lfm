@@ -31,9 +31,9 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   }
 }
 
-// Alert: Function App server errors (HTTP 5xx)
-resource functionErrorsAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
-  name: 'alert-${functionAppName}-http5xx'
+// Alert: Function App health degradation (Flex Consumption doesn't emit Http5xx)
+resource functionHealthAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-${functionAppName}-health'
   location: 'global'
   tags: tags
   properties: {
@@ -47,41 +47,11 @@ resource functionErrorsAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
       'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
       allOf: [
         {
-          name: 'Http5xx'
-          metricName: 'Http5xx'
+          name: 'HealthDegraded'
+          metricName: 'HealthCheckStatus'
           metricNamespace: 'Microsoft.Web/sites'
-          operator: 'GreaterThan'
-          threshold: 0
-          timeAggregation: 'Total'
-          criterionType: 'StaticThresholdCriterion'
-        }
-      ]
-    }
-    actions: [{ actionGroupId: actionGroup.id }]
-  }
-}
-
-// Alert: Function App response time degradation
-resource functionLatencyAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
-  name: 'alert-${functionAppName}-latency'
-  location: 'global'
-  tags: tags
-  properties: {
-    severity: 3
-    enabled: true
-    evaluationFrequency: 'PT5M'
-    windowSize: 'PT15M'
-    autoMitigate: true
-    scopes: [functionApp.id]
-    criteria: {
-      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
-      allOf: [
-        {
-          name: 'HighLatency'
-          metricName: 'HttpResponseTime'
-          metricNamespace: 'Microsoft.Web/sites'
-          operator: 'GreaterThan'
-          threshold: 5
+          operator: 'LessThan'
+          threshold: 100
           timeAggregation: 'Average'
           criterionType: 'StaticThresholdCriterion'
         }
