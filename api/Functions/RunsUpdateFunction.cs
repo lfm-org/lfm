@@ -64,14 +64,18 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
                 || existing.CreatorGuildId is null
                 || principal.GuildId != existing.CreatorGuildId.ToString())
             {
+                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "not creator"));
                 return new ObjectResult(new { error = "Only the run creator can update this run" })
                 { StatusCode = 403 };
             }
 
             var canEdit = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
             if (!canEdit)
+            {
+                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
                 return new ObjectResult(new { error = "Your guild rank does not have permission to edit guild runs" })
                 { StatusCode = 403 };
+            }
         }
 
         // 3. Parse and validate request body.
@@ -126,8 +130,11 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
 
             var canCreate = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
             if (!canCreate)
+            {
+                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
                 return new ObjectResult(new { error = "Guild run creation is not enabled for your rank" })
                 { StatusCode = 403 };
+            }
         }
 
         // 7. Resolve effective instanceId + modeKey and look up the instance name.

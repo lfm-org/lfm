@@ -70,8 +70,11 @@ public class RunsSignupFunction(
             // canSignupGuildRuns permission check — mirrors runs-signup.ts guild block.
             var canSignup = await guildPermissions.CanSignupGuildRunsAsync(principal, ct);
             if (!canSignup)
+            {
+                AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "failure", "guild rank denied"));
                 return new ObjectResult(new { error = "Guild signup is not enabled for your rank" })
                 { StatusCode = 403 };
+            }
         }
 
         // 3. Parse and validate request body.
