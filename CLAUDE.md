@@ -123,10 +123,10 @@ Deploy workflows use GitHub repo variables for all project-specific values. Neve
 | `COSMOS_DATABASE` | Cosmos DB database name |
 | `API_HOSTNAME` | API custom domain |
 | `FRONTEND_HOSTNAME` | Frontend custom domain |
-| `PRIVACY_EMAIL` | Privacy contact email |
+| `PRIVACY_EMAIL` | Privacy contact email (alerts only) |
 | `BATTLE_NET_REGION` | Battle.net region code |
 
-`frontendOrigin`, `battleNetRedirectUri`, and `tags` are derived from the above in the workflow.
+`frontendOrigin`, `battleNetRedirectUri`, and `tags` are derived from the above in the workflow. `PRIVACY_EMAIL` is only used by the alerts deploy step, not by `main.bicep`.
 
 ### `az` CLI usage
 

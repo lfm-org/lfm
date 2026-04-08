@@ -33,9 +33,6 @@ param keyVaultName string
 @maxLength(63)
 param logAnalyticsWorkspaceName string
 
-@description('Privacy contact email address')
-param privacyEmail string
-
 @description('Cosmos DB database name')
 param cosmosDatabase string
 

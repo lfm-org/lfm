@@ -156,7 +156,6 @@ jobs:
               swaName="${{ vars.SWA_NAME }}" \
               keyVaultName="${{ vars.KEY_VAULT_NAME }}" \
               logAnalyticsWorkspaceName="${{ vars.LOG_ANALYTICS_NAME }}" \
-              privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
               cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
               frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
               battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
@@ -176,7 +175,6 @@ jobs:
               swaName="${{ vars.SWA_NAME }}" \
               keyVaultName="${{ vars.KEY_VAULT_NAME }}" \
               logAnalyticsWorkspaceName="${{ vars.LOG_ANALYTICS_NAME }}" \
-              privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
               cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
               frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
               battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
