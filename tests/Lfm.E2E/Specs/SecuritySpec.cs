@@ -217,11 +217,11 @@ public class SecuritySpec(SecurityFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task NonAdminUser_AdminEndpoints_Return403()
     {
-        // Authenticate as the primary test user (who is a guild member, not admin).
+        // Authenticate as the secondary test user (who is a guild member, not admin).
         // PATCH /api/guild requires guild admin (rank 0 in roster).
-        // The primary user has a guild but the seed data does not place them at rank 0,
-        // so GuildPermissions.IsAdminAsync should return false.
-        using var authClient = await fixture.CreateAuthenticatedClientAsync(DefaultSeed.PrimaryBattleNetId);
+        // The primary user is seeded as a guild admin (rank 0 by Chunk 4); use the
+        // secondary user who is a regular member so GuildPermissions.IsAdminAsync returns false.
+        using var authClient = await fixture.CreateAuthenticatedClientAsync(DefaultSeed.SecondaryBattleNetId);
 
         var patchContent = new StringContent(
             """{"timezone": "America/New_York", "locale": "en_US"}""",
@@ -380,13 +380,12 @@ public class SecuritySpec(SecurityFixture fixture, ITestOutputHelper output)
             var response = await client.GetAsync(endpoint);
             var body = await response.Content.ReadAsStringAsync();
 
-            body.Should().NotContainAny(
-                "at System.",
-                "at Microsoft.",
-                "at Lfm.",
-                "Exception",
-                ".cs:line ",
-                "StackTrace");
+            body.Should().NotContain("at System.")
+                .And.NotContain("at Microsoft.")
+                .And.NotContain("at Lfm.")
+                .And.NotContain("Exception")
+                .And.NotContain(".cs:line ")
+                .And.NotContain("StackTrace");
             Log($"[PASS] {endpoint} → {(int)response.StatusCode}: no stack traces in response");
         }
     }
@@ -426,24 +425,22 @@ public class SecuritySpec(SecurityFixture fixture, ITestOutputHelper output)
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
 
-        body.Should().NotContainAny(
-            "AccountKey",
-            "AccountEndpoint",
-            "connectionString",
-            "password",
-            "secret",
-            "ClientSecret");
+        body.Should().NotContain("AccountKey")
+            .And.NotContain("AccountEndpoint")
+            .And.NotContain("connectionString")
+            .And.NotContain("password")
+            .And.NotContain("secret")
+            .And.NotContain("ClientSecret");
 
         var readyResponse = await fixture.ApiHttpClient.GetAsync("/api/health/ready");
         var readyBody = await readyResponse.Content.ReadAsStringAsync();
 
-        readyBody.Should().NotContainAny(
-            "AccountKey",
-            "AccountEndpoint",
-            "connectionString",
-            "password",
-            "secret",
-            "ClientSecret");
+        readyBody.Should().NotContain("AccountKey")
+            .And.NotContain("AccountEndpoint")
+            .And.NotContain("connectionString")
+            .And.NotContain("password")
+            .And.NotContain("secret")
+            .And.NotContain("ClientSecret");
 
         Log("[PASS] Health endpoints do not expose sensitive configuration data.");
     }
