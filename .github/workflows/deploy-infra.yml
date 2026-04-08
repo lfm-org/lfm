@@ -21,14 +21,15 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Ensure resource group exists
-        run: az group create --name lfm --location westeurope
+        run: az group create --name "${{ vars.AZURE_RESOURCE_GROUP }}" --location "${{ vars.AZURE_LOCATION }}"
 
       - name: Recover soft-deleted Key Vault if exists
         run: |
-          DELETED_KV=$(az keyvault list-deleted --query "[?name=='lfm-kv-prot'].name" -o tsv)
+          KV="${{ vars.KEY_VAULT_NAME }}"
+          DELETED_KV=$(az keyvault list-deleted --query "[?name=='$KV'].name" -o tsv)
           if [ -n "$DELETED_KV" ]; then
-            echo "Recovering soft-deleted Key Vault lfm-kv-prot..."
-            az keyvault recover --name lfm-kv-prot
+            echo "Recovering soft-deleted Key Vault $KV..."
+            az keyvault recover --name "$KV"
           else
             echo "No soft-deleted Key Vault found, proceeding with fresh creation."
           fi
@@ -59,9 +60,9 @@ jobs:
           PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
         run: |
           az deployment group what-if \
-            --resource-group lfm \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/main.bicep \
-            --parameters infra/parameters.prod.lfm.json \
+            --parameters "${{ vars.PARAMETER_FILE }}" \
             --parameters "privacyEmail=$PRIVACY_EMAIL"
 
       - name: Deploy Bicep
@@ -69,16 +70,16 @@ jobs:
           PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
         run: |
           az deployment group create \
-            --resource-group lfm \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/main.bicep \
-            --parameters infra/parameters.prod.lfm.json \
+            --parameters "${{ vars.PARAMETER_FILE }}" \
             --parameters "privacyEmail=$PRIVACY_EMAIL"
 
       - name: Configure Functions custom domain and managed certificate
         run: |
-          HOSTNAME="lfm-api.dinosauruskeksi.com"
-          APP="lfm-functions"
-          RG="lfm"
+          HOSTNAME="${{ vars.API_HOSTNAME }}"
+          APP="${{ vars.FUNCTION_APP_NAME }}"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
 
           # Add custom hostname (idempotent — no-op if already bound)
           EXISTING=$(az webapp config hostname list \
