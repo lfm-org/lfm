@@ -162,6 +162,20 @@ public class GuildFunctionTests
 
         // Guild document should never be read when caller is not admin.
         guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        // Denied admin attempt must emit a failure audit event.
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("guild.update") &&
+                    v.ToString()!.Contains("failure") &&
+                    v.ToString()!.Contains("forbidden")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "denied admin guild update must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

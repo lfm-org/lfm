@@ -40,7 +40,7 @@ public class RaiderCleanupFunction(
                 // Mirror TS order: scrub run references first, then delete the raider document.
                 await runsRepo.ScrubRaiderAsync(raider.BattleNetId, cancellationToken);
                 await raidersRepo.DeleteAsync(raider.BattleNetId, cancellationToken);
-                AuditLog.Emit(logger, new AuditEvent("account.expired", raider.BattleNetId, raider.BattleNetId, "success", null));
+                AuditLog.Emit(logger, new AuditEvent("account.expired", "system", raider.BattleNetId, "success", null));
                 removed++;
             }
             catch (Exception ex)

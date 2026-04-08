@@ -208,7 +208,7 @@ public class RaiderCleanupFunctionTests
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("account.expired") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-42")),
+                    v.ToString()!.Contains("account.expired") && v.ToString()!.Contains("success") && v.ToString()!.Contains("system")),
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,

@@ -73,7 +73,10 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
 
         var isAdmin = await guildPermissions.IsAdminAsync(principal, cancellationToken);
         if (!isAdmin)
+        {
+            AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, principal.GuildId, "failure", "forbidden"));
             return new ObjectResult(new { error = "forbidden" }) { StatusCode = 403 };
+        }
 
         var body = await JsonSerializer.DeserializeAsync<UpdateGuildRequest>(
             req.Body,
