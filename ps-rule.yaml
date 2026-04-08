@@ -68,3 +68,6 @@ rule:
     - Azure.Storage.UseReplication
     # Workspace replication adds cost; single-region is fine for hobby use.
     - Azure.Log.Replication
+    # Data Protection wrapping key is symmetric; auto-rotation would invalidate
+    # existing encrypted key rings without re-encryption support.
+    - Azure.KeyVault.AutoRotationPolicy
