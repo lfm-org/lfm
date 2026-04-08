@@ -64,7 +64,7 @@ jobs:
         run: dotnet publish api/Lfm.Api.csproj -c Release -o ./publish/api --no-build
 
       - name: Publish App
-        run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build -p:WasmApplicationEnvironmentName=Production
+        run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
 
       - name: Install brotli
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends brotli
