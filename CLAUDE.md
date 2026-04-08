@@ -24,6 +24,7 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 8. No `Co-Authored-By` trailers. AI usage acknowledged in `README.md`.
 9. Document guidance changes in the same task's guidance files.
 10. **Pre-commit hook** (`scripts/pre-commit`) blocks `.env`, `.pem`, `.key`, etc. Install via `scripts/pre-commit`.
+11. **Worktrees** live in `.worktrees/` at the repo root. Use `superpowers:using-git-worktrees` when available; otherwise `git worktree add .worktrees/<slug>`. Never create worktrees as sibling directories in `~/repos/`.
 
 ## Configuration & Secrets
 
