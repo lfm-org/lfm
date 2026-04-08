@@ -169,7 +169,8 @@ public class RunsCreateFunctionTests
         permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = MakeFunction(repo, permissions);
+        var loggerMock = new Mock<ILogger<RunsCreateFunction>>();
+        var fn = MakeFunction(repo, permissions, loggerMock);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -178,6 +179,19 @@ public class RunsCreateFunctionTests
         objectResult.StatusCode.Should().Be(403);
 
         repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("run.create") &&
+                    v.ToString()!.Contains("failure") &&
+                    v.ToString()!.Contains("guild rank denied")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "denied guild run creation must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

@@ -210,7 +210,8 @@ public class RunsSignupFunctionTests
         permissions.Setup(p => p.CanSignupGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
+        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
         var ctx = MakeFunctionContext(principal);
 
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
@@ -220,6 +221,19 @@ public class RunsSignupFunctionTests
         objectResult.StatusCode.Should().Be(403);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("signup.create") &&
+                    v.ToString()!.Contains("failure") &&
+                    v.ToString()!.Contains("guild rank denied")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "denied guild signup must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

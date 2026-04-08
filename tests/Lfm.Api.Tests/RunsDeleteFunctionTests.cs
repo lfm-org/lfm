@@ -121,7 +121,8 @@ public class RunsDeleteFunctionTests
         permissions.Setup(p => p.CanDeleteGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var fn = MakeFunction(repo, permissions);
+        var loggerMock = new Mock<ILogger<RunsDeleteFunction>>();
+        var fn = MakeFunction(repo, permissions, loggerMock);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
@@ -131,6 +132,19 @@ public class RunsDeleteFunctionTests
         objectResult.StatusCode.Should().Be(403);
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("run.delete") &&
+                    v.ToString()!.Contains("failure") &&
+                    v.ToString()!.Contains("guild rank denied")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "denied guild run deletion must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

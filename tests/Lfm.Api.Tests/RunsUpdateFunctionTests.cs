@@ -173,8 +173,9 @@ public class RunsUpdateFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
         var instancesRepo = new Mock<IInstancesRepository>();
+        var loggerMock = new Mock<ILogger<RunsUpdateFunction>>();
 
-        var fn = MakeFunction(repo, permissions, instancesRepo);
+        var fn = MakeFunction(repo, permissions, instancesRepo, loggerMock);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
@@ -183,6 +184,19 @@ public class RunsUpdateFunctionTests
         objectResult.StatusCode.Should().Be(403);
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("run.update") &&
+                    v.ToString()!.Contains("failure") &&
+                    v.ToString()!.Contains("not creator")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "denied run update must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------
