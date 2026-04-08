@@ -4,29 +4,281 @@ namespace Lfm.E2E.Seeds;
 
 public static class DefaultSeed
 {
+    // Well-known test identifiers shared with AuthHelper and spec files.
+    public const string PrimaryBattleNetId = "test-bnet-id";
+    public const string SecondaryBattleNetId = "test-bnet-id-2";
+    public const string TestGuildId = "12345";
+    public const string TestRunId = "e2e-run-001";
+
     public static async Task SeedAsync(CosmosClient client, string databaseName)
     {
         var dbResponse = await RetryAsync(
             () => client.CreateDatabaseIfNotExistsAsync(databaseName));
         var db = dbResponse.Database;
 
-        var containerResponse = await RetryAsync(
+        // --- Raiders container (partition key: /battleNetId) ---
+        var raidersContainer = (await RetryAsync(
             () => db.CreateContainerIfNotExistsAsync(
-                new ContainerProperties("raiders", "/battleNetId")));
-        var container = containerResponse.Container;
+                new ContainerProperties("raiders", "/battleNetId")))).Container;
 
+        await SeedPrimaryRaiderAsync(raidersContainer);
+        await SeedSecondaryRaiderAsync(raidersContainer);
+
+        // --- Guilds container (partition key: /id) ---
+        var guildsContainer = (await RetryAsync(
+            () => db.CreateContainerIfNotExistsAsync(
+                new ContainerProperties("guilds", "/id")))).Container;
+
+        await SeedGuildAsync(guildsContainer);
+
+        // --- Runs container (partition key: /id) ---
+        var runsContainer = (await RetryAsync(
+            () => db.CreateContainerIfNotExistsAsync(
+                new ContainerProperties("runs", "/id")))).Container;
+
+        await SeedRunAsync(runsContainer);
+    }
+
+    private static async Task SeedPrimaryRaiderAsync(Container container)
+    {
         var raider = new Dictionary<string, object?>
         {
-            ["id"] = "test-bnet-id",
-            ["battleNetId"] = "test-bnet-id",
+            ["id"] = PrimaryBattleNetId,
+            ["battleNetId"] = PrimaryBattleNetId,
             ["selectedCharacterId"] = "eu-test-realm-aelrin",
             ["locale"] = null,
             ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
-            ["characters"] = new List<object>(),
+            ["characters"] = new List<object>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "eu-test-realm-aelrin",
+                    ["region"] = "eu",
+                    ["realm"] = "test-realm",
+                    ["name"] = "Aelrin",
+                    ["portraitUrl"] = null,
+                    ["specializationsSummary"] = new Dictionary<string, object?>
+                    {
+                        ["activeSpecialization"] = new Dictionary<string, object?>
+                        {
+                            ["id"] = 62,
+                            ["name"] = "Arcane",
+                        },
+                        ["specializations"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["specialization"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 62,
+                                    ["name"] = "Arcane",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            ["accountProfileSummary"] = new Dictionary<string, object?>
+            {
+                ["wow_accounts"] = new List<object>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = 1,
+                        ["characters"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Aelrin",
+                                ["level"] = 80,
+                                ["realm"] = new Dictionary<string, object?>
+                                {
+                                    ["slug"] = "test-realm",
+                                    ["name"] = "Test Realm",
+                                },
+                                ["playable_class"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 8,
+                                    ["name"] = "Mage",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         };
 
         await RetryAsync(
-            () => container.UpsertItemAsync(raider, new PartitionKey("test-bnet-id")));
+            () => container.UpsertItemAsync(raider, new PartitionKey(PrimaryBattleNetId)));
+    }
+
+    private static async Task SeedSecondaryRaiderAsync(Container container)
+    {
+        var raider = new Dictionary<string, object?>
+        {
+            ["id"] = SecondaryBattleNetId,
+            ["battleNetId"] = SecondaryBattleNetId,
+            ["selectedCharacterId"] = "eu-test-realm-kaldris",
+            ["locale"] = null,
+            ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
+            ["characters"] = new List<object>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "eu-test-realm-kaldris",
+                    ["region"] = "eu",
+                    ["realm"] = "test-realm",
+                    ["name"] = "Kaldris",
+                    ["portraitUrl"] = null,
+                    ["specializationsSummary"] = new Dictionary<string, object?>
+                    {
+                        ["activeSpecialization"] = new Dictionary<string, object?>
+                        {
+                            ["id"] = 71,
+                            ["name"] = "Arms",
+                        },
+                        ["specializations"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["specialization"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 71,
+                                    ["name"] = "Arms",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            ["accountProfileSummary"] = new Dictionary<string, object?>
+            {
+                ["wow_accounts"] = new List<object>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = 2,
+                        ["characters"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Kaldris",
+                                ["level"] = 80,
+                                ["realm"] = new Dictionary<string, object?>
+                                {
+                                    ["slug"] = "test-realm",
+                                    ["name"] = "Test Realm",
+                                },
+                                ["playable_class"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 1,
+                                    ["name"] = "Warrior",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(raider, new PartitionKey(SecondaryBattleNetId)));
+    }
+
+    private static async Task SeedGuildAsync(Container container)
+    {
+        var guild = new Dictionary<string, object?>
+        {
+            ["id"] = TestGuildId,
+            ["guildId"] = 12345,
+            ["realmSlug"] = "test-realm",
+            ["slogan"] = "E2E test guild",
+            ["setup"] = new Dictionary<string, object?>
+            {
+                ["initializedAt"] = "2026-03-01T00:00:00.0000000Z",
+                ["timezone"] = "Europe/London",
+                ["locale"] = "en_GB",
+            },
+            ["rankPermissions"] = new List<object>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["rank"] = 0,
+                    ["canCreateGuildRuns"] = true,
+                    ["canSignupGuildRuns"] = true,
+                    ["canDeleteGuildRuns"] = true,
+                },
+                new Dictionary<string, object?>
+                {
+                    ["rank"] = 1,
+                    ["canCreateGuildRuns"] = true,
+                    ["canSignupGuildRuns"] = true,
+                    ["canDeleteGuildRuns"] = false,
+                },
+            },
+            ["blizzardProfileRaw"] = new Dictionary<string, object?>
+            {
+                ["name"] = "Test Guild",
+                ["realm"] = new Dictionary<string, object?>
+                {
+                    ["slug"] = "test-realm",
+                    ["name"] = "Test Realm",
+                },
+                ["faction"] = new Dictionary<string, object?>
+                {
+                    ["name"] = "Alliance",
+                },
+                ["memberCount"] = 25,
+                ["achievementPoints"] = 1500,
+            },
+        };
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(guild, new PartitionKey(TestGuildId)));
+    }
+
+    private static async Task SeedRunAsync(Container container)
+    {
+        var run = new Dictionary<string, object?>
+        {
+            ["id"] = TestRunId,
+            ["startTime"] = "2026-04-15T20:00:00.0000000Z",
+            ["signupCloseTime"] = "2026-04-15T19:30:00.0000000Z",
+            ["description"] = "E2E test run",
+            ["modeKey"] = "NORMAL:25",
+            ["visibility"] = "PUBLIC",
+            ["creatorGuild"] = "Test Guild",
+            ["creatorGuildId"] = 12345,
+            ["instanceId"] = 67,
+            ["instanceName"] = "Liberation of Undermine",
+            ["creatorBattleNetId"] = PrimaryBattleNetId,
+            ["createdAt"] = "2026-04-01T10:00:00.0000000Z",
+            ["ttl"] = 2592000,
+            ["runCharacters"] = new List<object>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "signup-001",
+                    ["characterId"] = "eu-test-realm-aelrin",
+                    ["characterName"] = "Aelrin",
+                    ["characterRealm"] = "test-realm",
+                    ["characterLevel"] = 80,
+                    ["characterClassId"] = 8,
+                    ["characterClassName"] = "Mage",
+                    ["characterRaceId"] = 1,
+                    ["characterRaceName"] = "Human",
+                    ["raiderBattleNetId"] = PrimaryBattleNetId,
+                    ["desiredAttendance"] = "IN",
+                    ["reviewedAttendance"] = "IN",
+                    ["specId"] = 62,
+                    ["specName"] = "Arcane",
+                    ["role"] = "RANGED_DPS",
+                },
+            },
+        };
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(run, new PartitionKey(TestRunId)));
     }
 
     private static async Task<T> RetryAsync<T>(Func<Task<T>> action, int maxRetries = 5)
