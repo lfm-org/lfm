@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -49,35 +50,7 @@ public class RunsSignupFunction(
     {
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
-        // 1. Load existing run.
-        var run = await runsRepo.GetByIdAsync(id, ct);
-        if (run is null)
-            return new NotFoundObjectResult(new { error = "Run not found" });
-
-        // 2. Visibility check for GUILD runs — mirrors runs-signup.ts:
-        //    if (run.visibility === "GUILD" && !isCreator && !isGuildMember)
-        //      return errorResponse(404, "Run not found");
-        if (run.Visibility == "GUILD")
-        {
-            var isCreator = run.CreatorBattleNetId == principal.BattleNetId;
-            var isGuildMember = principal.GuildId is not null
-                && run.CreatorGuildId is not null
-                && run.CreatorGuildId.ToString() == principal.GuildId;
-
-            if (!isCreator && !isGuildMember)
-                return new NotFoundObjectResult(new { error = "Run not found" });
-
-            // canSignupGuildRuns permission check — mirrors runs-signup.ts guild block.
-            var canSignup = await guildPermissions.CanSignupGuildRunsAsync(principal, ct);
-            if (!canSignup)
-            {
-                AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "failure", "guild rank denied"));
-                return new ObjectResult(new { error = "Guild signup is not enabled for your rank" })
-                { StatusCode = 403 };
-            }
-        }
-
-        // 3. Parse and validate request body.
+        // 1. Parse and validate request body (request-scoped, not retry-scoped).
         SignupRequest? body;
         try
         {
@@ -100,7 +73,7 @@ public class RunsSignupFunction(
             return new BadRequestObjectResult(
                 new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
 
-        // 4. Load raider document and verify character ownership.
+        // 2. Load raider document and verify character ownership.
         //    Mirrors: const storedCharacter = raider.characters.find(c => c.id === body.characterId)
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
@@ -110,8 +83,7 @@ public class RunsSignupFunction(
         if (storedCharacter is null)
             return new BadRequestObjectResult(new { error = "Character not found on your profile" });
 
-        // 5. Resolve spec info — mirrors the specId block in runs-signup.ts.
-        //    We validate specId against the character's stored specializations when available.
+        // 3. Resolve spec info — mirrors the specId block in runs-signup.ts.
         int? specId = body.SpecId;
         string? specName = null;
         string? role = null;
@@ -124,63 +96,107 @@ public class RunsSignupFunction(
                 return new BadRequestObjectResult(new { error = "Invalid specId: not found on character" });
 
             specName = specEntry.Specialization.Name;
-            // Role is not stored in StoredSpecializationsEntry; leave null (static spec map not ported).
         }
 
-        // 6. Upsert the RunCharacterEntry — one per battleNetId per run.
-        //    Mirrors the existingIndex / upsert pattern in runs-signup.ts.
-        var existingIndex = -1;
-        for (var i = 0; i < run.RunCharacters.Count; i++)
+        // 4. Read-modify-write loop with optimistic concurrency.
+        //    On ConcurrencyConflictException the loop re-reads the run and retries.
+        const int maxAttempts = 3;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            if (run.RunCharacters[i].RaiderBattleNetId == principal.BattleNetId)
+            // 4a. Load existing run.
+            var run = await runsRepo.GetByIdAsync(id, ct);
+            if (run is null)
+                return new NotFoundObjectResult(new { error = "Run not found" });
+
+            // 4b. Signup close time check — reject if signups are closed.
+            if (RunEditability.IsEditingClosed(run.SignupCloseTime, run.StartTime, DateTimeOffset.UtcNow))
             {
-                existingIndex = i;
-                break;
+                return new ObjectResult(new { error = "Signups are closed for this run" })
+                { StatusCode = 409 };
+            }
+
+            // 4c. Visibility check for GUILD runs — mirrors runs-signup.ts.
+            if (run.Visibility == "GUILD")
+            {
+                var isCreator = run.CreatorBattleNetId == principal.BattleNetId;
+                var isGuildMember = principal.GuildId is not null
+                    && run.CreatorGuildId is not null
+                    && run.CreatorGuildId.ToString() == principal.GuildId;
+
+                if (!isCreator && !isGuildMember)
+                    return new NotFoundObjectResult(new { error = "Run not found" });
+
+                var canSignup = await guildPermissions.CanSignupGuildRunsAsync(principal, ct);
+                if (!canSignup)
+                {
+                    AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "failure", "guild rank denied"));
+                    return new ObjectResult(new { error = "Guild signup is not enabled for your rank" })
+                    { StatusCode = 403 };
+                }
+            }
+
+            // 4d. Upsert the RunCharacterEntry — one per battleNetId per run.
+            var existingIndex = -1;
+            for (var i = 0; i < run.RunCharacters.Count; i++)
+            {
+                if (run.RunCharacters[i].RaiderBattleNetId == principal.BattleNetId)
+                {
+                    existingIndex = i;
+                    break;
+                }
+            }
+
+            var entryId = existingIndex >= 0
+                ? run.RunCharacters[existingIndex].Id
+                : Guid.NewGuid().ToString();
+
+            var reviewedAttendance = existingIndex >= 0
+                ? run.RunCharacters[existingIndex].ReviewedAttendance
+                : "IN";
+
+            var entry = new RunCharacterEntry(
+                Id: entryId,
+                CharacterId: storedCharacter.Id,
+                CharacterName: storedCharacter.Name,
+                CharacterRealm: storedCharacter.Realm,
+                CharacterLevel: 0,
+                CharacterClassId: 0,
+                CharacterClassName: "",
+                CharacterRaceId: 0,
+                CharacterRaceName: "",
+                RaiderBattleNetId: principal.BattleNetId,
+                DesiredAttendance: body.DesiredAttendance!,
+                ReviewedAttendance: reviewedAttendance,
+                SpecId: specId,
+                SpecName: specName,
+                Role: role);
+
+            var updatedCharacters = run.RunCharacters.ToList();
+            if (existingIndex >= 0)
+                updatedCharacters[existingIndex] = entry;
+            else
+                updatedCharacters.Add(entry);
+
+            // 4e. Persist the updated run document with ETag check.
+            var updated = run with { RunCharacters = updatedCharacters };
+            try
+            {
+                var persisted = await runsRepo.UpdateAsync(updated, ct);
+
+                AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "success", null));
+
+                return new OkObjectResult(Sanitize(persisted, principal.BattleNetId));
+            }
+            catch (ConcurrencyConflictException)
+            {
+                logger.LogWarning("Concurrency conflict on signup for run {RunId}, attempt {Attempt}", id, attempt + 1);
+                // Loop will re-read the document and retry.
             }
         }
 
-        var entryId = existingIndex >= 0
-            ? run.RunCharacters[existingIndex].Id
-            : Guid.NewGuid().ToString();
-
-        var reviewedAttendance = existingIndex >= 0
-            ? run.RunCharacters[existingIndex].ReviewedAttendance
-            : "IN";
-
-        // Character demographic fields (level, classId, raceId, class/race names) are not
-        // stored in the .NET StoredSelectedCharacter model (profileSummary not modelled).
-        // We use safe defaults; these fields are cosmetic in the run document.
-        var entry = new RunCharacterEntry(
-            Id: entryId,
-            CharacterId: storedCharacter.Id,
-            CharacterName: storedCharacter.Name,
-            CharacterRealm: storedCharacter.Realm,
-            CharacterLevel: 0,
-            CharacterClassId: 0,
-            CharacterClassName: "",
-            CharacterRaceId: 0,
-            CharacterRaceName: "",
-            RaiderBattleNetId: principal.BattleNetId,
-            DesiredAttendance: body.DesiredAttendance!,
-            ReviewedAttendance: reviewedAttendance,
-            SpecId: specId,
-            SpecName: specName,
-            Role: role);
-
-        var updatedCharacters = run.RunCharacters.ToList();
-        if (existingIndex >= 0)
-            updatedCharacters[existingIndex] = entry;
-        else
-            updatedCharacters.Add(entry);
-
-        // 7. Persist the updated run document.
-        var updated = run with { RunCharacters = updatedCharacters };
-        var persisted = await runsRepo.UpdateAsync(updated, ct);
-
-        AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "success", null));
-
-        // 8. Return sanitized run — mirrors sanitizeOptionalRunDocumentForResponse.
-        return new OkObjectResult(Sanitize(persisted, principal.BattleNetId));
+        // All retry attempts exhausted.
+        return new ObjectResult(new { error = "Concurrent modification, please retry" })
+        { StatusCode = 409 };
     }
 
     // ------------------------------------------------------------------

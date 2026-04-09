@@ -170,12 +170,16 @@ public class RunsSignupFunctionTests
     public async Task Run_returns_404_when_run_does_not_exist()
     {
         var principal = MakePrincipal();
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
 
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("missing-run", It.IsAny<CancellationToken>()))
             .ReturnsAsync((RunDocument?)null);
 
         var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
         var permissions = new Mock<IGuildPermissions>();
 
         var fn = MakeFunction(runsRepo, raidersRepo, permissions);
@@ -187,7 +191,6 @@ public class RunsSignupFunctionTests
         result.Should().BeOfType<NotFoundObjectResult>();
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
-        raidersRepo.Verify(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -200,12 +203,16 @@ public class RunsSignupFunctionTests
         // Caller is in same guild but lacks canSignupGuildRuns.
         var principal = MakePrincipal(battleNetId: "bnet-member", guildId: "12345");
         var run = MakeRunDoc(visibility: "GUILD", creatorGuildId: 12345);
+        var raider = MakeRaiderDoc(battleNetId: "bnet-member", characterId: "char-1");
 
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
 
         var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-member", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.CanSignupGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
