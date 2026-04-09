@@ -10,7 +10,7 @@ public class FooterTests : ComponentTestBase
     [Fact]
     public void Footer_Renders_Footer_Element()
     {
-        var cut = RenderComponent<Footer>();
+        var cut = Render<Footer>();
 
         cut.Find("footer").Should().NotBeNull();
     }
@@ -18,7 +18,7 @@ public class FooterTests : ComponentTestBase
     [Fact]
     public void Footer_Contains_Privacy_Link()
     {
-        var cut = RenderComponent<Footer>();
+        var cut = Render<Footer>();
 
         var anchor = cut.Find("fluent-anchor[href='/privacy']");
         anchor.Should().NotBeNull();

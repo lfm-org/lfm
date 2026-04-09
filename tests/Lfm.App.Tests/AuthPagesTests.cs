@@ -12,7 +12,7 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void LandingPage_Renders_Without_Crash()
     {
-        var cut = RenderComponent<LandingPage>();
+        var cut = Render<LandingPage>();
 
         cut.Markup.Should().NotBeEmpty();
     }
@@ -20,9 +20,9 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void LoginPage_Button_Navigates_To_BattleNet_Login_With_Default_Redirect()
     {
-        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
 
-        var cut = RenderComponent<LoginPage>();
+        var cut = Render<LoginPage>();
 
         cut.Find("fluent-button").Click();
 
@@ -35,10 +35,10 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void LoginPage_Button_Navigates_With_Custom_Redirect()
     {
-        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
         nav.NavigateTo("/login?redirect=%2Fguild");
 
-        var cut = RenderComponent<LoginPage>();
+        var cut = Render<LoginPage>();
 
         cut.Find("fluent-button").Click();
 
@@ -49,9 +49,9 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void LoginSuccessPage_Renders_And_Redirects_To_Default()
     {
-        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
 
-        RenderComponent<LoginSuccessPage>();
+        Render<LoginSuccessPage>();
 
         nav.History.Should().ContainSingle(e => e.Uri.EndsWith("/runs"));
     }
@@ -59,10 +59,10 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void LoginSuccessPage_Renders_And_Redirects_To_Redirect_Param()
     {
-        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
         nav.NavigateTo("/login/success?redirect=%2Fguild");
 
-        RenderComponent<LoginSuccessPage>();
+        Render<LoginSuccessPage>();
 
         nav.History.Should().Contain(e => e.Uri.EndsWith("/guild"));
     }
@@ -70,7 +70,7 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void LoginFailedPage_Renders_Without_Crash()
     {
-        var cut = RenderComponent<LoginFailedPage>();
+        var cut = Render<LoginFailedPage>();
 
         cut.Markup.Should().NotBeEmpty();
     }
@@ -78,7 +78,7 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void GoodbyePage_Renders_Without_Crash()
     {
-        var cut = RenderComponent<GoodbyePage>();
+        var cut = Render<GoodbyePage>();
 
         cut.Markup.Should().NotBeEmpty();
     }
@@ -86,7 +86,7 @@ public class AuthPagesTests : ComponentTestBase
     [Fact]
     public void PrivacyPolicyPage_Renders_Without_Crash()
     {
-        var cut = RenderComponent<PrivacyPolicyPage>();
+        var cut = Render<PrivacyPolicyPage>();
 
         cut.Markup.Should().NotBeEmpty();
     }

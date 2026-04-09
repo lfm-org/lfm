@@ -19,7 +19,7 @@ public class InstancesPageTests : ComponentTestBase
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<InstancesPage>();
+        var cut = Render<InstancesPage>();
 
         cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
     }
@@ -35,7 +35,7 @@ public class InstancesPageTests : ComponentTestBase
             });
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<InstancesPage>();
+        var cut = Render<InstancesPage>();
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Liberation of Undermine"));
     }
 }

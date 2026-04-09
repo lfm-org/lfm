@@ -21,7 +21,7 @@ public class GuildPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<GuildPage>();
+        var cut = Render<GuildPage>();
 
         cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
     }
@@ -39,7 +39,7 @@ public class GuildPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<GuildPage>();
+        var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("guild.noGuild.title"));
@@ -61,7 +61,7 @@ public class GuildPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<GuildPage>();
+        var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Stormchasers"));
@@ -76,7 +76,7 @@ public class GuildPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync((GuildDto?)null);
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<GuildPage>();
+        var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Failed to load guild data."));
@@ -92,7 +92,7 @@ public class GuildPagesTests : ComponentTestBase
         var client = new Mock<IGuildClient>();
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<GuildAdminPage>();
+        var cut = Render<GuildAdminPage>();
 
         cut.Markup.Should().NotBeEmpty();
     }
@@ -103,7 +103,7 @@ public class GuildPagesTests : ComponentTestBase
         var client = new Mock<IGuildClient>();
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<GuildAdminPage>();
+        var cut = Render<GuildAdminPage>();
 
         cut.Markup.Should().Contain("guildAdmin.title");
     }

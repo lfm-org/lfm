@@ -8,7 +8,7 @@ using Lfm.App.i18n;
 
 namespace Lfm.App.Tests;
 
-public abstract class ComponentTestBase : TestContext
+public abstract class ComponentTestBase : BunitContext
 {
     protected ComponentTestBase()
     {

@@ -32,7 +32,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Loading_Ring_On_Mount()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         var tcs = new TaskCompletionSource<IReadOnlyList<CharacterDto>?>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
@@ -42,7 +42,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
     }
@@ -50,7 +50,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Character_Cards_After_Load()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CharacterDto> { MakeChar() });
@@ -60,7 +60,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Arthas"));
     }
@@ -68,7 +68,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Empty_State_When_No_Characters()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CharacterDto>());
@@ -78,7 +78,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("characters.empty"));
     }
@@ -86,7 +86,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Error_State_On_Failure()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Network error"));
@@ -94,7 +94,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Network error"));
     }
@@ -102,7 +102,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Error_When_Client_Returns_Null()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<CharacterDto>?)null);
@@ -110,7 +110,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Failed to load characters."));
     }
@@ -118,7 +118,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Multiple_Characters()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
@@ -128,7 +128,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() =>
         {
@@ -140,7 +140,7 @@ public class CharactersPagesTests : ComponentTestBase
     [Fact]
     public void CharactersPage_Renders_Forget_Me_Section()
     {
-        this.AddTestAuthorization().SetAuthorized("player#1234");
+        this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CharacterDto>());
@@ -150,7 +150,7 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = RenderComponent<CharactersPage>();
+        var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("characters.deleteAccount.title"));
     }

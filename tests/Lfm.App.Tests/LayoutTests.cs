@@ -12,8 +12,8 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Renders_App_Name()
     {
-        this.AddTestAuthorization();
-        var cut = RenderComponent<MainLayout>(p =>
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         // Passthrough localizer returns the key — "nav.logo" renders as "nav.logo"
@@ -23,8 +23,8 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Shows_SignIn_When_Unauthenticated()
     {
-        this.AddTestAuthorization();
-        var cut = RenderComponent<MainLayout>(p =>
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("nav.signIn"));
@@ -33,10 +33,10 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Shows_Nav_Links_When_Authenticated()
     {
-        var auth = this.AddTestAuthorization();
+        var auth = this.AddAuthorization();
         auth.SetAuthorized("player#1234");
 
-        var cut = RenderComponent<MainLayout>(p =>
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         cut.WaitForAssertion(() =>
@@ -50,10 +50,10 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Shows_Sign_Out_When_Authenticated()
     {
-        var auth = this.AddTestAuthorization();
+        var auth = this.AddAuthorization();
         auth.SetAuthorized("player#1234");
 
-        var cut = RenderComponent<MainLayout>(p =>
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("nav.signOut"));
@@ -62,8 +62,8 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Renders_Body_Content()
     {
-        this.AddTestAuthorization();
-        var cut = RenderComponent<MainLayout>(p =>
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "unique-page-marker")));
 
         cut.Markup.Should().Contain("unique-page-marker");
@@ -72,8 +72,8 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Renders_Footer_With_Language_Toggle()
     {
-        this.AddTestAuthorization();
-        var cut = RenderComponent<MainLayout>(p =>
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         cut.Markup.Should().Contain("footer.privacy");
@@ -84,8 +84,8 @@ public class LayoutTests : ComponentTestBase
     [Fact]
     public void MainLayout_Renders_Skip_To_Content_Link()
     {
-        this.AddTestAuthorization();
-        var cut = RenderComponent<MainLayout>(p =>
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         cut.Markup.Should().Contain("nav.skipToContent");

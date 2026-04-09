@@ -13,7 +13,7 @@ public class WowClassBadgeTests : ComponentTestBase
     [InlineData(11, "#FF7C0A")]  // Druid
     public void Renders_Span_With_Correct_Class_Color(int classId, string expectedColor)
     {
-        var cut = RenderComponent<WowClassBadge>(p => p
+        var cut = Render<WowClassBadge>(p => p
             .Add(x => x.ClassId, classId)
             .Add(x => x.CharacterName, "TestChar"));
 
@@ -25,7 +25,7 @@ public class WowClassBadgeTests : ComponentTestBase
     [Fact]
     public void Renders_White_For_Unknown_Class_Id()
     {
-        var cut = RenderComponent<WowClassBadge>(p => p
+        var cut = Render<WowClassBadge>(p => p
             .Add(x => x.ClassId, 999)
             .Add(x => x.CharacterName, "Unknown"));
 
@@ -36,7 +36,7 @@ public class WowClassBadgeTests : ComponentTestBase
     [Fact]
     public void Renders_Bold_Font_Weight()
     {
-        var cut = RenderComponent<WowClassBadge>(p => p
+        var cut = Render<WowClassBadge>(p => p
             .Add(x => x.ClassId, 8)
             .Add(x => x.CharacterName, "Frostbolt"));
 

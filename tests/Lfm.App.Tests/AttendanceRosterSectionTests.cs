@@ -43,7 +43,7 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             MakeCharacter(name: "Warrior2"),
         };
 
-        var cut = RenderComponent<AttendanceRosterSection>(p => p
+        var cut = Render<AttendanceRosterSection>(p => p
             .Add(x => x.GroupLabel, "IN")
             .Add(x => x.Characters, chars));
 
@@ -58,7 +58,7 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             MakeCharacter(name: "Thrall", classId: 7, className: "Shaman"),
         };
 
-        var cut = RenderComponent<AttendanceRosterSection>(p => p
+        var cut = Render<AttendanceRosterSection>(p => p
             .Add(x => x.GroupLabel, "IN")
             .Add(x => x.Characters, chars));
 
@@ -76,7 +76,7 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             MakeCharacter(name: "Jaina", desired: "BENCH"),
         };
 
-        var cut = RenderComponent<AttendanceRosterSection>(p => p
+        var cut = Render<AttendanceRosterSection>(p => p
             .Add(x => x.GroupLabel, "IN")
             .Add(x => x.Characters, chars)
             .Add(x => x.ShowDesiredAttendance, true));
@@ -93,7 +93,7 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             MakeCharacter(name: "Jaina"),
         };
 
-        var cut = RenderComponent<AttendanceRosterSection>(p => p
+        var cut = Render<AttendanceRosterSection>(p => p
             .Add(x => x.GroupLabel, "IN")
             .Add(x => x.Characters, chars));
 

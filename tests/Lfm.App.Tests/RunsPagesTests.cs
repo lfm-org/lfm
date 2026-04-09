@@ -58,7 +58,7 @@ public class RunsPagesTests : ComponentTestBase
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<RunsPage>();
+        var cut = Render<RunsPage>();
 
         cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
     }
@@ -71,7 +71,7 @@ public class RunsPagesTests : ComponentTestBase
             .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<RunsPage>();
+        var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Liberation of Undermine"));
@@ -85,7 +85,7 @@ public class RunsPagesTests : ComponentTestBase
             .ReturnsAsync(new List<RunSummaryDto>());
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<RunsPage>();
+        var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("runs.empty"));
@@ -99,7 +99,7 @@ public class RunsPagesTests : ComponentTestBase
             .ThrowsAsync(new HttpRequestException("Network error"));
         Services.AddSingleton(client.Object);
 
-        var cut = RenderComponent<RunsPage>();
+        var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Network error"));
@@ -117,7 +117,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
-        var cut = RenderComponent<CreateRunPage>();
+        var cut = Render<CreateRunPage>();
 
         cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
     }
@@ -132,7 +132,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
-        var cut = RenderComponent<CreateRunPage>();
+        var cut = Render<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("createRun.title"));
@@ -148,7 +148,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
-        var cut = RenderComponent<CreateRunPage>();
+        var cut = Render<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("createRun.submit"));
@@ -168,7 +168,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
-        var cut = RenderComponent<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
         cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
     }
@@ -185,7 +185,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
-        var cut = RenderComponent<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("editRun.saveChanges"));
@@ -203,7 +203,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
-        var cut = RenderComponent<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
 
         cut.WaitForAssertion(() =>
             cut.Markup.Should().Contain("Run not found."));
