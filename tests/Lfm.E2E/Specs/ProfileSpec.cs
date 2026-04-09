@@ -153,9 +153,11 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(guildAdminPage.SaveButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // Update the slogan field and save.
+        // Update the slogan field and save. Use Clear + TypeAsync for FluentTextArea binding.
         var newSlogan = $"E2E updated slogan {Guid.NewGuid():N}";
-        await guildAdminPage.SloganField.FillAsync(newSlogan);
+        await guildAdminPage.SloganField.ClickAsync();
+        await guildAdminPage.SloganField.ClearAsync();
+        await guildAdminPage.SloganField.PressSequentiallyAsync(newSlogan);
 
         await guildAdminPage.SaveButton.ClickAsync();
 
@@ -191,7 +193,10 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             // Type the confirmation phrase and click delete.
             await Assertions.Expect(charactersPage.DeleteConfirmationField)
                 .ToBeVisibleAsync(new() { Timeout = 10000 });
-            await charactersPage.DeleteConfirmationField.FillAsync("FORGET ME");
+            // FluentTextField binding requires typing (not FillAsync) to fire Blazor's
+            // @bind-Value change event through the web component.
+            await charactersPage.DeleteConfirmationField.ClickAsync();
+            await charactersPage.DeleteConfirmationField.PressSequentiallyAsync("FORGET ME");
 
             await Assertions.Expect(charactersPage.DeleteAccountButton)
                 .ToBeEnabledAsync(new() { Timeout = 5000 });

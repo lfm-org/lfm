@@ -13,7 +13,7 @@ public class LoginFailedPage(IPage page)
         _page.GetByText("Something went wrong while signing in. Please try again.");
 
     public ILocator TryAgainButton =>
-        _page.GetByRole(AriaRole.Button, new() { Name = "Try Again" });
+        _page.GetByRole(AriaRole.Link, new() { Name = "Try Again" });
 
     public async Task GotoAsync(string appBaseUrl)
     {

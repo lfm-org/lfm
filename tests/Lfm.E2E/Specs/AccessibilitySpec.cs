@@ -388,8 +388,8 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME'] input");
         await Assertions.Expect(deleteField).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        await deleteField.FocusAsync();
-        await deleteField.FillAsync("test");
+        await deleteField.ClickAsync();
+        await deleteField.PressSequentiallyAsync("test");
         await page.Keyboard.PressAsync("Enter");
 
         // Page should still show the characters heading (not navigated away)
