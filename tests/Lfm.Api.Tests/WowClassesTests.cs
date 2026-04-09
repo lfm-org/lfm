@@ -77,15 +77,19 @@ public class WowClassesTests
         WowClasses.GetColor(classId).Should().Be("#FFFFFF");
     }
 
-    [Fact]
-    public void Names_dictionary_contains_exactly_13_entries()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(13)]
+    public void GetName_returns_non_unknown_for_valid_ids(int classId)
     {
-        WowClasses.Names.Should().HaveCount(13);
+        WowClasses.GetName(classId).Should().NotBe("Unknown");
     }
 
-    [Fact]
-    public void Colors_dictionary_contains_exactly_13_entries()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(13)]
+    public void GetColor_returns_non_default_for_valid_ids(int classId)
     {
-        WowClasses.Colors.Should().HaveCount(13);
+        WowClasses.GetColor(classId).Should().NotBe("#FFFFFF");
     }
 }

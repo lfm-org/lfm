@@ -5,11 +5,12 @@
 @attribute [Authorize]
 @inject IGuildClient GuildClient
 @inject ToastHelper Toast
+@inject IStringLocalizer Loc
 
-<PageTitle>Guild Admin</PageTitle>
+<PageTitle>@Loc["guildAdmin.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.H3">Guild Admin</FluentLabel>
+    <FluentLabel Typo="Typography.H3">@Loc["guildAdmin.title"]</FluentLabel>
 
     @if (loadError != null)
     {

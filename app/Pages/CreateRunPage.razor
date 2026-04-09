@@ -7,11 +7,12 @@
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
 @inject ToastHelper Toast
+@inject IStringLocalizer Loc
 
-<PageTitle>Create Run</PageTitle>
+<PageTitle>@Loc["createRun.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:600px">
-    <FluentLabel Typo="Typography.H3">Create Run</FluentLabel>
+    <FluentLabel Typo="Typography.H3">@Loc["createRun.title"]</FluentLabel>
 
     @if (loadError != null)
     {
@@ -87,7 +88,7 @@
                         Appearance="Appearance.Accent"
                         OnClick="@HandleSubmit"
                         Disabled="@(submitting || string.IsNullOrWhiteSpace(instanceId) || string.IsNullOrWhiteSpace(startTime) || string.IsNullOrWhiteSpace(modeKey))">
-                        @(submitting ? "Creating…" : "Create Run")
+                        @(submitting ? Loc["common.loading"] : Loc["createRun.submit"])
                     </FluentButton>
                     <FluentButton
                         Appearance="Appearance.Outline"

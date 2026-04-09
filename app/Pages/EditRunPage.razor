@@ -7,11 +7,12 @@
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
 @inject ToastHelper Toast
+@inject IStringLocalizer Loc
 
-<PageTitle>Edit Run</PageTitle>
+<PageTitle>@Loc["editRun.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:800px">
-    <FluentLabel Typo="Typography.H3">Edit Run</FluentLabel>
+    <FluentLabel Typo="Typography.H3">@Loc["editRun.title"]</FluentLabel>
 
     @switch (state)
     {
@@ -91,7 +92,7 @@
                             Appearance="Appearance.Accent"
                             OnClick="@HandleSave"
                             Disabled="@(saving || deleting)">
-                            @(saving ? "Saving…" : "Save Changes")
+                            @(saving ? Loc["common.loading"] : Loc["editRun.saveChanges"])
                         </FluentButton>
                         <FluentButton
                             Appearance="Appearance.Outline"

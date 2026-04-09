@@ -6,6 +6,24 @@ namespace Lfm.Contracts.WoW;
 /// </summary>
 public static class WowClasses
 {
+    private static readonly IReadOnlyDictionary<int, string> Names =
+        new Dictionary<int, string>
+        {
+            [1] = "Warrior",
+            [2] = "Paladin",
+            [3] = "Hunter",
+            [4] = "Rogue",
+            [5] = "Priest",
+            [6] = "Death Knight",
+            [7] = "Shaman",
+            [8] = "Mage",
+            [9] = "Warlock",
+            [10] = "Monk",
+            [11] = "Druid",
+            [12] = "Demon Hunter",
+            [13] = "Evoker",
+        };
+
     private static readonly IReadOnlyDictionary<int, string> Colors =
         new Dictionary<int, string>
         {
@@ -23,6 +41,15 @@ public static class WowClasses
             [12] = "#A330C9",  // Demon Hunter
             [13] = "#33937F",  // Evoker
         };
+
+    /// <summary>
+    /// Returns the hex colour for a WoW class ID, or white for unknown IDs.
+    /// </summary>
+    /// <summary>
+    /// Returns the English name for a WoW class ID, or "Unknown" for unknown IDs.
+    /// </summary>
+    public static string GetName(int classId) =>
+        Names.TryGetValue(classId, out var name) ? name : "Unknown";
 
     /// <summary>
     /// Returns the hex colour for a WoW class ID, or white for unknown IDs.

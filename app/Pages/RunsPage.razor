@@ -5,17 +5,18 @@
 @using Lfm.Contracts.Runs
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
+@inject IStringLocalizer Loc
 
-<PageTitle>Runs</PageTitle>
+<PageTitle>@Loc["runs.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
-        <FluentLabel Typo="Typography.H3" Style="flex:1">Runs</FluentLabel>
+        <FluentLabel Typo="Typography.H3" Style="flex:1">@Loc["runs.title"]</FluentLabel>
         <FluentButton Appearance="Appearance.Accent" OnClick="@(() => Nav.NavigateTo("/runs/new"))">
-            Create Run
+            @Loc["runs.create"]
         </FluentButton>
         <FluentButton Appearance="Appearance.Outline" OnClick="@LoadRuns" Disabled="@loading">
-            Refresh
+            @Loc["common.refresh"]
         </FluentButton>
     </FluentStack>
 
@@ -32,8 +33,8 @@
 
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s when s.Value.Count == 0:
             <FluentMessageBar Intent="MessageIntent.Info">
-                No upcoming runs found.
-                <FluentAnchor Href="/runs/new">Create the first one.</FluentAnchor>
+                @Loc["runs.empty"]
+                <FluentAnchor Href="/runs/new">@Loc["runs.emptyCta"]</FluentAnchor>
             </FluentMessageBar>
             break;
 
