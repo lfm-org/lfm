@@ -94,7 +94,7 @@ internal sealed class FileStringLocalizer : IStringLocalizer
             if (value is null)
                 return new LocalizedString(name, name, resourceNotFound: true);
 
-            var formatted = string.Format(CultureInfo.InvariantCulture, value, arguments);
+            var formatted = string.Format(CultureInfo.CurrentCulture, value, arguments);
             return new LocalizedString(name, formatted);
         }
     }
