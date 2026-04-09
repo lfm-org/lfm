@@ -4,6 +4,31 @@ html, body {
     color: var(--neutral-foreground-rest);
 }
 
+/* Scrollbar theming */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--neutral-layer-1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--neutral-stroke-rest);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neutral-foreground-hint-rest);
+}
+
+/* Text selection theming */
+::selection {
+    background: var(--accent-fill-rest);
+    color: var(--foreground-on-accent-rest);
+}
+
 h1:focus {
     outline: none;
 }
