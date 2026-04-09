@@ -81,8 +81,9 @@ public class StackFixture : IAsyncLifetime
         if (publishExitCode != 0)
             throw new InvalidOperationException($"dotnet publish failed with exit code {publishExitCode}");
 
-        // Start Functions host
-        _apiProcess = StartBackground("func", $"start --port {_apiPort} --no-build",
+        // Start Functions host. --cors enables the host-level CORS handling for preflight
+        // OPTIONS requests that the Functions host intercepts before reaching worker middleware.
+        _apiProcess = StartBackground("func", $"start --port {_apiPort} --no-build --cors http://localhost:{_appPort}",
             apiPublishDir,
             new Dictionary<string, string>
             {

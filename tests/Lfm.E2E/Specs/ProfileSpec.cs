@@ -93,9 +93,21 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         // PUT /api/raider/characters/{id} with a valid owned character ID returns 200.
         var altCharId = "eu-test-realm-aelrin-alt";
 
+        // Page.APIRequest doesn't carry browser cookies cross-origin, so forward
+        // the auth cookie manually from the browser context.
+        var cookies = await Context!.CookiesAsync();
+        var authCookie = cookies.FirstOrDefault(c => c.Name == "battlenet_token");
+        authCookie.Should().NotBeNull("auth cookie should exist in browser context");
+
+        var headers = new Dictionary<string, string>
+        {
+            ["Accept"] = "application/json",
+            ["Cookie"] = $"{authCookie!.Name}={authCookie.Value}",
+        };
+
         var response = await Page!.APIRequest.PutAsync(
             $"{fixture.Stack.ApiBaseUrl}/api/raider/characters/{altCharId}",
-            new() { Headers = new Dictionary<string, string> { ["Accept"] = "application/json" } });
+            new() { Headers = headers });
 
         response.Status.Should().Be(200,
             "selecting an owned character should succeed");
