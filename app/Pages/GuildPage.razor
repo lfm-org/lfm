@@ -3,11 +3,12 @@
 @using Lfm.Contracts.Guild
 @attribute [Authorize]
 @inject IGuildClient GuildClient
+@inject IStringLocalizer Loc
 
-<PageTitle>Guild</PageTitle>
+<PageTitle>@Loc["guild.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-    <FluentLabel Typo="Typography.H3">Guild</FluentLabel>
+    <FluentLabel Typo="Typography.H3">@Loc["guild.title"]</FluentLabel>
 
     @switch (state)
     {
@@ -54,8 +55,8 @@
         {
             <FluentCard>
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                    <FluentLabel Typo="Typography.H4">No guild found</FluentLabel>
-                    <FluentLabel>You are not currently associated with a guild. Please contact your guild master to get set up.</FluentLabel>
+                    <FluentLabel Typo="Typography.H4">@Loc["guild.noGuild.title"]</FluentLabel>
+                    <FluentLabel>@Loc["guild.noGuild.body"]</FluentLabel>
                 </FluentStack>
             </FluentCard>
         }
@@ -69,27 +70,27 @@
                         {
                             <FluentLabel>@dto.Guild.Slogan</FluentLabel>
                         }
-                        <FluentLabel>@dto.Guild.RealmName@(dto.Guild.FactionName != null ? $" · {dto.Guild.FactionName}" : "")</FluentLabel>
+                        <FluentLabel>@dto.Guild.RealmName@(dto.Guild.FactionName != null ? $" \u00b7 {dto.Guild.FactionName}" : "")</FluentLabel>
                         @if (dto.Guild.CrestEmblemUrl != null)
                         {
-                            <img src="@dto.Guild.CrestEmblemUrl" alt="Guild crest" style="width:88px;height:88px;border-radius:8px;object-fit:cover;" />
+                            <img src="@dto.Guild.CrestEmblemUrl" alt="@Loc["guild.crestAlt"]" style="width:88px;height:88px;border-radius:8px;object-fit:cover;" />
                         }
                     </FluentStack>
                 </FluentCard>
 
                 <FluentCard>
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                        <FluentLabel Typo="Typography.H4">Status</FluentLabel>
-                        <FluentLabel>Settings: @(dto.Setup.IsInitialized ? "Live" : "Pending")</FluentLabel>
-                        <FluentLabel>Timezone: @dto.Setup.Timezone</FluentLabel>
-                        <FluentLabel>Locale: @dto.Setup.Locale</FluentLabel>
+                        <FluentLabel Typo="Typography.H4">@Loc["guild.status"]</FluentLabel>
+                        <FluentLabel>@Loc["guild.settings"] @(dto.Setup.IsInitialized ? Loc["guild.settingsLive"] : Loc["guild.settingsPending"])</FluentLabel>
+                        <FluentLabel>@Loc["guild.timezone"] @dto.Setup.Timezone</FluentLabel>
+                        <FluentLabel>@Loc["guild.locale"] @dto.Setup.Locale</FluentLabel>
                         @if (dto.Guild.MemberCount.HasValue)
                         {
-                            <FluentLabel>Members: @dto.Guild.MemberCount</FluentLabel>
+                            <FluentLabel>@Loc["guild.members"] @dto.Guild.MemberCount</FluentLabel>
                         }
                         @if (dto.Guild.RankCount.HasValue)
                         {
-                            <FluentLabel>Ranks detected: @dto.Guild.RankCount</FluentLabel>
+                            <FluentLabel>@Loc["guild.ranksDetected"] @dto.Guild.RankCount</FluentLabel>
                         }
                     </FluentStack>
                 </FluentCard>
@@ -98,9 +99,9 @@
                 {
                     <FluentCard>
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                            <FluentLabel Typo="Typography.H4">Your Access</FluentLabel>
-                            <FluentLabel>Can create runs: @(dto.MemberPermissions.CanCreateGuildRuns ? "Yes" : "No")</FluentLabel>
-                            <FluentLabel>Can sign up: @(dto.MemberPermissions.CanSignupGuildRuns ? "Yes" : "No")</FluentLabel>
+                            <FluentLabel Typo="Typography.H4">@Loc["guild.yourAccess"]</FluentLabel>
+                            <FluentLabel>@Loc["guild.canCreateRuns"] @(dto.MemberPermissions.CanCreateGuildRuns ? Loc["common.yes"] : Loc["common.no"])</FluentLabel>
+                            <FluentLabel>@Loc["guild.canSignUp"] @(dto.MemberPermissions.CanSignupGuildRuns ? Loc["common.yes"] : Loc["common.no"])</FluentLabel>
                         </FluentStack>
                     </FluentCard>
                 }

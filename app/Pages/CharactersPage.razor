@@ -6,14 +6,15 @@
 @inject IBattleNetClient BattleNetClient
 @inject IMeClient MeClient
 @inject NavigationManager Nav
+@inject IStringLocalizer Loc
 
-<PageTitle>Characters — LFM</PageTitle>
+<PageTitle>@Loc["characters.title"] — @Loc["nav.logo"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
-        <FluentLabel Typo="Typography.H3" Style="flex:1">My Characters</FluentLabel>
+        <FluentLabel Typo="Typography.H3" Style="flex:1">@Loc["characters.title"]</FluentLabel>
         <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshCharacters" Disabled="@loading">
-            Refresh from Battle.net
+            @Loc["characters.refresh"]
         </FluentButton>
     </FluentStack>
 
@@ -30,7 +31,7 @@
 
         case LoadingState<IReadOnlyList<CharacterDto>>.Success s when s.Value.Count == 0:
             <FluentMessageBar Intent="MessageIntent.Info">
-                No characters found. Try refreshing from Battle.net.
+                @Loc["characters.empty"]
             </FluentMessageBar>
             break;
 
@@ -55,7 +56,7 @@
                                 <FluentLabel Style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@c.Name</FluentLabel>
                                 <FluentLabel Style="font-size:0.85em;color:var(--neutral-foreground-hint-rest)">@c.RealmName</FluentLabel>
                                 <FluentLabel Style="font-size:0.8em">
-                                    @(c.ClassName ?? "Unknown") · Level @c.Level
+                                    @(c.ClassName ?? Loc["characters.unknown"]) · @Loc["characters.level"] @c.Level
                                     @if (!string.IsNullOrEmpty(c.SpecName))
                                     {
                                         <span> · @c.SpecName</span>
@@ -72,17 +73,12 @@
     <!-- Forget Me section -->
     <div style="border-top:1px solid var(--neutral-stroke-rest);padding-top:24px;margin-top:8px">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="max-width:420px">
-            <FluentLabel Typo="Typography.H4">Delete Account</FluentLabel>
-            <FluentLabel>
-                This will permanently remove all your data — characters, run signups, and preferences.
-                This action cannot be undone.
-            </FluentLabel>
-            <FluentLabel>
-                To confirm, type <strong>FORGET ME</strong> in the box below.
-            </FluentLabel>
+            <FluentLabel Typo="Typography.H4">@Loc["characters.deleteAccount.title"]</FluentLabel>
+            <FluentLabel>@Loc["characters.deleteAccount.body"]</FluentLabel>
+            <FluentLabel>@Loc["characters.deleteAccount.confirm"]</FluentLabel>
             <FluentTextField
                 @bind-Value="deleteConfirmation"
-                Placeholder="FORGET ME"
+                Placeholder="@Loc["characters.deleteAccount.placeholder"]"
                 Disabled="@deleting"
                 Style="max-width:320px" />
             @if (!string.IsNullOrEmpty(deleteError))
@@ -97,7 +93,7 @@
                 {
                     <FluentProgressRing Style="width:16px;height:16px" />
                 }
-                Delete My Account
+                @Loc["characters.deleteAccount.button"]
             </FluentButton>
         </FluentStack>
     </div>
@@ -203,12 +199,12 @@
             }
             else
             {
-                deleteError = "Failed to delete account. Please try again.";
+                deleteError = Loc["characters.deleteAccount.failed"];
             }
         }
         catch
         {
-            deleteError = "An unexpected error occurred. Please try again.";
+            deleteError = Loc["characters.deleteAccount.error"];
         }
         finally
         {
