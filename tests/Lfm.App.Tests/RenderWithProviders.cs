@@ -1,23 +1,25 @@
+using System.Globalization;
+using System.Text.Json;
 using Bunit;
+using Lfm.App.i18n;
 using Lfm.App.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Lfm.App.i18n;
 
 namespace Lfm.App.Tests;
 
 public abstract class ComponentTestBase : BunitContext
 {
+    private readonly FileStringLocalizer _localizer = new();
+
     protected ComponentTestBase()
     {
         Services.AddFluentUIComponents();
         Services.AddScoped<ToastHelper>();
         JSInterop.Mode = JSRuntimeMode.Loose;
 
-        // Components that inject IConfiguration (e.g. LoginPage, MainLayout) need
-        // it registered. Provide a minimal in-memory config with sensible test defaults.
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -26,31 +28,118 @@ public abstract class ComponentTestBase : BunitContext
             .Build();
         Services.AddSingleton<IConfiguration>(config);
 
-        // MainLayout injects IHttpClientFactory for the logout POST.
         Services.AddHttpClient("api", c => c.BaseAddress = new Uri("http://localhost:7071"));
 
-        // Theme service for dark/light mode toggle.
         Services.AddSingleton<IThemeService, ThemeService>();
 
-        // i18n: provide a passthrough localizer that returns the key as the value,
-        // and a locale service at the default "en" locale.
         Services.AddSingleton<ILocaleService, LocaleService>();
-        Services.AddSingleton<IStringLocalizer, PassthroughStringLocalizer>();
+        Services.AddSingleton<IStringLocalizer>(_localizer);
+    }
+
+    /// <summary>
+    /// Look up a locale key from the same JSON files the component sees.
+    /// Use in assertions: <c>cut.Markup.Should().Contain(Loc("nav.logo"));</c>
+    /// </summary>
+    protected string Loc(string key) => _localizer[key].Value;
+
+    /// <summary>
+    /// Look up a locale key with format arguments.
+    /// </summary>
+    protected string Loc(string key, params object[] args) => _localizer[key, args].Value;
+
+    /// <summary>
+    /// Switch the test locale (default is "en"). Call before rendering.
+    /// </summary>
+    protected void SetTestLocale(string locale)
+    {
+        _localizer.SetLocale(locale);
+        var localeService = Services.GetRequiredService<ILocaleService>();
+        localeService.SetLocale(locale);
     }
 }
 
 /// <summary>
-/// Test-only localizer that returns the key name as the value (no JSON loading).
-/// This keeps existing component tests working without real locale files.
+/// Test-only localizer that reads real locale JSON files from disk.
+/// Falls back to English, then returns the key itself if not found.
 /// </summary>
-internal sealed class PassthroughStringLocalizer : IStringLocalizer
+internal sealed class FileStringLocalizer : IStringLocalizer
 {
-    public LocalizedString this[string name] =>
-        new(name, name, resourceNotFound: false);
+    private const string FallbackLocale = "en";
 
-    public LocalizedString this[string name, params object[] arguments] =>
-        new(name, string.Format(name, arguments), resourceNotFound: false);
+    private static readonly string LocalesDir = Path.Combine(
+        AppContext.BaseDirectory, "..", "..", "..", "..", "..", "app", "wwwroot", "locales");
 
-    public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) =>
-        Enumerable.Empty<LocalizedString>();
+    private readonly Dictionary<string, Dictionary<string, string>> _cache = new();
+    private string _currentLocale = "en";
+
+    public FileStringLocalizer()
+    {
+        LoadLocale("en");
+    }
+
+    public LocalizedString this[string name]
+    {
+        get
+        {
+            var value = Lookup(name);
+            return new LocalizedString(name, value ?? name, resourceNotFound: value is null);
+        }
+    }
+
+    public LocalizedString this[string name, params object[] arguments]
+    {
+        get
+        {
+            var value = Lookup(name);
+            if (value is null)
+                return new LocalizedString(name, name, resourceNotFound: true);
+
+            var formatted = string.Format(CultureInfo.InvariantCulture, value, arguments);
+            return new LocalizedString(name, formatted);
+        }
+    }
+
+    public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
+    {
+        if (_cache.TryGetValue(_currentLocale, out var dict))
+        {
+            foreach (var kvp in dict)
+                yield return new LocalizedString(kvp.Key, kvp.Value);
+        }
+    }
+
+    public void SetLocale(string locale)
+    {
+        LoadLocale(locale);
+        _currentLocale = locale.ToLowerInvariant();
+    }
+
+    private void LoadLocale(string locale)
+    {
+        var normalized = locale.ToLowerInvariant();
+        if (_cache.ContainsKey(normalized))
+            return;
+
+        var path = Path.Combine(LocalesDir, $"{normalized}.json");
+        if (!File.Exists(path))
+            return;
+
+        var json = File.ReadAllText(path);
+        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        if (dict is not null)
+            _cache[normalized] = dict;
+    }
+
+    private string? Lookup(string name)
+    {
+        if (_cache.TryGetValue(_currentLocale, out var dict) && dict.TryGetValue(name, out var value))
+            return value;
+
+        if (_currentLocale != FallbackLocale
+            && _cache.TryGetValue(FallbackLocale, out var fallback)
+            && fallback.TryGetValue(name, out var fbValue))
+            return fbValue;
+
+        return null;
+    }
 }
