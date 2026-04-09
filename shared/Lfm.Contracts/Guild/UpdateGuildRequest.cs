@@ -43,7 +43,8 @@ public sealed class UpdateGuildRequestValidator : AbstractValidator<UpdateGuildR
         RuleFor(x => x.Locale)
             .NotEmpty()
             .WithMessage("locale is required")
-            .Must(l => l is not null && AllowedLocales.Contains(l, StringComparer.OrdinalIgnoreCase))
+            .Must(l => l is not null && AllowedLocales.Contains(
+                l.Replace('_', '-'), StringComparer.OrdinalIgnoreCase))
             .WithMessage($"Invalid locale. Supported: {string.Join(", ", AllowedLocales)}");
     }
 }
