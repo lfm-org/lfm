@@ -1,0 +1,66 @@
+{
+  "nav.logo": "LFM",
+  "nav.runs": "Runs",
+  "nav.guild": "Guild",
+  "nav.characters": "Characters",
+  "nav.signOut": "Sign Out",
+  "nav.signIn": "Sign In",
+  "nav.skipToContent": "Skip to content",
+  "nav.primaryNav": "Primary navigation",
+
+  "common.loading": "Loading...",
+  "common.error": "Something went wrong.",
+  "common.retry": "Try again",
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "common.confirm": "Confirm",
+  "common.refresh": "Refresh",
+  "common.previous": "Previous",
+  "common.next": "Next",
+
+  "footer.privacy": "Privacy Notice",
+
+  "landing.title": "Plan runs in one place",
+  "landing.subtitle": "Create runs, collect signups, and check roster coverage before invite time.",
+  "landing.signIn": "Continue with Battle.net",
+  "landing.sharedSchedule.title": "Shared schedule",
+  "landing.sharedSchedule.body": "Keep upcoming runs and signups in one place.",
+  "landing.roleCoverage.title": "Role coverage",
+  "landing.roleCoverage.body": "See tank, healer, and DPS coverage at a glance.",
+  "landing.battleNetSignIn.title": "Battle.net sign-in",
+  "landing.battleNetSignIn.body": "Players sign in with Battle.net and use their saved characters.",
+
+  "auth.checkingSession": "Checking Battle.net session...",
+  "auth.loginFailed.title": "Sign in failed",
+  "auth.loginFailed.message": "Something went wrong during Battle.net authentication. Please try again.",
+  "auth.loginSuccess.title": "Signing you in...",
+  "auth.goodbye.title": "Account deleted",
+  "auth.goodbye.message": "Your stored raider profile has been removed and your Battle.net session has been cleared.",
+
+  "characters.title": "Select your character",
+  "characters.loading": "Loading characters...",
+  "characters.empty": "No Battle.net characters found.",
+  "characters.syncButton": "Sync from Battle.net",
+  "characters.loadFailed": "Failed to load characters",
+
+  "guild.title": "Guild",
+  "guild.loading": "Loading guild home...",
+  "guild.noGuild.title": "No guild on the active character",
+  "guild.noGuild.body": "Select a character that belongs to a guild to unlock the shared guild surface.",
+  "guild.settingsSaved": "Guild settings saved",
+  "guild.settingsSaveFailed": "Failed to save guild settings",
+
+  "runs.title": "Runs",
+  "runs.createButton": "Create Run",
+  "runs.loadFailed": "Failed to load runs",
+  "runs.empty": "No runs found.",
+  "runs.emptyCta": "Create Run",
+
+  "forgetMe.title": "Forget me",
+  "forgetMe.button": "Forget me",
+  "forgetMe.undoWarning": "This action cannot be undone.",
+
+  "locale.en": "EN",
+  "locale.fi": "FI"
+}

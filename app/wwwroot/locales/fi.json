@@ -1,0 +1,66 @@
+{
+  "nav.logo": "LFM",
+  "nav.runs": "Juoksut",
+  "nav.guild": "Kilta",
+  "nav.characters": "Hahmot",
+  "nav.signOut": "Kirjaudu ulos",
+  "nav.signIn": "Kirjaudu",
+  "nav.skipToContent": "Siirry sisältöön",
+  "nav.primaryNav": "Päänavigaatio",
+
+  "common.loading": "Ladataan...",
+  "common.error": "Jokin meni pieleen.",
+  "common.retry": "Yritä uudelleen",
+  "common.save": "Tallenna",
+  "common.cancel": "Peruuta",
+  "common.delete": "Poista",
+  "common.confirm": "Vahvista",
+  "common.refresh": "Päivitä",
+  "common.previous": "Edellinen",
+  "common.next": "Seuraava",
+
+  "footer.privacy": "Tietosuojaseloste",
+
+  "landing.title": "Suunnittele juoksut yhdessä paikassa",
+  "landing.subtitle": "Luo juoksuja, kerää ilmoittautumisia ja tarkista kokoonpano ennen kutsuja.",
+  "landing.signIn": "Jatka Battle.netillä",
+  "landing.sharedSchedule.title": "Yhteinen aikataulu",
+  "landing.sharedSchedule.body": "Pidä tulevat juoksut ja ilmoittautumiset yhdessä paikassa.",
+  "landing.roleCoverage.title": "Roolikattavuus",
+  "landing.roleCoverage.body": "Näe tankki-, hiilu- ja depsi-kattavuus yhdellä silmäyksellä.",
+  "landing.battleNetSignIn.title": "Battle.net-kirjautuminen",
+  "landing.battleNetSignIn.body": "Pelaajat kirjautuvat Battle.netillä ja käyttävät tallennettuja hahmojaan.",
+
+  "auth.checkingSession": "Tarkistetaan Battle.net-istuntoa...",
+  "auth.loginFailed.title": "Kirjautuminen epäonnistui",
+  "auth.loginFailed.message": "Jokin meni pieleen Battle.net-todennuksessa. Yritä uudelleen.",
+  "auth.loginSuccess.title": "Kirjaudutaan sisään...",
+  "auth.goodbye.title": "Tili poistettu",
+  "auth.goodbye.message": "Tallennettu raidaajaprofiilisi on poistettu ja Battle.net-istuntosi on tyhjennetty.",
+
+  "characters.title": "Valitse hahmosi",
+  "characters.loading": "Ladataan hahmoja...",
+  "characters.empty": "Battle.net-hahmoja ei löytynyt.",
+  "characters.syncButton": "Synkronoi Battle.netistä",
+  "characters.loadFailed": "Hahmojen lataaminen epäonnistui",
+
+  "guild.title": "Kilta",
+  "guild.loading": "Ladataan killan kotisivua...",
+  "guild.noGuild.title": "Aktiivisella hahmolla ei ole kiltaa",
+  "guild.noGuild.body": "Valitse hahmo, joka kuuluu kiltaan, avataksesi killan jaetun näkymän.",
+  "guild.settingsSaved": "Kilta-asetukset tallennettu",
+  "guild.settingsSaveFailed": "Kilta-asetusten tallentaminen epäonnistui",
+
+  "runs.title": "Juoksut",
+  "runs.createButton": "Luo juoksu",
+  "runs.loadFailed": "Juoksujen lataaminen epäonnistui",
+  "runs.empty": "Juoksuja ei löytynyt.",
+  "runs.emptyCta": "Luo juoksu",
+
+  "forgetMe.title": "Unohda minut",
+  "forgetMe.button": "Unohda minut",
+  "forgetMe.undoWarning": "Tätä toimintoa ei voi kumota.",
+
+  "locale.en": "EN",
+  "locale.fi": "FI"
+}
