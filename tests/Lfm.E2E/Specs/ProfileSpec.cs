@@ -235,14 +235,26 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         try
         {
             var charactersPage = new CharactersPage(deletePage);
+
+            // Stub the portrait endpoint to prevent fire-and-forget crash
+            await deletePage.RouteAsync("**/api/battlenet/character-portraits", async route =>
+            {
+                await route.FulfillAsync(new()
+                {
+                    Status = 200,
+                    ContentType = "application/json",
+                    Body = "{\"portraits\":{}}",
+                });
+            });
+
             await charactersPage.GotoAsync(fixture.Stack.AppBaseUrl);
             await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-            // Fill the inner input — the change event bubbles to the outer FluentTextField
-            // where Blazor's @bind-Value listens (same pattern as FluentUI's own Playwright tests).
             await Assertions.Expect(charactersPage.DeleteConfirmationField)
                 .ToBeVisibleAsync(new() { Timeout = 10000 });
             await charactersPage.DeleteConfirmationField.FillAsync("FORGET ME");
+            // Tab out to trigger blur/change event for Blazor binding
+            await deletePage.Keyboard.PressAsync("Tab");
 
             await Assertions.Expect(charactersPage.DeleteAccountButton)
                 .ToBeEnabledAsync(new() { Timeout = 5000 });
