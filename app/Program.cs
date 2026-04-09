@@ -13,6 +13,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddFluentUIComponents();
 builder.Services.AddSingleton<IDataCache, InMemoryDataCache>();
 builder.Services.AddSingleton<IThemeService, ThemeService>();
+builder.Services.AddScoped<ToastHelper>();
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
     ?? throw new InvalidOperationException("ApiBaseUrl not configured");

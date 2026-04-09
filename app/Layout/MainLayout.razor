@@ -9,6 +9,8 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject IThemeService ThemeService
 
+<FluentToastProvider />
+
 <div style="min-height:100vh;display:flex;flex-direction:column">
     <!-- Skip-to-content link for keyboard users -->
     <a href="#main-content" class="skip-link">Skip to content</a>
@@ -77,6 +79,8 @@
     <main id="main-content" tabindex="-1" style="flex:1;padding:24px 16px;outline:none">
         @Body
     </main>
+
+    <Footer />
 </div>
 
 @code {
