@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -103,7 +104,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
 
         // 4. Editability check — mirrors isEditingClosed in run-editability.ts.
         //    Returns 409 Conflict (the resource state conflicts with the request).
-        if (IsEditingClosed(existing.SignupCloseTime, existing.StartTime, DateTimeOffset.UtcNow))
+        if (RunEditability.IsEditingClosed(existing.SignupCloseTime, existing.StartTime, DateTimeOffset.UtcNow))
         {
             return new ObjectResult(new { error = "Editing is closed for this run" })
             { StatusCode = 409 };
@@ -178,26 +179,6 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
         AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "success", null));
 
         return new OkObjectResult(MapToDto(persisted));
-    }
-
-    // ------------------------------------------------------------------
-    // Editability helper — mirrors isEditingClosed in run-editability.ts.
-    // Returns true when signupCloseTime or startTime has already passed.
-    // ------------------------------------------------------------------
-
-    internal static bool IsEditingClosed(string signupCloseTime, string startTime, DateTimeOffset now)
-    {
-        if (!string.IsNullOrEmpty(signupCloseTime)
-            && DateTimeOffset.TryParse(signupCloseTime, out var closeTime)
-            && closeTime <= now)
-            return true;
-
-        if (!string.IsNullOrEmpty(startTime)
-            && DateTimeOffset.TryParse(startTime, out var start)
-            && start <= now)
-            return true;
-
-        return false;
     }
 
     // ------------------------------------------------------------------
