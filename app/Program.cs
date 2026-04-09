@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Lfm.App;
 using Lfm.App.Auth;
+using Lfm.App.i18n;
 using Lfm.App.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -14,6 +17,8 @@ builder.Services.AddFluentUIComponents();
 builder.Services.AddSingleton<IDataCache, InMemoryDataCache>();
 builder.Services.AddSingleton<IThemeService, ThemeService>();
 builder.Services.AddScoped<ToastHelper>();
+builder.Services.AddSingleton<ILocaleService, LocaleService>();
+builder.Services.AddLocalization();
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
     ?? throw new InvalidOperationException("ApiBaseUrl not configured");
@@ -35,4 +40,35 @@ builder.Services.AddScoped<IBattleNetClient, BattleNetClient>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, AppAuthenticationStateProvider>();
 
-await builder.Build().RunAsync();
+// i18n: JSON-backed localizer loads from wwwroot/locales/{locale}.json
+builder.Services.AddSingleton(sp =>
+{
+    var http = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+    var localeService = sp.GetRequiredService<ILocaleService>();
+    return new JsonStringLocalizer(http, localeService);
+});
+builder.Services.AddSingleton<IStringLocalizer>(sp => sp.GetRequiredService<JsonStringLocalizer>());
+builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
+
+var host = builder.Build();
+
+// Pre-load default and detect browser locale
+var localizer = host.Services.GetRequiredService<JsonStringLocalizer>();
+await localizer.LoadLocaleAsync("en");
+var js = host.Services.GetRequiredService<IJSRuntime>();
+try
+{
+    var browserLang = await js.InvokeAsync<string>("eval", "navigator.language || navigator.userLanguage || 'en'");
+    if (browserLang?.StartsWith("fi", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        var localeService = host.Services.GetRequiredService<ILocaleService>();
+        await localizer.LoadLocaleAsync("fi");
+        localeService.SetLocale("fi");
+    }
+}
+catch
+{
+    // JS interop may fail during prerendering; default to English.
+}
+
+await host.RunAsync();

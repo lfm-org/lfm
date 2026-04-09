@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
+using Lfm.App.i18n;
 using Lfm.App.Services;
 
 namespace Lfm.App.Auth;
@@ -9,7 +10,8 @@ namespace Lfm.App.Auth;
 /// The result is cached for the lifetime of the scoped instance (one browser session).
 /// Call <see cref="NotifyStateChanged"/> to force a re-check (e.g. after login/logout).
 /// </summary>
-public sealed class AppAuthenticationStateProvider(IMeClient meClient) : AuthenticationStateProvider
+public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleService localeService)
+    : AuthenticationStateProvider
 {
     private AuthenticationState? _cached;
 
@@ -24,6 +26,10 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient) : Authent
             _cached = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             return _cached;
         }
+
+        // Apply the user's persisted locale preference (overrides browser detection).
+        if (!string.IsNullOrEmpty(me.Locale))
+            localeService.SetLocale(me.Locale);
 
         var claims = new List<Claim>
         {
