@@ -52,7 +52,7 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
         if (guildDoc is null)
             return new NotFoundResult();
 
-        return new OkObjectResult(MapToDto(guildDoc));
+        return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
     }
 
     // ------------------------------------------------------------------
@@ -125,69 +125,6 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
 
         AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, principal.GuildId, "success", null));
 
-        return new OkObjectResult(MapToDto(updatedDoc));
-    }
-
-    // ------------------------------------------------------------------
-    // Mapping helpers
-    // ------------------------------------------------------------------
-
-    private static GuildDto MapToDto(GuildDocument doc)
-    {
-        var profile = doc.BlizzardProfileRaw;
-
-        GuildInfoDto? guildInfo = null;
-        if (profile is not null)
-        {
-            var rosterMembers = doc.BlizzardRosterRaw?.Members;
-            var rankCount = rosterMembers is not null
-                ? rosterMembers.Select(m => m.Rank).Distinct().Count()
-                : (int?)null;
-
-            guildInfo = new GuildInfoDto(
-                Id: doc.GuildId,
-                Name: profile.Name,
-                Slogan: doc.Slogan,
-                RealmSlug: doc.RealmSlug,
-                RealmName: profile.Realm.Name ?? doc.RealmSlug,
-                FactionName: profile.Faction?.Name,
-                MemberCount: profile.MemberCount,
-                AchievementPoints: profile.AchievementPoints,
-                SyncedMemberCount: rosterMembers?.Count,
-                RankCount: rankCount,
-                CrestEmblemUrl: doc.CrestEmblemUrl,
-                CrestBorderUrl: doc.CrestBorderUrl);
-        }
-
-        var setup = new GuildSetupDto(
-            IsInitialized: doc.Setup?.InitializedAt is not null,
-            RequiresSetup: false,
-            RankDataFresh: IsRosterFresh(doc),
-            RankDataFetchedAt: doc.BlizzardRosterFetchedAt,
-            Timezone: doc.Setup?.Timezone ?? "Europe/Helsinki",
-            Locale: doc.Setup?.Locale ?? "fi");
-
-        var editor = new GuildEditorDto(CanEdit: false, Mode: "member");
-
-        var memberPermissions = new GuildMemberPermissionsDto(
-            MatchedRank: null,
-            CanCreateGuildRuns: false,
-            CanSignupGuildRuns: false,
-            CanDeleteGuildRuns: false,
-            RankDataFresh: IsRosterFresh(doc));
-
-        return new GuildDto(
-            Guild: guildInfo,
-            Setup: setup,
-            Settings: null,
-            Editor: editor,
-            MemberPermissions: memberPermissions);
-    }
-
-    private static bool IsRosterFresh(GuildDocument doc)
-    {
-        if (doc.BlizzardRosterFetchedAt is null) return false;
-        if (!DateTimeOffset.TryParse(doc.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
-        return DateTimeOffset.UtcNow - fetchedAt < TimeSpan.FromHours(1);
+        return new OkObjectResult(GuildMapper.MapToDto(updatedDoc));
     }
 }
