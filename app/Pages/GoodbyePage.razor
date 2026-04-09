@@ -1,12 +1,13 @@
 @page "/goodbye"
+@inject IStringLocalizer Loc
 
-<PageTitle>Goodbye — LFM</PageTitle>
+<PageTitle>@Loc["goodbye.title"] — @Loc["nav.logo"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" HorizontalAlignment="HorizontalAlignment.Center">
-    <FluentLabel Typo="Typography.H2">Goodbye</FluentLabel>
-    <FluentLabel>Your account has been deleted. We hope to see you again sometime.</FluentLabel>
-    <FluentLabel>All your data has been removed from our systems.</FluentLabel>
+    <FluentLabel Typo="Typography.H2">@Loc["goodbye.title"]</FluentLabel>
+    <FluentLabel>@Loc["goodbye.body1"]</FluentLabel>
+    <FluentLabel>@Loc["goodbye.body2"]</FluentLabel>
     <a href="/login">
-        <FluentButton Appearance="Appearance.Accent">Sign In Again</FluentButton>
+        <FluentButton Appearance="Appearance.Accent">@Loc["goodbye.signIn"]</FluentButton>
     </a>
 </FluentStack>
