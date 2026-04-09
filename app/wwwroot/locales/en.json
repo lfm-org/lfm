@@ -171,5 +171,7 @@
     "notFound.title": "Not Found",
     "notFound.body": "Sorry, the content you are looking for does not exist.",
 
-    "footer.privacyPolicy": "Privacy Notice"
+    "footer.privacyPolicy": "Privacy Notice",
+    "locale.en": "EN",
+    "locale.fi": "FI"
 }

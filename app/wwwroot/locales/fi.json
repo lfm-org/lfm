@@ -171,5 +171,7 @@
     "notFound.title": "Ei l\u00f6ytynyt",
     "notFound.body": "Etsim\u00e4\u00e4si sis\u00e4lt\u00f6\u00e4 ei ole olemassa.",
 
-    "footer.privacyPolicy": "Tietosuojaseloste"
+    "footer.privacyPolicy": "Tietosuojaseloste",
+    "locale.en": "EN",
+    "locale.fi": "FI"
 }

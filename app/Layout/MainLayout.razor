@@ -15,7 +15,7 @@
 
 <div style="min-height:100vh;display:flex;flex-direction:column">
     <!-- Skip-to-content link for keyboard users -->
-    <a href="#main-content" class="skip-link">@Loc["nav.skipToContent"]</a>
+    <a href="#main-content" class="skip-link">@Loc["a11y.skipToContent"]</a>
 
     <!-- Top navbar -->
     <header style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:0 16px">
@@ -85,7 +85,7 @@
     <!-- Footer with privacy link and language toggle -->
     <footer style="border-top:1px solid var(--neutral-stroke-rest);padding:8px 16px">
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center;justify-content:center">
-            <FluentAnchor Href="/privacy">@Loc["footer.privacy"]</FluentAnchor>
+            <FluentAnchor Href="/privacy">@Loc["footer.privacyPolicy"]</FluentAnchor>
             <span>|</span>
             <FluentButton Appearance="Appearance.Stealth"
                           OnClick="@(() => LocaleService.SetLocale("en"))"
