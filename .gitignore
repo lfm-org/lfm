@@ -72,16 +72,8 @@ infra/main.json
 # Production parameter files (contain project-specific resource names and domains)
 infra/parameters.prod.*.json
 
-# Azure Functions build output and local settings
-functions/local.settings.json
-functions/dist/
-
-# Vite build output (frontend)
-frontend/dist/
 .tmp/
-frontend/e2e/test-results/
 .mcp.json
-.worktrees/
 
 # Superpowers
 .superpowers

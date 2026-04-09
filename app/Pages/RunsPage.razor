@@ -194,7 +194,7 @@
     {
         if (string.IsNullOrEmpty(isoDate)) return "—";
         if (DateTimeOffset.TryParse(isoDate, out var dto))
-            return dto.ToString("yyyy-MM-dd HH:mm");
+            return dto.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         return isoDate;
     }
 

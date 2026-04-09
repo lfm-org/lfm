@@ -10,6 +10,7 @@
 @inject IThemeService ThemeService
 @inject IStringLocalizer Loc
 @inject ILocaleService LocaleService
+@inject IJSRuntime JS
 
 <FluentToastProvider />
 
@@ -144,7 +145,19 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void HandleLocaleChanged() => InvokeAsync(StateHasChanged);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("eval", $"document.documentElement.lang = '{LocaleService.CurrentLocale}'");
+        }
+    }
+
+    private async void HandleLocaleChanged()
+    {
+        await JS.InvokeVoidAsync("eval", $"document.documentElement.lang = '{LocaleService.CurrentLocale}'");
+        await InvokeAsync(StateHasChanged);
+    }
 
     private async Task HandleLogout()
     {
