@@ -1,53 +1,54 @@
 @page "/privacy"
 @inject IHttpClientFactory HttpFactory
+@inject IStringLocalizer Loc
 
-<PageTitle>Privacy Policy — LFM</PageTitle>
+<PageTitle>@Loc["privacy.title"] — @Loc["nav.logo"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="24">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-        <FluentLabel Typo="Typography.H2">Privacy Policy</FluentLabel>
-        <FluentLabel>Last updated: April 2025</FluentLabel>
+        <FluentLabel Typo="Typography.H2">@Loc["privacy.title"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.lastUpdated"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Data Controller</FluentLabel>
-        <FluentLabel>This application is operated by the guild master of the associated World of Warcraft guild.</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.controller.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.controller.body"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Data We Collect</FluentLabel>
-        <FluentLabel>We collect your Battle.net account identifier, your World of Warcraft character names and realm, and your locale preference. No payment data is collected.</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.data.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.data.body"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Cookies</FluentLabel>
-        <FluentLabel>We use a single session cookie to keep you logged in. No third-party tracking cookies are used.</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.cookies.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.cookies.body"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Third Parties</FluentLabel>
-        <FluentLabel>We use Blizzard Entertainment's Battle.net OAuth service for authentication. No personal data is sold or shared with other third parties.</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.thirdParty.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.thirdParty.body"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Retention</FluentLabel>
-        <FluentLabel>Your data is retained for as long as your account exists. You can delete your account at any time from the Characters page, which will remove all personal data immediately.</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.retention.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.retention.body"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Your Rights</FluentLabel>
-        <FluentLabel>You have the right to access, rectify, and erase your personal data. Contact us at the address below to exercise these rights.</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.rights.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.rights.body"]</FluentLabel>
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentLabel Typo="Typography.H4">Contact</FluentLabel>
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.contact.heading"]</FluentLabel>
         @if (_email is not null)
         {
-            <FluentLabel>For privacy-related enquiries: <a href="mailto:@_email">@_email</a></FluentLabel>
+            <FluentLabel>@Loc["privacy.contact.body"] <a href="mailto:@_email">@_email</a></FluentLabel>
         }
         else
         {
-            <FluentLabel>Loading contact information...</FluentLabel>
+            <FluentLabel>@Loc["privacy.contact.loading"]</FluentLabel>
         }
     </FluentStack>
 </FluentStack>
