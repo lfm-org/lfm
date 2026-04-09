@@ -88,7 +88,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = RenderComponent<RunsPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("No upcoming runs found"));
+            cut.Markup.Should().Contain("runs.empty"));
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = RenderComponent<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Create Run"));
+            cut.Markup.Should().Contain("createRun.title"));
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = RenderComponent<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Create Run"));
+            cut.Markup.Should().Contain("createRun.submit"));
     }
 
     // ── EditRunPage ──────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = RenderComponent<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Save Changes"));
+            cut.Markup.Should().Contain("editRun.saveChanges"));
     }
 
     [Fact]
@@ -206,6 +206,6 @@ public class RunsPagesTests : ComponentTestBase
         var cut = RenderComponent<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Run not found"));
+            cut.Markup.Should().Contain("Run not found."));
     }
 }
