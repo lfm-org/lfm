@@ -10,9 +10,9 @@ public class GuildPage(IPage page)
     public ILocator Heading =>
         _page.Locator("[typo='h3']").Filter(new() { HasTextString = "Guild" });
 
-    // The guild name heading rendered inside the card
+    // The guild name heading rendered inside the card (H4)
     public ILocator GuildNameHeading =>
-        _page.GetByText("Test Guild");
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Test Guild" });
 
     // The status card — always visible when guild data loads
     public ILocator StatusCard =>

@@ -81,7 +81,8 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         await loginFailedPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
-        await Assertions.Expect(loginFailedPage.ErrorHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        // WASM runtime may not be cached yet on this route — allow extra time
+        await Assertions.Expect(loginFailedPage.ErrorHeading).ToBeVisibleAsync(new() { Timeout = 30000 });
 
         await AccessibilityHelper.ScanAndAssert(Page!, Output, "/login/failed");
     }
@@ -383,8 +384,8 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         // Find the delete confirmation text field, type partial text and press Enter.
         // The button is disabled when confirmation != "FORGET ME", so pressing Enter
         // in the field should not navigate away.
-        // Target the inner input of the FluentTextField wrapper
-        var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME'] input");
+        // Target the outer FluentTextField component so Blazor binding fires
+        var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME']").First;
         await Assertions.Expect(deleteField).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         await deleteField.FocusAsync();

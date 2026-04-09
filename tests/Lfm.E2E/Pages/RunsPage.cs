@@ -53,27 +53,27 @@ public class RunsPage(IPage page)
 
     /// <summary>Instance dropdown on the create-run form.</summary>
     public ILocator InstanceSelect =>
-        _page.Locator("#instance-select");
+        _page.Locator("#instance-select").First;
 
     /// <summary>Mode Key text field on the create-run form.</summary>
     public ILocator ModeKeyInput =>
-        _page.Locator("#modekey-input");
+        _page.Locator("#modekey-input").First;
 
     /// <summary>Start Time text field on the create-run form.</summary>
     public ILocator StartTimeInput =>
-        _page.Locator("#starttime-input");
+        _page.Locator("#starttime-input").First;
 
     /// <summary>Signup Close Time text field on the create-run form.</summary>
     public ILocator SignupCloseTimeInput =>
-        _page.Locator("#signupclose-input");
+        _page.Locator("#signupclose-input").First;
 
     /// <summary>Visibility dropdown on the create-run form.</summary>
     public ILocator VisibilitySelect =>
-        _page.Locator("#visibility-select");
+        _page.Locator("#visibility-select").First;
 
     /// <summary>Description text field on the create-run form.</summary>
     public ILocator DescriptionInput =>
-        _page.Locator("#description-input");
+        _page.Locator("#description-input").First;
 
     /// <summary>"Create Run" submit button on the create-run form.</summary>
     public ILocator CreateRunSubmitButton =>

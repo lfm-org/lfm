@@ -18,10 +18,10 @@ public class CharactersPage(IPage page)
     public ILocator CharacterList =>
         _page.Locator("div[style*='grid-template-columns'] fluent-card");
 
-    // FluentTextField renders a wrapper + inner input. Target the inner input
-    // via the shadow DOM part to avoid strict-mode violations and ensure FillAsync works.
+    // FluentTextField web component — target the outer element so Blazor @bind-Value fires.
+    // Use .First to avoid strict-mode violation from wrapper + inner input.
     public ILocator DeleteConfirmationField =>
-        _page.Locator("fluent-text-field[placeholder='FORGET ME'] input");
+        _page.Locator("fluent-text-field[placeholder='FORGET ME']").First;
 
     // The delete account button
     public ILocator DeleteAccountButton =>
