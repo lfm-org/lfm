@@ -39,9 +39,9 @@
             break;
 
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Style="align-items:flex-start">
+            <div class="runs-layout">
                 <!-- Run list panel -->
-                <FluentCard Style="width:300px;flex-shrink:0;padding:0;overflow:hidden">
+                <FluentCard class="runs-sidebar" Style="padding:0;overflow:hidden">
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
                         @foreach (var run in s.Value)
                         {
@@ -76,13 +76,13 @@
                                     </FluentButton>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
                                     <span><strong>@Loc["runs.mode"]</strong> @selectedRun.ModeKey</span>
                                     <span><strong>@Loc["runs.visibility"]</strong> @selectedRun.Visibility</span>
                                     <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
                                     <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
                                     <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
                                 </FluentStack>
@@ -112,7 +112,7 @@
                         <FluentLabel>@Loc["runs.selectPrompt"]</FluentLabel>
                     }
                 </div>
-            </FluentStack>
+            </div>
             break;
     }
 </FluentStack>

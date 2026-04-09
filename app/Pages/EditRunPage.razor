@@ -87,7 +87,7 @@
                         ValueChanged="@(v => description = v)"
                         Disabled="@saving" />
 
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                         <FluentButton
                             Appearance="Appearance.Accent"
                             OnClick="@HandleSave"
@@ -119,7 +119,7 @@
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
                         <FluentLabel Typo="Typography.H5">@Loc["editRun.confirmDelete"]</FluentLabel>
                         <FluentLabel>@Loc["editRun.confirmDeleteBody"]</FluentLabel>
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                             <FluentButton
                                 Appearance="Appearance.Accent"
                                 OnClick="@HandleDelete"

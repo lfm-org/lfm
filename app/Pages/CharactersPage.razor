@@ -36,7 +36,7 @@
             break;
 
         case LoadingState<IReadOnlyList<CharacterDto>>.Success s:
-            <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+            <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
                 @foreach (var c in s.Value)
                 {
                     var portraitSrc = c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null);

@@ -83,7 +83,7 @@
                     ValueChanged="@(v => description = v)"
                     Disabled="@submitting" />
 
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                     <FluentButton
                         Appearance="Appearance.Accent"
                         OnClick="@HandleSubmit"

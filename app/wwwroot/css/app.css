@@ -115,3 +115,25 @@ a, .btn-link {
         display: flex;
     }
 }
+
+/* RunsPage responsive layout */
+.runs-layout {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.runs-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .runs-layout {
+        flex-direction: column;
+    }
+
+    .runs-sidebar {
+        width: 100%;
+    }
+}

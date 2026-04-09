@@ -20,11 +20,13 @@
       <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
       break;
     case LoadingState<IReadOnlyList<InstanceDto>>.Success s:
+      <div style="overflow-x:auto">
       <FluentDataGrid Items="@s.Value.AsQueryable()" TGridItem="InstanceDto">
         <PropertyColumn Property="@(i => i.Name)" Title="@Loc["instances.columns.name"]" />
         <PropertyColumn Property="@(i => i.ModeKey)" Title="@Loc["instances.columns.mode"]" />
         <PropertyColumn Property="@(i => i.Expansion)" Title="@Loc["instances.columns.expansion"]" />
       </FluentDataGrid>
+      </div>
       break;
   }
 </FluentStack>

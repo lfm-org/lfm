@@ -5,6 +5,7 @@
     @GroupLabel (@Characters.Count)
 </FluentLabel>
 
+<div style="overflow-x:auto">
 <FluentDataGrid Items="@Characters.AsQueryable()" TGridItem="RunCharacterDto"
                 GridTemplateColumns="@GridColumns">
     <TemplateColumn Title="@Loc["runs.columns.character"]">
@@ -19,6 +20,7 @@
         <PropertyColumn Property="@(c => c.DesiredAttendance)" Title="@Loc["editRun.columns.desired"]" />
     }
 </FluentDataGrid>
+</div>
 
 @code {
     [Parameter] public string GroupLabel { get; set; } = "";
