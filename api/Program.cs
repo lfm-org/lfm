@@ -14,6 +14,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 builder.UseMiddleware<Lfm.Api.Middleware.CorsMiddleware>();
+builder.UseMiddleware<Lfm.Api.Middleware.SecurityHeadersMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.RateLimitMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuditMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
