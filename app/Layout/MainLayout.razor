@@ -8,24 +8,26 @@
 @inject IConfiguration Config
 @inject IHttpClientFactory HttpClientFactory
 @inject IThemeService ThemeService
+@inject IStringLocalizer Loc
+@inject ILocaleService LocaleService
 
 <FluentToastProvider />
 
 <div style="min-height:100vh;display:flex;flex-direction:column">
     <!-- Skip-to-content link for keyboard users -->
-    <a href="#main-content" class="skip-link">Skip to content</a>
+    <a href="#main-content" class="skip-link">@Loc["nav.skipToContent"]</a>
 
     <!-- Top navbar -->
     <header style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:0 16px">
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center;height:48px">
-            <FluentAnchor Href="/runs" Style="font-weight:700;font-size:1.1rem;text-decoration:none">LFM</FluentAnchor>
+            <FluentAnchor Href="/runs" Style="font-weight:700;font-size:1.1rem;text-decoration:none">@Loc["nav.logo"]</FluentAnchor>
 
             <AuthorizeView>
                 <Authorized>
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Style="margin-left:16px" Class="desktop-nav">
-                        <FluentAnchor Href="/runs">Runs</FluentAnchor>
-                        <FluentAnchor Href="/guild">Guild</FluentAnchor>
-                        <FluentAnchor Href="/characters">Characters</FluentAnchor>
+                        <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
+                        <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
+                        <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
                     </FluentStack>
                     <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
                         <FluentButton Appearance="Appearance.Stealth"
@@ -42,7 +44,7 @@
                             @_themeIcon
                         </FluentButton>
                         <FluentButton Appearance="Appearance.Outline" OnClick="@HandleLogout">
-                            Sign Out
+                            @Loc["nav.signOut"]
                         </FluentButton>
                     </div>
                 </Authorized>
@@ -54,7 +56,7 @@
                                       OnClick="@ToggleTheme">
                             @_themeIcon
                         </FluentButton>
-                        <FluentAnchor Href="/login">Sign In</FluentAnchor>
+                        <FluentAnchor Href="/login">@Loc["nav.signIn"]</FluentAnchor>
                     </div>
                 </NotAuthorized>
             </AuthorizeView>
@@ -67,9 +69,9 @@
             <nav class="mobile-menu @(_showMobileMenu ? "open" : "")"
                  style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:8px 16px">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                    <FluentAnchor Href="/runs">Runs</FluentAnchor>
-                    <FluentAnchor Href="/guild">Guild</FluentAnchor>
-                    <FluentAnchor Href="/characters">Characters</FluentAnchor>
+                    <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
+                    <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
+                    <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
                 </FluentStack>
             </nav>
         </Authorized>
@@ -80,7 +82,23 @@
         @Body
     </main>
 
-    <Footer />
+    <!-- Footer with privacy link and language toggle -->
+    <footer style="border-top:1px solid var(--neutral-stroke-rest);padding:8px 16px">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center;justify-content:center">
+            <FluentAnchor Href="/privacy">@Loc["footer.privacy"]</FluentAnchor>
+            <span>|</span>
+            <FluentButton Appearance="Appearance.Stealth"
+                          OnClick="@(() => LocaleService.SetLocale("en"))"
+                          Style="@(LocaleService.CurrentLocale == "en" ? "font-weight:700" : "")">
+                @Loc["locale.en"]
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Stealth"
+                          OnClick="@(() => LocaleService.SetLocale("fi"))"
+                          Style="@(LocaleService.CurrentLocale == "fi" ? "font-weight:700" : "")">
+                @Loc["locale.fi"]
+            </FluentButton>
+        </FluentStack>
+    </footer>
 </div>
 
 @code {
@@ -92,13 +110,12 @@
     {
         Nav.LocationChanged += OnLocationChanged;
         ThemeService.OnChange += OnThemeChanged;
+        LocaleService.OnLocaleChanged += HandleLocaleChanged;
         UpdateThemeDisplay();
     }
 
     private void UpdateThemeDisplay()
     {
-        // Sun icon when in dark mode (click to switch to light)
-        // Moon icon when in light mode (click to switch to dark)
         var isDark = ThemeService.Mode == DesignThemeModes.Dark;
         _themeIcon = isDark ? "\u2600\ufe0f" : "\ud83c\udf19";
         _themeTooltip = isDark ? "Switch to light mode" : "Switch to dark mode";
@@ -127,13 +144,13 @@
         InvokeAsync(StateHasChanged);
     }
 
+    private void HandleLocaleChanged() => InvokeAsync(StateHasChanged);
+
     private async Task HandleLogout()
     {
-        // POST to the logout endpoint — sends the auth cookie via CredentialsHandler
-        // (BrowserRequestCredentials.Include) so the server can clear it.
         var http = HttpClientFactory.CreateClient("api");
         try { await http.PostAsync("api/battlenet/logout", null); }
-        catch { /* best effort — navigate regardless */ }
+        catch { /* best effort */ }
 
         if (AuthStateProvider is AppAuthenticationStateProvider asp)
             asp.NotifyStateChanged();
@@ -145,5 +162,6 @@
     {
         Nav.LocationChanged -= OnLocationChanged;
         ThemeService.OnChange -= OnThemeChanged;
+        LocaleService.OnLocaleChanged -= HandleLocaleChanged;
     }
 }
