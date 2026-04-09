@@ -34,18 +34,18 @@
                 <FluentLabel>@guildData.Guild.RealmName@(guildData.Guild.FactionName != null ? $" · {guildData.Guild.FactionName}" : "")</FluentLabel>
                 @if (guildData.Guild.MemberCount.HasValue)
                 {
-                    <FluentLabel>Members: @guildData.Guild.MemberCount</FluentLabel>
+                    <FluentLabel>@Loc["guildAdmin.members"] @guildData.Guild.MemberCount</FluentLabel>
                 }
             </FluentStack>
         </FluentCard>
 
         <FluentCard>
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <FluentLabel Typo="Typography.H4">Override Settings</FluentLabel>
+                <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.overrideSettings"]</FluentLabel>
 
                 @if (!guildData.Setup.RankDataFresh)
                 {
-                    <FluentMessageBar Intent="MessageIntent.Error">Rank sync data is stale. Settings cannot be saved until rank data is refreshed.</FluentMessageBar>
+                    <FluentMessageBar Intent="MessageIntent.Error">@Loc["guildAdmin.rankSyncStale"]</FluentMessageBar>
                 }
 
                 <GuildSettingsEditor
@@ -133,7 +133,7 @@
             var updated = await GuildClient.UpdateAsync(request, CancellationToken.None);
             if (updated is null)
             {
-                Toast.ShowError("Failed to save guild settings.");
+                Toast.ShowError(Loc["guildAdmin.saveFailed"]);
             }
             else
             {
@@ -141,12 +141,12 @@
                 draftTimezone = updated.Setup.Timezone;
                 draftLocale = updated.Setup.Locale;
                 draftSlogan = updated.Guild?.Slogan ?? string.Empty;
-                Toast.ShowSuccess("Settings saved successfully.");
+                Toast.ShowSuccess(Loc["guildAdmin.saveSuccess"]);
             }
         }
         catch
         {
-            Toast.ShowError("An error occurred while saving.");
+            Toast.ShowError(Loc["guildAdmin.saveError"]);
         }
         finally
         {

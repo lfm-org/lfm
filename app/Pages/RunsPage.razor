@@ -54,7 +54,7 @@
                                     <strong>@run.InstanceName</strong>
                                     <span style="font-size:0.85em">@run.ModeKey</span>
                                     <span style="font-size:0.8em">@FormatDate(run.StartTime)</span>
-                                    <span style="font-size:0.8em">@run.RunCharacters.Count signed up</span>
+                                    <span style="font-size:0.8em">@Loc["runs.signedUp", run.RunCharacters.Count]</span>
                                 </FluentStack>
                             </div>
                         }
@@ -72,19 +72,19 @@
                                     <FluentButton Appearance="Appearance.Outline"
                                                   OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
                                                   Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
-                                        Edit
+                                        @Loc["runs.edit"]
                                     </FluentButton>
                                 </FluentStack>
 
                                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16">
-                                    <span><strong>Mode:</strong> @selectedRun.ModeKey</span>
-                                    <span><strong>Visibility:</strong> @selectedRun.Visibility</span>
-                                    <span><strong>Guild:</strong> @selectedRun.CreatorGuild</span>
+                                    <span><strong>@Loc["runs.mode"]</strong> @selectedRun.ModeKey</span>
+                                    <span><strong>@Loc["runs.visibility"]</strong> @selectedRun.Visibility</span>
+                                    <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
                                 </FluentStack>
 
                                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16">
-                                    <span><strong>Start:</strong> @FormatDate(selectedRun.StartTime)</span>
-                                    <span><strong>Signup closes:</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
+                                    <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
+                                    <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
                                 </FluentStack>
 
                                 @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
@@ -94,7 +94,7 @@
 
                                 @if (selectedRun.RunCharacters.Count > 0)
                                 {
-                                    <FluentLabel Typo="Typography.H5">Roster (@selectedRun.RunCharacters.Count)</FluentLabel>
+                                    <FluentLabel Typo="Typography.H5">@Loc["runs.roster", selectedRun.RunCharacters.Count]</FluentLabel>
                                     @foreach (var group in GroupByAttendance(selectedRun.RunCharacters))
                                     {
                                         <AttendanceRosterSection GroupLabel="@group.Key" Characters="@group.Value" />
@@ -102,14 +102,14 @@
                                 }
                                 else
                                 {
-                                    <FluentLabel>No signups yet.</FluentLabel>
+                                    <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
                                 }
                             </FluentStack>
                         </FluentCard>
                     }
                     else
                     {
-                        <FluentLabel>Select a run to see details.</FluentLabel>
+                        <FluentLabel>@Loc["runs.selectPrompt"]</FluentLabel>
                     }
                 </div>
             </FluentStack>

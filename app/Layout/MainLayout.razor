@@ -32,8 +32,8 @@
                     <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
                         <FluentButton Appearance="Appearance.Stealth"
                                       Class="mobile-nav-toggle"
-                                      Title="Toggle navigation menu"
-                                      aria-label="Toggle navigation menu"
+                                      Title="@Loc["nav.toggleMenu"]"
+                                      aria-label="@Loc["nav.toggleMenu"]"
                                       OnClick="@ToggleMobileMenu">
                             &#9776;
                         </FluentButton>
@@ -118,7 +118,7 @@
     {
         var isDark = ThemeService.Mode == DesignThemeModes.Dark;
         _themeIcon = isDark ? "\u2600\ufe0f" : "\ud83c\udf19";
-        _themeTooltip = isDark ? "Switch to light mode" : "Switch to dark mode";
+        _themeTooltip = isDark ? Loc["theme.switchToLight"] : Loc["theme.switchToDark"];
     }
 
     private void ToggleTheme()

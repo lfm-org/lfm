@@ -172,6 +172,22 @@
     "notFound.body": "Sorry, the content you are looking for does not exist.",
 
     "footer.privacyPolicy": "Privacy Notice",
+    "nav.toggleMenu": "Toggle navigation menu",
+
+    "theme.switchToLight": "Switch to light mode",
+    "theme.switchToDark": "Switch to dark mode",
+
+    "guildAdmin.settings.timezone": "Timezone",
+    "guildAdmin.settings.locale": "Locale",
+    "guildAdmin.settings.slogan": "Slogan",
+    "guildAdmin.settings.rankPermissions": "Rank Permissions",
+    "guildAdmin.settings.rank": "Rank {0}",
+    "guildAdmin.settings.canCreateRuns": "Can create runs",
+    "guildAdmin.settings.canSignUp": "Can sign up",
+    "guildAdmin.settings.canDeleteRuns": "Can delete runs",
+    "guildAdmin.settings.saving": "Saving\u2026",
+    "guildAdmin.settings.save": "Save Settings",
+
     "locale.en": "EN",
     "locale.fi": "FI"
 }

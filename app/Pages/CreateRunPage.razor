@@ -29,12 +29,12 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                 <FluentSelect
                     Id="instance-select"
-                    Label="Instance"
+                    Label="@Loc["createRun.instance"]"
                     TOption="string"
                     Value="@instanceId"
                     ValueChanged="@(v => { instanceId = v; modeKey = string.Empty; })"
                     Disabled="@submitting">
-                    <FluentOption Value="">— Select instance —</FluentOption>
+                    <FluentOption Value="">@Loc["createRun.selectInstance"]</FluentOption>
                     @foreach (var inst in instances)
                     {
                         <FluentOption Value="@inst.Id">@inst.Name (@inst.ModeKey)</FluentOption>
@@ -43,42 +43,42 @@
 
                 <FluentTextField
                     Id="modekey-input"
-                    Label="Mode Key"
+                    Label="@Loc["createRun.modeKey"]"
                     Value="@modeKey"
                     ValueChanged="@(v => modeKey = v)"
                     Disabled="@submitting"
-                    Placeholder="e.g. normal, heroic, mythic" />
+                    Placeholder="@Loc["createRun.modeKeyPlaceholder"]" />
 
                 <FluentTextField
                     Id="starttime-input"
-                    Label="Start Time (ISO 8601)"
+                    Label="@Loc["createRun.startTime"]"
                     Value="@startTime"
                     ValueChanged="@(v => startTime = v)"
                     Disabled="@submitting"
-                    Placeholder="2026-05-01T20:00:00Z" />
+                    Placeholder="@Loc["createRun.startTimePlaceholder"]" />
 
                 <FluentTextField
                     Id="signupclose-input"
-                    Label="Signup Close Time (ISO 8601)"
+                    Label="@Loc["createRun.signupCloseTime"]"
                     Value="@signupCloseTime"
                     ValueChanged="@(v => signupCloseTime = v)"
                     Disabled="@submitting"
-                    Placeholder="2026-05-01T18:00:00Z" />
+                    Placeholder="@Loc["createRun.signupCloseTimePlaceholder"]" />
 
                 <FluentSelect
                     Id="visibility-select"
-                    Label="Visibility"
+                    Label="@Loc["createRun.visibility"]"
                     TOption="string"
                     Value="@visibility"
                     ValueChanged="@(v => visibility = v)"
                     Disabled="@submitting">
-                    <FluentOption Value="PUBLIC">Public</FluentOption>
-                    <FluentOption Value="GUILD">Guild only</FluentOption>
+                    <FluentOption Value="PUBLIC">@Loc["createRun.public"]</FluentOption>
+                    <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
                 </FluentSelect>
 
                 <FluentTextField
                     Id="description-input"
-                    Label="Description"
+                    Label="@Loc["createRun.description"]"
                     Value="@description"
                     ValueChanged="@(v => description = v)"
                     Disabled="@submitting" />
@@ -94,7 +94,7 @@
                         Appearance="Appearance.Outline"
                         OnClick="@(() => Nav.NavigateTo("/runs"))"
                         Disabled="@submitting">
-                        Cancel
+                        @Loc["createRun.cancel"]
                     </FluentButton>
                 </FluentStack>
             </FluentStack>
@@ -149,7 +149,7 @@
             var created = await RunsClient.CreateAsync(request, CancellationToken.None);
             if (created is null)
             {
-                Toast.ShowError("Failed to create run. Please try again.");
+                Toast.ShowError(Loc["createRun.failed"]);
                 submitting = false;
                 return;
             }
@@ -158,7 +158,7 @@
         }
         catch
         {
-            Toast.ShowError("Failed to create run. Please try again.");
+            Toast.ShowError(Loc["createRun.failed"]);
             submitting = false;
         }
     }

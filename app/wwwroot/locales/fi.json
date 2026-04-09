@@ -172,6 +172,22 @@
     "notFound.body": "Etsim\u00e4\u00e4si sis\u00e4lt\u00f6\u00e4 ei ole olemassa.",
 
     "footer.privacyPolicy": "Tietosuojaseloste",
+    "nav.toggleMenu": "Vaihda navigointivalikko",
+
+    "theme.switchToLight": "Vaihda vaaleaan tilaan",
+    "theme.switchToDark": "Vaihda tummaan tilaan",
+
+    "guildAdmin.settings.timezone": "Aikavy\u00f6hyke",
+    "guildAdmin.settings.locale": "Kieli",
+    "guildAdmin.settings.slogan": "Iskulause",
+    "guildAdmin.settings.rankPermissions": "Rankkioikeudet",
+    "guildAdmin.settings.rank": "Rankki {0}",
+    "guildAdmin.settings.canCreateRuns": "Voi luoda juoksuja",
+    "guildAdmin.settings.canSignUp": "Voi ilmoittautua",
+    "guildAdmin.settings.canDeleteRuns": "Voi poistaa juoksuja",
+    "guildAdmin.settings.saving": "Tallennetaan\u2026",
+    "guildAdmin.settings.save": "Tallenna asetukset",
+
     "locale.en": "EN",
     "locale.fi": "FI"
 }

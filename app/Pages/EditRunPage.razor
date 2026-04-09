@@ -24,7 +24,7 @@
         case LoadingState<RunDetailDto>.Failure f:
             <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
             <FluentButton Appearance="Appearance.Outline" OnClick="@(() => Nav.NavigateTo("/runs"))">
-                Back to Runs
+                @Loc["editRun.backToRuns"]
             </FluentButton>
             break;
 
@@ -32,16 +32,16 @@
             <!-- Edit form -->
             <FluentCard>
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                    <FluentLabel Typo="Typography.H4">Run Details</FluentLabel>
+                    <FluentLabel Typo="Typography.H4">@Loc["editRun.runDetails"]</FluentLabel>
 
                     <FluentSelect
                         Id="instance-select"
-                        Label="Instance"
+                        Label="@Loc["createRun.instance"]"
                         TOption="string"
                         Value="@instanceId"
                         ValueChanged="@(v => instanceId = v)"
                         Disabled="@(saving || hasSignups)">
-                        <FluentOption Value="">— Select instance —</FluentOption>
+                        <FluentOption Value="">@Loc["createRun.selectInstance"]</FluentOption>
                         @foreach (var inst in instances)
                         {
                             <FluentOption Value="@inst.Id">@inst.Name (@inst.ModeKey)</FluentOption>
@@ -50,39 +50,39 @@
 
                     <FluentTextField
                         Id="modekey-input"
-                        Label="Mode Key"
+                        Label="@Loc["createRun.modeKey"]"
                         Value="@modeKey"
                         ValueChanged="@(v => modeKey = v)"
                         Disabled="@saving" />
 
                     <FluentTextField
                         Id="starttime-input"
-                        Label="Start Time (ISO 8601)"
+                        Label="@Loc["createRun.startTime"]"
                         Value="@startTime"
                         ValueChanged="@(v => startTime = v)"
                         Disabled="@(saving || hasSignups)" />
 
                     <FluentTextField
                         Id="signupclose-input"
-                        Label="Signup Close Time (ISO 8601)"
+                        Label="@Loc["createRun.signupCloseTime"]"
                         Value="@signupCloseTime"
                         ValueChanged="@(v => signupCloseTime = v)"
                         Disabled="@saving" />
 
                     <FluentSelect
                         Id="visibility-select"
-                        Label="Visibility"
+                        Label="@Loc["createRun.visibility"]"
                         TOption="string"
                         Value="@visibility"
                         ValueChanged="@(v => visibility = v)"
                         Disabled="@saving">
-                        <FluentOption Value="PUBLIC">Public</FluentOption>
-                        <FluentOption Value="GUILD">Guild only</FluentOption>
+                        <FluentOption Value="PUBLIC">@Loc["createRun.public"]</FluentOption>
+                        <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
                     </FluentSelect>
 
                     <FluentTextField
                         Id="description-input"
-                        Label="Description"
+                        Label="@Loc["createRun.description"]"
                         Value="@description"
                         ValueChanged="@(v => description = v)"
                         Disabled="@saving" />
@@ -98,7 +98,7 @@
                             Appearance="Appearance.Outline"
                             OnClick="@HandleCancel"
                             Disabled="@(saving || deleting)">
-                            Cancel
+                            @Loc["editRun.cancel"]
                         </FluentButton>
                         <FluentSpacer />
                         <FluentButton
@@ -106,7 +106,7 @@
                             OnClick="@ShowDeleteConfirm"
                             Disabled="@(saving || deleting)"
                             Style="color:var(--error)">
-                            @(deleting ? "Deleting…" : "Delete Run")
+                            @(deleting ? Loc["editRun.deleting"] : Loc["editRun.deleteRun"])
                         </FluentButton>
                     </FluentStack>
                 </FluentStack>
@@ -117,21 +117,21 @@
             {
                 <FluentCard>
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                        <FluentLabel Typo="Typography.H5">Confirm Delete</FluentLabel>
-                        <FluentLabel>Are you sure you want to delete this run? This cannot be undone.</FluentLabel>
+                        <FluentLabel Typo="Typography.H5">@Loc["editRun.confirmDelete"]</FluentLabel>
+                        <FluentLabel>@Loc["editRun.confirmDeleteBody"]</FluentLabel>
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
                             <FluentButton
                                 Appearance="Appearance.Accent"
                                 OnClick="@HandleDelete"
                                 Disabled="@(saving || deleting)"
                                 Style="background:var(--error)">
-                                @(deleting ? "Deleting…" : "Yes, delete")
+                                @(deleting ? Loc["editRun.deleting"] : Loc["editRun.yesDelete"])
                             </FluentButton>
                             <FluentButton
                                 Appearance="Appearance.Outline"
                                 OnClick="@(() => showDeleteConfirm = false)"
                                 Disabled="@(saving || deleting)">
-                                Cancel
+                                @Loc["common.cancel"]
                             </FluentButton>
                         </FluentStack>
                     </FluentStack>
@@ -141,7 +141,7 @@
             <!-- Roster grid -->
             <FluentCard>
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                    <FluentLabel Typo="Typography.H4">Roster (@s.Value.RunCharacters.Count signed up)</FluentLabel>
+                    <FluentLabel Typo="Typography.H4">@Loc["editRun.rosterSignedUp", s.Value.RunCharacters.Count]</FluentLabel>
                     @if (s.Value.RunCharacters.Count > 0)
                     {
                         @foreach (var group in GroupByAttendance(s.Value.RunCharacters))
@@ -153,7 +153,7 @@
                     }
                     else
                     {
-                        <FluentLabel>No signups yet.</FluentLabel>
+                        <FluentLabel>@Loc["editRun.noSignups"]</FluentLabel>
                     }
                 </FluentStack>
             </FluentCard>
@@ -244,17 +244,17 @@
             var updated = await RunsClient.UpdateAsync(RunId!, request, CancellationToken.None);
             if (updated is null)
             {
-                Toast.ShowError("Failed to save run. Please try again.");
+                Toast.ShowError(Loc["editRun.saveFailed"]);
             }
             else
             {
-                Toast.ShowSuccess("Run saved successfully.");
+                Toast.ShowSuccess(Loc["editRun.saveSuccess"]);
                 state = new LoadingState<RunDetailDto>.Success(updated);
             }
         }
         catch
         {
-            Toast.ShowError("Failed to save run. Please try again.");
+            Toast.ShowError(Loc["editRun.saveFailed"]);
         }
         finally
         {
@@ -284,7 +284,7 @@
             }
             else
             {
-                Toast.ShowError("Failed to delete run. Please try again.");
+                Toast.ShowError(Loc["editRun.deleteFailed"]);
                 deleting = false;
                 showDeleteConfirm = false;
             }

@@ -1,12 +1,13 @@
 @using Lfm.Contracts.Guild
 @using Microsoft.AspNetCore.Components.Forms
+@inject IStringLocalizer Loc
 
 <EditForm Model="@this" OnValidSubmit="@OnSave">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
 
         <FluentSelect TOption="string"
             Id="guild-timezone"
-            Label="Timezone"
+            Label="@Loc["guildAdmin.settings.timezone"]"
             Value="@Timezone"
             ValueChanged="@TimezoneChanged"
             Disabled="@(!RankDataFresh || Saving)"
@@ -19,7 +20,7 @@
 
         <FluentSelect TOption="string"
             Id="guild-locale"
-            Label="Locale"
+            Label="@Loc["guildAdmin.settings.locale"]"
             Value="@Locale"
             ValueChanged="@LocaleChanged"
             Disabled="@(!RankDataFresh || Saving)"
@@ -32,7 +33,7 @@
 
         <FluentTextArea
             Id="guild-slogan"
-            Label="Slogan"
+            Label="@Loc["guildAdmin.settings.slogan"]"
             Value="@Slogan"
             ValueChanged="@SloganChanged"
             Disabled="@(!RankDataFresh || Saving)"
@@ -42,24 +43,24 @@
         @if (RankPermissions.Count > 0)
         {
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                <FluentLabel Typo="Typography.H4">Rank Permissions</FluentLabel>
+                <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.settings.rankPermissions"]</FluentLabel>
                 @foreach (var perm in RankPermissions)
                 {
                     <FluentCard>
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                            <FluentLabel Typo="Typography.Body">Rank @perm.Rank</FluentLabel>
+                            <FluentLabel Typo="Typography.Body">@Loc["guildAdmin.settings.rank", perm.Rank]</FluentLabel>
                             <FluentCheckbox
-                                Label="Can create runs"
+                                Label="@Loc["guildAdmin.settings.canCreateRuns"]"
                                 Value="@perm.CanCreateGuildRuns"
                                 ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canCreateGuildRuns", v)))"
                                 Disabled="@(!RankDataFresh || Saving)" />
                             <FluentCheckbox
-                                Label="Can sign up"
+                                Label="@Loc["guildAdmin.settings.canSignUp"]"
                                 Value="@perm.CanSignupGuildRuns"
                                 ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canSignupGuildRuns", v)))"
                                 Disabled="@(!RankDataFresh || Saving)" />
                             <FluentCheckbox
-                                Label="Can delete runs"
+                                Label="@Loc["guildAdmin.settings.canDeleteRuns"]"
                                 Value="@perm.CanDeleteGuildRuns"
                                 ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canDeleteGuildRuns", v)))"
                                 Disabled="@(!RankDataFresh || Saving)" />
@@ -74,7 +75,7 @@
                 Type="ButtonType.Submit"
                 Appearance="Appearance.Accent"
                 Disabled="@(Saving || !RankDataFresh)">
-                @(Saving ? "Saving…" : "Save Settings")
+                @(Saving ? Loc["guildAdmin.settings.saving"] : Loc["guildAdmin.settings.save"])
             </FluentButton>
         </div>
 
