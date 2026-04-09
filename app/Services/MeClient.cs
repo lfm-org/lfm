@@ -18,6 +18,21 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         }
     }
 
+    public async Task<UpdateMeResponse?> UpdateAsync(UpdateMeRequest request, CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.PatchAsJsonAsync("api/me", request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<UpdateMeResponse>(cancellationToken: ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
     public async Task<bool> DeleteAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
