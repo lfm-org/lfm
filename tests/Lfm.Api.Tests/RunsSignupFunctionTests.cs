@@ -327,4 +327,155 @@ public class RunsSignupFunctionTests
             Times.Once,
             "success path must emit a signup.create audit event with the battleNetId and result");
     }
+
+    // ------------------------------------------------------------------
+    // Test 6: Signup close time has passed — returns 409
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_409_when_signup_close_time_has_passed()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+
+        // Run whose signupCloseTime is in the past.
+        var closedRun = new RunDocument(
+            Id: "run-1",
+            StartTime: DateTimeOffset.UtcNow.AddHours(2).ToString("o"),
+            SignupCloseTime: DateTimeOffset.UtcNow.AddHours(-1).ToString("o"),
+            Description: "Closed run",
+            ModeKey: "NORMAL:10",
+            Visibility: "PUBLIC",
+            CreatorGuild: "Test Guild",
+            CreatorGuildId: null,
+            InstanceId: 631,
+            InstanceName: "Icecrown Citadel",
+            CreatorBattleNetId: "bnet-creator",
+            CreatedAt: "2026-04-01T10:00:00Z",
+            Ttl: 86400,
+            RunCharacters: []);
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(closedRun);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
+
+        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
+        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(409);
+
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 7: Concurrency conflict retries and succeeds on second attempt
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_retries_on_concurrency_conflict_and_succeeds()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var run = MakeRunDoc();
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+
+        var updatedRun = run with
+        {
+            RunCharacters = [
+                new RunCharacterEntry(
+                    Id: "new-entry-id",
+                    CharacterId: "char-1",
+                    CharacterName: "Testchar",
+                    CharacterRealm: "silvermoon",
+                    CharacterLevel: 0,
+                    CharacterClassId: 0,
+                    CharacterClassName: "",
+                    CharacterRaceId: 0,
+                    CharacterRaceName: "",
+                    RaiderBattleNetId: "bnet-user",
+                    DesiredAttendance: "IN",
+                    ReviewedAttendance: "IN",
+                    SpecId: null,
+                    SpecName: null,
+                    Role: null)
+            ]
+        };
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        var callCount = 0;
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .Returns<RunDocument, CancellationToken>((doc, _) =>
+            {
+                callCount++;
+                if (callCount == 1)
+                    throw new ConcurrencyConflictException();
+                return Task.FromResult(updatedRun);
+            });
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+
+        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
+        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        result.Should().BeOfType<OkObjectResult>();
+
+        // GetByIdAsync called twice: once for the failed attempt, once for the retry.
+        runsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(2));
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    // ------------------------------------------------------------------
+    // Test 8: Concurrency conflict exhausts all retries — returns 409
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_409_after_exhausting_concurrency_retries()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var run = MakeRunDoc();
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException());
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var ctx = MakeFunctionContext(principal);
+
+        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
+        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(409);
+
+        // All 3 attempts should have been made.
+        runsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(3));
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+    }
 }
