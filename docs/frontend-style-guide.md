@@ -4,138 +4,176 @@ Authoritative reference for AI agents building UI in this codebase. All patterns
 
 ## Theme
 
-- **Dark mode only.** Background `#121212`, paper `#1d1d1d`. No light mode.
-- Custom tokens are exported from `frontend/src/theme.ts`:
-  - `attendance` — status colors for raid signups (in/out/bench/late/away/unknown)
-  - `surface` — subtle rgba overlays for decorative cards (`tint`, `tintStrong`, `border`, `borderSubtle`)
-  - `layout` — spacing constants (`maxWidth: 1100`, `px: 2`, `py: 3`, `pageGap: 3`, `componentGap: 2`)
-- System font stack (Segoe UI, Roboto, etc.). Buttons: weight 600, `textTransform: "none"` (set globally in theme — do not re-declare in sx).
-- Small chips: weight 600, font-size `0.7rem` (theme override).
-- CSS variables enabled (`cssVariables: true`).
-- MUI locale adapts to language (Finnish via `muiFiFI`).
+- **Light and dark mode.** Default is dark. User toggles via navbar button; persisted in localStorage (`lfm-theme`).
+- FluentUI Blazor's `FluentDesignTheme` component wraps the app in `App.razor`. It sets CSS custom properties (design tokens) for the active theme.
+- All color-related styling must use FluentUI CSS variables so both themes work. Never hardcode hex colors, `rgb()`, or named colors (`white`, `red`) in styles.
+- WoW class colors are canonical Blizzard-defined constants and must not be changed. When contrast is insufficient against the current theme background, use a structural fix (e.g., a subtle contrasting background chip behind the colored text) rather than altering the color values.
+- System font stack via FluentUI defaults. No custom fonts.
+
+### Common FluentUI CSS variables
+
+| Variable | Purpose |
+|----------|---------|
+| `--neutral-layer-1` | Page background |
+| `--neutral-layer-3` | Elevated surface |
+| `--neutral-layer-4` | Header/footer background |
+| `--neutral-fill-rest` | Card/container fill |
+| `--neutral-stroke-rest` | Borders, dividers |
+| `--neutral-foreground-rest` | Primary text |
+| `--neutral-foreground-hint-rest` | Secondary/muted text |
+| `--accent-fill-rest` | Primary accent (selected items, CTAs) |
+| `--foreground-on-accent-rest` | Text on accent backgrounds |
+| `--error` | Error state color |
 
 ## Styling Method
 
-- **`sx` prop only.** No styled-components, CSS modules, or external stylesheets.
-- When a component accepts `sx` from the caller, merge with array syntax:
-
-```tsx
-sx={[
-  { /* base styles */ },
-  ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
-]}
-```
+- **Inline styles with FluentUI CSS variables** for color-related properties:
+  ```html
+  <div style="background:var(--neutral-layer-4);border:1px solid var(--neutral-stroke-rest)">
+  ```
+- **Inline styles** for layout (padding, margin, flex, grid). These are theme-independent.
+- **app.css** for global utilities (skip-link, mobile nav, loading spinner). Keep minimal.
+- **No component-scoped .razor.css files** — use inline styles. The old `MainLayout.razor.css` was dead Blazor template CSS and has been removed.
+- **No Bootstrap.** FluentUI handles all component styling. Bootstrap was removed.
 
 ## Layout
 
-- **Pages:** wrap content in `PageContainer` (auto max-width, responsive padding).
-- **Cards:** use `SurfaceCard` (outlined Paper, `elevation={0}`, border-radius 2, padding 2). Supports `tone="error"`.
-- **Vertical stacks:** `<Stack spacing={2}>` or `<Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>`.
-- **Grids:** CSS grid via `sx`, not MUI Grid component:
-
-```tsx
-sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2 }}
-```
-
-- Use `layout.pageGap` between top-level sections, `layout.componentGap` within components.
+- **Pages:** content lives inside `MainLayout`'s `<main>` which provides `padding: 24px 16px`.
+- **Stacks:** `<FluentStack Orientation="..." HorizontalGap="N" VerticalGap="N">` for flex layouts.
+- **Cards:** `<FluentCard>` for content grouping.
+- **Grids:** CSS grid via inline `style` for responsive card layouts:
+  ```html
+  <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
+  ```
+- **Responsive:** at mobile widths (<768px), horizontal stacks should have a vertical fallback. Use CSS media queries in `app.css` for layout shifts, not inline styles.
+- **DataGrids on mobile:** wrap `<FluentDataGrid>` in a `<div style="overflow-x:auto">` for horizontal scroll.
 
 ## Typography
 
-| Purpose | Variant | Component prop | Weight |
-|---------|---------|----------------|--------|
-| Page title | `h5` | `component="h1"` | default |
-| Section heading | `h6` | `component="h2"` | 700 |
-| Body text | `body1` | — | default |
-| Secondary text | `body2` | — | default |
-| Metadata / helpers | `caption` | — | default |
+FluentUI Blazor handles typography via `<FluentLabel>`:
 
-- Section headings often use `textTransform: "uppercase"` and `letterSpacing: "0.05em"`.
-- Do not wrap `<Button>` text in `<Typography>` — let Button use its own typography (0.875rem / weight 600) so navbar and toolbar text stays uniform.
-- Always set `component` to maintain semantic heading hierarchy for accessibility.
+| Purpose | Component |
+|---------|-----------|
+| Page title | `<FluentLabel Typo="Typography.H3">` |
+| Section heading | `<FluentLabel Typo="Typography.H4">` |
+| Body text | `<FluentLabel Typo="Typography.Body">` |
+| Secondary text | `<FluentLabel>` with `color:var(--neutral-foreground-hint-rest)` |
+| Page browser title | `<PageTitle>@Loc["page.title"] — @Loc["nav.logo"]</PageTitle>` |
 
 ## Colors
 
-- **Always use semantic palette tokens**, never hardcoded hex:
-  - `color="text.primary"`, `color="text.secondary"`, `color="text.disabled"`
-  - `bgcolor="background.paper"`, `bgcolor="background.default"`
-  - `borderColor="divider"`
-  - `color="error"`, `color="primary.main"`
-- **Exceptions:** WoW class colors (`classColors.ts`) and attendance statuses (`theme.ts`) are domain-specific constants.
-- Surface overlays use the `surface` token from `theme.ts`.
+- **Always use FluentUI CSS variables**, never hardcoded hex:
+  - Text: `var(--neutral-foreground-rest)`, `var(--neutral-foreground-hint-rest)`
+  - Backgrounds: `var(--neutral-layer-1)`, `var(--neutral-fill-rest)`
+  - Borders: `var(--neutral-stroke-rest)`
+  - Accent: `var(--accent-fill-rest)`, `var(--foreground-on-accent-rest)`
+  - Error: `var(--error)`
+- **Exception:** WoW class colors are Blizzard-defined constants (never change them). Fix contrast structurally — e.g., background chip behind colored text.
 
-## Responsive Design
+## Components
 
-- **Mobile-first.** Default styles target `xs`, override at `md`.
-- Responsive values via object syntax:
+### Containers
+- `<FluentCard>` — content card
+- `<FluentStack>` — flex layout with gap control
 
-```tsx
-direction={{ xs: "column", sm: "row" }}
-py: { xs: layout.py, md: layout.py + 2 }
-```
+### Buttons
+- `<FluentButton Appearance="Appearance.Accent">` — primary CTA
+- `<FluentButton Appearance="Appearance.Outline">` — secondary action
+- `<FluentButton Appearance="Appearance.Stealth">` — icon/subtle buttons
+- Touch targets: minimum 44px height for mobile accessibility
 
-- `useMediaQuery` for conditional rendering:
+### Forms
+- `<FluentTextField @bind-Value="field">` — text input
+- `<FluentSelect @bind-Value="field">` with `<FluentOption>` — dropdowns
+- `<FluentTextArea @bind-Value="field">` — multiline
+- Form containers: `max-width: 600px` for create forms, `max-width: 800px` for edit forms
+- All inputs should be full-width within their container
 
-```tsx
-const theme = useTheme();
-const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-```
+### Data
+- `<FluentDataGrid Items="@data.AsQueryable()" TGridItem="TDto">` with:
+  - `<PropertyColumn>` for simple property binding
+  - `<TemplateColumn>` for custom cell rendering
+  - `GridTemplateColumns` for column sizing
 
-## Forms
+### Feedback
+- `<FluentProgressRing />` — loading state
+- `<FluentMessageBar Intent="MessageIntent.Error">` — inline errors
+- `Toast.ShowSuccess()` / `Toast.ShowError()` — transient notifications
 
-- `TextField` with `fullWidth`, `label={t("key")}`, `error`, `helperText`.
-- Selects: `FormControl` + `InputLabel` + `Select` + `FormHelperText` for errors. Simple selects (e.g. timezone, locale) may use `NativeSelect`.
-- Date/time: `DateTimePicker` with `slotProps.textField` for error/helper props.
-- Toggle groups: `ToggleButtonGroup` with `exclusive`, `size="small"`.
-- Spacing between fields: `sx={{ mb: 2 }}`.
+## State Management
 
-## Loading & Empty States
+- **No global store.** State lives in DI services + component-local fields.
+- **`LoadingState<T>`** discriminated union for async data:
+  ```csharp
+  @switch (state)
+  {
+      case LoadingState<T>.Loading:
+          <FluentProgressRing />
+          break;
+      case LoadingState<T>.Failure f:
+          <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+          break;
+      case LoadingState<T>.Success s:
+          // render s.Value
+          break;
+  }
+  ```
+- **Event-driven updates:** services fire `Action? OnChange` events; components call `InvokeAsync(StateHasChanged)` in handlers.
+- **IDisposable:** always unsubscribe from events in `Dispose()`.
 
-- **Loading:** `<CircularProgress />` (default size) or `<CircularProgress size={20} />` (inline).
-- **Empty data:** italic disabled text:
+## Service Lifetimes
 
-```tsx
-<Typography variant="body2" color="text.disabled" sx={{ fontStyle: "italic" }}>
-  {t("key.empty")}
-</Typography>
-```
-
-- **Errors:** `<Alert severity="error" sx={{ mb: 2 }}>{message}</Alert>`.
-
-## Icons & Avatars
-
-- **No icon library.** Use emoji (e.g. flag emoji for language switcher) or text/Avatar fallbacks.
-- Do not add Material Icons or any other icon package.
-- `Avatar` for character portraits; use first-letter fallback when no image URL is available.
-
-## Sanitization
-
-- Sanitize user-supplied HTML with `DOMPurify` before rendering (`ALLOWED_TAGS: []` for plain text).
+| Lifetime | Services |
+|----------|----------|
+| Singleton | `IThemeService`, `ILocaleService`, `IStringLocalizer`, `IDataCache` |
+| Scoped | API clients (`IRunsClient`, `IGuildClient`, etc.), `ToastHelper` |
 
 ## i18n
 
-- All user-visible text goes through `t()` from `react-i18next`.
-- Keys use nested dot notation: `"raidList.signups"`, `"nav.logo"`.
-- Interpolation: `t("key", { count: n })` with `{{ count }}` in locale files.
-- Locale files: `frontend/src/i18n/locales/{en,fi}.json`.
+- Inject `@inject IStringLocalizer Loc` in every component with user-visible text.
+- **All user-visible text** must go through `@Loc["key"]`. No hardcoded English strings.
+- Format strings: `@Loc["key", arg1, arg2]` for keys with `{0}`, `{1}` placeholders.
+- Toast messages: `Toast.ShowSuccess(Loc["key"])`, not hardcoded strings.
+- Locale files: `app/wwwroot/locales/{en,fi}.json` with flat dot-notation keys.
+- Locale switching: `ILocaleService.SetLocale("fi")` fires `OnLocaleChanged` event.
 
 ## Accessibility
 
-- Menus: `aria-controls`, `aria-expanded`, `aria-haspopup`, `aria-labelledby`.
-- Regions: `role="region"` with `aria-label`.
-- Toggle/icon-only buttons: always add `aria-label`.
-- Heading hierarchy: use `component="h1"` / `component="h2"` on Typography to match semantic level.
-- Skip link exists for keyboard navigation — do not remove.
+- Skip-to-content link in MainLayout (`<a class="skip-link">`). CSS hides it until focused.
+- `aria-label` on all icon-only and stealth buttons.
+- `<PageTitle>` on every page for screen readers and browser tabs.
+- Semantic heading hierarchy via FluentLabel Typo variants.
+- Touch targets: minimum 44px for all interactive elements on mobile.
 
-## Component Conventions
+## Mobile / Responsive
 
-- **Default exports** for all components.
-- Props interfaces extend MUI base types (`PaperProps`, `BoxProps`, etc.) plus custom fields.
-- Components that accept `sx` must merge it using the array pattern shown above.
-- No `React.FC` — use plain function declarations.
-- Hooks: `useTheme`, `useMediaQuery`, `useTranslation` imported at component top.
+- **Breakpoint: 768px.** Below this, desktop nav hides and mobile hamburger menu shows.
+- CSS media queries in `app.css` handle the nav transition.
+- Pages should work at 375px (iPhone SE). Test: no horizontal overflow, readable text, tappable buttons.
+- Horizontal `FluentStack` layouts that contain multiple items should stack vertically on mobile via CSS or conditional rendering.
+- Data tables: always wrap in `overflow-x: auto` container.
 
-## Animation
+## File Organization
 
-- Minimal. Card hover uses `transition: "background-color 0.15s"`.
-- Hover states: `"&:hover": { bgcolor: "action.hover" }`.
-- No animation libraries (framer-motion, etc.).
+```
+app/
+  App.razor              — Root: FluentDesignTheme + Router
+  Program.cs             — Service registration + locale bootstrap
+  _Imports.razor         — Global using directives
+  Layout/
+    MainLayout.razor     — Header, footer, nav, theme toggle
+  Pages/
+    *.razor              — One file per route
+  Components/
+    *.razor              — Reusable UI components
+  Services/
+    *.cs                 — DI services (clients, theme, toast)
+  i18n/
+    *.cs                 — Locale service + JSON localizer
+  Auth/
+    *.cs                 — AuthenticationStateProvider
+  wwwroot/
+    css/app.css          — Global CSS (minimal)
+    locales/{en,fi}.json — Translation files
+    index.html           — Shell HTML
+```
