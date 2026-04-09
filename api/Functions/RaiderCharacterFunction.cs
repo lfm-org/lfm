@@ -50,8 +50,16 @@ public class RaiderCharacterFunction(IRaidersRepository repo)
             { StatusCode = 403 };
 
         // 3. Update selectedCharacterId and persist.
-        var updated = raider with { SelectedCharacterId = id };
-        await repo.UpsertAsync(updated, ct);
+        try
+        {
+            var updated = raider with { SelectedCharacterId = id };
+            await repo.UpsertAsync(updated, ct);
+        }
+        catch (Exception ex)
+        {
+            return new ObjectResult(new { error = ex.Message, type = ex.GetType().Name })
+            { StatusCode = 500 };
+        }
 
         // 4. Return updated selection.
         return new OkObjectResult(new UpdateCharacterResponse(SelectedCharacterId: id));

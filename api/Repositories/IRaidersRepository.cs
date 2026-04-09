@@ -82,6 +82,8 @@ public sealed record RaiderDocument(
     string? LastSeenAt = null,
     // Cosmos TTL in seconds. Set by me-update (180 * 86400 = ~180 days).
     // Null means no TTL override; the container default applies.
+    // Must not serialize null — Cosmos rejects "ttl": null as invalid.
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     int? Ttl = null,
     // accountProfileSummary: cached Blizzard profile response (populated by battlenet-characters-refresh).
     BlizzardAccountProfileSummary? AccountProfileSummary = null,

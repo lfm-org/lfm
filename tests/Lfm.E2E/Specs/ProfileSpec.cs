@@ -188,12 +188,22 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     {
         var guildAdminPage = new GuildAdminPage(Page!);
 
+        // Log API requests to debug 400 errors
+        Page!.Request += (_, req) =>
+        {
+            if (req.Url.Contains("/api/guild") && req.Method is "PATCH")
+                Log($"[API REQ] {req.Method} {req.Url} body={req.PostData}");
+        };
+        Page.Response += (_, resp) =>
+        {
+            if (resp.Url.Contains("/api/guild") && resp.Status >= 400)
+                Log($"[API RESP] {resp.Status} {resp.Url}");
+        };
+
         await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(guildAdminPage.SaveButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // Fill the inner textarea — the change event bubbles to the outer FluentTextArea
-        // where Blazor's @bind-Value listens (same pattern as FluentUI's own Playwright tests).
         var newSlogan = $"E2E updated slogan {Guid.NewGuid():N}";
         await guildAdminPage.SloganField.FillAsync(newSlogan);
 
