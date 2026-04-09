@@ -88,7 +88,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("runs.empty"));
+            cut.Markup.Should().Contain(Loc("runs.empty")));
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("createRun.title"));
+            cut.Markup.Should().Contain(Loc("createRun.title")));
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("createRun.submit"));
+            cut.Markup.Should().Contain(Loc("createRun.submit")));
     }
 
     // ── EditRunPage ──────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("editRun.saveChanges"));
+            cut.Markup.Should().Contain(Loc("editRun.saveChanges")));
     }
 
     [Fact]

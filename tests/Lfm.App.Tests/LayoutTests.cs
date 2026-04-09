@@ -16,8 +16,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        // Passthrough localizer returns the key — "nav.logo" renders as "nav.logo"
-        cut.Markup.Should().Contain("nav.logo");
+        cut.Markup.Should().Contain(Loc("nav.logo"));
     }
 
     [Fact]
@@ -27,7 +26,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("nav.signIn"));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("nav.signIn")));
     }
 
     [Fact]
@@ -41,9 +40,9 @@ public class LayoutTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("nav.runs");
-            cut.Markup.Should().Contain("nav.guild");
-            cut.Markup.Should().Contain("nav.characters");
+            cut.Markup.Should().Contain(Loc("nav.runs"));
+            cut.Markup.Should().Contain(Loc("nav.guild"));
+            cut.Markup.Should().Contain(Loc("nav.characters"));
         });
     }
 
@@ -56,7 +55,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("nav.signOut"));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("nav.signOut")));
     }
 
     [Fact]
@@ -76,9 +75,9 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.Markup.Should().Contain("footer.privacy");
-        cut.Markup.Should().Contain("locale.en");
-        cut.Markup.Should().Contain("locale.fi");
+        cut.Markup.Should().Contain(Loc("footer.privacyPolicy"));
+        cut.Markup.Should().Contain(Loc("locale.en"));
+        cut.Markup.Should().Contain(Loc("locale.fi"));
     }
 
     [Fact]
@@ -88,6 +87,6 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.Markup.Should().Contain("nav.skipToContent");
+        cut.Markup.Should().Contain(Loc("a11y.skipToContent"));
     }
 }

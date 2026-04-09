@@ -42,7 +42,7 @@ public class GuildPagesTests : ComponentTestBase
         var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("guild.noGuild.title"));
+            cut.Markup.Should().Contain(Loc("guild.noGuild.title")));
 
         client.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -105,6 +105,6 @@ public class GuildPagesTests : ComponentTestBase
 
         var cut = Render<GuildAdminPage>();
 
-        cut.Markup.Should().Contain("guildAdmin.title");
+        cut.Markup.Should().Contain(Loc("guildAdmin.title"));
     }
 }

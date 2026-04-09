@@ -80,7 +80,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("characters.empty"));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("characters.empty")));
     }
 
     [Fact]
@@ -152,6 +152,6 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("characters.deleteAccount.title"));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("characters.deleteAccount.title")));
     }
 }
