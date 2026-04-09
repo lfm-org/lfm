@@ -166,7 +166,20 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     public async Task EditRun_ModifyFields_ChangesReflected()
     {
         var encodedId = Uri.EscapeDataString(DefaultSeed.TestRunId);
-        await Page!.GotoAsync(
+
+        // Log API requests to debug 400 errors
+        Page!.Request += (_, req) =>
+        {
+            if (req.Url.Contains("/api/runs/") && req.Method is "PUT" or "PATCH")
+                Log($"[API REQ] {req.Method} {req.Url} body={req.PostData}");
+        };
+        Page.Response += (_, resp) =>
+        {
+            if (resp.Url.Contains("/api/runs/") && resp.Status >= 400)
+                Log($"[API RESP] {resp.Status} {resp.Url}");
+        };
+
+        await Page.GotoAsync(
             $"{fixture.Stack.AppBaseUrl}/runs/{encodedId}/edit",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 

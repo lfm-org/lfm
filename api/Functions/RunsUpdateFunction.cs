@@ -111,12 +111,13 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
 
         // 5. Locked-field check — mirrors getLockedFields in run-editability.ts.
         //    instanceId and startTime are locked once there is at least one signup.
+        //    Only reject if the value actually changes (the form always sends all fields).
         var signupCount = existing.RunCharacters.Count;
         if (signupCount > 0)
         {
-            if (body.StartTime is not null)
+            if (body.StartTime is not null && body.StartTime != existing.StartTime)
                 return new BadRequestObjectResult(new { error = "Cannot change start time after signups" });
-            if (body.InstanceId is not null)
+            if (body.InstanceId is not null && body.InstanceId != existing.InstanceId)
                 return new BadRequestObjectResult(new { error = "Cannot change instance after signups" });
         }
 
