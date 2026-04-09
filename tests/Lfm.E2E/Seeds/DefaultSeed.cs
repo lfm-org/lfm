@@ -62,6 +62,8 @@ public static class DefaultSeed
             ["selectedCharacterId"] = "eu-test-realm-aelrin",
             ["locale"] = null,
             ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
+            // ttl must be a valid integer — Cosmos rejects "ttl": null on upsert.
+            ["ttl"] = -1,
             ["accountProfileRefreshedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["accountProfileFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["characters"] = new List<object>
@@ -165,6 +167,8 @@ public static class DefaultSeed
             ["selectedCharacterId"] = "eu-test-realm-kaldris",
             ["locale"] = null,
             ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
+            // ttl must be a valid integer — Cosmos rejects "ttl": null on upsert.
+            ["ttl"] = -1,
             ["accountProfileRefreshedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["accountProfileFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["characters"] = new List<object>
