@@ -10,6 +10,7 @@ using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Contracts.Runs;
+using Lfm.Contracts.WoW;
 
 namespace Lfm.Api.Functions;
 
@@ -159,9 +160,10 @@ public class RunsSignupFunction(
                 CharacterId: storedCharacter.Id,
                 CharacterName: storedCharacter.Name,
                 CharacterRealm: storedCharacter.Realm,
-                CharacterLevel: 0,
-                CharacterClassId: 0,
-                CharacterClassName: "",
+                CharacterLevel: storedCharacter.Level ?? 0,
+                CharacterClassId: storedCharacter.ClassId ?? 0,
+                CharacterClassName: storedCharacter.ClassName
+                    ?? (storedCharacter.ClassId is int cid ? WowClasses.GetName(cid) : ""),
                 CharacterRaceId: 0,
                 CharacterRaceName: "",
                 RaiderBattleNetId: principal.BattleNetId,

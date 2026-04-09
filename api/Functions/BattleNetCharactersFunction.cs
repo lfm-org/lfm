@@ -3,6 +3,7 @@ using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.WoW;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -97,9 +98,11 @@ public class BattleNetCharactersFunction(
                 var realmName = character.Realm.Name ?? character.Realm.Slug;
                 storedByKey.TryGetValue($"{character.Name.ToLowerInvariant()}:{realmSlug}", out var stored);
 
-                // TS: classId = stored?.profileSummary?.character_class?.id ?? character.playable_class?.id
-                // We don't model stored.profileSummary, so fall back to the Blizzard account-char field.
-                var classId = character.PlayableClass?.Id;
+                // Prefer stored demographics (populated during character refresh),
+                // fall back to the Blizzard account-character field.
+                var classId = stored?.ClassId ?? character.PlayableClass?.Id;
+                var className = stored?.ClassName
+                    ?? (classId is int cid ? WowClasses.GetName(cid) : null);
 
                 var cachedId = $"{region}-{character.Realm.Slug.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
                 string? portraitUrl = null;
@@ -129,7 +132,7 @@ public class BattleNetCharactersFunction(
                     Level: character.Level,
                     Region: region,
                     ClassId: classId,
-                    ClassName: null,           // stored.profileSummary.character_class.name not yet modelled
+                    ClassName: className,
                     PortraitUrl: portraitUrl,
                     ActiveSpecId: activeSpecId,
                     SpecName: specName));
