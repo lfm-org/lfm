@@ -16,7 +16,8 @@ public class LayoutTests : ComponentTestBase
         var cut = RenderComponent<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.Markup.Should().Contain("LFM");
+        // Passthrough localizer returns the key — "nav.logo" renders as "nav.logo"
+        cut.Markup.Should().Contain("nav.logo");
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class LayoutTests : ComponentTestBase
         var cut = RenderComponent<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Sign In"));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("nav.signIn"));
     }
 
     [Fact]
@@ -40,9 +41,9 @@ public class LayoutTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Runs");
-            cut.Markup.Should().Contain("Guild");
-            cut.Markup.Should().Contain("Characters");
+            cut.Markup.Should().Contain("nav.runs");
+            cut.Markup.Should().Contain("nav.guild");
+            cut.Markup.Should().Contain("nav.characters");
         });
     }
 
@@ -55,7 +56,7 @@ public class LayoutTests : ComponentTestBase
         var cut = RenderComponent<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Sign Out"));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("nav.signOut"));
     }
 
     [Fact]
@@ -66,5 +67,27 @@ public class LayoutTests : ComponentTestBase
             p.Add(x => x.Body, builder => builder.AddContent(0, "unique-page-marker")));
 
         cut.Markup.Should().Contain("unique-page-marker");
+    }
+
+    [Fact]
+    public void MainLayout_Renders_Footer_With_Language_Toggle()
+    {
+        this.AddTestAuthorization();
+        var cut = RenderComponent<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.Markup.Should().Contain("footer.privacy");
+        cut.Markup.Should().Contain("locale.en");
+        cut.Markup.Should().Contain("locale.fi");
+    }
+
+    [Fact]
+    public void MainLayout_Renders_Skip_To_Content_Link()
+    {
+        this.AddTestAuthorization();
+        var cut = RenderComponent<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.Markup.Should().Contain("nav.skipToContent");
     }
 }
