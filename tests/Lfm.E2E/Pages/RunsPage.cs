@@ -55,25 +55,25 @@ public class RunsPage(IPage page)
     public ILocator InstanceSelect =>
         _page.Locator("#instance-select").First;
 
-    /// <summary>Mode Key text field on the create-run form.</summary>
+    /// <summary>Mode Key text field — inner input of FluentTextField.</summary>
     public ILocator ModeKeyInput =>
-        _page.Locator("#modekey-input").First;
+        _page.Locator("#modekey-input input");
 
-    /// <summary>Start Time text field on the create-run form.</summary>
+    /// <summary>Start Time text field — inner input of FluentTextField.</summary>
     public ILocator StartTimeInput =>
-        _page.Locator("#starttime-input").First;
+        _page.Locator("#starttime-input input");
 
-    /// <summary>Signup Close Time text field on the create-run form.</summary>
+    /// <summary>Signup Close Time text field — inner input of FluentTextField.</summary>
     public ILocator SignupCloseTimeInput =>
-        _page.Locator("#signupclose-input").First;
+        _page.Locator("#signupclose-input input");
 
     /// <summary>Visibility dropdown on the create-run form.</summary>
     public ILocator VisibilitySelect =>
         _page.Locator("#visibility-select").First;
 
-    /// <summary>Description text field on the create-run form.</summary>
+    /// <summary>Description text field — inner input of FluentTextField.</summary>
     public ILocator DescriptionInput =>
-        _page.Locator("#description-input").First;
+        _page.Locator("#description-input input");
 
     /// <summary>"Create Run" submit button on the create-run form.</summary>
     public ILocator CreateRunSubmitButton =>

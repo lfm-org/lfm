@@ -384,8 +384,8 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         // Find the delete confirmation text field, type partial text and press Enter.
         // The button is disabled when confirmation != "FORGET ME", so pressing Enter
         // in the field should not navigate away.
-        // Target the outer FluentTextField component so Blazor binding fires
-        var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME']").First;
+        // Target the inner input of the FluentTextField component
+        var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME'] input");
         await Assertions.Expect(deleteField).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         await deleteField.FocusAsync();

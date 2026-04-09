@@ -14,9 +14,9 @@ public class GuildAdminPage(IPage page)
     public ILocator OverrideSettingsHeading =>
         _page.GetByText("Override Settings");
 
-    // FluentTextArea web component — target outer element so Blazor @bind-Value fires.
+    // FluentTextArea — target inner textarea for FillAsync to work.
     public ILocator SloganField =>
-        _page.Locator("#guild-slogan").First;
+        _page.Locator("#guild-slogan textarea");
 
     // The "Save Settings" submit button
     public ILocator SaveButton =>
