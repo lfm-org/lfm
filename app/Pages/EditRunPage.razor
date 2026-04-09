@@ -6,6 +6,7 @@
 @inject IInstancesClient InstancesClient
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
+@inject ToastHelper Toast
 
 <PageTitle>Edit Run</PageTitle>
 
@@ -27,21 +28,6 @@
             break;
 
         case LoadingState<RunDetailDto>.Success s:
-            @if (saveError != null)
-            {
-                <FluentMessageBar Intent="MessageIntent.Error">@saveError</FluentMessageBar>
-            }
-
-            @if (saveSuccess)
-            {
-                <FluentMessageBar Intent="MessageIntent.Success">Run saved successfully.</FluentMessageBar>
-            }
-
-            @if (deleteError != null)
-            {
-                <FluentMessageBar Intent="MessageIntent.Error">@deleteError</FluentMessageBar>
-            }
-
             <!-- Edit form -->
             <FluentCard>
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
@@ -182,10 +168,7 @@
     private bool saving;
     private bool deleting;
     private bool showDeleteConfirm;
-    private bool saveSuccess;
     private bool hasSignups;
-    private string? saveError;
-    private string? deleteError;
 
     // Form fields (initialised from loaded run)
     private string instanceId = string.Empty;
@@ -245,8 +228,6 @@
     private async Task HandleSave()
     {
         saving = true;
-        saveError = null;
-        saveSuccess = false;
         var selectedInstance = instances.FirstOrDefault(i => i.Id == instanceId);
         try
         {
@@ -262,17 +243,17 @@
             var updated = await RunsClient.UpdateAsync(RunId!, request, CancellationToken.None);
             if (updated is null)
             {
-                saveError = "Failed to save run. Please try again.";
+                Toast.ShowError("Failed to save run. Please try again.");
             }
             else
             {
-                saveSuccess = true;
+                Toast.ShowSuccess("Run saved successfully.");
                 state = new LoadingState<RunDetailDto>.Success(updated);
             }
         }
         catch
         {
-            saveError = "Failed to save run. Please try again.";
+            Toast.ShowError("Failed to save run. Please try again.");
         }
         finally
         {
@@ -288,13 +269,11 @@
     private void ShowDeleteConfirm()
     {
         showDeleteConfirm = true;
-        deleteError = null;
     }
 
     private async Task HandleDelete()
     {
         deleting = true;
-        deleteError = null;
         try
         {
             var ok = await RunsClient.DeleteAsync(RunId!, CancellationToken.None);
@@ -304,14 +283,14 @@
             }
             else
             {
-                deleteError = "Failed to delete run. Please try again.";
+                Toast.ShowError("Failed to delete run. Please try again.");
                 deleting = false;
                 showDeleteConfirm = false;
             }
         }
         catch
         {
-            deleteError = "Failed to delete run. Please try again.";
+            Toast.ShowError("Failed to delete run. Please try again.");
             deleting = false;
             showDeleteConfirm = false;
         }

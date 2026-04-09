@@ -4,20 +4,16 @@
 @using Lfm.Contracts.Guild
 @attribute [Authorize]
 @inject IGuildClient GuildClient
+@inject ToastHelper Toast
 
 <PageTitle>Guild Admin</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.H3">Guild Admin</FluentLabel>
 
-    @if (error != null)
+    @if (loadError != null)
     {
-        <FluentMessageBar Intent="MessageIntent.Error">@error</FluentMessageBar>
-    }
-
-    @if (success != null)
-    {
-        <FluentMessageBar Intent="MessageIntent.Success">@success</FluentMessageBar>
+        <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
     }
 
     @if (loading)
@@ -71,8 +67,7 @@
 @code {
     private bool loading;
     private bool saving;
-    private string? error;
-    private string? success;
+    private string? loadError;
     private GuildDto? guildData;
 
     private string draftTimezone = "Europe/Helsinki";
@@ -83,7 +78,7 @@
     protected override async Task OnInitializedAsync()
     {
         loading = true;
-        error = null;
+        loadError = null;
         guildData = null;
 
         try
@@ -91,7 +86,7 @@
             var dto = await GuildClient.GetAsync(CancellationToken.None);
             if (dto is null)
             {
-                error = "Failed to load guild data.";
+                loadError = "Failed to load guild data.";
             }
             else
             {
@@ -107,7 +102,7 @@
         }
         catch
         {
-            error = "Failed to load guild.";
+            loadError = "Failed to load guild.";
         }
         finally
         {
@@ -130,8 +125,6 @@
     private async Task HandleSave()
     {
         saving = true;
-        error = null;
-        success = null;
 
         try
         {
@@ -139,7 +132,7 @@
             var updated = await GuildClient.UpdateAsync(request, CancellationToken.None);
             if (updated is null)
             {
-                error = "Failed to save guild settings.";
+                Toast.ShowError("Failed to save guild settings.");
             }
             else
             {
@@ -147,12 +140,12 @@
                 draftTimezone = updated.Setup.Timezone;
                 draftLocale = updated.Setup.Locale;
                 draftSlogan = updated.Guild?.Slogan ?? string.Empty;
-                success = "Settings saved successfully.";
+                Toast.ShowSuccess("Settings saved successfully.");
             }
         }
         catch
         {
-            error = "An error occurred while saving.";
+            Toast.ShowError("An error occurred while saving.");
         }
         finally
         {

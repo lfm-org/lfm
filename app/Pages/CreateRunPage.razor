@@ -6,6 +6,7 @@
 @inject IInstancesClient InstancesClient
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
+@inject ToastHelper Toast
 
 <PageTitle>Create Run</PageTitle>
 
@@ -15,11 +16,6 @@
     @if (loadError != null)
     {
         <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
-    }
-
-    @if (submitError != null)
-    {
-        <FluentMessageBar Intent="MessageIntent.Error">@submitError</FluentMessageBar>
     }
 
     @if (loading)
@@ -110,7 +106,6 @@
     private bool loading = true;
     private bool submitting;
     private string? loadError;
-    private string? submitError;
 
     private string instanceId = string.Empty;
     private string modeKey = string.Empty;
@@ -138,7 +133,6 @@
     private async Task HandleSubmit()
     {
         submitting = true;
-        submitError = null;
         var selectedInstance = instances.FirstOrDefault(i => i.Id == instanceId);
         try
         {
@@ -154,7 +148,7 @@
             var created = await RunsClient.CreateAsync(request, CancellationToken.None);
             if (created is null)
             {
-                submitError = "Failed to create run. Please try again.";
+                Toast.ShowError("Failed to create run. Please try again.");
                 submitting = false;
                 return;
             }
@@ -163,7 +157,7 @@
         }
         catch
         {
-            submitError = "Failed to create run. Please try again.";
+            Toast.ShowError("Failed to create run. Please try again.");
             submitting = false;
         }
     }
