@@ -144,10 +144,15 @@ public class RunsPage(IPage page)
 
     /// <summary>
     /// Fills the description field on the edit-run form and saves.
+    /// Uses JavaScript to set value on the FluentTextField web component
+    /// and dispatch a change event for Blazor @bind-Value.
     /// </summary>
     public async Task UpdateDescriptionAsync(string description)
     {
-        await DescriptionInput.FillAsync(description);
+        var outer = _page.Locator("#description-input").First;
+        await outer.EvaluateAsync(
+            "(el, val) => { el.value = val; el.dispatchEvent(new Event('change', { bubbles: true })); }",
+            description);
         await SaveChangesButton.ClickAsync();
     }
 }

@@ -43,15 +43,22 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     {
         var charactersPage = new CharactersPage(Page!);
 
+        // Block the portrait request — it's fire-and-forget and crashes Blazor
+        // when the E2E API can't process it (known app issue).
+        await Page!.RouteAsync("**/api/battlenet/character-portraits", async route =>
+        {
+            await route.FulfillAsync(new() { Status = 200, Body = "[]" });
+        });
+
         await charactersPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
         await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Seed creates 2 characters for the primary raider (Aelrin + Aelrinalt).
-        var count = await charactersPage.GetCharacterCountAsync();
-        count.Should().BeGreaterThanOrEqualTo(1,
-            "at least one character card should be rendered from seed data");
+        // Wait for at least one character card from seed data (Aelrin + Aelrinalt).
+        await Assertions.Expect(charactersPage.CharacterList.First)
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
 
+        var count = await charactersPage.GetCharacterCountAsync();
         Log($"Character cards rendered: {count}");
     }
 
@@ -109,8 +116,11 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             $"{fixture.Stack.ApiBaseUrl}/api/raider/characters/{altCharId}",
             new() { Headers = headers });
 
+        var responseBody = await response.TextAsync();
+        Log($"SelectCharacter response: {response.Status} — {responseBody}");
+
         response.Status.Should().Be(200,
-            "selecting an owned character should succeed");
+            $"selecting an owned character should succeed — response: {responseBody}");
 
         var body = await response.JsonAsync();
         body.Value.GetProperty("selectedCharacterId").GetString()
@@ -165,11 +175,11 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(guildAdminPage.SaveButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // Update the slogan field and save. Use Clear + TypeAsync for FluentTextArea binding.
+        // FluentTextArea is a web component — set value on the outer element and
+        // dispatch 'change' to trigger Blazor's @bind-Value.
         var newSlogan = $"E2E updated slogan {Guid.NewGuid():N}";
-        await guildAdminPage.SloganField.ClickAsync();
-        await guildAdminPage.SloganField.ClearAsync();
-        await guildAdminPage.SloganField.PressSequentiallyAsync(newSlogan);
+        var outerSlogan = Page!.Locator("#guild-slogan").First;
+        await outerSlogan.EvaluateAsync($"el => {{ el.value = '{newSlogan}'; el.dispatchEvent(new Event('change', {{ bubbles: true }})); }}");
 
         await guildAdminPage.SaveButton.ClickAsync();
 
@@ -203,12 +213,11 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
             // Type the confirmation phrase and click delete.
-            await Assertions.Expect(charactersPage.DeleteConfirmationField)
-                .ToBeVisibleAsync(new() { Timeout = 10000 });
-            // FluentTextField binding requires typing (not FillAsync) to fire Blazor's
-            // @bind-Value change event through the web component.
-            await charactersPage.DeleteConfirmationField.ClickAsync();
-            await charactersPage.DeleteConfirmationField.PressSequentiallyAsync("FORGET ME");
+            // FluentTextField is a web component — set value on the outer element and
+            // dispatch 'change' to trigger Blazor's @bind-Value.
+            var outerField = deletePage.Locator("fluent-text-field[placeholder='FORGET ME']").First;
+            await Assertions.Expect(outerField).ToBeVisibleAsync(new() { Timeout = 10000 });
+            await outerField.EvaluateAsync("el => { el.value = 'FORGET ME'; el.dispatchEvent(new Event('change', { bubbles: true })); }");
 
             await Assertions.Expect(charactersPage.DeleteAccountButton)
                 .ToBeEnabledAsync(new() { Timeout = 5000 });
