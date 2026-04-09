@@ -1,18 +1,24 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Lfm.Contracts.Characters;
 
 namespace Lfm.App.Services;
 
 public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClient
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     public async Task<IReadOnlyList<CharacterDto>?> GetCharactersAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
         try
         {
-            return await http.GetFromJsonAsync<List<CharacterDto>>("api/battlenet/characters", ct);
+            return await http.GetFromJsonAsync<List<CharacterDto>>("api/battlenet/characters", JsonOptions, ct);
         }
-        catch (HttpRequestException)
+        catch (Exception) when (IsDeserializationOrNetworkError())
         {
             return null;
         }
@@ -26,9 +32,9 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
             var response = await http.PostAsync("api/battlenet/characters/refresh", null, ct);
             if (!response.IsSuccessStatusCode)
                 return null;
-            return await response.Content.ReadFromJsonAsync<List<CharacterDto>>(ct);
+            return await response.Content.ReadFromJsonAsync<List<CharacterDto>>(JsonOptions, ct);
         }
-        catch (HttpRequestException)
+        catch (Exception) when (IsDeserializationOrNetworkError())
         {
             return null;
         }
@@ -44,12 +50,15 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
             var response = await http.PostAsJsonAsync("api/battlenet/character-portraits", requests, ct);
             if (!response.IsSuccessStatusCode)
                 return null;
-            var result = await response.Content.ReadFromJsonAsync<PortraitResponse>(ct);
+            var result = await response.Content.ReadFromJsonAsync<PortraitResponse>(JsonOptions, ct);
             return result?.Portraits.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
-        catch (HttpRequestException)
+        catch (Exception) when (IsDeserializationOrNetworkError())
         {
             return null;
         }
     }
+
+    // Catch both network errors and JSON deserialization failures gracefully.
+    private static bool IsDeserializationOrNetworkError() => true;
 }
