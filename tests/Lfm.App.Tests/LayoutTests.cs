@@ -1,8 +1,9 @@
-using System.Security.Claims;
 using Bunit;
 using Bunit.TestDoubles;
 using FluentAssertions;
 using Lfm.App.Layout;
+using Lfm.App.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -88,5 +89,27 @@ public class LayoutTests : ComponentTestBase
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         cut.Markup.Should().Contain(Loc("a11y.skipToContent"));
+    }
+
+    [Fact]
+    public void MainLayout_Renders_Theme_Toggle_Button()
+    {
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        var toggle = cut.Find("fluent-button[aria-label*='mode']");
+        toggle.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void MainLayout_Default_Dark_Mode_Shows_Switch_To_Light_Tooltip()
+    {
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        var toggle = cut.Find("fluent-button[aria-label='Switch to light mode']");
+        toggle.Should().NotBeNull();
     }
 }
