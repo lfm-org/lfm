@@ -37,7 +37,8 @@ public sealed record RunDocument(
     string? CreatorBattleNetId,
     string CreatedAt,
     int Ttl,
-    IReadOnlyList<RunCharacterEntry> RunCharacters);
+    IReadOnlyList<RunCharacterEntry> RunCharacters,
+    [property: System.Text.Json.Serialization.JsonPropertyName("_etag")] string? ETag = null);
 
 public interface IRunsRepository
 {

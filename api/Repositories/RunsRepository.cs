@@ -75,7 +75,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                 id,
                 new PartitionKey(id),
                 cancellationToken: ct);
-            return response.Resource;
+            return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -94,12 +94,21 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
 
     public async Task<RunDocument> UpdateAsync(RunDocument run, CancellationToken ct)
     {
-        var response = await _container.ReplaceItemAsync(
-            run,
-            run.Id,
-            new PartitionKey(run.Id),
-            cancellationToken: ct);
-        return response.Resource;
+        try
+        {
+            var options = new ItemRequestOptions { IfMatchEtag = run.ETag };
+            var response = await _container.ReplaceItemAsync(
+                run,
+                run.Id,
+                new PartitionKey(run.Id),
+                options,
+                ct);
+            return response.Resource with { ETag = response.ETag };
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
+        {
+            throw new ConcurrencyConflictException(ex);
+        }
     }
 
     public async Task DeleteAsync(string id, CancellationToken ct)
