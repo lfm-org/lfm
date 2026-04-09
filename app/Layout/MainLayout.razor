@@ -1,10 +1,13 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using Lfm.App.Auth
+@using Lfm.App.Services
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject IConfiguration Config
 @inject IHttpClientFactory HttpClientFactory
+@inject IThemeService ThemeService
 
 <div style="min-height:100vh;display:flex;flex-direction:column">
     <!-- Skip-to-content link for keyboard users -->
@@ -17,25 +20,58 @@
 
             <AuthorizeView>
                 <Authorized>
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Style="margin-left:16px">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Style="margin-left:16px" Class="desktop-nav">
                         <FluentAnchor Href="/runs">Runs</FluentAnchor>
                         <FluentAnchor Href="/guild">Guild</FluentAnchor>
                         <FluentAnchor Href="/characters">Characters</FluentAnchor>
                     </FluentStack>
-                    <div style="margin-left:auto">
+                    <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
+                        <FluentButton Appearance="Appearance.Stealth"
+                                      Class="mobile-nav-toggle"
+                                      Title="Toggle navigation menu"
+                                      aria-label="Toggle navigation menu"
+                                      OnClick="@ToggleMobileMenu">
+                            &#9776;
+                        </FluentButton>
+                        <FluentButton Appearance="Appearance.Stealth"
+                                      Title="@_themeTooltip"
+                                      aria-label="@_themeTooltip"
+                                      OnClick="@ToggleTheme">
+                            @_themeIcon
+                        </FluentButton>
                         <FluentButton Appearance="Appearance.Outline" OnClick="@HandleLogout">
                             Sign Out
                         </FluentButton>
                     </div>
                 </Authorized>
                 <NotAuthorized>
-                    <div style="margin-left:auto">
+                    <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
+                        <FluentButton Appearance="Appearance.Stealth"
+                                      Title="@_themeTooltip"
+                                      aria-label="@_themeTooltip"
+                                      OnClick="@ToggleTheme">
+                            @_themeIcon
+                        </FluentButton>
                         <FluentAnchor Href="/login">Sign In</FluentAnchor>
                     </div>
                 </NotAuthorized>
             </AuthorizeView>
         </FluentStack>
     </header>
+
+    <!-- Mobile navigation menu -->
+    <AuthorizeView>
+        <Authorized>
+            <nav class="mobile-menu @(_showMobileMenu ? "open" : "")"
+                 style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:8px 16px">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                    <FluentAnchor Href="/runs">Runs</FluentAnchor>
+                    <FluentAnchor Href="/guild">Guild</FluentAnchor>
+                    <FluentAnchor Href="/characters">Characters</FluentAnchor>
+                </FluentStack>
+            </nav>
+        </Authorized>
+    </AuthorizeView>
 
     <!-- Page content -->
     <main id="main-content" tabindex="-1" style="flex:1;padding:24px 16px;outline:none">
@@ -44,6 +80,49 @@
 </div>
 
 @code {
+    private bool _showMobileMenu;
+    private string _themeIcon = string.Empty;
+    private string _themeTooltip = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        ThemeService.OnChange += OnThemeChanged;
+        UpdateThemeDisplay();
+    }
+
+    private void UpdateThemeDisplay()
+    {
+        // Sun icon when in dark mode (click to switch to light)
+        // Moon icon when in light mode (click to switch to dark)
+        var isDark = ThemeService.Mode == DesignThemeModes.Dark;
+        _themeIcon = isDark ? "\u2600\ufe0f" : "\ud83c\udf19";
+        _themeTooltip = isDark ? "Switch to light mode" : "Switch to dark mode";
+    }
+
+    private void ToggleTheme()
+    {
+        ThemeService.Toggle();
+        UpdateThemeDisplay();
+    }
+
+    private void OnThemeChanged()
+    {
+        UpdateThemeDisplay();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleMobileMenu()
+    {
+        _showMobileMenu = !_showMobileMenu;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _showMobileMenu = false;
+        InvokeAsync(StateHasChanged);
+    }
+
     private async Task HandleLogout()
     {
         // POST to the logout endpoint — sends the auth cookie via CredentialsHandler
@@ -56,5 +135,11 @@
             asp.NotifyStateChanged();
 
         Nav.NavigateTo("/", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        ThemeService.OnChange -= OnThemeChanged;
     }
 }

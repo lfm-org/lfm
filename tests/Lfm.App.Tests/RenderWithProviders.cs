@@ -1,4 +1,5 @@
 using Bunit;
+using Lfm.App.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -24,5 +25,8 @@ public abstract class ComponentTestBase : TestContext
 
         // MainLayout injects IHttpClientFactory for the logout POST.
         Services.AddHttpClient("api", c => c.BaseAddress = new Uri("http://localhost:7071"));
+
+        // Theme service for dark/light mode toggle.
+        Services.AddSingleton<IThemeService, ThemeService>();
     }
 }
