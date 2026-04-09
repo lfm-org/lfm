@@ -14,6 +14,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 builder.UseMiddleware<Lfm.Api.Middleware.CorsMiddleware>();
+builder.UseMiddleware<Lfm.Api.Middleware.RateLimitMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuditMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthPolicyMiddleware>();
@@ -42,6 +43,8 @@ builder.Services.AddOptions<StorageOptions>()
     .Bind(builder.Configuration.GetSection(StorageOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<RateLimitOptions>()
+    .Bind(builder.Configuration.GetSection(RateLimitOptions.SectionName));
 
 builder.Services.AddCors(options =>
 {
