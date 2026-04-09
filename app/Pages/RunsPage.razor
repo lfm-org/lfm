@@ -94,13 +94,10 @@
                                 @if (selectedRun.RunCharacters.Count > 0)
                                 {
                                     <FluentLabel Typo="Typography.H5">Roster (@selectedRun.RunCharacters.Count)</FluentLabel>
-                                    <FluentDataGrid Items="@selectedRun.RunCharacters.AsQueryable()" TGridItem="RunCharacterDto">
-                                        <PropertyColumn Property="@(c => c.CharacterName)" Title="Character" />
-                                        <PropertyColumn Property="@(c => c.CharacterRealm)" Title="Realm" />
-                                        <PropertyColumn Property="@(c => c.Role)" Title="Role" />
-                                        <PropertyColumn Property="@(c => c.DesiredAttendance)" Title="Attendance" />
-                                        <PropertyColumn Property="@(c => c.SpecName)" Title="Spec" />
-                                    </FluentDataGrid>
+                                    @foreach (var group in GroupByAttendance(selectedRun.RunCharacters))
+                                    {
+                                        <AttendanceRosterSection GroupLabel="@group.Key" Characters="@group.Value" />
+                                    }
                                 }
                                 else
                                 {
@@ -205,4 +202,17 @@
         if (string.IsNullOrEmpty(signupCloseTime)) return false;
         return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
     }
+
+    private static IReadOnlyList<KeyValuePair<string, IReadOnlyList<RunCharacterDto>>> GroupByAttendance(
+        IReadOnlyList<RunCharacterDto> characters) =>
+        characters
+            .GroupBy(c => c.ReviewedAttendance)
+            .OrderBy(g => AttendanceOrder(g.Key))
+            .Select(g => KeyValuePair.Create(g.Key, (IReadOnlyList<RunCharacterDto>)g.ToList()))
+            .ToList();
+
+    private static int AttendanceOrder(string att) => att switch
+    {
+        "IN" => 0, "BENCH" => 1, "LATE" => 2, "OUT" => 3, "AWAY" => 4, _ => 5
+    };
 }
