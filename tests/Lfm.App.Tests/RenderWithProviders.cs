@@ -11,6 +11,7 @@ public abstract class ComponentTestBase : TestContext
     protected ComponentTestBase()
     {
         Services.AddFluentUIComponents();
+        Services.AddScoped<ToastHelper>();
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         // Components that inject IConfiguration (e.g. LoginPage, MainLayout) need
