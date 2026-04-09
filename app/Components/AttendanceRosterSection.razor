@@ -1,0 +1,30 @@
+@using Lfm.Contracts.Runs
+
+<FluentLabel Typo="Typography.H5" Style="margin:12px 0 4px">
+    @GroupLabel (@Characters.Count)
+</FluentLabel>
+
+<FluentDataGrid Items="@Characters.AsQueryable()" TGridItem="RunCharacterDto"
+                GridTemplateColumns="@GridColumns">
+    <TemplateColumn Title="Character">
+        <WowClassBadge ClassId="@context.CharacterClassId" CharacterName="@context.CharacterName" />
+    </TemplateColumn>
+    <PropertyColumn Property="@(c => c.CharacterRealm)" Title="Realm" />
+    <PropertyColumn Property="@(c => c.CharacterClassName)" Title="Class" />
+    <PropertyColumn Property="@(c => c.Role ?? "\u2014")" Title="Role" />
+    <PropertyColumn Property="@(c => c.SpecName ?? "\u2014")" Title="Spec" />
+    @if (ShowDesiredAttendance)
+    {
+        <PropertyColumn Property="@(c => c.DesiredAttendance)" Title="Desired" />
+    }
+</FluentDataGrid>
+
+@code {
+    [Parameter] public string GroupLabel { get; set; } = "";
+    [Parameter] public IReadOnlyList<RunCharacterDto> Characters { get; set; } = [];
+    [Parameter] public bool ShowDesiredAttendance { get; set; }
+
+    private string GridColumns => ShowDesiredAttendance
+        ? "1fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr"
+        : "1fr 1fr 0.7fr 0.7fr 0.7fr";
+}
