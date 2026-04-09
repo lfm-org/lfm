@@ -86,6 +86,9 @@ frontend/e2e/test-results/
 # Superpowers
 .superpowers
 
+# E2E test artifacts (screenshots, traces, DOM snapshots, JSON reports)
+artifacts/
+
 # OS artifacts
 .DS_Store
 Thumbs.db
