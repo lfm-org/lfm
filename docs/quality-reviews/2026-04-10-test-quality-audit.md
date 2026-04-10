@@ -1,17 +1,28 @@
-# Test Quality Audit — `tests/Lfm.Api.Tests` + `tests/Lfm.App.Tests`
+# Test Quality Audit — `tests/Lfm.Api.Tests` + `tests/Lfm.App.Tests` + `tests/Lfm.App.Core.Tests`
 
-**Date:** 2026-04-10 (static audit) · 2026-04-10 (Stryker.NET follow-up appended)
+**Date:** 2026-04-10 (static audit) · 2026-04-10 (initial Stryker.NET follow-up) · 2026-04-11 (updated after `Lfm.App.Core` extraction)
 **Mode:** deep
 **Extensions loaded:** `dotnet` (xUnit + Moq + FluentAssertions + bUnit)
-**Scope:** 53 unit-test files, ~239 tests
-**Rubric:** [docs/quality-reference/unit-testing.md](../quality-reference/unit-testing.md) + [.claude/skills/test-quality-audit/extensions/dotnet.md](../../.claude/skills/test-quality-audit/extensions/dotnet.md)
-**Mutation baseline:** Stryker.NET 4.14.1 — see [§ Mutation testing follow-up](#mutation-testing-follow-up-strykernet) at the bottom.
+**Scope:** static audit covered 53 unit-test files / ~239 tests at the 2026-04-10 snapshot (Api.Tests + App.Tests). Since then, `Lfm.App.Core` was extracted from `app/` and 4 test files moved into a new `tests/Lfm.App.Core.Tests/` project — the moved files' content is unchanged, so their per-file grades from the audit still apply. Current totals: 309 tests (207 Api.Tests + 82 App.Tests + 20 App.Core.Tests).
+**Rubric:** [docs/quality-reference/unit-testing.md](../quality-reference/unit-testing.md) + [skills/test-quality-audit/extensions/dotnet.md](../../skills/test-quality-audit/extensions/dotnet.md)
+**Mutation baseline:** Stryker.NET 4.14.1 — see [§ Mutation testing follow-up](#mutation-testing-follow-up-strykernet) for both the initial API run and the 2026-04-11 re-run against `Lfm.App.Core`.
+
+## 2026-04-11 update summary
+
+The structural state of the audit changed after the initial report:
+
+1. **`Lfm.App.Core` class library extracted.** 18 framework-neutral files moved out of `app/Lfm.App.csproj` (Blazor WASM SDK) into `app/Lfm.App.Core/Lfm.App.Core.csproj` (plain `Microsoft.NET.Sdk`): 13 service files, 4 i18n files, 1 auth state provider. Namespaces preserved (`Lfm.App.Services` / `.i18n` / `.Auth`) so no consumer code changed.
+2. **`tests/Lfm.App.Core.Tests/` created.** References only `Lfm.App.Core`. Four existing test files moved in with their namespaces updated: `JsonStringLocalizerTests.cs`, `LocaleServiceTests.cs`, `RunsClientTests.cs`, `StubHttpMessageHandler.cs`. Their content (and therefore their audit grades) is unchanged.
+3. **Blazor WASM mutation limitation resolved for the extracted code.** Stryker.NET now runs cleanly against `Lfm.App.Core` via `tests/Lfm.App.Core.Tests/`. The original `app/Lfm.App.csproj` is still unmutatable — that's inherent to the BlazorWebAssembly SDK — but every pure-C# service it used to contain is now reachable. A fresh mutation run was performed on 2026-04-11 and is documented in [§ Core mutation results (2026-04-11)](#core-mutation-results-2026-04-11).
+4. **Pre-existing `BattleNetClient` bug fixed.** During the extraction, the code reviewer spotted a tautological exception filter in `BattleNetClient` (`catch (Exception) when (IsDeserializationOrNetworkError())` where the helper always returned `true`, making it equivalent to a bare `catch (Exception)` that swallowed `OutOfMemoryException`, `StackOverflowException`, etc.). Fixed to use typed filters matching `MeClient`'s pattern. Not surfaced by the audit, not surfaced by mutation testing — surfaced by co-location during the refactor.
+
+Content below is the original 2026-04-10 audit with in-place path updates where tests moved, plus new sections where the mutation baseline changed. Original findings and worklist items that have not been acted on still apply.
 
 ## Infrastructure verified first
 
 - [tests/Lfm.Api.Tests/TestLogger.cs](../../tests/Lfm.Api.Tests/TestLogger.cs) is a **capture-helper fake** with `IsAudit()` for structured-property assertions → `dotnet.POS-4 + dotnet.POS-5` (positive). Every `Mock<ILogger<T>>`-looking pattern in these tests is actually a fake; do not flag.
 - [tests/Lfm.App.Tests/RenderWithProviders.cs](../../tests/Lfm.App.Tests/RenderWithProviders.cs) → `ComponentTestBase : BunitContext` with real `FileStringLocalizer` reading the production locale JSON files. `Loc("key")` assertions are **spec-derived from the locale file** (positive).
-- [tests/Lfm.App.Tests/Services/StubHttpMessageHandler.cs](../../tests/Lfm.App.Tests/Services/StubHttpMessageHandler.cs) is a **test-only fake at the HTTP boundary** (not a Moq mock). Assertions on `LastRequest` → `POS-3`.
+- [tests/Lfm.App.Core.Tests/Services/StubHttpMessageHandler.cs](../../tests/Lfm.App.Core.Tests/Services/StubHttpMessageHandler.cs) is a **test-only fake at the HTTP boundary** (not a Moq mock). Assertions on `LastRequest` → `POS-3`. *(Moved from `tests/Lfm.App.Tests/Services/` on 2026-04-11; content unchanged.)*
 
 ## Per-file rollup
 
@@ -54,7 +65,9 @@
 | [RunsRepositoryConcurrencyTests.cs](../../tests/Lfm.Api.Tests/RunsRepositoryConcurrencyTests.cs) | 2 | 2 | 0 | 0 | — | strong |
 | [WowClassesTests.cs](../../tests/Lfm.Api.Tests/WowClassesTests.cs) | 6 | 6 | 0 | 0 | — | strong |
 
-### App.Tests (18 files, ~80 tests)
+### App.Tests (post-extraction: ~15 files, ~82 tests)
+
+Note: three test files — `Services/RunsClientTests.cs`, `i18n/JsonStringLocalizerTests.cs`, `i18n/LocaleServiceTests.cs` — moved into `tests/Lfm.App.Core.Tests/` on 2026-04-11 (see next table). Their grades are unchanged; only their project home moved.
 
 | File | Tests | Spec | Char | Ambig | Top smells | Grade |
 |---|---|---|---|---|---|---|
@@ -66,13 +79,22 @@
 | [RunsPagesTests.cs](../../tests/Lfm.App.Tests/RunsPagesTests.cs) | 10 | 9 | 1 | 0 | `HC-3` | strong |
 | [LayoutTests.cs](../../tests/Lfm.App.Tests/LayoutTests.cs) | 9 | 9 | 0 | 0 | — | strong |
 | [WowClassBadgeTests.cs](../../tests/Lfm.App.Tests/WowClassBadgeTests.cs) | 3 | 3 | 0 | 0 | — | strong |
-| [Services/RunsClientTests.cs](../../tests/Lfm.App.Tests/Services/RunsClientTests.cs) | 9 | 9 | 0 | 0 | — | strong |
 | [ThemeServiceTests.cs](../../tests/Lfm.App.Tests/ThemeServiceTests.cs) | 8 | 8 | 0 | 0 | — | strong |
 | [ToastHelperTests.cs](../../tests/Lfm.App.Tests/ToastHelperTests.cs) | 2 | 0 | 2 | 0 | `HC-2`, `dotnet.HC-2` | **weak** |
 | [WowClassesTests.cs](../../tests/Lfm.App.Tests/WowClassesTests.cs) | 2 | 2 | 0 | 0 | — | strong |
 | [LocaleParityTests.cs](../../tests/Lfm.App.Tests/LocaleParityTests.cs) | 4 | 4 | 0 | 0 | — | strong |
-| [i18n/JsonStringLocalizerTests.cs](../../tests/Lfm.App.Tests/i18n/JsonStringLocalizerTests.cs) | 5 | 5 | 0 | 0 | — | strong |
-| [i18n/LocaleServiceTests.cs](../../tests/Lfm.App.Tests/i18n/LocaleServiceTests.cs) | 6 | 6 | 0 | 0 | — | strong |
+
+### App.Core.Tests (3 files, 20 tests) — added 2026-04-11
+
+Files moved from `tests/Lfm.App.Tests/` into a new test project that references only `app/Lfm.App.Core/` (no Blazor WASM in the dependency chain). Content is byte-identical apart from the test-project namespace rename — the audit grades carry over unchanged.
+
+| File | Tests | Spec | Char | Ambig | Top smells | Grade |
+|---|---|---|---|---|---|---|
+| [Services/RunsClientTests.cs](../../tests/Lfm.App.Core.Tests/Services/RunsClientTests.cs) | 9 | 9 | 0 | 0 | — | strong |
+| [i18n/JsonStringLocalizerTests.cs](../../tests/Lfm.App.Core.Tests/i18n/JsonStringLocalizerTests.cs) | 5 | 5 | 0 | 0 | — | strong |
+| [i18n/LocaleServiceTests.cs](../../tests/Lfm.App.Core.Tests/i18n/LocaleServiceTests.cs) | 6 | 6 | 0 | 0 | — | strong |
+
+These 20 tests are now the Stryker target for the extracted code. See [§ Core mutation results (2026-04-11)](#core-mutation-results-2026-04-11) for the new mutation-score data.
 
 ## Noteworthy per-test findings (severity ≥ warn)
 
@@ -173,7 +195,7 @@ Specification tests with verdict `keep, info` are omitted to stay signal-dense. 
   2. **Domain-logic tests nail boundaries.** [RunEditabilityTests.cs](../../tests/Lfm.Api.Tests/RunEditabilityTests.cs), [GuildPermissionsTests.cs](../../tests/Lfm.Api.Tests/GuildPermissionsTests.cs), [DataProtectionSessionCipherTests.cs](../../tests/Lfm.Api.Tests/DataProtectionSessionCipherTests.cs), [WowClassesTests.cs](../../tests/Lfm.Api.Tests/WowClassesTests.cs), [BlizzardOAuthClientTests.cs](../../tests/Lfm.Api.Tests/BlizzardOAuthClientTests.cs) — all boundary-complete, spec-cited, invariant-style (round-trip, tamper detection, key isolation, PKCE against RFC 7636 test vectors).
   3. **Middleware tests assert on published side-effects,** not interaction counts.
   4. **App-side tests lean on `Loc()` against real locale JSON** — spec-derived strings, not pasted literals.
-  5. **[RunsClientTests.cs](../../tests/Lfm.App.Tests/Services/RunsClientTests.cs)** is a model for HTTP-boundary testing with `StubHttpMessageHandler` + `LastRequest` assertions.
+  5. **[RunsClientTests.cs](../../tests/Lfm.App.Core.Tests/Services/RunsClientTests.cs)** is a model for HTTP-boundary testing with `StubHttpMessageHandler` + `LastRequest` assertions. *(Moved to `Lfm.App.Core.Tests` on 2026-04-11; the 2026-04-11 mutation run surfaced three survivor mutants in `RunsClient.cs` that the audit's `strong` rating missed — see the reconciliation in [§ Core mutation results](#core-mutation-results-2026-04-11).)*
 
 - **Top risks (ordered by impact):**
   1. **`AuthPagesTests` is half render-without-crash** — four of eight tests will pass against any non-blank render, including a broken page. Highest-value fix: they protect your entire unauth surface today.
@@ -184,7 +206,7 @@ Specification tests with verdict `keep, info` are omitted to stay signal-dense. 
 
 - **Verification limits:** Static audit cannot confirm (a) whether the *expected literal values* in DTO tests are correct per any real contract; (b) whether mutation testing would reveal additional shallow coverage; (c) git history (was a test added before or after its SUT?); (d) actual assertion coverage under execution.
 
-- **Mutation testing recommendation:** Run **[Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/)** against `tests/Lfm.Api.Tests` and `tests/Lfm.App.Tests`. Scope suggestion: `dotnet stryker --since main` for PR-scoped runs; a full run from each test project directory for an initial baseline. Target files to mutation-check first: [HealthFunctionTests.cs](../../tests/Lfm.Api.Tests/HealthFunctionTests.cs), [RunsSignupFunctionTests.cs](../../tests/Lfm.Api.Tests/RunsSignupFunctionTests.cs) (retry logic), and the `AuthPages` components — these have the highest smell density and are the likeliest to harbor surviving mutants.
+- **Mutation testing recommendation:** Run **[Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/)** against `tests/Lfm.Api.Tests` **and** `tests/Lfm.App.Core.Tests` (the latter is the post-extraction Stryker target for non-Blazor logic that used to live in `app/`). Scope suggestion: `dotnet stryker --since main` for PR-scoped runs; a full run from each test project directory for an initial baseline. `tests/Lfm.App.Tests` cannot be Stryker-targeted because its ProjectReference chain still reaches `app/Lfm.App.csproj` (Blazor WASM SDK) — see [§ App project: Blazor WASM workaround applied](#app-project-blazor-wasm-workaround-applied). Target files to mutation-check first: [HealthFunctionTests.cs](../../tests/Lfm.Api.Tests/HealthFunctionTests.cs), [RunsSignupFunctionTests.cs](../../tests/Lfm.Api.Tests/RunsSignupFunctionTests.cs) (retry logic), and the `AuthPages` components — these have the highest smell density and are the likeliest to harbor surviving mutants.
 
 ## Prioritized remediation worklist
 
@@ -217,10 +239,11 @@ Specification tests with verdict `keep, info` are omitted to stay signal-dense. 
 
 ## Mutation testing follow-up (Stryker.NET)
 
-**Date added:** 2026-04-10 (same day as static audit)
+**Date added:** 2026-04-10 (initial API run) · 2026-04-11 (Core re-run after extraction)
 **Tool:** Stryker.NET 4.14.1 (installed via [`.config/dotnet-tools.json`](../../.config/dotnet-tools.json))
-**API run duration:** 28 seconds
-**App run:** **failed — known Blazor WASM limitation** (see [§ App project limitation](#app-project-limitation-blazor-wasm))
+**API run duration:** 28 seconds — see [§ API baseline score](#api-baseline-score-3860)
+**Core run duration:** ~16 seconds — see [§ Core mutation results (2026-04-11)](#core-mutation-results-2026-04-11)
+**App run:** **not applicable.** `app/Lfm.App.csproj` (Blazor WASM) is still structurally unmutatable by Stryker. The 2026-04-11 `Lfm.App.Core` extraction moved all framework-neutral code out of it, and that code is now fully mutation-testable via `tests/Lfm.App.Core.Tests/`. The only code still in `app/` is Razor components, `Program.cs`, and three FluentUI/WASM-coupled helpers (`CredentialsHandler`, `ThemeService`, `ToastHelper`) that rely on the static audit for their quality signal. See [§ App project: Blazor WASM workaround applied](#app-project-blazor-wasm-workaround-applied).
 
 ### What mutation testing adds to the static audit
 
@@ -323,30 +346,77 @@ The static audit rated `HealthFunctionTests.cs` as `adequate` based on the tests
 
 **Fix:** add a test that invokes `Live()` directly against a constructed `HealthFunction` instance. See the scoped run output in the conversation for the recommended snippet. Expected score after fix: 100% on `HealthFunction.cs`.
 
-### App project limitation (Blazor WASM)
+### App project: Blazor WASM workaround applied
 
-Stryker.NET 4.14.1 **cannot mutate [app/](../../app/)**. Every attempt failed with:
+**Original finding (2026-04-10):** Stryker.NET 4.14.1 could not mutate `app/Lfm.App.csproj`. Every attempt failed with `CS8805: Program using top-level statements must be an executable` and `CS0246: The type or namespace name 'App' could not be found`. The root cause is that Blazor WASM's `Program.cs` references the `App` type, which is generated at build time by the Razor source generator from `App.razor` — and Stryker's internal Roslyn recompile step does not invoke source generators. `--mutate` exclusion patterns don't help because Stryker still compiles the whole project as a baseline.
 
-```
-WRN An unidentified mutation in app/Program.cs resulted in a compile error
-    CS8805: Program using top-level statements must be an executable.
-WRN An unidentified mutation in app/Program.cs resulted in a compile error
-    CS0246: The type or namespace name 'App' could not be found
-FTL Stryker.NET could not compile the project after mutation.
-```
+**Resolution (2026-04-11):** Option 2 from the original "practical options" list was implemented. An `Lfm.App.Core` class library was extracted from `app/` (plain `Microsoft.NET.Sdk`, not the WebAssembly SDK) containing all framework-neutral code: five HTTP clients, their interfaces, the data cache, the loading-state primitive, the i18n subsystem, and the authentication state provider. A dedicated `tests/Lfm.App.Core.Tests/` project was created that references **only** `Lfm.App.Core` — its ProjectReference chain does not reach the Blazor WASM SDK. Stryker now mutates the Core project cleanly.
 
-The root cause: Blazor WASM's `Program.cs` references the `App` type, which is generated at build time by the Razor source generator from `App.razor`. Stryker runs its own Roslyn compilation step for each mutation, and that step does not invoke the Razor source generators, so `App` is unresolvable. `--mutate` flags with positive or negative patterns do not help — Stryker still compiles the whole project as a baseline.
+The 18 files that moved:
 
-**Workarounds attempted (none worked):**
-- `--mutate "!**/Program.cs"` — exclusion pattern did not prevent Stryker's compile step from processing `Program.cs`.
-- `--mutate "**/Services/**/*.cs" --mutate "**/i18n/**/*.cs"` — positive scoping also did not skip the project-level compile.
+| Subsystem | Files |
+|---|---|
+| Services (HTTP clients + cache) | `BattleNetClient`, `GuildClient`, `InstancesClient`, `MeClient`, `RunsClient` + their interfaces, `IDataCache`, `InMemoryDataCache`, `LoadingState` |
+| i18n | `ILocaleService`, `LocaleService`, `JsonStringLocalizer`, `JsonStringLocalizerFactory` |
+| Auth | `AppAuthenticationStateProvider` |
 
-**Practical options going forward:**
-1. **Accept the limitation.** Static audit (already completed) remains the quality signal for [app/](../../app/). This is the pragmatic choice.
-2. **Extract pure-C# logic to a separate library** (e.g. `Lfm.App.Core`) that Stryker can mutate independently. Services like `RunsClient`, `ThemeService`, `LocaleService`, `JsonStringLocalizer` are prime candidates — they have no Razor dependencies. This is a project-structure change, not a test change; budget a half-day.
-3. **Wait for Stryker.NET Blazor support.** Tracking issue exists but no ETA. Not actionable.
+**Still in `app/` (deliberately not moved):** `CredentialsHandler` uses `Microsoft.AspNetCore.Components.WebAssembly.Http.SetBrowserRequestCredentials` (WASM-only); `ThemeService` and `ToastHelper` are coupled to `Microsoft.FluentUI.AspNetCore.Components` types (`DesignThemeModes` and `IToastService`). These stay in the Blazor project and continue to rely on static audit for quality signal — `ThemeServiceTests` is `strong` (8/8 spec), `ToastHelperTests` is already flagged `weak` in the P0 worklist. All Razor components, `Program.cs`, pages, and layout files stay too.
 
-The static audit already rates App-side test quality (~80 tests) as `strong` overall with the specific weak spots called out in the main report. The mutation score would add precision but is not essential for the weak spots that are already identified.
+**Namespace preservation:** The Core csproj sets `<RootNamespace>Lfm.App</RootNamespace>`, so moved files keep their original namespaces (`Lfm.App.Services`, `Lfm.App.i18n`, `Lfm.App.Auth`). No `.razor` file, `_Imports.razor` entry, `Program.cs` line, or consumer test needed editing — the extraction was a pure move.
+
+**What this enables going forward:** the entire pre-extraction `app/` service layer is now mutation-testable. The 2026-04-11 run below is the first baseline for that surface.
+
+### Core mutation results (2026-04-11)
+
+Stryker.NET 4.14.1 run against `tests/Lfm.App.Core.Tests/` targeting `app/Lfm.App.Core/Lfm.App.Core.csproj`. Config committed at `tests/Lfm.App.Core.Tests/stryker-config.json` (reporters: `cleartext`, `html`, `json`; mutation level: Standard; explicit `project: Lfm.App.Core.csproj`). Runtime ~16 seconds.
+
+**Overall Core mutation score: 26.61%**
+
+| Category | Count | Meaning |
+|---|---|---|
+| **Killed** | 28 | ✅ Tests noticed the mutation |
+| **Survived** | 10 | ❌ Tests executed the code but didn't verify the changed behavior |
+| **NoCoverage** | 70 | ❌ No test executes this code at all |
+| Timeout | 1 | Killed by timeout |
+| Ignored | 38 | Syntactic no-ops; excluded from score |
+| CompileError | 13 | Mutation produced invalid code; excluded from score |
+| **Total** | 160 | |
+
+Score formula (Stryker convention): `(Killed + Timeout) / (Killed + Survived + Timeout + NoCoverage)` = `29 / 109` = 26.61%. **Covered-code score** (excluding NoCoverage to isolate test effectiveness from test presence): `29 / 39` = **74.4%**. The Core suite is actually strong where tests exist — the 26.61% overall is dragged down by five service files with no unit tests at all.
+
+**Per-file breakdown:**
+
+| File | Killed | Survived | NoCoverage | Audit grade | Notes |
+|---|---|---|---|---|---|
+| [Services/RunsClient.cs](../../app/Lfm.App.Core/Services/RunsClient.cs) | 11 | **3** | 6 | strong | 9/9 spec per audit — yet 3 survivors, see reconciliation below |
+| [i18n/JsonStringLocalizer.cs](../../app/Lfm.App.Core/i18n/JsonStringLocalizer.cs) | 10 | **5** | 4 | strong | 5/5 spec per audit — 5 survivors in lifecycle code, see below |
+| [i18n/LocaleService.cs](../../app/Lfm.App.Core/i18n/LocaleService.cs) | 7 | 1 | 0 | strong | 6/6 spec per audit; near-total coverage kill |
+| [Services/BattleNetClient.cs](../../app/Lfm.App.Core/Services/BattleNetClient.cs) | 0 | 1 | **17** | *no tests* | Entire file uncovered; 1 survivor is a static `JsonSerializerOptions` mutation |
+| [Services/MeClient.cs](../../app/Lfm.App.Core/Services/MeClient.cs) | 0 | 0 | **14** | *no tests* | Entire file uncovered |
+| [Services/GuildClient.cs](../../app/Lfm.App.Core/Services/GuildClient.cs) | 0 | 0 | **7** | *no tests* | Entire file uncovered |
+| [Services/InstancesClient.cs](../../app/Lfm.App.Core/Services/InstancesClient.cs) | 0 | 0 | **4** | *no tests* | Entire file uncovered |
+| [Auth/AppAuthenticationStateProvider.cs](../../app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs) | 0 | 0 | **18** | *no tests* | Entire file uncovered (exercised indirectly by bUnit `AuthPagesTests`, but those live in `Lfm.App.Tests` which is not Stryker's target) |
+
+Interface files (`IBattleNetClient`, `IGuildClient`, `IInstancesClient`, `IMeClient`, `IRunsClient`, `IDataCache`, `ILocaleService`) and pure primitives (`LoadingState`, `InMemoryDataCache`) have `N/A` status — no mutants generated because they contain no mutable logic.
+
+#### Audit-vs-mutation reconciliation (Core)
+
+**Concordance — `LocaleService.cs`.** Audit `strong` + Stryker 87.5% covered score (7 killed / 1 survived / 0 no-coverage). The single survivor is a string-literal mutation on the supported-locales set ("en" or "fi" → "") — worth a `String mutation / locale set` assertion test, but a weak signal.
+
+**Disagreement — `JsonStringLocalizer.cs` (audit strong, mutation 55% covered).** Five survivors, all in lifecycle code the existing tests don't exercise:
+- Lines 27 and 94: `_localeService.OnLocaleChanged += / -= HandleLocaleChanged` — constructor-time subscribe and dispose-time unsubscribe flipped with no test failure. The tests verify lookup/fallback behavior (the killed mutants) but never assert that the localizer actually subscribes on construction or unsubscribes on disposal.
+- Lines 69, 95, 117: statement removals in `LoadLocaleAsync` guard, `Dispose`, and the async `HandleLocaleChanged` reload.
+- **Takeaway:** the audit's `strong` rating was about the lookup contract, which the tests do cover well. Lifecycle is a blind spot the static audit couldn't see because the tests look comprehensive. Worth adding one disposal test and one "locale change reloads cache" test.
+
+**Disagreement — `RunsClient.cs` (audit strong 9/9 spec, mutation 78.6% covered).** Three survivors across three different methods:
+- Line 12 in `ListAsync`: null-coalescing `items ?? []` → `items`. No test for a null JSON response body (existing tests cover empty-array and populated-array, but not the null case).
+- Line 40 in `UpdateAsync`: URL interpolation string mutated to `$""`. Tests don't assert the URL path; they trust `StubHttpMessageHandler.LastRequest.RequestUri` on other methods but not this one.
+- Line 48 in `SignupAsync`: `if (!response.IsSuccessStatusCode)` logical-not removed. The test `SignupAsync_posts_to_signup_subpath` asserts the request path but doesn't assert the returned DTO is non-null — so flipping the success check into a failure check (and returning null) goes unnoticed.
+- **Takeaway:** the audit's `strong` rating is still defensible — the existing tests are spec-derived and not characterization smells. But "spec-derived" doesn't mean "complete", and this is exactly the gap mutation testing is designed to catch. The fix is additive: three small assertions close the three gaps without changing the test structure.
+
+**NoCoverage findings — five uncovered service files.** `BattleNetClient`, `MeClient`, `GuildClient`, `InstancesClient`, and `AppAuthenticationStateProvider` contain 60 NoCoverage mutants in total. These are the same files the static audit couldn't grade (no existing tests → nothing to evaluate). The static audit's scope was "existing tests"; mutation testing surfaces the gap in "files that should have tests but don't".
+
+The `AppAuthenticationStateProvider` case is particularly notable: it's exercised indirectly by bUnit tests in `Lfm.App.Tests` (`AuthPagesTests`, `LayoutTests`) via `CascadingAuthenticationState` rendering, but those tests live in the Blazor test project which Stryker can't target. From Core's perspective, the auth state provider has no direct coverage. Adding a small `AppAuthenticationStateProviderTests.cs` in `Lfm.App.Core.Tests` with a mocked `IMeClient` would flip this from NoCoverage to fully tested.
 
 ### New remediation items surfaced by mutation testing
 
@@ -372,18 +442,61 @@ Adding to the worklist above (items here are **in addition to** the P0–P3 alre
 
 #### P3 — new findings from mutation testing
 
-- **Extract pure-C# logic from [app/](../../app/) into `Lfm.App.Core` library** so Stryker can mutate app-side code. Only worth doing if app-side quality signal becomes important. Effort: ~4h.
+- ~~**Extract pure-C# logic from [app/](../../app/) into `Lfm.App.Core` library** so Stryker can mutate app-side code.~~ **Done 2026-04-11** — see [§ App project: Blazor WASM workaround applied](#app-project-blazor-wasm-workaround-applied) and [§ Core mutation results (2026-04-11)](#core-mutation-results-2026-04-11).
 - **Re-run Stryker after each P1/P2 batch** to confirm targeted mutants are now killed. Expected API score after the P1 fixes: ~50–55%. After P1+P2: ~65–70%. Getting past 80% would require tackling the uncovered repositories and middleware pipeline more aggressively.
+
+---
+
+## New findings from Core mutation run (2026-04-11)
+
+These items are surfaced by the 2026-04-11 Stryker run against `Lfm.App.Core.Tests` and are **in addition to** the P0–P3 items above. Tagged `[core-mutation]` to distinguish from the original API mutation findings.
+
+### P1 — Core gaps with measurable impact on the mutation score
+
+- **Add `BattleNetClientTests.cs` to `tests/Lfm.App.Core.Tests/Services/`.** Currently 17 NoCoverage + 1 Survived across 30 mutants — entire file uncovered. Use the existing `StubHttpMessageHandler` pattern established by `RunsClientTests`. Cover the three public methods (`GetCharactersAsync`, `RefreshCharactersAsync`, `GetPortraitsAsync`) for: happy path, non-success status, `HttpRequestException`, `JsonException`, and the timeout/cancellation case. Would kill the 17 uncovered mutants plus the `JsonSerializerOptions.PropertyNameCaseInsensitive = true` survivor. **Also verifies the post-refactor typed exception filter** added in commit `8d6cad8` actually catches what it should. Effort: 45 min. `[core-mutation]`
+- **Add `MeClientTests.cs`.** 14 NoCoverage mutants, same pattern as `BattleNetClient`. Same test shape as `RunsClientTests`. Effort: 30 min. `[core-mutation]`
+- **Add `GuildClientTests.cs`.** 7 NoCoverage. Effort: 20 min. `[core-mutation]`
+- **Add `InstancesClientTests.cs`.** 4 NoCoverage (smallest surface). Effort: 15 min. `[core-mutation]`
+- **Add `AppAuthenticationStateProviderTests.cs` to `tests/Lfm.App.Core.Tests/Auth/`.** 18 NoCoverage. Mock `IMeClient` + `ILocaleService` and assert: (a) anonymous state when `IMeClient.GetAsync` returns null, (b) authenticated state with correct claims when `GetAsync` returns a valid response, (c) `guild_name` claim only present when `GuildName` is non-empty, (d) `SiteAdmin` role only when `IsSiteAdmin` is true, (e) `NotifyStateChanged` clears the cache, (f) the `me.Locale` side effect calls `localeService.SetLocale`. Effort: 45 min. `[core-mutation]`
+
+Estimated Core mutation score after this batch: from 26.61% to ~70%+ (roughly (11 + 28 + 29) / 109 = ~62% once the 60 currently-uncovered mutants become killed, assuming tests are thorough enough to catch most of them).
+
+### P2 — Core reconciliation fixes (close audit-vs-mutation disagreements)
+
+- **Close the three `RunsClient.cs` survivors** in [tests/Lfm.App.Core.Tests/Services/RunsClientTests.cs](../../tests/Lfm.App.Core.Tests/Services/RunsClientTests.cs):
+  - Add `ListAsync_returns_empty_list_when_body_is_null` — currently tests cover empty-array and populated-array but not null.
+  - Add a URL-path assertion to the existing `UpdateAsync_...` test: `handler.LastRequest!.RequestUri!.PathAndQuery.Should().StartWith("/api/runs/")` (already done in `GetAsync_escapes_run_id_in_path`; just extend to Update).
+  - Extend `SignupAsync_posts_to_signup_subpath` with `result.Should().NotBeNull()` so flipping `!response.IsSuccessStatusCode` fails the test.
+  - Effort: 20 min. Would kill the 3 `RunsClient.cs` survivors. `[core-mutation]`
+- **Close the five `JsonStringLocalizer.cs` lifecycle survivors** in [tests/Lfm.App.Core.Tests/i18n/JsonStringLocalizerTests.cs](../../tests/Lfm.App.Core.Tests/i18n/JsonStringLocalizerTests.cs):
+  - Add `Dispose_unsubscribes_from_locale_service` — construct, dispose, raise `OnLocaleChanged`, verify `HandleLocaleChanged` did not run (spy via a test-double `ILocaleService`).
+  - Add `Locale_change_reloads_cache_for_new_locale` — construct, raise `OnLocaleChanged` with a new locale, verify the new locale's JSON was fetched via `FakeLocaleHandler`.
+  - Effort: 25 min. Would kill 4 of 5 survivors (the `L69` guard-statement survivor may need a separate "LoadLocaleAsync is a no-op when already cached" assertion). `[core-mutation]`
+- **Add the `LocaleService` supported-locale set assertion** — one `[Theory]` with `[InlineData("en")] [InlineData("fi")] [InlineData("de")]` asserting that the first two set the locale and the third does not. Effort: 10 min. Kills the one `LocaleService.cs` string-literal survivor. `[core-mutation]`
+
+### P3 — Core (deferred)
+
+- **Re-run Stryker after P1/P2 Core batches** to confirm the score moves as predicted and close any newly-surfaced disagreements. Expected score after P1+P2 Core: ~85%+ covered-code, ~75%+ overall. `[core-mutation]`
+- **Consider wiring a nightly Stryker run** on `tests/Lfm.App.Core.Tests/` now that the infrastructure exists — the 16-second runtime makes it cheap enough to track as a trend. Not a blocker; do this when the covered-code score reaches a level worth defending.
 
 ### How to reproduce
 
+Two Stryker targets exist now — the API baseline and the Core baseline. Run each from the corresponding test-project directory.
+
 ```bash
 # From repo root, after dotnet tool restore
+# API baseline (~28s wall-clock, large surface)
 cd tests/Lfm.Api.Tests
 dotnet stryker --reporter json --reporter cleartext --reporter html
+
+# Core baseline (~16s wall-clock, pinned config via stryker-config.json)
+cd ../Lfm.App.Core.Tests
+dotnet stryker
 ```
 
-Reports land in `tests/Lfm.Api.Tests/StrykerOutput/<timestamp>/reports/`. Open `mutation-report.html` in a browser to see surviving mutants highlighted inline in the source.
+Reports land in `<test-project>/StrykerOutput/<timestamp>/reports/` (gitignored). Open `mutation-report.html` in a browser to see surviving mutants highlighted inline in source.
+
+**`tests/Lfm.App.Tests` is NOT a valid Stryker target** — its ProjectReference chain reaches `app/Lfm.App.csproj` (Blazor WASM SDK) and Stryker will fail with `CS0246: type 'App' not found` during its internal recompile. See [§ App project: Blazor WASM workaround applied](#app-project-blazor-wasm-workaround-applied). The [dotnet extension](../../skills/test-quality-audit/extensions/dotnet.md) now documents this detection as walking the transitive `<ProjectReference>` closure.
 
 For fast PR-scoped runs after making changes:
 
