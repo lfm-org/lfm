@@ -9,7 +9,7 @@ Extensions **augment** the core rubric. They can:
 - Add framework-specific smells (high-confidence and low-confidence).
 - Add framework-specific positive signals to reward.
 - **Carve out** core smells that would produce false positives on idiomatic framework patterns.
-- Name the mutation-testing tool to recommend for that stack.
+- Declare the mutation-testing tool for that stack, with a detection command, run command, install instructions, and a known-unsupported SUT list. The core skill uses this declaration to run mutation testing conditionally in deep mode (see [../SKILL.md § Mutation testing (conditional)](../SKILL.md#mutation-testing-conditional)).
 
 Extensions **never override** core rules. A carve-out suppresses a specific core smell only for the exact pattern it describes. When in doubt, prefer the core rule.
 
@@ -32,7 +32,13 @@ Every extension file must include these sections, in this order:
 3. **Framework-specific low-confidence smells** (`<ext>.LC-N`) — same shape; flagged as warnings that need context.
 4. **Framework-specific positive signals** (`<ext>.POS-N`) — patterns to reward explicitly.
 5. **Carve-outs** — explicit list of core smells suppressed for idiomatic patterns in this stack. Each carve-out references the core code it suppresses and describes the exact pattern.
-6. **Mutation tool recommendation** — the mutation-testing tool appropriate for this stack, with a link.
+6. **Mutation tool** — the mutation-testing tool appropriate for this stack. This section is consumed by the core skill's deep-mode workflow; it must include these subsections in this order:
+   1. **Tool name and link.**
+   2. **Install instructions** — the exact commands a user should run to install the tool. These are printed verbatim in the audit output when the tool is not installed, so that the user can enable mutation testing for a future audit.
+   3. **Detection command** — a cheap, side-effect-free shell command the audit agent runs to check whether the tool is installed. Must exit non-zero when not installed. Example: `dotnet tool list | grep -q <tool-name>`.
+   4. **Run command** — the exact command the audit agent runs when the tool is available, including the recommended reporters for machine-readable output.
+   5. **Known SUT limitations** — a bulleted list of SUT shapes the tool cannot handle, each with: (a) how to detect the shape, (b) the root cause of the incompatibility, and (c) the recommended workaround. The audit agent uses this list to decide whether to skip the mutation run with a documented reason rather than attempting a doomed run. Example: "Blazor WebAssembly SUTs — the Razor source generator does not run inside Stryker's internal Roslyn compiler, so `App` and similar generated types are unresolvable during mutation recompilation. Workaround: extract pure-C# logic to a separate class library and mutate that library instead."
+   6. **Output parser notes** — where the tool writes its JSON/HTML report and which fields the audit agent should extract (overall score, per-file killed/survived/no-coverage, surviving-mutant locations).
 
 ## Naming codes
 
