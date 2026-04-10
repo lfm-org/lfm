@@ -20,5 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shared\Lfm.Contracts\Lfm.Contracts.csproj" />
+    <ProjectReference Include="Lfm.App.Core\Lfm.App.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Lfm.App.Core lives in a nested folder. Keep its files out of the parent
+         project's default globs so they compile exactly once (in Core). -->
+    <Compile Remove="Lfm.App.Core\**" />
+    <Content Remove="Lfm.App.Core\**" />
+    <None Remove="Lfm.App.Core\**" />
   </ItemGroup>
 </Project>
