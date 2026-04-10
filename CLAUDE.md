@@ -1,6 +1,7 @@
 # Repository Guidelines
 
 - `app/` — Blazor WASM SPA → Static Web Apps
+- `app/Lfm.App.Core/` — framework-neutral services, i18n, auth extracted from `app/` so Stryker can mutate them
 - `api/` — Azure Functions backend (.NET 10 isolated)
 - `shared/` — shared models and contracts (C#)
 - `tests/` — xUnit test projects (unit, bUnit, E2E)
@@ -74,7 +75,7 @@ Three lanes with distinct purpose, environment, and file convention:
 
 ### Unit tests
 
-xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers. Commands: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj`. Config: each project's `.csproj`.
+xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers. Commands: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj`. Config: each project's `.csproj`. Mutation testing: Stryker.NET runs against `tests/Lfm.App.Core.Tests/` only — the Blazor WASM project cannot be mutated because Stryker's recompile step does not invoke Razor source generators (see `docs/quality-reviews/2026-04-10-test-quality-audit.md`).
 
 ### Component tests
 
