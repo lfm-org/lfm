@@ -67,12 +67,6 @@ public sealed record LogEntry(
     }
 
     /// <summary>
-    /// Shortcut for asserting action + result on a failure-path audit event.
-    /// </summary>
-    public bool IsAudit(string action, string result) =>
-        IsAudit(action: action, actorId: null, result: result, targetId: null);
-
-    /// <summary>
     /// Shortcut for asserting action + result + detail on a failure-path audit event.
     /// Avoids the awkward two-step ContainSingle(...).Subject.Properties[Detail] chain.
     /// </summary>
