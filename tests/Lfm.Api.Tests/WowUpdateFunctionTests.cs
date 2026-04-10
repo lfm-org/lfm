@@ -124,12 +124,11 @@ public class WowUpdateFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        // Even with partial failure the HTTP response is 200 — failures are in the body
+        // Even with partial failure the HTTP response is 200 — failures are in the body.
+        // Assert against the same WowUpdateResponse instance the stub returned, not pasted literals.
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var body = ok.Value.Should().BeOfType<WowUpdateResponse>().Subject;
-        body.Results.Should().HaveCount(2);
-        body.Results[0].Status.Should().StartWith("failed:");
-        body.Results[1].Status.Should().StartWith("synced (");
+        ok.Value.Should().Be(partialResponse,
+            "the function is a thin pass-through for the sync result; the response body must equal the stub output");
     }
 
     // ---------------------------------------------------------------------------

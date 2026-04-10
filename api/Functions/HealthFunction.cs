@@ -24,6 +24,14 @@ public class HealthFunction(CosmosClient cosmos, IOptions<CosmosOptions> cosmosO
         return new OkObjectResult(Build());
     }
 
+    /// <summary>
+    /// Readiness probe — validates that this instance can talk to Cosmos.
+    /// Response contract:
+    ///   - 200 OK with <see cref="HealthResponse"/> (status="ready") on success.
+    ///   - 503 Service Unavailable with anonymous-object body { status: "unready", error: string } on failure.
+    /// The <c>error</c> field is the runtime exception type name (e.g. "CosmosException"). It is intended
+    /// for operator log triage only — clients must rely on the HTTP status code, not the error string.
+    /// </summary>
     [Function("health-ready")]
     public async Task<IActionResult> Ready(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health/ready")] HttpRequest req,

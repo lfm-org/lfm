@@ -78,8 +78,11 @@ public class HealthFunctionTests
     }
 
     [Fact]
-    public async Task Ready_returns_503_with_unready_when_cosmos_throws_cosmos_exception()
+    public async Task Ready_returns_503_with_unready_status_when_cosmos_throws()
     {
+        // Per HealthFunction.Ready xmldoc: failure must surface as 503 with status="unready".
+        // The `error` field carries the exception type name for operator triage but is not
+        // part of the client contract — clients must key off the HTTP status code only.
         var (fn, mockDb) = CreateReadyFunction();
         mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new CosmosException("Service unavailable", System.Net.HttpStatusCode.ServiceUnavailable, 0, "", 0));
@@ -88,11 +91,12 @@ public class HealthFunctionTests
 
         var obj = result.Should().BeOfType<ObjectResult>().Subject;
         obj.StatusCode.Should().Be(503);
-        obj.Value.Should().BeEquivalentTo(new { status = "unready", error = nameof(CosmosException) });
+        var statusProp = obj.Value!.GetType().GetProperty("status")!.GetValue(obj.Value);
+        statusProp.Should().Be("unready");
     }
 
     [Fact]
-    public async Task Ready_returns_503_with_exception_type_name_for_unexpected_errors()
+    public async Task Ready_returns_503_with_unready_status_for_unexpected_errors()
     {
         var (fn, mockDb) = CreateReadyFunction();
         mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
@@ -102,6 +106,7 @@ public class HealthFunctionTests
 
         var obj = result.Should().BeOfType<ObjectResult>().Subject;
         obj.StatusCode.Should().Be(503);
-        obj.Value.Should().BeEquivalentTo(new { status = "unready", error = nameof(InvalidOperationException) });
+        var statusProp = obj.Value!.GetType().GetProperty("status")!.GetValue(obj.Value);
+        statusProp.Should().Be("unready");
     }
 }

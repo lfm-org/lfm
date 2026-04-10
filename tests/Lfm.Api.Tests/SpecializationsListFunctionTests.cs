@@ -12,26 +12,25 @@ namespace Lfm.Api.Tests;
 
 public class SpecializationsListFunctionTests
 {
-    [Fact]
-    public async Task Returns_specializations_from_repository()
+    private static List<SpecializationDto> RepositoryFixture() => new()
     {
+        new(65, "Holy", 2, "HEALER", "https://render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg"),
+        new(66, "Protection", 2, "TANK", null),
+    };
+
+    [Fact]
+    public async Task Returns_specializations_from_repository_unchanged()
+    {
+        var fixture = RepositoryFixture();
         var repo = new Mock<ISpecializationsRepository>();
-        repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<SpecializationDto>
-            {
-                new(65, "Holy", 2, "HEALER", "https://render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg"),
-                new(66, "Protection", 2, "TANK", null)
-            });
+        repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(fixture);
         var fn = new SpecializationsListFunction(repo.Object);
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var items = ok.Value.Should().BeAssignableTo<IReadOnlyList<SpecializationDto>>().Subject;
-        items.Should().HaveCount(2);
-        items[0].Id.Should().Be(65);
-        items[0].Role.Should().Be("HEALER");
-        items[1].IconUrl.Should().BeNull();
+        ok.Value.Should().BeEquivalentTo(fixture,
+            "the function is a pass-through; the response body must equal exactly what the repository returned");
     }
 
     [Fact]
