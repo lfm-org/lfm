@@ -54,7 +54,8 @@ node_modules/
 .serverless/
 
 # Claude Code project settings and memory
-.claude/
+.claude/*
+!.claude/settings.json
 
 # OpenAI Codes project settings and memory
 .codex/

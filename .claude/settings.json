@@ -78,5 +78,17 @@
             "Write(functions/local.settings.json)",
             "Read(.codex)"
         ]
+    },
+    "hooks": {
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash ./scripts/claude/stop-test-audit.sh"
+                    }
+                ]
+            }
+        ]
     }
 }
