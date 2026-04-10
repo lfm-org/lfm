@@ -67,7 +67,7 @@ internal sealed class FileStringLocalizer : IStringLocalizer
     private const string FallbackLocale = "en";
 
     private static readonly string LocalesDir = Path.Combine(
-        AppContext.BaseDirectory, "..", "..", "..", "..", "..", "app", "wwwroot", "locales");
+        AppContext.BaseDirectory, "locales");
 
     private readonly Dictionary<string, Dictionary<string, string>> _cache = new();
     private string _currentLocale = "en";

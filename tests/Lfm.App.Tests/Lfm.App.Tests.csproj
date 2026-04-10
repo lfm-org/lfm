@@ -19,4 +19,15 @@
   <ItemGroup>
     <ProjectReference Include="..\..\app\Lfm.App.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\app\wwwroot\locales\*.json">
+      <Link>locales\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

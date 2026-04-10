@@ -7,7 +7,7 @@ namespace Lfm.App.Tests;
 public class LocaleParityTests
 {
     private static readonly string LocalesDir = Path.Combine(
-        AppContext.BaseDirectory, "..", "..", "..", "..", "..", "app", "wwwroot", "locales");
+        AppContext.BaseDirectory, "locales");
 
     private static Dictionary<string, string> LoadLocale(string locale)
     {
