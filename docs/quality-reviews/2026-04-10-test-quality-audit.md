@@ -1,10 +1,11 @@
 # Test Quality Audit — `tests/Lfm.Api.Tests` + `tests/Lfm.App.Tests`
 
-**Date:** 2026-04-10
+**Date:** 2026-04-10 (static audit) · 2026-04-10 (Stryker.NET follow-up appended)
 **Mode:** deep
 **Extensions loaded:** `dotnet` (xUnit + Moq + FluentAssertions + bUnit)
 **Scope:** 53 unit-test files, ~239 tests
 **Rubric:** [docs/quality-reference/unit-testing.md](../quality-reference/unit-testing.md) + [.claude/skills/test-quality-audit/extensions/dotnet.md](../../.claude/skills/test-quality-audit/extensions/dotnet.md)
+**Mutation baseline:** Stryker.NET 4.14.1 — see [§ Mutation testing follow-up](#mutation-testing-follow-up-strykernet) at the bottom.
 
 ## Infrastructure verified first
 
@@ -210,4 +211,188 @@ Specification tests with verdict `keep, info` are omitted to stay signal-dense. 
 
 - **Consolidate the nine `Run_method_has_RequireAuth_attribute` reflection tests** into a single assembly-scanning `[Theory]` in a new `FunctionAuthorizationContractTests.cs`, with an explicit allow-list for anonymous endpoints (`battlenet-login`, `health`, `specializations-list`, `instances-list`). Effort: 45 min. Net: removes 8 tests, adds 1 ratchet test that catches unprotected new endpoints automatically.
 - **Add the missing mixed-explicit-vs-default edge case** in [GuildPermissionsTests.cs (L189)](../../tests/Lfm.Api.Tests/GuildPermissionsTests.cs#L189). Effort: 10 min.
-- **Run Stryker.NET** against both test projects for a mutation-score baseline; prioritize surviving-mutant fixes in files flagged `adequate` or `weak`. Effort: ~2h wall-clock (mostly Stryker runtime).
+- **Run Stryker.NET** against both test projects for a mutation-score baseline; prioritize surviving-mutant fixes in files flagged `adequate` or `weak`. Effort: ~2h wall-clock (mostly Stryker runtime). **Done — see [§ Mutation testing follow-up](#mutation-testing-follow-up-strykernet) below.**
+
+---
+
+## Mutation testing follow-up (Stryker.NET)
+
+**Date added:** 2026-04-10 (same day as static audit)
+**Tool:** Stryker.NET 4.14.1 (installed via [`.config/dotnet-tools.json`](../../.config/dotnet-tools.json))
+**API run duration:** 28 seconds
+**App run:** **failed — known Blazor WASM limitation** (see [§ App project limitation](#app-project-limitation-blazor-wasm))
+
+### What mutation testing adds to the static audit
+
+The static audit grades **test quality** — whether each existing test is derived from a stated requirement or merely echoes current implementation. It cannot answer:
+
+- Are there assertions the tests *execute* but don't *verify*?
+- Are there files with no tests at all?
+- Are there boundary cases the tests don't cover?
+
+Stryker answers all three mechanically: it makes one small change to the production code at a time (a "mutant"), re-runs the whole test suite, and records whether any test failed. A surviving mutant means the change went unnoticed — either the tests didn't execute that code, or they executed it without verifying the behavior that changed.
+
+Mutation score = `(Killed + Timeout) / (Killed + Survived + Timeout + NoCoverage)`.
+
+### API baseline score: 38.60%
+
+| Category | Count | Meaning |
+|---|---|---|
+| **Killed** | 441 | ✅ Tests noticed the mutation |
+| **Survived** | 189 | ❌ Tests executed the code but didn't verify the behavior |
+| **NoCoverage** | 514 | ❌ Tests never executed this code at all |
+| Timeout | 1 | Mutation caused the suite to hang; counted as killed |
+| Ignored | 178 | Syntactic no-ops (e.g. block removal in try/catch); excluded from the score |
+| CompileError | 240 | Mutation produced invalid code; excluded from the score |
+
+**Reading this score:** Industry benchmarks for mutation testing put 80%+ at "strong", 60–80% at "adequate", below 60% at "weak". 38.60% for the API project places the suite in "weak" — but the breakdown tells a more specific story:
+
+- **189 survivors (16.5%)** — the tests reached this code but didn't check what mattered. These are the "mutation surfaced a missing assertion" findings. Many correspond to gaps the static audit already flagged.
+- **514 no-coverage (44.9%)** — nearly half the mutations were in code no test ever touches. These are entire files or methods the audit couldn't see because the audit only examines files that have tests.
+
+### The biggest finding: files entirely without tests
+
+Stryker found **12 production files whose code is never executed by any unit test**. The static audit was blind to this class of gap because it only rates existing tests, not production code coverage.
+
+| File | Mutants missed | Notes |
+|---|---|---|
+| [api/Program.cs](../../api/Program.cs) | 74 | DI / startup wiring. Typically not unit-tested — acceptable. |
+| [api/Services/ReferenceSync.cs](../../api/Services/ReferenceSync.cs) | 73 | Reference-data sync worker. **Real gap.** |
+| [api/Middleware/CorsMiddleware.cs](../../api/Middleware/CorsMiddleware.cs) | 46 | CORS policy enforcement. **Real gap, security-adjacent.** |
+| [api/Services/SiteAdminService.cs](../../api/Services/SiteAdminService.cs) | 22 | Admin elevation lookup. **Real gap, security-adjacent.** |
+| [api/Middleware/AuthPolicyMiddleware.cs](../../api/Middleware/AuthPolicyMiddleware.cs) | 22 | Enforces `[RequireAuth]`. **Real gap, the backbone of every other auth test.** |
+| [api/Middleware/AuthMiddleware.cs](../../api/Middleware/AuthMiddleware.cs) | 16 | Session cookie → principal resolution. **Real gap, security-adjacent.** |
+| [api/Repositories/RaidersRepository.cs](../../api/Repositories/RaidersRepository.cs) | 15 | Cosmos repository. Carve-out: repositories are process boundaries. |
+| [api/Middleware/AuditMiddleware.cs](../../api/Middleware/AuditMiddleware.cs) | 14 | Audit event emission at middleware layer. **Real gap.** |
+| [api/Repositories/SpecializationsRepository.cs](../../api/Repositories/SpecializationsRepository.cs) | 8 | Cosmos repository. Carve-out. |
+| [api/Repositories/InstancesRepository.cs](../../api/Repositories/InstancesRepository.cs) | 8 | Cosmos repository. Carve-out. |
+| [api/Repositories/GuildRepository.cs](../../api/Repositories/GuildRepository.cs) | 6 | Cosmos repository. Carve-out. |
+| [api/Functions/CorsPreflightFunction.cs](../../api/Functions/CorsPreflightFunction.cs) | 1 | Trivial preflight responder. |
+
+**The significant finding:** the entire **authentication pipeline** (`AuthMiddleware` → `AuthPolicyMiddleware` → `AuditMiddleware`) has zero direct unit test coverage. The ~9 `Run_method_has_RequireAuth_attribute` reflection tests the audit flagged are the only thing standing between your functions and an accidentally-unprotected endpoint — and they only check that the attribute is present, not that the middleware actually enforces it. Combined with [api/Services/SiteAdminService.cs](../../api/Services/SiteAdminService.cs) also being uncovered, the "is this user actually allowed to do this" code path has no behavioral tests at all.
+
+Repositories that wrap Cosmos calls are arguably out-of-scope per the dotnet extension's carve-outs (process boundaries). But [api/Services/ReferenceSync.cs](../../api/Services/ReferenceSync.cs) and [api/Middleware/CorsMiddleware.cs](../../api/Middleware/CorsMiddleware.cs) are in-scope and untested.
+
+### Audit vs. mutation: concordance and discordance
+
+The most useful part of running Stryker after a static audit is seeing where the two methods agree and where they disagree.
+
+#### Agreement — static audit correctly called these out
+
+These files had test-quality concerns flagged in the audit *and* have matching surviving mutants. Mutation testing confirms the gaps.
+
+| File | Audit verdict | Stryker survivors | What Stryker confirms |
+|---|---|---|---|
+| [api/Functions/RunsSignupFunction.cs](../../api/Functions/RunsSignupFunction.cs) | `adequate` — `HC-6`/`dotnet.HC-1` on retry-count pinning | **25 survivors** | The audit was right. 5 survivors are in the retry loop itself (L141, L150, L154, L177, L194 — retry index arithmetic, existingIndex comparisons). The retry-count pinning mentioned in the audit protects only the count, not the behavior under retry. 10 more survivors are in permission checks (`CreatorBattleNetId`, `CreatorGuildId` comparisons) the tests don't cover at the boundary. |
+| [api/Functions/GuildFunction.cs](../../api/Functions/GuildFunction.cs) | `strong` (5/5 spec) but included ambiguous `dotnet.HC-6` attribute test | **11 survivors** | Audit missed this. Survivors are in the guild-update merge logic — `Setup is null` conditionals (L99), null-coalescing on `Slogan` (L119), and `RankPermissions` mapping (L111). The "happy path update" test verifies the success case but not the null-branch mergers. |
+| [api/Services/GuildPermissions.cs](../../api/Services/GuildPermissions.cs) | `adequate` — noted `LC-6` edge-case gap at L189 | **13 survivors + 25 no-coverage** | Audit found one edge-case gap. Stryker found 13. The most important ones: the stale-roster threshold at three sites (L71, L126, L180) — tests use `FromHours(2)` and `FromHours(0)` but not the exact 1-hour boundary, so `>` vs `>=` can be flipped without any test failing. Also `FirstOrDefault() → First()` at L99 and L153 means there's no test for "rank has no matching permission entry", so the null-coalesce default path is uncovered. |
+| [api/Functions/BattleNetCharactersFunction.cs](../../api/Functions/BattleNetCharactersFunction.cs) | `strong` (3/3 spec) but audit noted "no negative test for expired cooldown" | **13 survivors** | Audit was right about the gap. L71 boundary `elapsed.TotalMilliseconds <= AccountCharsCooldownMs` flipped — no test. L94–L103 null-coalesce mutations on the Blizzard response-mapping path — no test for partial/missing character data. |
+
+#### Disagreement — audit too lenient, Stryker surfaced real gaps
+
+These files were rated `strong` by the static audit but have meaningful surviving mutants. This is the most important category: it's where mutation testing *catches things the audit cannot*.
+
+| File | Audit verdict | Stryker survivors | What mutation testing found that static audit missed |
+|---|---|---|---|
+| [api/Functions/RaiderCleanupFunction.cs](../../api/Functions/RaiderCleanupFunction.cs) | `strong` (5/5 spec) | **14 survivors** | All 14 are in the logging/counting summary branch: `removed++`, `errors++`, the `$", {errors} error(s)"` conditional suffix at L59, and the final log message. The audit said "excellent ordering tests" — and it was right about the ordering — but the tests never assert on the summary log output at all. If the counters were wrong or the summary suffix logic broke, no test would notice. |
+| [api/Functions/BattleNetCallbackFunction.cs](../../api/Functions/BattleNetCallbackFunction.cs) | `strong` (7/7 spec) | **17 survivors** | Heavy survivor cluster in cookie setup — `CookieOptions` object initializer (L118), `HttpOnly` / `Secure` / `SameSite` boolean mutations (L120, L121, L154, L155). Tests verify "a Set-Cookie header is emitted" but not the security flags on it. Also survivors in raider upsert (L93 conditional, L100 arithmetic on TTL 180*86400). |
+| [api/Middleware/RateLimitMiddleware.cs](../../api/Middleware/RateLimitMiddleware.cs) | `strong` (7/7 spec) | **16 survivors** | Forwarded-header parsing (L98–L99) is entirely uncovered — tests use direct RemoteIpAddress, never a proxy-forwarded scenario. The `count % 500` logging throttle at L67 and L67 arithmetic mutations survived (no test exercises the 500-request cadence). L57's `isAuth && WriteMethods.Contains` → `isAuth \|\| WriteMethods.Contains` mutation also survived. |
+| [api/Services/BlizzardOAuthClient.cs](../../api/Services/BlizzardOAuthClient.cs) | `strong` (8/8 spec) | **5 survivors** | Real gaps despite excellent-looking tests: L113 `parts.Length <= 2` boundary flip survived (no test for exactly-2-parts payload). L120 `IsNullOrEmpty(state) \|\| IsNullOrEmpty(codeVerifier)` → `&&` flipped (no test for "one is empty, the other isn't"). L125 block removal in the catch of `UnprotectLoginState` — the catch body is never triggered by any test. |
+| [api/Functions/BattleNetLoginFunction.cs](../../api/Functions/BattleNetLoginFunction.cs) | `strong` (7/7 spec) | **5 survivors** | Same cookie-flag pattern as `BattleNetCallbackFunction`: `CookieOptions` initializer, `HttpOnly`/`Secure` booleans, cookie name string. Tests cover PKCE and state generation (which are great) but not the cookie configuration. |
+| [api/Auth/DataProtectionSessionCipher.cs](../../api/Auth/DataProtectionSessionCipher.cs) | `strong` (7/7 spec) | **2 survivors** | L8 `Purpose = "Lfm.Session.v1"` → `""` survived. This is subtle and worth fixing: the purpose string is a DataProtection key isolator. If two services share a provider but use different purposes, tokens from one can't decrypt the other. With this mutation undetected, someone could change the purpose (or accidentally collide with another service) without any test noticing. L25 block removal in the catch of `Unprotect` — the tamper tests exercise *input-validation* failures, but the catch block itself is shaped around a specific exception path that the tests may not exercise fully. |
+| [api/Functions/RunsDetailFunction.cs](../../api/Functions/RunsDetailFunction.cs) | `strong` (3/3 spec) | **4 survivors** | L46 logical mutation on `GuildId is not null OR CreatorGuildId is not null` (permission guard), L98 equality flip on `RaiderBattleNetId != currentBattleNetId` (the `IsCurrentUser` sanitization). The sanitization is *tested* but the flipped-equality mutant survived — meaning the test's assertion on `IsCurrentUser=true` for the current user passes but wouldn't fail if the logic incorrectly marked another user as current. |
+| [api/Helpers/RunEditability.cs](../../api/Helpers/RunEditability.cs) | `strong` (7/7 spec, exhaustive boundaries) | **1 survivor** | L18 `start <= now` → `start < now`. The audit called this file "exhaustively covers boundaries" — and it does for `signupCloseTime`. The test at L53 (`Returns_true_when_signup_close_time_equals_now`) covers the equality case for close-time, but there's no equivalent for `startTime`. When `startTime == now`, the original returns true and the mutant returns false — undetected. |
+| [api/Functions/RunsCreateFunction.cs](../../api/Functions/RunsCreateFunction.cs) | `strong` (4/5 spec) | **11 survivors** | TTL arithmetic at L111–L112 (`startTimeMs - RunTtlAfterStartMs`, `Max → Min`, `expiryMs - createdAtMs) * 1000`) all flipped without test failures. The creation test verifies "it creates" but not the TTL math. Also null-coalesce defaults at L122–L129 for optional fields. |
+
+#### Concordance — where static audit and mutation testing agree it's fine
+
+These files rated `strong` by audit and have zero surviving mutants (where they were covered at all):
+
+- [api/Functions/RunsDeleteFunction.cs](../../api/Functions/RunsDeleteFunction.cs) — 19 killed, 4 survived (2 are string mutations on error paths)
+- [api/Functions/RunsUpdateFunction.cs](../../api/Functions/RunsUpdateFunction.cs) — very few mutations (most excluded as compile errors) but what ran was clean
+- [api/Functions/MeUpdateFunction.cs](../../api/Functions/MeUpdateFunction.cs) — 6 killed, 0 survived
+- [api/Functions/HealthFunction.cs](../../api/Functions/HealthFunction.cs) — 5 killed, 0 survived, 1 no-coverage (`Live()` has no test — see [§ Concrete example](#concrete-example-healthfunction))
+
+### Concrete example: HealthFunction
+
+Before the baseline run, I ran Stryker scoped to just [api/Functions/HealthFunction.cs](../../api/Functions/HealthFunction.cs) to demonstrate the method. The 9-mutation run found one gap the static audit completely missed:
+
+**The `Live()` method — the `/api/health` liveness probe — has zero test coverage.** The existing [`Health_returns_ok_status_and_timestamp`](../../tests/Lfm.Api.Tests/HealthFunctionTests.cs#L18) test calls the `HealthFunction.Build()` static helper directly; it never invokes `Live()` itself, so the `[HttpTrigger]` attribute, the route `/health`, and the `OkObjectResult` wrapping are all unverified. This is the endpoint App Service Health Check pings to decide whether to recycle the instance in production.
+
+The static audit rated `HealthFunctionTests.cs` as `adequate` based on the tests it could see. It could not see that one of those tests called the wrong method.
+
+**Fix:** add a test that invokes `Live()` directly against a constructed `HealthFunction` instance. See the scoped run output in the conversation for the recommended snippet. Expected score after fix: 100% on `HealthFunction.cs`.
+
+### App project limitation (Blazor WASM)
+
+Stryker.NET 4.14.1 **cannot mutate [app/](../../app/)**. Every attempt failed with:
+
+```
+WRN An unidentified mutation in app/Program.cs resulted in a compile error
+    CS8805: Program using top-level statements must be an executable.
+WRN An unidentified mutation in app/Program.cs resulted in a compile error
+    CS0246: The type or namespace name 'App' could not be found
+FTL Stryker.NET could not compile the project after mutation.
+```
+
+The root cause: Blazor WASM's `Program.cs` references the `App` type, which is generated at build time by the Razor source generator from `App.razor`. Stryker runs its own Roslyn compilation step for each mutation, and that step does not invoke the Razor source generators, so `App` is unresolvable. `--mutate` flags with positive or negative patterns do not help — Stryker still compiles the whole project as a baseline.
+
+**Workarounds attempted (none worked):**
+- `--mutate "!**/Program.cs"` — exclusion pattern did not prevent Stryker's compile step from processing `Program.cs`.
+- `--mutate "**/Services/**/*.cs" --mutate "**/i18n/**/*.cs"` — positive scoping also did not skip the project-level compile.
+
+**Practical options going forward:**
+1. **Accept the limitation.** Static audit (already completed) remains the quality signal for [app/](../../app/). This is the pragmatic choice.
+2. **Extract pure-C# logic to a separate library** (e.g. `Lfm.App.Core`) that Stryker can mutate independently. Services like `RunsClient`, `ThemeService`, `LocaleService`, `JsonStringLocalizer` are prime candidates — they have no Razor dependencies. This is a project-structure change, not a test change; budget a half-day.
+3. **Wait for Stryker.NET Blazor support.** Tracking issue exists but no ETA. Not actionable.
+
+The static audit already rates App-side test quality (~80 tests) as `strong` overall with the specific weak spots called out in the main report. The mutation score would add precision but is not essential for the weak spots that are already identified.
+
+### New remediation items surfaced by mutation testing
+
+Adding to the worklist above (items here are **in addition to** the P0–P3 already listed):
+
+#### P1 — new findings from mutation testing
+
+- **Add unit tests for [api/Middleware/AuthPolicyMiddleware.cs](../../api/Middleware/AuthPolicyMiddleware.cs)** and [api/Middleware/AuthMiddleware.cs](../../api/Middleware/AuthMiddleware.cs). The entire request-authorization pipeline is untested at the middleware layer. Current tests only verify that function methods *carry* the `[RequireAuth]` attribute via reflection — no test verifies that the attribute is actually *enforced*. Budget: 2h.
+- **Add a `Live_returns_ok` test to [tests/Lfm.Api.Tests/HealthFunctionTests.cs](../../tests/Lfm.Api.Tests/HealthFunctionTests.cs)** that invokes the `Live()` method directly. Effort: 5 min. (Raises `HealthFunction.cs` mutation score from 83% → 100%.)
+- **Add cookie-flag assertions to [tests/Lfm.Api.Tests/BattleNetCallbackFunctionTests.cs](../../tests/Lfm.Api.Tests/BattleNetCallbackFunctionTests.cs) and [BattleNetLoginFunctionTests.cs](../../tests/Lfm.Api.Tests/BattleNetLoginFunctionTests.cs).** Currently tests check "a Set-Cookie exists" — add assertions that verify `HttpOnly`, `Secure`, `SameSite=Lax`, and the cookie name/path. This kills ~10 surviving mutants across the two files and locks down a real security surface. Effort: 30 min.
+- **Add tests for [api/Services/ReferenceSync.cs](../../api/Services/ReferenceSync.cs)** — the background sync service. Currently 73 mutations, 0 coverage. Budget: 1.5h.
+- **Add boundary test for `startTime == now`** in [tests/Lfm.Api.Tests/RunEditabilityTests.cs](../../tests/Lfm.Api.Tests/RunEditabilityTests.cs) — mirrors the existing `signup_close_time_equals_now` test. Effort: 5 min.
+- **Add a `Purpose` round-trip test** for [api/Auth/DataProtectionSessionCipher.cs](../../api/Auth/DataProtectionSessionCipher.cs) — verify that two cipher instances created from the same provider but with different `Purpose` strings cannot decrypt each other's tokens. Effort: 10 min.
+
+#### P2 — new findings from mutation testing
+
+- **Add tests for [api/Services/SiteAdminService.cs](../../api/Services/SiteAdminService.cs)** (22 mutations, 0 coverage). Admin lookup is security-adjacent. Budget: 45 min.
+- **Add tests for [api/Middleware/CorsMiddleware.cs](../../api/Middleware/CorsMiddleware.cs)** (46 mutations, 0 coverage) and [api/Middleware/AuditMiddleware.cs](../../api/Middleware/AuditMiddleware.cs) (14 mutations, 0 coverage). Budget: 1.5h combined.
+- **Add forwarded-header parsing tests to [tests/Lfm.Api.Tests/Middleware/RateLimitMiddlewareTests.cs](../../tests/Lfm.Api.Tests/Middleware/RateLimitMiddlewareTests.cs)** — cover the `X-Forwarded-For` path at [api/Middleware/RateLimitMiddleware.cs#L98-L99](../../api/Middleware/RateLimitMiddleware.cs#L98). Effort: 20 min.
+- **Add stale-roster boundary tests** at the 1-hour threshold (`fetchedAt == UtcNow - FromHours(1)`) in [tests/Lfm.Api.Tests/GuildPermissionsTests.cs](../../tests/Lfm.Api.Tests/GuildPermissionsTests.cs). Three equivalent boundaries at [api/Services/GuildPermissions.cs](../../api/Services/GuildPermissions.cs) L71, L126, L180. Effort: 15 min.
+- **Add "rank with no explicit permission entry" tests** for [api/Services/GuildPermissions.cs](../../api/Services/GuildPermissions.cs) — covers the `FirstOrDefault → First` mutants at L99 and L153. Effort: 15 min.
+- **Add summary log assertions to [tests/Lfm.Api.Tests/RaiderCleanupFunctionTests.cs](../../tests/Lfm.Api.Tests/RaiderCleanupFunctionTests.cs)** — verify the `removed={N}, errors={M}` counters and the conditional error-suffix appear in a captured log entry via `TestLogger<T>`. Kills all 14 surviving mutants in that file. Effort: 30 min.
+
+#### P3 — new findings from mutation testing
+
+- **Extract pure-C# logic from [app/](../../app/) into `Lfm.App.Core` library** so Stryker can mutate app-side code. Only worth doing if app-side quality signal becomes important. Effort: ~4h.
+- **Re-run Stryker after each P1/P2 batch** to confirm targeted mutants are now killed. Expected API score after the P1 fixes: ~50–55%. After P1+P2: ~65–70%. Getting past 80% would require tackling the uncovered repositories and middleware pipeline more aggressively.
+
+### How to reproduce
+
+```bash
+# From repo root, after dotnet tool restore
+cd tests/Lfm.Api.Tests
+dotnet stryker --reporter json --reporter cleartext --reporter html
+```
+
+Reports land in `tests/Lfm.Api.Tests/StrykerOutput/<timestamp>/reports/`. Open `mutation-report.html` in a browser to see surviving mutants highlighted inline in the source.
+
+For fast PR-scoped runs after making changes:
+
+```bash
+dotnet stryker --since main --reporter html
+```
+
+For a single-file targeted run (much faster — seconds, not minutes):
+
+```bash
+dotnet stryker --mutate "**/<FileName>.cs" --reporter cleartext
+```
