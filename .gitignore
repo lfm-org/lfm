@@ -144,3 +144,6 @@ publish/
 # .NET local settings (secrets)
 api/local.settings.json
 app/wwwroot/appsettings.Development.json
+
+# Chrome local installation
+.chrome/
