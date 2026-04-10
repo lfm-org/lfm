@@ -97,8 +97,22 @@ public class RunsClientTests
 
         handler.LastRequest!.RequestUri!.PathAndQuery.Should()
             .StartWith("/api/runs/")
+            .And.Contain("%2F")
             .And.NotContain(" ")
             .And.NotContain("?weird");
+    }
+
+    [Fact]
+    public async Task GetAsync_throws_on_404_not_found()
+    {
+        // Pin current contract: GetFromJsonAsync<T> throws HttpRequestException on
+        // non-2xx responses. If a future refactor wants to swallow 404s and return
+        // null, this test must be updated deliberately.
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
+
+        var act = () => client.GetAsync("missing-run", CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
     }
 
     [Fact]
