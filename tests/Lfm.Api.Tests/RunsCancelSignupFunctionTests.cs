@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -86,10 +85,11 @@ public class RunsCancelSignupFunctionTests
 
     private static RunsCancelSignupFunction MakeFunction(
         Mock<IRunsRepository> runsRepo,
-        Mock<ILogger<RunsCancelSignupFunction>>? loggerMock = null)
+        TestLogger<RunsCancelSignupFunction>? logger = null)
     {
-        var logger = (loggerMock ?? new Mock<ILogger<RunsCancelSignupFunction>>()).Object;
-        return new RunsCancelSignupFunction(runsRepo.Object, logger);
+        return new RunsCancelSignupFunction(
+            runsRepo.Object,
+            logger ?? new TestLogger<RunsCancelSignupFunction>());
     }
 
     // ------------------------------------------------------------------
@@ -180,23 +180,16 @@ public class RunsCancelSignupFunctionTests
         runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRun);
 
-        var loggerMock = new Mock<ILogger<RunsCancelSignupFunction>>();
-        var fn = MakeFunction(runsRepo, loggerMock);
+        var logger = new TestLogger<RunsCancelSignupFunction>();
+        var fn = MakeFunction(runsRepo, logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("signup.cancel") &&
-                    v.ToString()!.Contains("bnet-user") &&
-                    v.ToString()!.Contains("success")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "signup.cancel",
+            actorId: "bnet-user",
+            result: "success"),
             "success path must emit a signup.cancel audit event with the battleNetId and result");
     }
 }

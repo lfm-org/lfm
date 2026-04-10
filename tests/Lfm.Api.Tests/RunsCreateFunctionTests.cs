@@ -4,7 +4,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -53,10 +52,12 @@ public class RunsCreateFunctionTests
     private static RunsCreateFunction MakeFunction(
         Mock<IRunsRepository> repo,
         Mock<IGuildPermissions> permissions,
-        Mock<ILogger<RunsCreateFunction>>? loggerMock = null)
+        TestLogger<RunsCreateFunction>? logger = null)
     {
-        var logger = (loggerMock ?? new Mock<ILogger<RunsCreateFunction>>()).Object;
-        return new RunsCreateFunction(repo.Object, permissions.Object, logger);
+        return new RunsCreateFunction(
+            repo.Object,
+            permissions.Object,
+            logger ?? new TestLogger<RunsCreateFunction>());
     }
 
     private static RunDocument MakeRunDoc(string id = "run-new") =>
@@ -169,8 +170,8 @@ public class RunsCreateFunctionTests
         permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var loggerMock = new Mock<ILogger<RunsCreateFunction>>();
-        var fn = MakeFunction(repo, permissions, loggerMock);
+        var logger = new TestLogger<RunsCreateFunction>();
+        var fn = MakeFunction(repo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -180,18 +181,10 @@ public class RunsCreateFunctionTests
 
         repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("run.create") &&
-                    v.ToString()!.Contains("failure") &&
-                    v.ToString()!.Contains("guild rank denied")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
-            "denied guild run creation must emit a failure audit event");
+        var entry = logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("run.create", null, "failure"),
+            "denied guild run creation must emit a failure audit event").Subject;
+        entry.Properties[AuditProperties.Detail].Should().Be("guild rank denied");
     }
 
     // ------------------------------------------------------------------
@@ -216,7 +209,7 @@ public class RunsCreateFunctionTests
     {
         var principal = MakePrincipal(battleNetId: "bnet-admin", guildId: "12345");
         var created = MakeRunDoc("run-new");
-        var loggerMock = new Mock<ILogger<RunsCreateFunction>>();
+        var logger = new TestLogger<RunsCreateFunction>();
 
         var requestBody = new
         {
@@ -237,22 +230,15 @@ public class RunsCreateFunctionTests
         permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var fn = MakeFunction(repo, permissions, loggerMock);
+        var fn = MakeFunction(repo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("run.create") &&
-                    v.ToString()!.Contains("bnet-admin") &&
-                    v.ToString()!.Contains("success")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "run.create",
+            actorId: "bnet-admin",
+            result: "success"),
             "success path must emit a run.create audit event with the battleNetId and result");
     }
 }

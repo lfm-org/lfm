@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -41,10 +40,12 @@ public class RunsDeleteFunctionTests
     private static RunsDeleteFunction MakeFunction(
         Mock<IRunsRepository> repo,
         Mock<IGuildPermissions> permissions,
-        Mock<ILogger<RunsDeleteFunction>>? loggerMock = null)
+        TestLogger<RunsDeleteFunction>? logger = null)
     {
-        var logger = (loggerMock ?? new Mock<ILogger<RunsDeleteFunction>>()).Object;
-        return new RunsDeleteFunction(repo.Object, permissions.Object, logger);
+        return new RunsDeleteFunction(
+            repo.Object,
+            permissions.Object,
+            logger ?? new TestLogger<RunsDeleteFunction>());
     }
 
     private static RunDocument MakeRunDoc(
@@ -121,8 +122,8 @@ public class RunsDeleteFunctionTests
         permissions.Setup(p => p.CanDeleteGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var loggerMock = new Mock<ILogger<RunsDeleteFunction>>();
-        var fn = MakeFunction(repo, permissions, loggerMock);
+        var logger = new TestLogger<RunsDeleteFunction>();
+        var fn = MakeFunction(repo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
@@ -133,18 +134,10 @@ public class RunsDeleteFunctionTests
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("run.delete") &&
-                    v.ToString()!.Contains("failure") &&
-                    v.ToString()!.Contains("guild rank denied")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
-            "denied guild run deletion must emit a failure audit event");
+        var entry = logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("run.delete", null, "failure"),
+            "denied guild run deletion must emit a failure audit event").Subject;
+        entry.Properties[AuditProperties.Detail].Should().Be("guild rank denied");
     }
 
     // ------------------------------------------------------------------
@@ -182,7 +175,7 @@ public class RunsDeleteFunctionTests
     {
         var principal = MakePrincipal(battleNetId: "bnet-creator");
         var existing = MakeRunDoc(creatorBattleNetId: "bnet-creator");
-        var loggerMock = new Mock<ILogger<RunsDeleteFunction>>();
+        var logger = new TestLogger<RunsDeleteFunction>();
 
         var repo = new Mock<IRunsRepository>();
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
@@ -192,23 +185,16 @@ public class RunsDeleteFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = MakeFunction(repo, permissions, loggerMock);
+        var fn = MakeFunction(repo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
         await fn.Run(req, "run-1", ctx, CancellationToken.None);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("run.delete") &&
-                    v.ToString()!.Contains("bnet-creator") &&
-                    v.ToString()!.Contains("success")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "run.delete",
+            actorId: "bnet-creator",
+            result: "success"),
             "success path must emit a run.delete audit event with the battleNetId and result");
     }
 }

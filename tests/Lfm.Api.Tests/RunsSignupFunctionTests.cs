@@ -4,7 +4,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -54,10 +53,13 @@ public class RunsSignupFunctionTests
         Mock<IRunsRepository> runsRepo,
         Mock<IRaidersRepository> raidersRepo,
         Mock<IGuildPermissions> permissions,
-        Mock<ILogger<RunsSignupFunction>>? loggerMock = null)
+        TestLogger<RunsSignupFunction>? logger = null)
     {
-        var logger = (loggerMock ?? new Mock<ILogger<RunsSignupFunction>>()).Object;
-        return new RunsSignupFunction(runsRepo.Object, raidersRepo.Object, permissions.Object, logger);
+        return new RunsSignupFunction(
+            runsRepo.Object,
+            raidersRepo.Object,
+            permissions.Object,
+            logger ?? new TestLogger<RunsSignupFunction>());
     }
 
     private static RunDocument MakeRunDoc(
@@ -217,8 +219,8 @@ public class RunsSignupFunctionTests
         permissions.Setup(p => p.CanSignupGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var logger = new TestLogger<RunsSignupFunction>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
@@ -229,18 +231,10 @@ public class RunsSignupFunctionTests
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("signup.create") &&
-                    v.ToString()!.Contains("failure") &&
-                    v.ToString()!.Contains("guild rank denied")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
-            "denied guild signup must emit a failure audit event");
+        var entry = logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("signup.create", null, "failure"),
+            "denied guild signup must emit a failure audit event").Subject;
+        entry.Properties[AuditProperties.Detail].Should().Be("guild rank denied");
     }
 
     // ------------------------------------------------------------------
@@ -308,23 +302,16 @@ public class RunsSignupFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var logger = new TestLogger<RunsSignupFunction>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("signup.create") &&
-                    v.ToString()!.Contains("bnet-user") &&
-                    v.ToString()!.Contains("success")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "signup.create",
+            actorId: "bnet-user",
+            result: "success"),
             "success path must emit a signup.create audit event with the battleNetId and result");
     }
 
@@ -428,8 +415,8 @@ public class RunsSignupFunctionTests
             .ReturnsAsync(raider);
 
         var permissions = new Mock<IGuildPermissions>();
-        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var logger = new TestLogger<RunsSignupFunction>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
@@ -464,8 +451,8 @@ public class RunsSignupFunctionTests
             .ReturnsAsync(raider);
 
         var permissions = new Mock<IGuildPermissions>();
-        var loggerMock = new Mock<ILogger<RunsSignupFunction>>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, loggerMock);
+        var logger = new TestLogger<RunsSignupFunction>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };

@@ -4,7 +4,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -80,10 +79,13 @@ public class RunsUpdateFunctionTests
         Mock<IRunsRepository> repo,
         Mock<IGuildPermissions> permissions,
         Mock<IInstancesRepository> instancesRepo,
-        Mock<ILogger<RunsUpdateFunction>>? loggerMock = null)
+        TestLogger<RunsUpdateFunction>? logger = null)
     {
-        var logger = (loggerMock ?? new Mock<ILogger<RunsUpdateFunction>>()).Object;
-        return new RunsUpdateFunction(repo.Object, permissions.Object, instancesRepo.Object, logger);
+        return new RunsUpdateFunction(
+            repo.Object,
+            permissions.Object,
+            instancesRepo.Object,
+            logger ?? new TestLogger<RunsUpdateFunction>());
     }
 
     private static IReadOnlyList<InstanceDto> MakeInstances() =>
@@ -173,9 +175,9 @@ public class RunsUpdateFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
         var instancesRepo = new Mock<IInstancesRepository>();
-        var loggerMock = new Mock<ILogger<RunsUpdateFunction>>();
+        var logger = new TestLogger<RunsUpdateFunction>();
 
-        var fn = MakeFunction(repo, permissions, instancesRepo, loggerMock);
+        var fn = MakeFunction(repo, permissions, instancesRepo, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
@@ -185,18 +187,10 @@ public class RunsUpdateFunctionTests
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("run.update") &&
-                    v.ToString()!.Contains("failure") &&
-                    v.ToString()!.Contains("not creator")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
-            "denied run update must emit a failure audit event");
+        var entry = logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("run.update", null, "failure"),
+            "denied run update must emit a failure audit event").Subject;
+        entry.Properties[AuditProperties.Detail].Should().Be("not creator");
     }
 
     // ------------------------------------------------------------------
@@ -253,7 +247,7 @@ public class RunsUpdateFunctionTests
         var principal = MakePrincipal(battleNetId: "bnet-creator");
         var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
         var updatedDoc = existing with { Description = "Updated description" };
-        var loggerMock = new Mock<ILogger<RunsUpdateFunction>>();
+        var logger = new TestLogger<RunsUpdateFunction>();
 
         var requestBody = new { description = "Updated description" };
 
@@ -268,22 +262,15 @@ public class RunsUpdateFunctionTests
         instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeInstances());
 
-        var fn = MakeFunction(repo, permissions, instancesRepo, loggerMock);
+        var fn = MakeFunction(repo, permissions, instancesRepo, logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
 
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("run.update") &&
-                    v.ToString()!.Contains("bnet-creator") &&
-                    v.ToString()!.Contains("success")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "run.update",
+            actorId: "bnet-creator",
+            result: "success"),
             "success path must emit a run.update audit event with the battleNetId and result");
     }
 }
