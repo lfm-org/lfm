@@ -23,11 +23,11 @@ public class AuditLogTests
         logger.Entries.Should().ContainSingle();
         var entry = logger.Entries[0];
         entry.Level.Should().Be(LogLevel.Information);
-        entry.Properties["AuditAction"].Should().Be("run.create");
-        entry.Properties["AuditActorId"].Should().Be("123456789");
-        entry.Properties["AuditTargetId"].Should().Be("run-abc");
-        entry.Properties["AuditResult"].Should().Be("success");
-        entry.Properties["AuditDetail"].Should().Be("-");
+        entry.Properties[AuditProperties.Action].Should().Be("run.create");
+        entry.Properties[AuditProperties.ActorId].Should().Be("123456789");
+        entry.Properties[AuditProperties.TargetId].Should().Be("run-abc");
+        entry.Properties[AuditProperties.Result].Should().Be("success");
+        entry.Properties[AuditProperties.Detail].Should().Be("-");
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public class AuditLogTests
         AuditLog.Emit(logger, evt);
 
         var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Properties["AuditTargetId"].Should().Be("-");
-        entry.Properties["AuditDetail"].Should().Be("-");
+        entry.Properties[AuditProperties.TargetId].Should().Be("-");
+        entry.Properties[AuditProperties.Detail].Should().Be("-");
     }
 
     [Fact]
@@ -62,8 +62,8 @@ public class AuditLogTests
         AuditLog.Emit(logger, evt);
 
         var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Properties["AuditAction"].Should().Be("login.callback");
-        entry.Properties["AuditResult"].Should().Be("failure");
-        entry.Properties["AuditDetail"].Should().Be("missing login_state cookie");
+        entry.Properties[AuditProperties.Action].Should().Be("login.callback");
+        entry.Properties[AuditProperties.Result].Should().Be("failure");
+        entry.Properties[AuditProperties.Detail].Should().Be("missing login_state cookie");
     }
 }

@@ -69,3 +69,18 @@ public sealed record LogEntry(
     private string? GetProp(string name) =>
         Properties.TryGetValue(name, out var value) ? value?.ToString() : null;
 }
+
+/// <summary>
+/// Canonical names of the structured log properties emitted by
+/// <c>AuditLog.Emit</c>. Use these constants when reading
+/// <see cref="LogEntry.Properties"/> so typos become compile errors:
+/// <c>entry.Properties[AuditProperties.Action]</c>.
+/// </summary>
+public static class AuditProperties
+{
+    public const string Action = "AuditAction";
+    public const string ActorId = "AuditActorId";
+    public const string TargetId = "AuditTargetId";
+    public const string Result = "AuditResult";
+    public const string Detail = "AuditDetail";
+}
