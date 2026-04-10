@@ -99,23 +99,26 @@ public class RunsSignupFunctionTests
                     Name: "Testchar")
             ]);
 
-    // ------------------------------------------------------------------
-    // Test 1: Happy path — new signup returns 200 with sanitized run
-    // ------------------------------------------------------------------
+    /// <summary>
+    /// Pre-wired mocks for a successful signup call. Each test can mutate the
+    /// fields before invoking the function to introduce a single axis of variance.
+    /// </summary>
+    private sealed class HappyPathFixture
+    {
+        public required Mock<IRunsRepository> RunsRepo { get; init; }
+        public required Mock<IRaidersRepository> RaidersRepo { get; init; }
+        public required Mock<IGuildPermissions> Permissions { get; init; }
+        public required TestLogger<RunsSignupFunction> Logger { get; init; }
+        public required SessionPrincipal Principal { get; init; }
+        public required FunctionContext Context { get; init; }
+        public required object RequestBody { get; init; }
+    }
 
-    [Fact]
-    public async Task Run_adds_signup_and_returns_200()
+    private static HappyPathFixture MakeHappyPath()
     {
         var principal = MakePrincipal(battleNetId: "bnet-user");
         var run = MakeRunDoc();
         var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
-
-        var requestBody = new
-        {
-            characterId = "char-1",
-            desiredAttendance = "IN",
-            specId = (int?)null,
-        };
 
         var updatedRun = run with
         {
@@ -149,19 +152,41 @@ public class RunsSignupFunctionTests
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(raider);
 
-        var permissions = new Mock<IGuildPermissions>();
+        return new HappyPathFixture
+        {
+            RunsRepo = runsRepo,
+            RaidersRepo = raidersRepo,
+            Permissions = new Mock<IGuildPermissions>(),
+            Logger = new TestLogger<RunsSignupFunction>(),
+            Principal = principal,
+            Context = MakeFunctionContext(principal),
+            RequestBody = new
+            {
+                characterId = "char-1",
+                desiredAttendance = "IN",
+                specId = (int?)null,
+            },
+        };
+    }
 
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
-        var ctx = MakeFunctionContext(principal);
+    // ------------------------------------------------------------------
+    // Test 1: Happy path — new signup returns 200 with sanitized run
+    // ------------------------------------------------------------------
 
-        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+    [Fact]
+    public async Task Run_adds_signup_and_returns_200()
+    {
+        var fx = MakeHappyPath();
+
+        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
+        var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var dto = okResult.Value.Should().BeOfType<RunDetailDto>().Subject;
         dto.RunCharacters.Should().HaveCount(1);
         dto.RunCharacters[0].IsCurrentUser.Should().BeTrue();
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ------------------------------------------------------------------
@@ -256,62 +281,16 @@ public class RunsSignupFunctionTests
     [Fact]
     public async Task Run_emits_signup_create_audit_event_on_success()
     {
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var run = MakeRunDoc();
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+        var fx = MakeHappyPath();
 
-        var requestBody = new
-        {
-            characterId = "char-1",
-            desiredAttendance = "IN",
-            specId = (int?)null,
-        };
+        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
+        await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
-        var updatedRun = run with
-        {
-            RunCharacters = [
-                new RunCharacterEntry(
-                    Id: "new-entry-id",
-                    CharacterId: "char-1",
-                    CharacterName: "Testchar",
-                    CharacterRealm: "silvermoon",
-                    CharacterLevel: 0,
-                    CharacterClassId: 0,
-                    CharacterClassName: "",
-                    CharacterRaceId: 0,
-                    CharacterRaceName: "",
-                    RaiderBattleNetId: "bnet-user",
-                    DesiredAttendance: "IN",
-                    ReviewedAttendance: "IN",
-                    SpecId: null,
-                    SpecName: null,
-                    Role: null)
-            ]
-        };
-
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedRun);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-
-        var logger = new TestLogger<RunsSignupFunction>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
-        var ctx = MakeFunctionContext(principal);
-
-        await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
-
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        fx.Logger.Entries.Should().ContainSingle(e => e.IsAudit(
             action: "signup.create",
             actorId: "bnet-user",
             result: "success"),
-            "success path must emit a signup.create audit event with the battleNetId and result");
+            "success path must emit a signup.create audit event");
     }
 
     // ------------------------------------------------------------------
@@ -369,63 +348,25 @@ public class RunsSignupFunctionTests
     [Fact]
     public async Task Run_retries_on_concurrency_conflict_and_succeeds()
     {
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var run = MakeRunDoc();
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+        var fx = MakeHappyPath();
 
-        var updatedRun = run with
-        {
-            RunCharacters = [
-                new RunCharacterEntry(
-                    Id: "new-entry-id",
-                    CharacterId: "char-1",
-                    CharacterName: "Testchar",
-                    CharacterRealm: "silvermoon",
-                    CharacterLevel: 0,
-                    CharacterClassId: 0,
-                    CharacterClassName: "",
-                    CharacterRaceId: 0,
-                    CharacterRaceName: "",
-                    RaiderBattleNetId: "bnet-user",
-                    DesiredAttendance: "IN",
-                    ReviewedAttendance: "IN",
-                    SpecId: null,
-                    SpecName: null,
-                    Role: null)
-            ]
-        };
-
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-
+        // Override UpdateAsync to throw on the first call, then succeed.
         var callCount = 0;
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .Returns<RunDocument, CancellationToken>((doc, _) =>
             {
                 callCount++;
                 if (callCount == 1)
                     throw new ConcurrencyConflictException();
-                return Task.FromResult(updatedRun);
+                return Task.FromResult(doc);
             });
 
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        var logger = new TestLogger<RunsSignupFunction>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
-        var ctx = MakeFunctionContext(principal);
-
-        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
-        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
+        var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
         result.Should().BeOfType<OkObjectResult>();
-
-        // GetByIdAsync called twice: once for the failed attempt, once for the retry.
-        runsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(2));
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        fx.RunsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(2));
+        fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     // ------------------------------------------------------------------
@@ -435,33 +376,18 @@ public class RunsSignupFunctionTests
     [Fact]
     public async Task Run_returns_409_after_exhausting_concurrency_retries()
     {
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var run = MakeRunDoc();
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+        var fx = MakeHappyPath();
 
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException());
 
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        var logger = new TestLogger<RunsSignupFunction>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
-        var ctx = MakeFunctionContext(principal);
-
-        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
-        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
+        var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
         var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
         objectResult.StatusCode.Should().Be(409);
 
-        // All 3 attempts should have been made.
-        runsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(3));
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+        fx.RunsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(3));
+        fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 }
