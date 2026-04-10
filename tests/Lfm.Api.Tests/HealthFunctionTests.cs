@@ -26,6 +26,22 @@ public class HealthFunctionTests
         result.Timestamp.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
     }
 
+    [Fact]
+    public void Live_returns_ok_with_health_response_body()
+    {
+        var (fn, _) = CreateReadyFunction();
+
+        var before = DateTimeOffset.UtcNow;
+        var result = fn.Live(new DefaultHttpContext().Request);
+        var after = DateTimeOffset.UtcNow;
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        ok.StatusCode.Should().Be(200);
+        var body = ok.Value.Should().BeOfType<HealthResponse>().Subject;
+        body.Status.Should().Be("ok");
+        body.Timestamp.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+    }
+
     private static (HealthFunction fn, Mock<Database> mockDb) CreateReadyFunction()
     {
         var mockDb = new Mock<Database>();

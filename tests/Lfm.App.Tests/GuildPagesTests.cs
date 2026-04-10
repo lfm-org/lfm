@@ -87,17 +87,6 @@ public class GuildPagesTests : ComponentTestBase
     // ── GuildAdminPage ───────────────────────────────────────────────────────
 
     [Fact]
-    public void GuildAdminPage_Renders_Without_Crash()
-    {
-        var client = new Mock<IGuildClient>();
-        Services.AddSingleton(client.Object);
-
-        var cut = Render<GuildAdminPage>();
-
-        cut.Markup.Should().NotBeEmpty();
-    }
-
-    [Fact]
     public void GuildAdminPage_Shows_Title()
     {
         var client = new Mock<IGuildClient>();

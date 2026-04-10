@@ -60,6 +60,16 @@ public class RunEditabilityTests
     }
 
     [Fact]
+    public void Returns_true_when_start_time_equals_now()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var exact = now.ToString("o");
+
+        RunEditability.IsEditingClosed("", exact, now)
+            .Should().BeTrue();
+    }
+
+    [Fact]
     public void Returns_false_when_signup_close_time_is_unparseable()
     {
         RunEditability.IsEditingClosed("not-a-date", "", DateTimeOffset.UtcNow)
