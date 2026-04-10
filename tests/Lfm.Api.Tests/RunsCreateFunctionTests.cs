@@ -181,10 +181,9 @@ public class RunsCreateFunctionTests
 
         repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        var entry = logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("run.create", null, "failure"),
-            "denied guild run creation must emit a failure audit event").Subject;
-        entry.Properties[AuditProperties.Detail].Should().Be("guild rank denied");
+        logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("run.create", "failure", "guild rank denied"),
+            "denied guild run creation must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

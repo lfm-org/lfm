@@ -231,10 +231,9 @@ public class RunsSignupFunctionTests
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        var entry = logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("signup.create", null, "failure"),
-            "denied guild signup must emit a failure audit event").Subject;
-        entry.Properties[AuditProperties.Detail].Should().Be("guild rank denied");
+        logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("signup.create", "failure", "guild rank denied"),
+            "denied guild signup must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

@@ -134,10 +134,9 @@ public class RunsDeleteFunctionTests
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        var entry = logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("run.delete", null, "failure"),
-            "denied guild run deletion must emit a failure audit event").Subject;
-        entry.Properties[AuditProperties.Detail].Should().Be("guild rank denied");
+        logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("run.delete", "failure", "guild rank denied"),
+            "denied guild run deletion must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

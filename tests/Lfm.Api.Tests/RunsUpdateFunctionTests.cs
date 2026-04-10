@@ -187,10 +187,9 @@ public class RunsUpdateFunctionTests
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        var entry = logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("run.update", null, "failure"),
-            "denied run update must emit a failure audit event").Subject;
-        entry.Properties[AuditProperties.Detail].Should().Be("not creator");
+        logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("run.update", "failure", "not creator"),
+            "denied run update must emit a failure audit event");
     }
 
     // ------------------------------------------------------------------

@@ -66,6 +66,20 @@ public sealed record LogEntry(
         return true;
     }
 
+    /// <summary>
+    /// Shortcut for asserting action + result on a failure-path audit event.
+    /// </summary>
+    public bool IsAudit(string action, string result) =>
+        IsAudit(action: action, actorId: null, result: result, targetId: null);
+
+    /// <summary>
+    /// Shortcut for asserting action + result + detail on a failure-path audit event.
+    /// Avoids the awkward two-step ContainSingle(...).Subject.Properties[Detail] chain.
+    /// </summary>
+    public bool IsAudit(string action, string result, string detail) =>
+        IsAudit(action: action, actorId: null, result: result, targetId: null)
+        && GetProp(AuditProperties.Detail) == detail;
+
     private string? GetProp(string name) =>
         Properties.TryGetValue(name, out var value) ? value?.ToString() : null;
 }
