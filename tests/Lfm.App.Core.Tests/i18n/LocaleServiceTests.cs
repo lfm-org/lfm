@@ -2,7 +2,7 @@ using FluentAssertions;
 using Lfm.App.i18n;
 using Xunit;
 
-namespace Lfm.App.Tests.i18n;
+namespace Lfm.App.Core.Tests.i18n;
 
 public class LocaleServiceTests
 {

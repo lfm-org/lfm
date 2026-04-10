@@ -5,7 +5,7 @@ using Lfm.Contracts.Runs;
 using Moq;
 using Xunit;
 
-namespace Lfm.App.Tests.Services;
+namespace Lfm.App.Core.Tests.Services;
 
 public class RunsClientTests
 {

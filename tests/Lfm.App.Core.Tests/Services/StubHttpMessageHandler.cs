@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-namespace Lfm.App.Tests.Services;
+namespace Lfm.App.Core.Tests.Services;
 
 /// <summary>
 /// Deterministic HttpMessageHandler that returns a pre-configured response for
