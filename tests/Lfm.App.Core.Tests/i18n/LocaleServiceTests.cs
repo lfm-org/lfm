@@ -70,4 +70,24 @@ public class LocaleServiceTests
 
         sut.CurrentLocale.Should().Be("fi");
     }
+
+    [Theory]
+    [InlineData("en", true)]
+    [InlineData("fi", true)]
+    [InlineData("de", false)]
+    [InlineData("sv", false)]
+    [InlineData("", false)]
+    public void Supported_Locale_Set_Is_Exactly_En_And_Fi(string locale, bool shouldBeAccepted)
+    {
+        var sut = new LocaleService();
+        sut.SetLocale("en"); // baseline
+        var defaultLocale = sut.CurrentLocale;
+
+        sut.SetLocale(locale);
+
+        if (shouldBeAccepted)
+            sut.CurrentLocale.Should().Be(locale.ToLowerInvariant());
+        else
+            sut.CurrentLocale.Should().Be(defaultLocale, "unsupported locales must not change the active locale");
+    }
 }

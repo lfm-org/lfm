@@ -89,6 +89,22 @@ public class RunsClientTests
     }
 
     [Fact]
+    public async Task ListAsync_returns_empty_list_when_body_is_null()
+    {
+        // Server returns 200 with literal "null" body — RunsClient must coalesce
+        // to an empty list at the public boundary, not propagate null.
+        var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("null", System.Text.Encoding.UTF8, "application/json"),
+        });
+        var (client, _) = MakeClient(handler);
+
+        var result = await client.ListAsync(CancellationToken.None);
+
+        result.Should().NotBeNull().And.BeEmpty();
+    }
+
+    [Fact]
     public async Task GetAsync_escapes_run_id_in_path()
     {
         var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
@@ -168,9 +184,42 @@ public class RunsClientTests
         var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
         var request = new SignupRequest(CharacterId: "char-1", DesiredAttendance: "IN", SpecId: null);
 
-        await client.SignupAsync("run-1", request, CancellationToken.None);
+        var result = await client.SignupAsync("run-1", request, CancellationToken.None);
 
+        result.Should().NotBeNull("a 2xx response must surface as a non-null detail, not be swallowed");
         handler.LastRequest!.Method.Should().Be(HttpMethod.Post);
         handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs/run-1/signup");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_puts_request_body_to_run_path()
+    {
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
+        var request = new UpdateRunRequest(
+            StartTime: "2026-05-01T20:00:00Z",
+            SignupCloseTime: "2026-05-01T18:00:00Z",
+            Description: "updated",
+            ModeKey: "heroic",
+            Visibility: "PUBLIC",
+            InstanceId: 1,
+            InstanceName: "Liberation of Undermine");
+
+        var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        handler.LastRequest!.Method.Should().Be(HttpMethod.Put);
+        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs/run-1");
+        handler.LastRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_returns_null_on_non_success_status()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadRequest));
+        var request = new UpdateRunRequest(null, null, null, null, null, null, null);
+
+        var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
+
+        result.Should().BeNull();
     }
 }
