@@ -18,7 +18,7 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
         {
             return await http.GetFromJsonAsync<List<CharacterDto>>("api/battlenet/characters", JsonOptions, ct);
         }
-        catch (Exception) when (IsDeserializationOrNetworkError())
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException)
         {
             return null;
         }
@@ -34,7 +34,7 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
                 return null;
             return await response.Content.ReadFromJsonAsync<List<CharacterDto>>(JsonOptions, ct);
         }
-        catch (Exception) when (IsDeserializationOrNetworkError())
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException)
         {
             return null;
         }
@@ -53,12 +53,9 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
             var result = await response.Content.ReadFromJsonAsync<PortraitResponse>(JsonOptions, ct);
             return result?.Portraits.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
-        catch (Exception) when (IsDeserializationOrNetworkError())
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException)
         {
             return null;
         }
     }
-
-    // Catch both network errors and JSON deserialization failures gracefully.
-    private static bool IsDeserializationOrNetworkError() => true;
 }
