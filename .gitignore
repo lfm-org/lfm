@@ -142,6 +142,9 @@ x86/
 [Aa][Rr][Mm]64/
 publish/
 
+# Stryker.NET mutation testing reports
+StrykerOutput/
+
 # .NET local settings (secrets)
 api/local.settings.json
 app/wwwroot/appsettings.Development.json
