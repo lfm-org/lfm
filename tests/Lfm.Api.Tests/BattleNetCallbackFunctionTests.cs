@@ -361,6 +361,81 @@ public class BattleNetCallbackFunctionTests
             "happy path must emit a login.success audit event with the battleNetId");
     }
 
+    // -----------------------------------------------------------------------
+    // Cookie flags
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_happy_path_sets_auth_cookie_with_secure_httponly_samesite_lax_flags()
+    {
+        // Arrange — same as the happy path test
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
+
+        oauthMock
+            .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
+            .Returns((FakeState, FakeVerifier, (string?)null));
+        oauthMock
+            .Setup(o => o.ExchangeCodeAsync(FakeCode, FakeVerifier, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeTokenResponse);
+        oauthMock
+            .Setup(o => o.GetUserInfoAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeUser);
+        repoMock
+            .Setup(r => r.GetByBattleNetIdAsync("999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+        repoMock
+            .Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        cipherMock
+            .Setup(c => c.Protect(It.IsAny<SessionPrincipal>()))
+            .Returns(FakeEncrypted);
+
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
+        var req = BuildRequest(httpContext,
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState },
+            cookies: new() { ["login_state"] = "protected-payload" });
+
+        // Act
+        await fn.Run(req, CancellationToken.None);
+
+        // Assert: every cookie set must carry the security-critical flags.
+        // Locks down a real attack surface — Stryker found mutations on these flags surviving.
+        var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
+        var authCookie = setCookieHeaders.SingleOrDefault(h => h.Contains(FakeCookieName));
+        authCookie.Should().NotBeNull("the auth cookie must appear in Set-Cookie");
+        authCookie!.ToLowerInvariant().Should().Contain("secure", "auth cookie must be Secure");
+        authCookie.ToLowerInvariant().Should().Contain("httponly", "auth cookie must be HttpOnly");
+        authCookie.ToLowerInvariant().Should().Contain("samesite=lax", "auth cookie must be SameSite=Lax");
+        authCookie.ToLowerInvariant().Should().Contain("path=/", "auth cookie must be path-scoped to /");
+        authCookie.Should().StartWith(FakeCookieName + "=",
+            "the cookie name must come from AuthOptions.CookieName, not a hardcoded string");
+    }
+
+    [Fact]
+    public async Task Run_clears_login_state_cookie_with_secure_httponly_flags()
+    {
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
+        var req = BuildRequest(httpContext,
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState });
+        // No login_state cookie -> goes through RejectWithClearedCookie path.
+
+        await fn.Run(req, CancellationToken.None);
+
+        var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
+        var loginStateCookie = setCookieHeaders.SingleOrDefault(h => h.Contains("login_state"));
+        loginStateCookie.Should().NotBeNull();
+        loginStateCookie!.ToLowerInvariant().Should().Contain("secure");
+        loginStateCookie.ToLowerInvariant().Should().Contain("httponly");
+        loginStateCookie.ToLowerInvariant().Should().Contain("samesite=lax");
+        loginStateCookie.ToLowerInvariant().Should().Contain("max-age=0",
+            "clearing the cookie requires Max-Age=0");
+    }
+
     [Fact]
     public async Task Run_missing_cookie_emits_login_failure_audit_event()
     {

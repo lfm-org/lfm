@@ -78,6 +78,27 @@ public class BattleNetLoginFunctionTests
     }
 
     [Fact]
+    public void Run_sets_login_state_cookie_with_secure_httponly_samesite_lax_flags()
+    {
+        var (fn, httpContext) = MakeFunction(out _);
+        var req = httpContext.Request;
+
+        fn.Run(req, CancellationToken.None);
+
+        var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
+        var loginStateCookie = setCookieHeaders.SingleOrDefault(h => h.Contains("login_state"));
+        loginStateCookie.Should().NotBeNull("login_state must be set on login redirect");
+        loginStateCookie!.ToLowerInvariant().Should().Contain("secure");
+        loginStateCookie.ToLowerInvariant().Should().Contain("httponly");
+        loginStateCookie.ToLowerInvariant().Should().Contain("samesite=lax");
+        loginStateCookie.ToLowerInvariant().Should().Contain("path=/");
+        loginStateCookie.ToLowerInvariant().Should().Contain("max-age=300",
+            "login_state TTL must be 5 minutes (300 seconds)");
+        loginStateCookie.Should().StartWith("login_state=",
+            "the cookie name is the literal 'login_state' string");
+    }
+
+    [Fact]
     public void Run_redirect_url_contains_pkce_code_challenge()
     {
         var (fn, httpContext) = MakeFunction(out _);
