@@ -1,0 +1,11 @@
+{
+  "stryker-config": {
+    "reporters": [
+      "cleartext",
+      "html",
+      "json"
+    ],
+    "mutation-level": "Standard",
+    "project": "Lfm.App.Core.csproj"
+  }
+}
