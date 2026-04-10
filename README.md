@@ -75,6 +75,7 @@ dotnet restore lfm.sln
 dotnet build lfm.sln -c Release
 dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release
 dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release
+dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release
 ```
 
 Format check:
@@ -152,10 +153,12 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 ## Structure
 
 - `app/`: Blazor WASM pages, components, services
+- `app/Lfm.App.Core/`: framework-neutral services, i18n, auth (Stryker-mutatable)
 - `api/Functions/`: Azure Function handlers
 - `shared/`: shared models and contracts used by both app and api
 - `tests/Lfm.Api.Tests/`: xUnit tests for API handlers
 - `tests/Lfm.App.Tests/`: bUnit component tests for Blazor
+- `tests/Lfm.App.Core.Tests/`: pure-logic unit tests (Stryker target)
 - `tests/Lfm.E2E/`: Playwright .NET end-to-end tests
 - `infra/main.bicep`: main infrastructure entry point
 

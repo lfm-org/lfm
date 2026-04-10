@@ -50,7 +50,7 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 ## Verification
 
 - Run `dotnet build lfm.sln -c Release` before claiming work complete.
-- Per-project tests: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release`.
+- Per-project tests: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release`.
 - Format check: `dotnet format lfm.sln --verify-no-changes --no-restore --severity error`. **Run `dotnet format lfm.sln` before committing C# changes** — CI format check fails on whitespace.
 - Bundle size check: `./scripts/check-bundle-size.sh ./publish/app/wwwroot 5` (after publish).
 - Audit: `dotnet list lfm.sln package --vulnerable --include-transitive` after adding/upgrading packages.
@@ -75,7 +75,7 @@ Three lanes with distinct purpose, environment, and file convention:
 
 ### Unit tests
 
-xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers. Commands: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj`. Config: each project's `.csproj`. Mutation testing: Stryker.NET runs against `tests/Lfm.App.Core.Tests/` only — the Blazor WASM project cannot be mutated because Stryker's recompile step does not invoke Razor source generators (see `docs/quality-reviews/2026-04-10-test-quality-audit.md`).
+xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers. Commands: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj` / `dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj`. Config: each project's `.csproj`. Mutation testing: Stryker.NET runs against `tests/Lfm.App.Core.Tests/` only — the Blazor WASM project cannot be mutated because Stryker's recompile step does not invoke Razor source generators (see `docs/quality-reviews/2026-04-10-test-quality-audit.md`).
 
 ### Component tests
 

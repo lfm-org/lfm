@@ -60,6 +60,9 @@ jobs:
       - name: Test App
         run: dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release --no-build
 
+      - name: Test App.Core
+        run: dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release --no-build
+
       - name: Publish API
         run: dotnet publish api/Lfm.Api.csproj -c Release -o ./publish/api --no-build
 
