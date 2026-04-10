@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Lfm.Api.Auth;
@@ -43,7 +42,7 @@ public class BattleNetCallbackFunctionTests
         Mock<IBlizzardOAuthClient> oauthMock,
         Mock<ISessionCipher> cipherMock,
         Mock<IRaidersRepository> repoMock,
-        Mock<ILogger<BattleNetCallbackFunction>>? loggerMock = null)
+        TestLogger<BattleNetCallbackFunction>? logger = null)
     {
         var blizzardOpts = MsOptions.Create(new BlizzardOptions
         {
@@ -60,15 +59,13 @@ public class BattleNetCallbackFunctionTests
             CookieMaxAgeHours = 24,
         });
 
-        var logger = (loggerMock ?? new Mock<ILogger<BattleNetCallbackFunction>>()).Object;
-
         var fn = new BattleNetCallbackFunction(
             oauthMock.Object,
             cipherMock.Object,
             repoMock.Object,
             blizzardOpts,
             authOpts,
-            logger);
+            logger ?? new TestLogger<BattleNetCallbackFunction>());
 
         var httpContext = new DefaultHttpContext();
         return (fn, httpContext);
@@ -325,7 +322,7 @@ public class BattleNetCallbackFunctionTests
         var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
         var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
-        var loggerMock = new Mock<ILogger<BattleNetCallbackFunction>>();
+        var logger = new TestLogger<BattleNetCallbackFunction>();
 
         oauthMock
             .Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
@@ -348,7 +345,7 @@ public class BattleNetCallbackFunctionTests
             .Setup(c => c.Protect(It.IsAny<SessionPrincipal>()))
             .Returns(FakeEncrypted);
 
-        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock, loggerMock);
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock, logger);
         var req = BuildRequest(httpContext,
             query: new() { ["code"] = FakeCode, ["state"] = FakeState },
             cookies: new() { ["login_state"] = "protected-payload" });
@@ -357,15 +354,10 @@ public class BattleNetCallbackFunctionTests
         await fn.Run(req, CancellationToken.None);
 
         // Assert: logger called with "login.success" and the battleNetId "999"
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("login.success") && v.ToString()!.Contains("999")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "login.success",
+            actorId: "999",
+            result: "success"),
             "happy path must emit a login.success audit event with the battleNetId");
     }
 
@@ -376,24 +368,18 @@ public class BattleNetCallbackFunctionTests
         var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
         var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
         var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
-        var loggerMock = new Mock<ILogger<BattleNetCallbackFunction>>();
+        var logger = new TestLogger<BattleNetCallbackFunction>();
 
-        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock, loggerMock);
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock, logger);
         var req = BuildRequest(httpContext,
             query: new() { ["code"] = FakeCode, ["state"] = FakeState });
 
         // Act
         await fn.Run(req, CancellationToken.None);
 
-        // Assert: logger called with "login.failure"
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("login.failure") && v.ToString()!.Contains("missing login_state or state")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        // Assert: logger called with "login.failure" and the missing-cookie detail
+        logger.Entries.Should().ContainSingle(
+            e => e.IsAudit("login.failure", "failure", "missing login_state or state"),
             "missing cookie must emit a login.failure audit event");
     }
 }

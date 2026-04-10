@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Lfm.Api.Functions;
@@ -198,20 +197,15 @@ public class RaiderCleanupFunctionTests
             .Setup(r => r.ScrubRaiderAsync("bnet-42", It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var loggerMock = new Mock<ILogger<RaiderCleanupFunction>>();
-        var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, loggerMock.Object);
+        var logger = new TestLogger<RaiderCleanupFunction>();
+        var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
         await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
         // Assert: logger called with "account.expired" and "success"
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("account.expired") && v.ToString()!.Contains("success") && v.ToString()!.Contains("system")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "account.expired",
+            actorId: "system",
+            result: "success"),
             "cleanup of expired raiders must emit account.expired audit event with result=success");
     }
 }

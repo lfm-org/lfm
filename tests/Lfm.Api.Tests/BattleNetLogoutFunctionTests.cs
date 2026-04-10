@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -36,7 +35,7 @@ public class BattleNetLogoutFunctionTests
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
     private static BattleNetLogoutFunction MakeFunction(
-        Mock<ILogger<BattleNetLogoutFunction>>? loggerMock = null)
+        TestLogger<BattleNetLogoutFunction>? logger = null)
     {
         var blizzardOpts = MsOptions.Create(new BlizzardOptions
         {
@@ -52,8 +51,10 @@ public class BattleNetLogoutFunctionTests
             CookieName = FakeCookieName,
             CookieMaxAgeHours = 24,
         });
-        var logger = (loggerMock ?? new Mock<ILogger<BattleNetLogoutFunction>>()).Object;
-        return new BattleNetLogoutFunction(blizzardOpts, authOpts, logger);
+        return new BattleNetLogoutFunction(
+            blizzardOpts,
+            authOpts,
+            logger ?? new TestLogger<BattleNetLogoutFunction>());
     }
 
     [Fact]
@@ -108,8 +109,8 @@ public class BattleNetLogoutFunctionTests
     public void Run_emits_logout_audit_event()
     {
         // Arrange
-        var loggerMock = new Mock<ILogger<BattleNetLogoutFunction>>();
-        var fn = MakeFunction(loggerMock);
+        var logger = new TestLogger<BattleNetLogoutFunction>();
+        var fn = MakeFunction(logger);
         var principal = MakePrincipal("bnet-42");
         var ctx = MakeFunctionContext(principal);
         var httpContext = new DefaultHttpContext();
@@ -119,15 +120,10 @@ public class BattleNetLogoutFunctionTests
         fn.Run(req, ctx);
 
         // Assert: logger called with "logout" and "success"
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("logout") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-42")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "logout",
+            actorId: "bnet-42",
+            result: "success"),
             "logout must emit a logout audit event with result=success");
     }
 }

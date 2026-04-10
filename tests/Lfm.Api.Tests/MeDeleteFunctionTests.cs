@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -31,12 +30,14 @@ public class MeDeleteFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
-    private static MeDeleteFunction MakeFunction(Mock<ILogger<MeDeleteFunction>>? loggerMock = null)
+    private static MeDeleteFunction MakeFunction(TestLogger<MeDeleteFunction>? logger = null)
     {
         var runsRepo = new Mock<IRunsRepository>();
         var raidersRepo = new Mock<IRaidersRepository>();
-        var logger = (loggerMock ?? new Mock<ILogger<MeDeleteFunction>>()).Object;
-        return new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
+        return new MeDeleteFunction(
+            runsRepo.Object,
+            raidersRepo.Object,
+            logger ?? new TestLogger<MeDeleteFunction>());
     }
 
     [Fact]
@@ -58,8 +59,8 @@ public class MeDeleteFunctionTests
             .Callback<string, CancellationToken>((_, _) => callOrder.Add("delete"))
             .Returns(Task.CompletedTask);
 
-        var loggerMock = new Mock<ILogger<MeDeleteFunction>>();
-        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, loggerMock.Object);
+        var logger = new TestLogger<MeDeleteFunction>();
+        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -80,7 +81,7 @@ public class MeDeleteFunctionTests
     {
         // Arrange
         var principal = MakePrincipal("bnet-42");
-        var loggerMock = new Mock<ILogger<MeDeleteFunction>>();
+        var logger = new TestLogger<MeDeleteFunction>();
         var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
         runsRepo
             .Setup(r => r.ScrubRaiderAsync("bnet-42", It.IsAny<CancellationToken>()))
@@ -89,7 +90,6 @@ public class MeDeleteFunctionTests
         raidersRepo
             .Setup(r => r.DeleteAsync("bnet-42", It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        var logger = loggerMock.Object;
         var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
         var ctx = MakeFunctionContext(principal);
 
@@ -97,15 +97,10 @@ public class MeDeleteFunctionTests
         await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         // Assert: logger called with "account.delete" and "success"
-        loggerMock.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) =>
-                    v.ToString()!.Contains("account.delete") && v.ToString()!.Contains("success") && v.ToString()!.Contains("bnet-42")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
+        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+            action: "account.delete",
+            actorId: "bnet-42",
+            result: "success"),
             "account delete must emit an audit event with action=account.delete and result=success");
     }
 
