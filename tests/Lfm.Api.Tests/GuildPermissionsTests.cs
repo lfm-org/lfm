@@ -1,0 +1,292 @@
+using FluentAssertions;
+using Lfm.Api.Auth;
+using Lfm.Api.Repositories;
+using Lfm.Api.Services;
+using Moq;
+using Xunit;
+
+namespace Lfm.Api.Tests;
+
+public class GuildPermissionsTests
+{
+    private static SessionPrincipal MakePrincipal(string? guildId = "42", string battleNetId = "bnet-1") =>
+        new(
+            BattleNetId: battleNetId,
+            BattleTag: "Player#1234",
+            GuildId: guildId,
+            GuildName: "Test Guild",
+            IssuedAt: DateTimeOffset.UtcNow,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+    private static GuildDocument MakeGuildDoc(
+        string id = "42",
+        IReadOnlyList<BlizzardGuildRosterMember>? members = null,
+        DateTimeOffset? rosterFetchedAt = null,
+        IReadOnlyList<GuildRankPermission>? rankPermissions = null)
+    {
+        var resolvedFetched = rosterFetchedAt ?? DateTimeOffset.UtcNow.AddMinutes(-5);
+        return new GuildDocument(
+            Id: id,
+            GuildId: 42,
+            RealmSlug: "silvermoon",
+            BlizzardRosterFetchedAt: resolvedFetched.ToString("o"),
+            RankPermissions: rankPermissions,
+            BlizzardRosterRaw: new BlizzardGuildRosterRaw(
+                Members: members ?? [
+                    new BlizzardGuildRosterMember(
+                        Character: new BlizzardGuildRosterMemberCharacter(
+                            Name: "Gm",
+                            Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                            Id: 1),
+                        Rank: 0)
+                ]));
+    }
+
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-1",
+        string characterName = "Gm",
+        string realm = "silvermoon") =>
+        new(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: realm,
+                    Name: characterName)
+            ]);
+
+    private static GuildPermissions MakeSut(GuildDocument? guild, RaiderDocument? raider)
+    {
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guild);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        return new GuildPermissions(guildRepo.Object, raidersRepo.Object);
+    }
+
+    // ─── IsAdminAsync ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_principal_has_no_guild()
+    {
+        var principal = MakePrincipal(guildId: null);
+        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc());
+
+        var result = await sut.IsAdminAsync(principal, CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_guild_not_found()
+    {
+        var sut = MakeSut(guild: null, raider: MakeRaiderDoc());
+
+        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_true_when_character_matches_rank_zero_member()
+    {
+        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_character_matches_non_zero_rank()
+    {
+        var guild = MakeGuildDoc(members: [
+            new BlizzardGuildRosterMember(
+                Character: new BlizzardGuildRosterMemberCharacter(
+                    Name: "Gm",
+                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Id: 1),
+                Rank: 3)
+        ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_no_character_matches()
+    {
+        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Nomatch"));
+
+        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    // ─── CanCreateGuildRunsAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task CanCreateGuildRunsAsync_returns_false_when_roster_is_stale()
+    {
+        var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddHours(-2));
+        var sut = MakeSut(guild, MakeRaiderDoc());
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse("stale roster (≥ 1h) must block guild-run creation");
+    }
+
+    [Fact]
+    public async Task CanCreateGuildRunsAsync_returns_false_when_roster_fetched_at_is_null()
+    {
+        var guild = MakeGuildDoc() with { BlizzardRosterFetchedAt = null };
+        var sut = MakeSut(guild, MakeRaiderDoc());
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanCreateGuildRunsAsync_returns_true_for_rank_zero_by_default()
+    {
+        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CanCreateGuildRunsAsync_returns_false_for_non_zero_rank_by_default()
+    {
+        var guild = MakeGuildDoc(members: [
+            new BlizzardGuildRosterMember(
+                Character: new BlizzardGuildRosterMemberCharacter(
+                    Name: "Officer",
+                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Id: 1),
+                Rank: 2)
+        ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Officer"));
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanCreateGuildRunsAsync_honours_explicit_rank_permission_entry()
+    {
+        var guild = MakeGuildDoc(
+            members: [
+                new BlizzardGuildRosterMember(
+                    Character: new BlizzardGuildRosterMemberCharacter(
+                        Name: "Officer",
+                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Id: 1),
+                    Rank: 2)
+            ],
+            rankPermissions: [
+                new GuildRankPermission(Rank: 2, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: false)
+            ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Officer"));
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeTrue("explicit RankPermission.CanCreateGuildRuns=true overrides default");
+    }
+
+    // ─── CanSignupGuildRunsAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task CanSignupGuildRunsAsync_returns_true_for_non_zero_rank_by_default()
+    {
+        var guild = MakeGuildDoc(members: [
+            new BlizzardGuildRosterMember(
+                Character: new BlizzardGuildRosterMemberCharacter(
+                    Name: "Member",
+                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Id: 1),
+                Rank: 5)
+        ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+
+        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeTrue("default behaviour is that all ranks can sign up");
+    }
+
+    [Fact]
+    public async Task CanSignupGuildRunsAsync_honours_explicit_deny_entry()
+    {
+        var guild = MakeGuildDoc(
+            members: [
+                new BlizzardGuildRosterMember(
+                    Character: new BlizzardGuildRosterMemberCharacter(
+                        Name: "Initiate",
+                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Id: 1),
+                    Rank: 7)
+            ],
+            rankPermissions: [
+                new GuildRankPermission(Rank: 7, CanCreateGuildRuns: false, CanSignupGuildRuns: false, CanDeleteGuildRuns: false)
+            ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Initiate"));
+
+        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanSignupGuildRunsAsync_returns_false_for_stale_roster_even_when_default_is_true()
+    {
+        var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddHours(-2));
+        var sut = MakeSut(guild, MakeRaiderDoc());
+
+        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse("stale roster must block signup even though default would be true");
+    }
+
+    // ─── CanDeleteGuildRunsAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task CanDeleteGuildRunsAsync_returns_true_for_rank_zero_by_default()
+    {
+        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CanDeleteGuildRunsAsync_returns_false_for_non_zero_rank_by_default()
+    {
+        var guild = MakeGuildDoc(members: [
+            new BlizzardGuildRosterMember(
+                Character: new BlizzardGuildRosterMemberCharacter(
+                    Name: "Officer",
+                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Id: 1),
+                Rank: 1)
+        ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Officer"));
+
+        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse("default behaviour is that only rank 0 can delete guild runs");
+    }
+}
