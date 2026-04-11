@@ -199,6 +199,6 @@ public class SiteAdminServiceTests
 
     // Not tested: the catch-branch "extend stale cache and return cached.Ids" path in
     // GetAdminIdsAsync. Exercising it would require forcing the 60-second TTL to expire
-    // between calls, which needs a TimeProvider seam in the SUT. Deferred — see the
-    // 2026-04-11 audit worklist for the deliberate drop rationale.
+    // between calls, which needs a TimeProvider seam in the SUT. Judged not worth a
+    // production seam for one branch-coverage point on a hobby project.
 }
