@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Lfm.Api.Options;
 using Lfm.Api.Services;
+using Moq;
 using MsOptions = Microsoft.Extensions.Options.Options;
 using Xunit;
 
@@ -8,12 +9,14 @@ namespace Lfm.Api.Tests;
 
 public class SiteAdminServiceTests
 {
-    private static SiteAdminService MakeSut(string? keyVaultUrl = null) =>
-        new(MsOptions.Create(new AuthOptions
-        {
-            CookieName = "battlenet_token",
-            KeyVaultUrl = keyVaultUrl,
-        }));
+    private static SiteAdminService MakeSut(string? keyVaultUrl = null, ISecretResolver? secretResolver = null) =>
+        new(
+            MsOptions.Create(new AuthOptions
+            {
+                CookieName = "battlenet_token",
+                KeyVaultUrl = keyVaultUrl,
+            }),
+            secretResolver ?? Mock.Of<ISecretResolver>());
 
     [Fact]
     public async Task IsAdminAsync_returns_false_when_battle_net_id_is_empty()

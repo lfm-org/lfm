@@ -1,21 +1,20 @@
-using Azure.Security.KeyVault.Secrets;
-using Azure.Identity;
 using Microsoft.Extensions.Options;
 using Lfm.Api.Options;
 
 namespace Lfm.Api.Services;
 
 /// <summary>
-/// Reads the site-admin allowlist from Azure Key Vault, with an in-memory cache
+/// Reads the site-admin allowlist from a secret store, with an in-memory cache
 /// that expires every 60 seconds — matching the TypeScript CACHE_TTL_MS behaviour.
 /// When KeyVaultUrl is not configured, IsAdminAsync always returns false.
 /// </summary>
-public sealed class SiteAdminService(IOptions<AuthOptions> authOpts) : ISiteAdminService
+public sealed class SiteAdminService(IOptions<AuthOptions> authOpts, ISecretResolver secretResolver) : ISiteAdminService
 {
     private const string SecretName = "site-admin-battle-net-ids";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
 
     private readonly AuthOptions _auth = authOpts.Value;
+    private readonly ISecretResolver _secretResolver = secretResolver;
 
     // Simple lock-free cache: last loaded set + expiry.
     private volatile CacheEntry? _cache;
@@ -43,9 +42,8 @@ public sealed class SiteAdminService(IOptions<AuthOptions> authOpts) : ISiteAdmi
 
         try
         {
-            var client = new SecretClient(new Uri(url), new DefaultAzureCredential());
-            var secret = await client.GetSecretAsync(SecretName, cancellationToken: ct);
-            var ids = ParseAdminIds(secret.Value.Value);
+            var raw = await _secretResolver.GetSecretAsync(url, SecretName, ct);
+            var ids = ParseAdminIds(raw);
             _cache = new CacheEntry(ids, DateTimeOffset.UtcNow.Add(CacheTtl));
             return ids;
         }
