@@ -58,35 +58,42 @@ public class BattleNetLogoutFunctionTests
     }
 
     [Fact]
-    public void Run_clears_auth_cookie_and_redirects_to_app_base_url()
+    public void Run_redirects_to_app_base_url()
     {
-        // Arrange
         var fn = MakeFunction();
-        var principal = MakePrincipal();
-        var ctx = MakeFunctionContext(principal);
-        var httpContext = new DefaultHttpContext();
-        var req = httpContext.Request;
+        var ctx = MakeFunctionContext(MakePrincipal());
+        var req = new DefaultHttpContext().Request;
 
-        // Act
         var result = fn.Run(req, ctx);
 
-        // Assert: redirects to AppBaseUrl
         var redirect = result.Should().BeOfType<RedirectResult>().Subject;
         redirect.Url.Should().Be(AppBaseUrl, "logout should redirect to AppBaseUrl");
         redirect.Permanent.Should().BeFalse("logout redirect must be 302");
+    }
 
-        // Assert: auth cookie is cleared (deleted)
-        var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].ToArray();
-        var cookieHeader = setCookieHeaders
-            .Where(h => !string.IsNullOrEmpty(h) && h.Contains(FakeCookieName))
-            .FirstOrDefault();
-        cookieHeader.Should().NotBeNullOrEmpty("the auth cookie must be in the Set-Cookie response headers");
-        // Cookie.Delete() sets expires in the past, which is a valid way to delete a cookie
-        if (!string.IsNullOrEmpty(cookieHeader))
-        {
-            (cookieHeader.Contains("max-age=0") || cookieHeader.Contains("expires=Thu, 01 Jan 1970"))
-                .Should().BeTrue("the auth cookie must be deleted via MaxAge=0 or past expiry date");
-        }
+    [Fact]
+    public void Run_clears_auth_cookie_via_expires_in_the_past()
+    {
+        // ASP.NET Core's IResponseCookies.Delete writes expires=Thu, 01 Jan 1970 (with
+        // an empty value) — pin to the exact shape the SUT produces. The cookie must
+        // have HttpOnly and the configured cookie name.
+        var fn = MakeFunction();
+        var ctx = MakeFunctionContext(MakePrincipal());
+        var httpContext = new DefaultHttpContext();
+
+        fn.Run(httpContext.Request, ctx);
+
+        var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
+        var authCookie = setCookieHeaders.SingleOrDefault(h => h.Contains(FakeCookieName));
+        authCookie.Should().NotBeNull("the auth cookie must appear in Set-Cookie");
+        authCookie!.ToLowerInvariant().Should().Contain("expires=thu, 01 jan 1970",
+            "logout must clear the auth cookie via an expires date in the past");
+        authCookie.ToLowerInvariant().Should().Contain("path=/",
+            "the delete cookie must scope to the same path as the original (/)");
+        authCookie.ToLowerInvariant().Should().Contain("httponly",
+            "the delete cookie must remain HttpOnly");
+        authCookie.Should().StartWith(FakeCookieName + "=",
+            "the cookie name must come from AuthOptions.CookieName, not a hardcoded string");
     }
 
     // Verify that the [RequireAuth] attribute is present on the Run method.

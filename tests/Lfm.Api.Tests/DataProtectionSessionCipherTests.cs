@@ -112,4 +112,32 @@ public class DataProtectionSessionCipherTests
 
         result.Should().BeNull();
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Lfm.Session")]
+    [InlineData("Lfm.Session.v2")]
+    [InlineData("Lfm.Session.v0")]
+    [InlineData("default")]
+    [InlineData("Lfm.OtherService.v1")]
+    public void Unprotect_with_token_from_rival_purpose_on_same_provider_returns_null(string rivalPurpose)
+    {
+        // The cipher uses a specific Data Protection purpose to isolate itself
+        // from any other component sharing the same provider. This test creates
+        // rival protectors with plausibly-wrong purposes on the SAME provider and
+        // verifies that none of their tokens can be decrypted by the cipher.
+        //
+        // If someone changes the cipher's Purpose constant to one of the values
+        // listed here (e.g. ""), this test will fail because the rival and cipher
+        // would then derive the same key and the rival's token would round-trip.
+        var provider = new EphemeralDataProtectionProvider();
+        var cipher = new DataProtectionSessionCipher(provider);
+        var rivalProtector = provider.CreateProtector(rivalPurpose);
+        var rivalToken = rivalProtector.Protect("{\"BattleNetId\":\"x\"}");
+
+        var result = cipher.Unprotect(rivalToken);
+
+        result.Should().BeNull(
+            $"the cipher's Purpose must isolate it from a rival protector created with purpose '{rivalPurpose}'");
+    }
 }

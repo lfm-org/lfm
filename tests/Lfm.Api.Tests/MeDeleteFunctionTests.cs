@@ -43,20 +43,20 @@ public class MeDeleteFunctionTests
     [Fact]
     public async Task Returns_ok_and_calls_both_repos_in_order_when_raider_exists()
     {
+        // Data-safety invariant: runs MUST be scrubbed before the raider document is
+        // deleted, so a half-completed delete cannot leave dangling FK references.
+        // Use Moq's MockSequence to enforce ordering instead of a manual callOrder list.
         var principal = MakePrincipal("bnet-1");
-
-        var callOrder = new List<string>();
+        var sequence = new MockSequence();
 
         var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
-        runsRepo
+        runsRepo.InSequence(sequence)
             .Setup(r => r.ScrubRaiderAsync("bnet-1", It.IsAny<CancellationToken>()))
-            .Callback<string, CancellationToken>((_, _) => callOrder.Add("scrub"))
             .Returns(Task.CompletedTask);
 
         var raidersRepo = new Mock<IRaidersRepository>(MockBehavior.Strict);
-        raidersRepo
+        raidersRepo.InSequence(sequence)
             .Setup(r => r.DeleteAsync("bnet-1", It.IsAny<CancellationToken>()))
-            .Callback<string, CancellationToken>((_, _) => callOrder.Add("delete"))
             .Returns(Task.CompletedTask);
 
         var logger = new TestLogger<MeDeleteFunction>();
@@ -69,7 +69,6 @@ public class MeDeleteFunctionTests
 
         runsRepo.Verify(r => r.ScrubRaiderAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
         raidersRepo.Verify(r => r.DeleteAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
-        callOrder.Should().Equal(["scrub", "delete"], "runs must be scrubbed before the raider document is deleted");
     }
 
     // -----------------------------------------------------------------------
