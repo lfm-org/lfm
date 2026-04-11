@@ -1,3 +1,4 @@
+using Azure;
 using FluentAssertions;
 using Lfm.Api.Options;
 using Lfm.Api.Services;
@@ -9,6 +10,9 @@ namespace Lfm.Api.Tests;
 
 public class SiteAdminServiceTests
 {
+    private const string TestVaultUrl = "https://kv.example.net/";
+    private const string SecretName = "site-admin-battle-net-ids";
+
     private static SiteAdminService MakeSut(string? keyVaultUrl = null, ISecretResolver? secretResolver = null) =>
         new(
             MsOptions.Create(new AuthOptions
@@ -86,4 +90,115 @@ public class SiteAdminServiceTests
         second.Should().BeFalse();
         third.Should().BeFalse();
     }
+
+    // ── Key Vault fetch path ────────────────────────────────────────────────
+
+    private static Mock<ISecretResolver> ResolverReturning(string? value)
+    {
+        var mock = new Mock<ISecretResolver>(MockBehavior.Strict);
+        mock.Setup(r => r.GetSecretAsync(TestVaultUrl, SecretName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(value);
+        return mock;
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_true_when_secret_contains_caller_id()
+    {
+        var resolver = ResolverReturning("player#1234\nadmin#9999");
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        result.Should().BeTrue();
+        resolver.Verify(
+            r => r.GetSecretAsync(TestVaultUrl, SecretName, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_secret_does_not_contain_caller_id()
+    {
+        var resolver = ResolverReturning("other#0001\nother#0002");
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_caches_result_within_ttl_window()
+    {
+        var resolver = ResolverReturning("player#1234");
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        await sut.IsAdminAsync("player#1234", CancellationToken.None);
+        await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        resolver.Verify(
+            r => r.GetSecretAsync(TestVaultUrl, SecretName, It.IsAny<CancellationToken>()),
+            Times.Once,
+            "two calls within the 60-second cache window must only fetch the secret once");
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_parses_comma_separated_secret_values()
+    {
+        var resolver = ResolverReturning("a, b, c");
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        (await sut.IsAdminAsync("a", CancellationToken.None)).Should().BeTrue();
+        (await sut.IsAdminAsync("b", CancellationToken.None)).Should().BeTrue();
+        (await sut.IsAdminAsync("c", CancellationToken.None)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_parses_newline_separated_secret_values()
+    {
+        var resolver = ResolverReturning("a\nb\nc");
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        (await sut.IsAdminAsync("a", CancellationToken.None)).Should().BeTrue();
+        (await sut.IsAdminAsync("b", CancellationToken.None)).Should().BeTrue();
+        (await sut.IsAdminAsync("c", CancellationToken.None)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_trims_whitespace_around_ids()
+    {
+        var resolver = ResolverReturning("  player#1234  \n  admin#9999  ");
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        (await sut.IsAdminAsync("player#1234", CancellationToken.None)).Should().BeTrue();
+        (await sut.IsAdminAsync("admin#9999", CancellationToken.None)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_secret_is_null()
+    {
+        var resolver = ResolverReturning(null);
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        result.Should().BeFalse("a null secret value parses to an empty admin set");
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_resolver_throws_and_no_prior_cache()
+    {
+        var resolver = new Mock<ISecretResolver>(MockBehavior.Strict);
+        resolver.Setup(r => r.GetSecretAsync(TestVaultUrl, SecretName, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RequestFailedException("kv down"));
+        var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
+
+    // Not tested: the catch-branch "extend stale cache and return cached.Ids" path in
+    // GetAdminIdsAsync. Exercising it would require forcing the 60-second TTL to expire
+    // between calls, which needs a TimeProvider seam in the SUT. Deferred — see the
+    // 2026-04-11 audit worklist for the deliberate drop rationale.
 }
