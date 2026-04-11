@@ -27,6 +27,7 @@ public abstract class E2ETestBase : IAsyncLifetime
     private readonly ITestOutputHelper _output;
     private readonly ConcurrentQueue<string> _consoleMessages = new();
     private readonly ConcurrentQueue<string> _requestFailures = new();
+    private readonly ConcurrentQueue<string> _consoleErrors = new();
 
     protected E2ETestBase(ITestOutputHelper output)
     {
@@ -92,6 +93,10 @@ public abstract class E2ETestBase : IAsyncLifetime
             {
                 var line = $"[Browser {msg.Type.ToUpper()}] {msg.Text}";
                 _consoleMessages.Enqueue(line);
+                if (msg.Type == "error")
+                {
+                    _consoleErrors.Enqueue(msg.Text);
+                }
             }
         };
 
@@ -126,6 +131,22 @@ public abstract class E2ETestBase : IAsyncLifetime
     /// Writes an informational line to the test output.
     /// </summary>
     protected void Log(string message) => _output.WriteLine(message);
+
+    /// <summary>
+    /// Returns a snapshot of browser console errors captured by
+    /// <see cref="AttachDiagnosticListeners"/> since the test started,
+    /// excluding any error whose text contains one of <paramref name="ignoreSubstrings"/>.
+    /// Warnings are not included — only messages with type "error".
+    /// Use this from specs to assert that a page loaded without startup
+    /// errors (JSInterop failures, unhandled exceptions, failed asset loads).
+    /// </summary>
+    protected IReadOnlyList<string> GetConsoleErrors(params string[] ignoreSubstrings)
+    {
+        return _consoleErrors
+            .Where(text => !ignoreSubstrings.Any(ignore =>
+                text.Contains(ignore, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
 
     private async Task CaptureFailureDiagnosticsAsync()
     {
