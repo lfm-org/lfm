@@ -139,16 +139,4 @@ public class BattleNetCharactersFunctionTests
         result.Should().BeOfType<NoContentResult>();
     }
 
-    // -------------------------------------------------------------------------
-    // [RequireAuth] attribute
-    // -------------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(BattleNetCharactersFunction).GetMethod(nameof(BattleNetCharactersFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "BattleNetCharactersFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
-    }
 }

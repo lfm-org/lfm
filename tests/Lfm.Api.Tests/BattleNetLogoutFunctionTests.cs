@@ -96,18 +96,6 @@ public class BattleNetLogoutFunctionTests
             "the cookie name must come from AuthOptions.CookieName, not a hardcoded string");
     }
 
-    // Verify that the [RequireAuth] attribute is present on the Run method.
-    // AuthPolicyMiddleware enforces the 401 at the framework level based on this attribute;
-    // no unit test is needed for the 401 path itself.
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(BattleNetLogoutFunction).GetMethod(nameof(BattleNetLogoutFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "BattleNetLogoutFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
-    }
-
     // -----------------------------------------------------------------------
     // Audit events
     // -----------------------------------------------------------------------

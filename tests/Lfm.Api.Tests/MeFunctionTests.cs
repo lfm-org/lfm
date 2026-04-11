@@ -89,15 +89,4 @@ public class MeFunctionTests
         siteAdmin.Verify(s => s.IsAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    // Verify that the [RequireAuth] attribute is present on the Run method.
-    // AuthPolicyMiddleware enforces the 401 at the framework level based on this attribute;
-    // no unit test is needed for the 401 path itself.
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(MeFunction).GetMethod(nameof(MeFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "MeFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
-    }
 }

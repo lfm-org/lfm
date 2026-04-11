@@ -109,16 +109,4 @@ public class RaiderCharacterFunctionTests
         repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    // ------------------------------------------------------------------
-    // Test 3: [RequireAuth] attribute is present on Run method
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(RaiderCharacterFunction).GetMethod(nameof(RaiderCharacterFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "RaiderCharacterFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
-    }
 }

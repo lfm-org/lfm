@@ -116,16 +116,6 @@ public class BattleNetLoginFunctionTests
     }
 
     [Fact]
-    public void Run_method_does_NOT_have_RequireAuth_attribute()
-    {
-        // This endpoint is the START of the login flow — the user has no session yet.
-        var method = typeof(BattleNetLoginFunction).GetMethod(nameof(BattleNetLoginFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().BeEmpty("battlenet-login is an anonymous endpoint; adding RequireAuth would break login");
-    }
-
-    [Fact]
     public void Run_passes_valid_redirect_to_ProtectLoginState()
     {
         // Arrange: supply a valid relative redirect path

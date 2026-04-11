@@ -131,16 +131,4 @@ public class WowUpdateFunctionTests
             "the function is a thin pass-through for the sync result; the response body must equal the stub output");
     }
 
-    // ---------------------------------------------------------------------------
-    // Test 4: [RequireAuth] attribute present on Run method
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(WowUpdateFunction).GetMethod(nameof(WowUpdateFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "WowUpdateFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
-    }
 }

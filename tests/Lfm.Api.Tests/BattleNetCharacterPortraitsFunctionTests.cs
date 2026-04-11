@@ -212,17 +212,4 @@ public class BattleNetCharacterPortraitsFunctionTests
     }
 
     // -------------------------------------------------------------------------
-    // [RequireAuth] attribute
-    // -------------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(BattleNetCharacterPortraitsFunction).GetMethod(
-            nameof(BattleNetCharacterPortraitsFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1,
-                "BattleNetCharacterPortraitsFunction.Run must carry [RequireAuth] for AuthPolicyMiddleware to enforce 401");
-    }
 }

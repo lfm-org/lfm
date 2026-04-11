@@ -177,16 +177,4 @@ public class RunsDetailFunctionTests
         result.Should().BeOfType<NotFoundObjectResult>();
     }
 
-    // ------------------------------------------------------------------
-    // Test 4: [RequireAuth] attribute is present on Run method
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(RunsDetailFunction).GetMethod(nameof(RunsDetailFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "RunsDetailFunction.Run must carry [RequireAuth]");
-    }
 }

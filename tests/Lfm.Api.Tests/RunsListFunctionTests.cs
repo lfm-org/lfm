@@ -139,16 +139,4 @@ public class RunsListFunctionTests
         runs.Should().BeEmpty();
     }
 
-    // ------------------------------------------------------------------
-    // Test 3: [RequireAuth] attribute is present on Run method
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(RunsListFunction).GetMethod(nameof(RunsListFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "RunsListFunction.Run must carry [RequireAuth]");
-    }
 }

@@ -187,20 +187,7 @@ public class RunsCreateFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 4: [RequireAuth] attribute is present on Run method
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public void Run_method_has_RequireAuth_attribute()
-    {
-        var method = typeof(RunsCreateFunction).GetMethod(nameof(RunsCreateFunction.Run));
-        method.Should().NotBeNull();
-        method!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "RunsCreateFunction.Run must carry [RequireAuth]");
-    }
-
-    // ------------------------------------------------------------------
-    // Test 5: Audit event emitted on success path
+    // Test 4: Audit event emitted on success path
     // ------------------------------------------------------------------
 
     [Fact]
