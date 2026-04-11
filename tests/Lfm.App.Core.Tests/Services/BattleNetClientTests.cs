@@ -208,4 +208,40 @@ public class BattleNetClientTests
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task GetPortraitsAsync_returns_null_when_handler_throws_HttpRequestException()
+    {
+        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
+
+        var result = await client.GetPortraitsAsync(
+            new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
+            CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPortraitsAsync_returns_null_when_handler_throws_JsonException()
+    {
+        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new JsonException("bad payload")));
+
+        var result = await client.GetPortraitsAsync(
+            new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
+            CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPortraitsAsync_lets_OutOfMemoryException_propagate()
+    {
+        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new OutOfMemoryException("oom")));
+
+        var act = () => client.GetPortraitsAsync(
+            new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<OutOfMemoryException>();
+    }
 }
