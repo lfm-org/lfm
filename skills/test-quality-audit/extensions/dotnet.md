@@ -15,9 +15,42 @@ Detection glob shortcuts: `**/*.csproj`, `**/*Tests.cs`, `**/*Tests/*.cs`, `**/T
 
 ---
 
+## Test type detection signals
+
+Consumed by [SKILL.md § 0b (Rubric selection)](../SKILL.md#0b-select-the-rubric). Declares which patterns route a .NET test to the integration rubric instead of the unit rubric. A test with no matching integration signal defaults to the unit rubric — explicit and backwards compatible.
+
+### Integration rubric signals
+
+Route the test (or the containing file / project) to the integration rubric when any of these are present:
+
+- **Project-level.** Project name matches `*Integration*.Tests*`, OR the project's `<ProjectReference>` transitive closure contains a project using the ASP.NET Core web SDK (`Microsoft.NET.Sdk.Web`).
+- **Using directive.** `using Microsoft.AspNetCore.Mvc.Testing;` — imports `WebApplicationFactory<T>`.
+- **Construction.** The test constructs or injects any of: `WebApplicationFactory<T>`, `HostBuilder`, `IHostBuilder`, `TestServer`, `DistributedApplicationTestingBuilder` (.NET Aspire), or obtains an `HttpClient` via `factory.CreateClient()`.
+- **Real infrastructure helpers.** `using Testcontainers.*;`, `using WireMock.Server;`, Respawn for per-test cleanup, or a similar helper that spins up a real adjacent dependency.
+- **Emulator endpoints.** A `CosmosClient` / `BlobServiceClient` / `QueueClient` / equivalent constructed against a local emulator endpoint (`https://localhost:8081` for the Cosmos emulator, `http://127.0.0.1:10000` for Azurite, etc.) rather than mocked.
+
+### Unit rubric signals (default)
+
+Route to the unit rubric (the default) when:
+
+- The test instantiates the SUT directly (`new OrderService(mockRepo.Object, ...)`) with `Mock<T>` / `Substitute.For<T>` / `A.Fake<T>()` dependencies, and
+- The file does not import or construct any of the integration-rubric markers above.
+
+### Mixed-file handling
+
+When a single test class contains both patterns — some tests use only mocked dependencies, others construct `WebApplicationFactory<T>` — classify each test method individually. The audit records the chosen rubric per test so the reader can audit the dispatch itself.
+
+### E2E / browser tests
+
+Files importing `Microsoft.Playwright`, `Selenium.WebDriver`, or similar browser-automation libraries are out of scope for both rubrics in this extension. `SKILL.md § 0b` handles them by skipping with a "E2E audit not yet supported" note.
+
+---
+
 ## Framework-specific high-confidence smells (`dotnet.HC-*`)
 
 ### `dotnet.HC-1` — Moq `.Verify(...)` with a specific `Times.Exactly(N)` matching loop count
+
+**Applies to:** `unit, integration`
 
 **Detection:** `\.Verify\(.*Times\.Exactly\(\s*\d+\s*\)\)` where N is a small integer that also appears as a literal collection size in the Arrange section.
 
@@ -42,6 +75,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.HC-2` — Verifying `ILogger.Log(...)` string content as a contract
 
+**Applies to:** `unit, integration`
+
 **Detection:** `\.Verify\(.*ILogger|LoggerMessage|Log\(It\.Is<.*LogLevel` combined with matching on a string literal.
 
 **Smell:** the test asserts that a log line was emitted with a particular string. Unless the log is a *published contract* (audit event, metric, structured telemetry with a schema), the log message is a development aid, not a behavior. Pinning it blocks every refactor that touches the message.
@@ -54,6 +89,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.HC-3` — `Assert.NotNull(x); Assert.Equal(y, x.Prop)` as the entire assertion
 
+**Applies to:** `unit, integration`
+
 **Detection:** an `Assert.NotNull(...)` or `.Should().NotBeNull()` followed by a single property-level assertion, with no further checks on an object whose contract is the whole shape.
 
 **Smell:** the method's observable behavior is the full returned object; the test only pins one field. Most of the contract is unverified.
@@ -63,6 +100,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 ---
 
 ### `dotnet.HC-4` — Mocking an owned concrete class (`new Mock<ConcreteClass>()`)
+
+**Applies to:** `unit` — under the integration rubric, the mock itself is already a scope leak (`I-HC-A1`); this dotnet-specific smell refines the unit-rubric finding.
 
 **Detection:** `new Mock<([A-Z]\w*)>\(\)` where the type is a concrete class (not an interface) in the same assembly as the SUT.
 
@@ -74,6 +113,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.HC-5` — FluentAssertions chain with only `.Should().NotBeNull()` on a complex return
 
+**Applies to:** `unit, integration`
+
 **Detection:** `.Should().NotBeNull()` on a return value, with no further assertions on the object's contents, when the method returns a complex type.
 
 **Smell:** asserts only that the method didn't return `null`, ignoring the actual contract.
@@ -83,6 +124,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 ---
 
 ### `dotnet.HC-6` — Single-line `[Fact]` with structural-only assertion on a nullable method
+
+**Applies to:** `unit, integration`
 
 **Detection:** a `[Fact]`-decorated method whose body is `var result = sut.Method(); Assert.NotNull(result);` (or `.Should().NotBeNull()`), nothing more.
 
@@ -96,6 +139,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.LC-1` — Heavy use of `It.IsAny<T>()` across all parameters in `Setup()`
 
+**Applies to:** `unit` — under the integration rubric, heavy `It.IsAny` usually means the dependency is mocked at all, which is already covered by `I-HC-A1` / `I-HC-B5`.
+
 **Detection:** `Setup\(.*It\.IsAny<.*>\(\).*It\.IsAny<.*>\(\)` with 3+ `It.IsAny` in one call.
 
 **Why low-confidence:** sometimes legitimate (testing a code path that doesn't care about specific args). Often hides intent — the author didn't know or didn't want to state what the collaborator should receive.
@@ -103,6 +148,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 ---
 
 ### `dotnet.LC-2` — `[Theory]` with `[InlineData]` where all cases produce the same expected value
+
+**Applies to:** `unit, integration` — refines core `LC-8` / `I-LC-4`.
 
 **Detection:** multiple `[InlineData(...)]` on a `[Theory]` where inspection shows every case asserts the same expected literal.
 
@@ -112,6 +159,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.LC-3` — bUnit `.MarkupMatches(...)` against a large HTML literal
 
+**Applies to:** `unit` — component-test specific (bUnit).
+
 **Detection:** `\.MarkupMatches\(` followed by a multi-line string literal longer than ~5 lines.
 
 **Why low-confidence:** bUnit's `MarkupMatches` is the right tool for component tests, but a large literal with no spec reference is a snapshot test pinning unspecified output — characterization. Short literals asserting specific user-visible text are fine.
@@ -120,6 +169,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.LC-4` — SUT constructed via reflection or `Activator.CreateInstance`
 
+**Applies to:** `unit, integration`
+
 **Detection:** `Activator\.CreateInstance|typeof\(.*\)\.GetConstructor` in Arrange.
 
 **Why low-confidence:** usually means the SUT has inaccessible constructors or the test is reaching into internals.
@@ -127,6 +178,8 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 ---
 
 ### `dotnet.LC-5` — `[Trait("Category", "Slow")]` on a unit test
+
+**Applies to:** `unit` — under the integration rubric, slow is expected and this trait is benign.
 
 **Detection:** `\[Trait\("Category",\s*"Slow"` or `"LongRunning"` on a class/method in a project named `*.Tests` (not `*.E2E` / `*.Integration`).
 
@@ -138,11 +191,15 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.POS-1` — `[Theory]` with `TheoryData<...>` or `MemberData` and *varied* expected values
 
+**Applies to:** `unit, integration`
+
 **Why positive:** the parameterization covers equivalence classes with meaningful variation, not just repetition.
 
 ---
 
 ### `dotnet.POS-2` — `FluentAssertions` `.BeEquivalentTo(expected)` against a spec-derived expected object
+
+**Applies to:** `unit, integration`
 
 **Why positive:** asserts the full shape of the return value, not just a single field. When the expected object is built from a fixture or spec, the test is specification.
 
@@ -150,17 +207,23 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.POS-3` — xUnit `IClassFixture` / NUnit `[OneTimeSetUp]` used for expensive shared setup *without* mutable state
 
+**Applies to:** `unit, integration` — especially valuable under the integration rubric, where expensive fixtures like `WebApplicationFactory<T>` are the norm and shared immutable setup is the correct way to amortize them.
+
 **Why positive:** shared setup is unavoidable when the fixture is genuinely expensive (e.g., DI container, data protection provider). Without mutable state, it doesn't cause test interdependence.
 
 ---
 
 ### `dotnet.POS-4` — Assertions on structured log properties by key, not rendered string
 
+**Applies to:** `unit, integration`
+
 **Why positive:** treats the log entry as a published contract (audit event, metric) with a stable schema. Pattern typically uses a capture-helper like `TestLogger<T>` rather than `Mock<ILogger<T>>`.
 
 ---
 
 ### `dotnet.POS-5` — Capture helper (test double) instead of `Mock<ILogger<T>>`
+
+**Applies to:** `unit, integration`
 
 **Detection:** a `TestLogger<T>`, `CapturingLogger`, `FakeLogger` (from `Microsoft.Extensions.Logging.Testing`), or similar capture-style helper in Arrange.
 
@@ -170,9 +233,74 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ### `dotnet.POS-6` — Use of `TimeProvider` (.NET 8+) with a fixed instant
 
+**Applies to:** `unit, integration`
+
 **Detection:** `new FakeTimeProvider(...)` or an injected `TimeProvider` with a pinned `DateTimeOffset`.
 
 **Why positive:** the idiomatic .NET 8+ way to make time-sensitive code deterministic. Not an `HC-11` smell.
+
+---
+
+## Framework-specific integration smells (`dotnet.I-*`)
+
+These smells apply only under the integration rubric (step 0b selected `integration`). They refine core integration codes (`I-HC-A*`, `I-HC-B*`) with .NET-specific detection hints and rewrites.
+
+### `dotnet.I-HC-A1` — Shared `WebApplicationFactory<T>` via `IClassFixture<>` with no per-test data scoping
+
+**Applies to:** `integration` — refines core `I-HC-A2` / `I-HC-A4`.
+
+**Detection:** a test class declares `IClassFixture<WebApplicationFactory<TProgram>>` (or a custom factory subclass) and uses the injected factory's `CreateClient()` across multiple test methods without per-test data scoping (unique keys, fresh DB scope, or test-specific `WebApplicationFactoryClientOptions`).
+
+**Smell:** the factory amortizes expensive host construction (which is a positive — see `dotnet.POS-3`) but the data seen by each test is whatever the previous test left behind. Tests pass in isolation and fail in suite, or vice versa.
+
+**Example (smell):**
+```csharp
+public class OrdersApiTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly HttpClient _client;
+    public OrdersApiTests(WebApplicationFactory<Program> factory)
+        => _client = factory.CreateClient();
+
+    [Fact]
+    public async Task Post_Order_Creates_Row()
+    {
+        var response = await _client.PostAsJsonAsync("/orders", new { sku = "A", qty = 1 });
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task Get_Orders_Returns_Seeded_Rows()
+    {
+        var orders = await _client.GetFromJsonAsync<List<Order>>("/orders");
+        orders.Should().HaveCount(1); // depends on the Post test running first
+    }
+}
+```
+
+**Rewrite (intent):** scope data per test. Either generate a unique key per test and assert on it, or use `IAsyncLifetime.InitializeAsync` to create a fresh per-test scope (e.g. a per-test tenant id, a per-test Cosmos partition key, or a Respawn checkpoint reset).
+
+---
+
+### `dotnet.I-HC-B1` — `factory.CreateClient()` against an auth-protected endpoint with no `Authorization` header or `TestAuthHandler`
+
+**Applies to:** `integration` — refines core `I-HC-B7`.
+
+**Detection:** the test calls `factory.CreateClient()` and then exercises an endpoint that uses `[Authorize]` (or equivalent policy) without either (a) adding an `Authorization` header to the request, (b) configuring a `TestAuthHandler` via `factory.WithWebHostBuilder(b => b.ConfigureTestServices(s => s.AddAuthentication("Test").AddScheme<...>))`, or (c) asserting on `401`/`403` for a negative case.
+
+**Smell:** the test exercises only the happy path through real middleware but never validates auth behavior. The test will "pass" for any implementation that lets anonymous requests through, including a broken one.
+
+**Example (smell):**
+```csharp
+[Fact]
+public async Task Get_Admin_Returns_Ok()
+{
+    var client = _factory.CreateClient();
+    var response = await client.GetAsync("/admin/users");
+    response.StatusCode.Should().Be(HttpStatusCode.OK); // happens to pass because dev auth is permissive
+}
+```
+
+**Rewrite (intent):** cover the full matrix per `integration-testing.md §5.2 I-HC-B7` — anonymous (expect `401`), valid token (expect `200`), expired token (expect `401`), insufficient scope (expect `403`). Use a `TestAuthHandler` scheme registered via `factory.WithWebHostBuilder` so the test controls exactly which principal is presented.
 
 ---
 
@@ -186,7 +314,7 @@ Patterns that look like core smells but are idiomatic in .NET and must not be fl
 
 - **Do not flag `LC-1`** (mocking same-layer code) when the mocked type is an interface owned by the tested module *and* the project has a documented "test via seams" convention (e.g. a `CLAUDE.md` or `README.md` stating that interfaces exist specifically for testability). Ask before flagging if ambiguous.
 
-- **Do not flag `LC-7`** (excessive setup) when the setup is constructing an `IHost`, `WebApplicationFactory<T>`, `HostBuilder`, or `TestServer`. Integration-style unit tests need that setup by construction; a long Arrange block there is expected.
+- **Do not flag `LC-7`** (excessive setup) when the setup is constructing an `IHost`, `WebApplicationFactory<T>`, `HostBuilder`, or `TestServer`. Under the new dispatch model (see [SKILL.md § 0b (Rubric selection)](../SKILL.md#0b-select-the-rubric)), these are **routing signals into the integration rubric** — tests using them should be audited under the integration rubric where heavy setup is expected, not the unit rubric at all. This carve-out stays in force as a **safety net for cases where the dispatch is uncertain**: if a test somehow reaches the unit rubric with one of these setups, suppress the `LC-7` finding rather than flagging a test that was misrouted.
 
 - **Do not flag `HC-10`** (snapshot tests pinning unspecified output) when the snapshot target is a JSON response whose schema is published via an OpenAPI document in the repo, a gRPC proto, or an equivalent contract document. Reference the contract in the carve-out decision.
 
