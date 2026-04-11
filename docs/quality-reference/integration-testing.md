@@ -13,7 +13,7 @@ This document covers integration tests in two sub-lanes that share principles bu
 
 Browser-driven full-stack tests are explicitly out of scope; they belong in the end-to-end lane and warrant their own reference.
 
-This document does not analyze any specific codebase. It states principles, smells, and rubrics. §11 is a short illustration showing how the rules land in this repository.
+This document does not analyze any specific codebase. It states principles, smells, and rubrics.
 
 ---
 
@@ -43,7 +43,7 @@ A test labeled "integration" without a stateable scope is a smell regardless of 
 Synthesized across Fowler, Khorikov, Shore, Beck, the Google testing book, and Microsoft Learn.
 
 ### 2.1 Defensible scope
-The test names the seam it exercises and the reason that seam needs a real dependency. "It's an integration test" is not a scope. "It verifies that the order repository's `FindByCustomer` query returns rows in the order Cosmos returns them under a partition key scan" is.
+The test names the seam it exercises and the reason that seam needs a real dependency. "It's an integration test" is not a scope. "It verifies that the order repository's `FindByCustomer` query returns rows in the order the database returns them under a partition-key scan" is.
 
 ### 2.2 Hermetic
 Every piece of state the test reads, it either created or set up explicitly. No reliance on data left by a previous test, a previous run, an external service, or wall-clock time. A hermetic test can run twice in a row, in parallel with itself, and offline, and still produce the same result.
@@ -143,7 +143,7 @@ Codes are prefixed `I-` to distinguish from the unit-testing rubric, which uses 
 2. **`I-HC-A2`** — Shared seed data mutated across tests. Cross-test pollution by construction.
 3. **`I-HC-A3`** — Test depends on migration ordering without declaring it. Reorder the file list, watch the suite collapse.
 4. **`I-HC-A4`** — Shared container with no per-test data scoping. The first test's writes are the second test's preconditions.
-5. **`I-HC-A5`** — `Thread.Sleep`, `WaitFor`, retry-until-green loops, polling with a wall-clock budget. Flake in slow motion.
+5. **`I-HC-A5`** — Wall-clock sleeps, polling budgets, retry-until-green loops, any `wait-for` primitive whose exit condition is the elapsed clock rather than a state predicate. Flake in slow motion.
 6. **`I-HC-A6`** — Test asserts on log text that is not a published audit event. Couples the test to a string.
 7. **`I-HC-A7`** — Migration test runs against an empty database and asserts nothing about row state. Proves the migration parses; nothing more.
 8. **`I-HC-A8`** — Snapshot of a full entity graph with no schema source. Pure characterization at the integration layer.
@@ -172,7 +172,7 @@ Codes are prefixed `I-` to distinguish from the unit-testing rubric, which uses 
 
 ### 5.4 Positive signals (reward these)
 
-1. **Test name reads as a requirement sentence and names the seam.** `Persists_Order_To_Cosmos_When_Checkout_Succeeds` beats `OrderRepositoryIntegrationTest`.
+1. **Test name reads as a requirement sentence and names the seam.** `Persists_Order_To_Database_When_Checkout_Succeeds` beats `OrderRepositoryIntegrationTest`.
 2. **Expected value has external provenance.** Spec, OpenAPI, JSON Schema, RFC, consumer pact, ticket, domain invariant.
 3. **Narrow by default.** One seam per test. Broad tests carry a comment explaining why.
 4. **Per-test data ownership.** Factory + cleanup. No shared mutable fixture.
@@ -201,7 +201,7 @@ Flake is the second-biggest failure mode after scope confusion, and the two are 
 
 - **Shared state.** Two tests reading or writing the same row, key, blob, or topic.
 - **Container lifetime.** A container reused across tests without resetting the state the test depends on.
-- **Time.** `DateTime.Now`, `Sleep`, retry budgets measured in wall-clock seconds.
+- **Time.** Reads of the wall clock, wall-clock sleeps, retry budgets measured in seconds rather than in state transitions.
 - **Randomness.** Unseeded RNGs, GUIDs in assertion positions.
 - **Network.** External HTTP calls inside a test that claims to be hermetic.
 - **Test ordering.** Implicit or explicit assumptions about which test ran first.
@@ -225,7 +225,7 @@ Per-test factories beat shared seed data. Shared seed data starts as a convenien
 ### 8.1 Signals static analysis can use
 
 - **Missing assertions** — a test that calls the SUT and asserts nothing observable is detectable without executing the test.
-- **Sleeps and polling loops** — `Thread.Sleep`, `Task.Delay`, `WaitFor` with a budget, retry-until-green — all detectable as patterns.
+- **Sleeps and polling loops** — any wall-clock sleep, fixed-budget wait, or retry-until-green loop — all detectable as patterns.
 - **Snapshot usage** — `MatchesSnapshot`, `Verify`, golden file diffs — high-confidence when the snapshot has no schema source.
 - **Same-module mocking** — mocks of types declared in the same project as the SUT signal scope confusion.
 - **Cross-test data leakage patterns** — shared fixtures, missing cleanup, hardcoded keys, fixture mutation.
@@ -288,19 +288,7 @@ Distilled from §2–§7, written as directives an audit agent can apply directl
 
 ---
 
-## 11. Illustration: how this applies in this repo
-
-A short, deliberately tight section. The principles above are portable; this section is the only repo-specific part of the document.
-
-- **Sub-lane A lives today in [tests/Lfm.Api.Tests/](../../tests/Lfm.Api.Tests/).** Any test in that project that constructs `WebApplicationFactory<T>`, `HostBuilder`, or `TestServer` and exercises a real seam (Cosmos emulator, Azurite, Functions isolated host) is an in-process integration test under this rubric — and the heavy arrange block that comes with those types is *expected*, not a smell. The dotnet audit extension at [skills/test-quality-audit/extensions/dotnet.md](../../skills/test-quality-audit/extensions/dotnet.md) already carves out these three types from the "excessive setup" smell for exactly this reason.
-- **Sub-lane B is not yet present in this repo.** When it lands, it will exercise the deployed Functions artifact through its public HTTP contract. Until then, treat any contract-shaped assertion in `tests/Lfm.Api.Tests/` as sub-lane A.
-- **Schema / migration tests** apply when the repo's migration runner gains migrations. The expand-only policy documented in [CLAUDE.md](../../CLAUDE.md) — "Database Migrations" section — dictates that migration tests must verify *both* that new code reads the migrated state *and* that old code (the version about to be replaced) still reads the migrated state. A migration test that runs against an empty database (`I-HC-A7`) is the most likely smell to find in this lane.
-- **Browser end-to-end tests in [tests/Lfm.E2E/](../../tests/Lfm.E2E/)** are out of scope for this document. They are governed by the end-to-end lane in CLAUDE.md's testing table, not by this rubric.
-- **The unit-testing rubric** at [unit-testing.md](unit-testing.md) governs anything in `tests/Lfm.App.Core.Tests/` and the non-integration-style tests in `tests/Lfm.Api.Tests/` and `tests/Lfm.App.Tests/`. The two rubrics compose: a test is unit *or* integration, never both, and the audit picks the rubric based on the seam the test actually exercises rather than the project it lives in.
-
----
-
-## 12. Sources
+## 11. Sources
 
 ### Martin Fowler
 - [IntegrationTest](https://martinfowler.com/bliki/IntegrationTest.html)
@@ -330,7 +318,7 @@ A short, deliberately tight section. The principles above are portable; this sec
 - [Test Desiderata](https://testdesiderata.com/) — characteristics that apply equally to integration tests; *SlowTest* applies double.
 
 ### Microsoft Learn
-- [Integration tests in ASP.NET Core](https://learn.microsoft.com/aspnet/core/test/integration-tests) — `WebApplicationFactory<T>`, `TestServer`, the in-process integration pattern this repo's sub-lane A uses.
+- [Integration tests in ASP.NET Core](https://learn.microsoft.com/aspnet/core/test/integration-tests) — a representative in-process integration pattern for sub-lane A.
 - [Test ASP.NET Core MVC apps](https://learn.microsoft.com/dotnet/architecture/modern-web-apps-azure/test-asp-net-core-mvc-apps)
 
 ### Testcontainers

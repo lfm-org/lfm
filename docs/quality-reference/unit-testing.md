@@ -100,8 +100,8 @@ Split into high-confidence (clear smell) and low-confidence (worth flagging, req
 6. **Over-specified interaction assertions.** `verify(dep.method(a, b, c), times(3))` where the count and args reflect the current loop structure rather than an observable outcome.
 7. **Names that describe HOW, not WHAT.** `Calls_Repository_Save_With_Entity` vs `Persists_Order_When_Checkout_Succeeds`. The former locks implementation; the latter states intent.
 8. **Test depends on execution order.** Static mutable state, shared fixtures without reset, reliance on alphabetical ordering.
-9. **Disabled or stubbed-out assertions.** `assertTrue(true)`, `expect(1).toBe(1)`, commented-out assertions, `skip()` with no linked issue.
-10. **Snapshot tests pinning unspecified output.** `toMatchSnapshot()` on rendered HTML or JSON with no accompanying spec — pure characterization.
+9. **Disabled or stubbed-out assertions.** Trivially-true assertions (`assert(true)`, `assertEquals(1, 1)`), commented-out assertions, skip directives with no linked issue.
+10. **Snapshot / golden-file tests pinning unspecified output.** A snapshot assertion on rendered HTML, JSON, or any serialized form with no accompanying spec — pure characterization, regardless of which framework's snapshot helper is used.
 11. **Mocks of the clock, filesystem, or network that return hardcoded "real" values.** Usually indicates the test was calibrated against a specific run.
 
 ### 5.2 Low-confidence smells (flag, ask for context)

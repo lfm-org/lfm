@@ -37,7 +37,7 @@ The rubric is deliberately strict on both axes because E2E is where test-suite d
 
 - **User journey** — a sequence of user-observable steps that together accomplish a stated task. The unit of specification for sub-lane F.
 - **Accessible-name selector** — a locator derived from what a user (or assistive technology) would perceive: role, label, placeholder, visible text. The opposite of an implementation selector (CSS class, xpath, internal id).
-- **Condition-based wait** — a wait that resolves when a DOM state becomes true (`WaitForSelector`, `Expect().ToBeVisible()`, `WaitForURL`). The opposite of a wall-clock wait (`Sleep`, `Delay`, `WaitForTimeout`).
+- **Condition-based wait** — a wait that resolves when an observable state becomes true: an element is visible, a URL matches, a network response arrives, a predicate holds. The opposite of a wall-clock wait, which resolves when a fixed interval has elapsed regardless of page state.
 - **Hermetic** — the test brings every piece of state it needs with it, depends on nothing external, and produces the same result on every run. Same definition as in [integration-testing.md §1](integration-testing.md); doubly load-bearing at the E2E layer because the browser adds state surfaces the integration layer does not have (cookies, localStorage, sessionStorage, indexedDB, service workers).
 - **Cold vs. warm load** — whether the navigation under test is a first visit (no cache, no service worker, no HTTP/2 push warm-up) or a repeat visit. Perf budgets that ignore the distinction are comparing noise.
 - **Web Vitals** — the published Google metric set for page performance: LCP (Largest Contentful Paint), INP (Interaction to Next Paint), CLS (Cumulative Layout Shift). The canonical external source for perf-budget provenance in sub-lane P.
@@ -56,10 +56,10 @@ The assertion is something a user can verify: a page reached, a piece of content
 The test name and body should read as a sentence a product owner would recognize. If the name describes *clicks and keystrokes*, the test is pinning the UI. If it describes *a task a user is trying to accomplish*, the test is specifying a journey.
 
 ### 2.3 Uses accessible-name selectors
-`GetByRole("button", { name: "Sign in" })` is specification. `GetByTestId("btn-xyz-42")` is a bridge. `GetByCssSelector(".sidebar > ul > li:nth-child(3) a")` is characterization — it will break on every layout refactor and is indistinguishable from a DOM snapshot. Accessible-name selectors double as an implicit accessibility smoke test: if the selector cannot find the element, neither can a screen reader.
+A locator named by accessible role plus accessible name ("the button labelled *Sign in*") is specification. A locator that looks up a dedicated `data-testid` attribute is a bridge — acceptable when no accessible name is available, but it encodes no user-facing meaning. A deep CSS or xpath path (`.sidebar > ul > li:nth-child(3) a`) is characterization: it will break on every layout refactor and is indistinguishable from a DOM snapshot. Accessible-name selectors double as an implicit accessibility smoke test: if the selector cannot find the element, neither can a screen reader.
 
 ### 2.4 Waits by condition, never by wall clock
-`Sleep(500)`, `WaitForTimeout(2000)`, and retry-until-green loops are Beck's *SlowTest* plus Khorikov's *flake in slow motion* (see [integration-testing.md §5.1](integration-testing.md)). At the E2E layer they are doubly disqualifying because the browser exposes real condition-based waits (`Expect(...).ToBeVisible()`, `WaitForURL`, `WaitForResponse`). If the framework cannot express the condition the test is waiting for, that itself is a finding.
+Fixed-duration sleeps and retry-until-green loops are Beck's *SlowTest* plus Khorikov's *flake in slow motion* (see [integration-testing.md §5.1](integration-testing.md)). At the E2E layer they are doubly disqualifying because the browser exposes real state predicates — element visibility, URL match, network response, DOM-condition polling with a condition rather than a clock. If the framework cannot express the condition the test is waiting for, that itself is a finding.
 
 ### 2.5 Hermetic, with per-test data and session ownership
 Every test owns its own user account, its own browser context, its own cookies and storage. No test reads state another test wrote. No test inherits a session or a logged-in state from a sibling. Cleanup runs on failure as well as on success. See [integration-testing.md §7](integration-testing.md) for the shared ruleset; the E2E layer adds *browser state* to the list of surfaces that must be reset.
@@ -147,11 +147,11 @@ High-confidence smells are split by sub-lane because the failure modes are incom
 
 1. **`E-HC-F1`** — No user-observable assertion. The test clicks through a flow and asserts only a URL match or an element's presence. The journey could have silently failed in the middle and the test would still pass.
 2. **`E-HC-F2`** — Implementation selectors: CSS class, xpath, internal id, test-id without accessible-name fallback. Breaks on any layout refactor, catches no user-visible regression.
-3. **`E-HC-F3`** — Hardcoded wall-clock waits: `Sleep`, `Delay`, `WaitForTimeout` with a fixed budget, retry-until-green loops. Flake by construction. (Analogue of [`I-HC-A5`](integration-testing.md).)
+3. **`E-HC-F3`** — Hardcoded wall-clock waits: sleeps, fixed-duration delays, fixed-budget wait primitives, retry-until-green loops. Flake by construction. (Analogue of [`I-HC-A5`](integration-testing.md).)
 4. **`E-HC-F4`** — Happy path only. One valid user, one valid input, no error state, no edge case. The negative space is where UI bugs live — and E2E is often the only layer that can see them.
 5. **`E-HC-F5`** — Shared browser context, cookies, localStorage, or sessionStorage across tests. Cross-test pollution by construction. (Browser-layer analogue of [`I-HC-A2`](integration-testing.md).)
 6. **`E-HC-F6`** — Test name describes UI steps (`Clicks_Login_Button_Then_Types_Email`) instead of user outcomes (`Anonymous_User_Signs_In`). The name is the first thing the audit checks against the provenance question in §1.
-7. **`E-HC-F7`** — DOM snapshot with no published schema: `toMatchSnapshot()` on innerHTML, saved-HTML diff, serialized component tree. Characterization at the most expensive layer in the suite.
+7. **`E-HC-F7`** — DOM snapshot with no published schema: a saved-HTML diff, a serialized component tree, or any golden-file assertion against rendered markup with no spec to anchor it. Characterization at the most expensive layer in the suite.
 8. **`E-HC-F8`** — Pixel / visual regression against a baseline with no review gate, no owner, and no drift process. The baseline is a photograph of today's build.
 9. **`E-HC-F9`** — Asserts against third-party widget internals the test does not own — OAuth provider DOM, payment iframe, analytics SDK state. The widget will change on a schedule the test cannot control.
 10. **`E-HC-F10`** — Test exercises only what an integration test already proves: HTTP contract, status codes, response body shape, header values. Move to sub-lane B of the integration rubric.
@@ -189,13 +189,13 @@ High-confidence smells are split by sub-lane because the failure modes are incom
 3. **`E-LC-3`** — Parameterized test where every case asserts the same thing.
 4. **`E-LC-4`** — Full stack launched for a one-line DOM-text assertion. May be a critical smoke test; may be incidental coverage with no stated outcome.
 5. **`E-LC-5`** — Page Object with >20 methods covering multiple unrelated pages. Likely a god-object carrying multiple lanes' concerns.
-6. **`E-LC-6`** — Test's only wait is a navigation wait (`WaitForURL`) with no subsequent content check. Navigation completed; whether the page loaded is unverified.
+6. **`E-LC-6`** — Test's only wait is a navigation predicate (URL matches or navigation event fires) with no subsequent content check. Navigation completed; whether the page loaded and rendered is unverified.
 
 ### 5.6 Positive signals (reward these) — `E-POS-1..E-POS-9`
 
 1. **`E-POS-1`** — Test name reads as a user story. `Anonymous_User_Signs_In_And_Reaches_Authenticated_Home` beats `LoginFlowTest`.
-2. **`E-POS-2`** — Accessible-name selectors: `GetByRole`, `GetByLabel`, `GetByText`, `GetByPlaceholder`. No raw CSS or xpath in the test body.
-3. **`E-POS-3`** — Condition-based waits only. No `Sleep`, `Delay`, `WaitForTimeout` anywhere in the test or its helpers.
+2. **`E-POS-2`** — Locators derived from accessible role, accessible name, visible text, label association, or placeholder. No raw CSS or xpath in the test body.
+3. **`E-POS-3`** — Condition-based waits only. No wall-clock sleeps, fixed-duration delays, or fixed-budget wait primitives anywhere in the test or its helpers.
 4. **`E-POS-4`** — Perf budget cited against Web Vitals, a RUM baseline, or an SLO with a link in the test or a peer comment.
 5. **`E-POS-5`** — A11y audit cites a WCAG conformance level, runs after interaction as well as at load, and any rule suppression has a linked justification.
 6. **`E-POS-6`** — Per-test data, user, and session ownership. Each test creates its own fixtures and owns its own browser context.
@@ -251,9 +251,9 @@ A quarantined E2E test is a scope failure the suite has learned to ignore. Quara
 
 ### 8.1 Signals static analysis can use
 
-- **Wait primitives.** `Sleep`, `Delay`, `WaitForTimeout`, retry loops — detectable as patterns.
+- **Wait primitives.** Wall-clock sleeps, fixed-duration delays, fixed-budget wait calls, retry-until-green loops — detectable as patterns.
 - **Selector style.** Raw CSS selectors, xpath, test-ids-without-accessible-name — detectable lexically.
-- **Snapshot usage.** `toMatchSnapshot`, `MatchSnapshot`, saved-HTML diff, visual-regression calls — high-confidence when no baseline workflow is referenced.
+- **Snapshot usage.** Snapshot/golden-file assertions, saved-HTML diffs, visual-regression calls — high-confidence when no baseline workflow is referenced.
 - **Assertion target.** Whether the test asserts on user-observable output or on URLs/DOM presence only.
 - **Missing assertions.** A test that drives a flow and never calls an `Expect` / `Should` / `Assert` is detectable without execution.
 - **Shared-state patterns.** Static `_browserContext`, test-class-level cookies, fixture reuse across unrelated tests — detectable from lifecycle hooks.
