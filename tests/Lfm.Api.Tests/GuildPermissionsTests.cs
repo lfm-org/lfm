@@ -289,4 +289,125 @@ public class GuildPermissionsTests
 
         result.Should().BeFalse("default behaviour is that only rank 0 can delete guild runs");
     }
+
+    // ─── Stale-roster boundary (1 hour TTL) ─────────────────────────────────
+
+    [Theory]
+    [InlineData(59, true)]   // 59 minutes old → fresh
+    [InlineData(60, false)]  // exactly 1 hour → stale boundary triggers (TimeSpan >= TimeSpan equality)
+    [InlineData(61, false)]  // 61 minutes old → stale
+    public async Task CanCreateGuildRunsAsync_treats_one_hour_as_the_stale_boundary(int ageMinutes, bool expected)
+    {
+        // Pin the boundary at exactly 1 hour: ageMinutes==60 must be considered stale
+        // because the production code uses (UtcNow - fetchedAt) >= TimeSpan.FromHours(1).
+        var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-ageMinutes));
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().Be(expected, $"a roster fetched {ageMinutes} minutes ago should be {(expected ? "fresh" : "stale")}");
+    }
+
+    [Theory]
+    [InlineData(59, true)]
+    [InlineData(60, false)]
+    [InlineData(61, false)]
+    public async Task CanSignupGuildRunsAsync_treats_one_hour_as_the_stale_boundary(int ageMinutes, bool expected)
+    {
+        var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-ageMinutes));
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(59, true)]
+    [InlineData(60, false)]
+    [InlineData(61, false)]
+    public async Task CanDeleteGuildRunsAsync_treats_one_hour_as_the_stale_boundary(int ageMinutes, bool expected)
+    {
+        var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-ageMinutes));
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+
+        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().Be(expected);
+    }
+
+    // ─── Mixed explicit-vs-default rank entries ─────────────────────────────
+
+    [Fact]
+    public async Task CanCreateGuildRunsAsync_falls_back_to_default_when_rank_has_no_explicit_entry()
+    {
+        // Rank 5 has no permission entry — must fall back to the default rule
+        // (rank 0 only). Locks down the FirstOrDefault → default code path that
+        // mutation testing flagged at GuildPermissions L99.
+        var guild = MakeGuildDoc(
+            members: [
+                new BlizzardGuildRosterMember(
+                    Character: new BlizzardGuildRosterMemberCharacter(
+                        Name: "Member",
+                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Id: 1),
+                    Rank: 5)
+            ],
+            rankPermissions: [
+                // Explicit entries for rank 0 and rank 2 only — rank 5 is not listed.
+                new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
+                new GuildRankPermission(Rank: 2, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: false),
+            ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+
+        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse("rank 5 has no explicit entry; default forbids non-zero ranks from creating runs");
+    }
+
+    [Fact]
+    public async Task CanSignupGuildRunsAsync_falls_back_to_default_when_rank_has_no_explicit_entry()
+    {
+        // Same shape — for signup the default is true for any matched rank.
+        var guild = MakeGuildDoc(
+            members: [
+                new BlizzardGuildRosterMember(
+                    Character: new BlizzardGuildRosterMemberCharacter(
+                        Name: "Member",
+                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Id: 1),
+                    Rank: 5)
+            ],
+            rankPermissions: [
+                new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
+                new GuildRankPermission(Rank: 2, CanCreateGuildRuns: false, CanSignupGuildRuns: false, CanDeleteGuildRuns: false),
+            ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+
+        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeTrue("rank 5 has no explicit entry; default permits signup for all ranks");
+    }
+
+    [Fact]
+    public async Task CanDeleteGuildRunsAsync_falls_back_to_default_when_rank_has_no_explicit_entry()
+    {
+        var guild = MakeGuildDoc(
+            members: [
+                new BlizzardGuildRosterMember(
+                    Character: new BlizzardGuildRosterMemberCharacter(
+                        Name: "Member",
+                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Id: 1),
+                    Rank: 5)
+            ],
+            rankPermissions: [
+                new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
+            ]);
+        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+
+        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+
+        result.Should().BeFalse("rank 5 has no explicit entry; only rank 0 can delete by default");
+    }
 }
