@@ -1,21 +1,36 @@
 ---
 name: test-quality-audit
-description: Use when auditing unit test quality — distinguishing specification tests from characterization tests, surfacing coupling smells, and producing per-test findings with severity and recommended actions. Supports quick single-file / PR-diff audits and deep suite-wide audits, with pluggable per-stack extensions for framework-specific smells.
+description: Use when auditing unit or integration test quality — distinguishing specification tests from characterization tests (unit) or incidentally-scoped tests (integration), surfacing coupling and scope smells, and producing per-test findings with severity and recommended actions. Dispatches on detected test type. Supports quick single-file / PR-diff audits and deep suite-wide audits, with pluggable per-stack extensions for framework-specific smells.
 ---
 
 # Test Quality Audit
 
 ## Overview
 
-Audit unit tests for quality, with the central question for every test:
+Audit tests for quality. The skill supports two rubrics and dispatches on detected test type in step 0b of the workflow:
 
-> Could this test have been written from a stated requirement alone, without having seen the implementation?
+- **Unit rubric** — for unit tests and component tests. The central question for every test:
 
-If no, it is a **characterization test** — it locks in current behavior, including any bugs present at the time of writing. A characterization test may still be valuable as legacy scaffolding, but it must be labeled as such. If it is unlabeled and sits alongside specification tests, it is a quality smell.
+  > Could this test have been written from a stated requirement alone, without having seen the implementation?
 
-**Read [../../docs/quality-reference/unit-testing.md](../../docs/quality-reference/unit-testing.md) before auditing.** That document is the canonical rubric: principles, full rationale, and the complete smell list. This skill is the *workflow* for applying the rubric.
+  If no, it is a **characterization test** — it locks in current behavior, including any bugs present at the time of writing. A characterization test may still be valuable as legacy scaffolding, but it must be labeled as such. If it is unlabeled and sits alongside specification tests, it is a quality smell.
 
-**Read `references/smell-catalog.md`** for the compact code list used in reports (`HC-*`, `LC-*`, `POS-*`). Audit findings cite smells by code, not by restating them.
+- **Integration rubric** — for in-process integration tests and out-of-process contract tests. The central question for every test:
+
+  > What is this test integrating, and why couldn't a unit test prove the same thing?
+
+  If the answer is *nothing new*, the test is a slower, flakier duplicate of a unit test and should be deleted or moved. If the answer is *everything at once*, the test is unfocused and has no defensible scope. A test labeled "integration" without a stateable scope is a smell regardless of how green it runs.
+
+The skill selects the rubric in [§ 0b (Rubric selection)](#0b-select-the-rubric) based on test type detection. The central question applied to any given test is whichever one applies to the selected rubric.
+
+**Before auditing, read the selected rubric:**
+
+- For **unit rubric** audits: [../../docs/quality-reference/unit-testing.md](../../docs/quality-reference/unit-testing.md) — principles, full rationale, and the complete unit smell list.
+- For **integration rubric** audits: [../../docs/quality-reference/integration-testing.md](../../docs/quality-reference/integration-testing.md) — principles, sub-lane distinctions (in-process vs out-of-process contract), and the complete integration smell list.
+
+Each document is the canonical rubric for its test type. This skill is the *workflow* for applying the selected rubric.
+
+**Read `references/smell-catalog.md`** for the compact code list used in reports. The unit rubric uses `HC-*`, `LC-*`, `POS-*`; the integration rubric uses `I-HC-A*`, `I-HC-B*`, `I-LC-*`, `I-POS-*`. Audit findings cite smells by code, not by restating them.
 
 ## Audit Mode
 
@@ -83,18 +98,36 @@ If a carve-out and a core smell conflict, the carve-out wins *only* for the exac
 ## Quick Mode Workflow
 
 0. **Detect stack and load extensions.** Glob for project manifests (`*.csproj`, `package.json`, `pyproject.toml`, etc.) within the audit target. Read matching extension files. Announce which extensions loaded.
+
+### 0b. Select the rubric.
+
+After loading extensions, detect whether the audit target contains unit tests, integration tests, or a mix. Use the `Test type detection signals` section of each loaded extension. Signals in order of precedence:
+
+1. **Explicit user instruction.** If the user said "audit the integration tests in X" or equivalent, use that.
+2. **Project-level signal.** Project name containing `Integration`, `E2E`, or `IntegrationTests`; or a transitive `<ProjectReference>` closure that names the integration-rubric SDK for the stack (e.g. `Microsoft.NET.Sdk.Web` for .NET). A `*.Tests` project with no integration markers defaults to **unit**.
+3. **File-level signal (from extension).** Presence of integration-routing types such as (for .NET) `WebApplicationFactory<T>`, `HostBuilder`, `TestServer`, `DistributedApplicationTestingBuilder`, Testcontainers clients, or emulator-endpoint `CosmosClient` / `BlobServiceClient` instances routes the file to the integration rubric.
+4. **Test-level signal.** A mixed file's tests are classified per-test using the same extension signals.
+5. **Fallback.** If none of the above apply clearly, ask the user which rubric to apply. Do not guess.
+
+Browser / E2E tests detected in the target are skipped with a note "E2E audit is not yet supported" — neither rubric is applied to them.
+
+Record which rubric was selected for each project / file / test. Deep-mode output includes this record in the suite assessment so the reader can audit the dispatch itself.
+
 1. **Identify the target.** A file, a glob, a set of changed files from a PR diff, or a single test within a file.
 2. **Read supporting infrastructure first.** Before reading individual tests, Read any test base classes, fixtures, or custom helpers referenced by the target tests. This prevents flagging idiomatic uses of a helper as a smell.
 3. **For each test case:**
    - Read the test body.
-   - Apply the per-test rubric (see below). Apply core smells first, then extension smells, then extension carve-outs.
+   - Apply the per-test rubric (see below) using the fields for the rubric selected in step 0b. Apply core smells first, then extension smells (filtered by `Applies to:`), then extension carve-outs.
    - Determine the verdict, severity, and recommended action.
-4. **Emit findings** in the per-test shape (see Output format below). Do not restate smell descriptions — cite codes and let the reader look them up.
+4. **Emit findings** in the per-test shape (see Output format below). Annotate each finding with the rubric it was evaluated under. Do not restate smell descriptions — cite codes and let the reader look them up.
 
 ## Deep Mode Workflow
 
 0. **Detect stack and load extensions.** Same as quick mode. Record which extensions loaded so the final report can disclose them.
-1. **Establish scope.** Confirm which test projects or directories, and which test type (unit, component, integration). If the user said "audit the tests" without specifying, ask.
+
+0b. **Select the rubric.** Same as quick mode — see [§ 0b (Rubric selection)](#0b-select-the-rubric) above. Record the selection per project / file / test for the suite assessment in step 5.
+
+1. **Establish scope.** Confirm which test projects or directories. The rubric selection from step 0b determines whether each test is audited under the unit or integration rubric; the user does not need to pre-declare test type. If the target mixes unit and integration tests, the audit applies each rubric to its matching tests and notes the dispatch in the output.
 2. **Enumerate test files.** Use Glob with the extension's file patterns. For each file:
    - Skim for infrastructure (fixtures, test bases, custom helpers) before reading individual tests.
    - Apply the per-test rubric (core + loaded extensions) to each test case.
@@ -188,7 +221,11 @@ In the step-5 suite assessment, the `Mutation testing` subsection must be presen
 
 ## Per-Test Rubric
 
-For every test case examined, emit these fields:
+Use the **unit rubric fields** below when the rubric selection in step 0b is `unit` (or `component`, which is unit-equivalent). Use the **integration rubric fields** below when it is `integration`. Each test gets a single finding under a single rubric.
+
+### Unit rubric per-test fields
+
+For every unit test case examined, emit these fields:
 
 1. **Intent statement** — one sentence answering: *what requirement does this test encode?* If you cannot state one, say "no stateable intent" — that itself is a finding.
 2. **Expected-value provenance** — how was the expected value chosen? One of:
@@ -203,13 +240,41 @@ For every test case examined, emit these fields:
    - `internal-mock-invocation` — a `verify(mock...)` on an owned collaborator.
    - `structural-shape` — only asserts that the result has certain fields/types, not their values.
    - `none` — no assertion.
-4. **Smells matched** — list of codes from `references/smell-catalog.md` plus any loaded extension. Example: `HC-2, dotnet.HC-1`.
+4. **Smells matched** — list of codes from `references/smell-catalog.md` (unit section) plus any loaded extension. Example: `HC-2, dotnet.HC-1`.
 5. **Positive signals matched** — list of codes. Example: `POS-2, dotnet.POS-3`.
 6. **Verdict** — `specification` / `characterization` / `ambiguous`.
 7. **Severity** — `block` / `warn` / `info`.
 8. **Recommended action** — one of: `rewrite-from-requirement` / `add-assertion` / `split` / `delete` / `keep`.
 
-One finding per test. If a test hits multiple smells, cite them all in the codes list but pick the highest severity for the overall verdict.
+### Integration rubric per-test fields
+
+For every integration test case examined, emit these fields. Derived from [integration-testing.md § 9](../../docs/quality-reference/integration-testing.md).
+
+1. **Scope statement** — one sentence answering: *what seam does this test exercise, and why couldn't a unit test prove the same thing?* If you cannot state one, say "no stateable scope" — that is itself a finding (and the central problem of the integration rubric).
+2. **Sub-lane** — `A` (in-process, real modules wired together with real adjacent dependencies) or `B` (out-of-process contract, SUT exercised as a deployed artifact through its public protocol).
+3. **Test size** (Google sizing) — `small` (single process, no I/O), `medium` (single machine, localhost only, no external network), `large` (multi-machine). Sub-lane A is almost always `medium`.
+4. **Seam narrowness** (Fowler) — `narrow` (one SUT, one real dependency, one seam — the default) or `broad` (multiple real dependencies interacting — must be justified).
+5. **Fixture and data provenance** — how was the test's state set up? One of:
+   - `per-test-factory` — each test creates its own state with unique keys.
+   - `shared-immutable` — a shared fixture that no test mutates (acceptable).
+   - `shared-mutable` — a shared fixture that tests mutate (a smell — likely `I-HC-A2` or `I-HC-A4`).
+   - `external-snapshot` — pinned to a snapshot / golden file / contract document.
+   - `pasted-literal` — expected value pasted from a run with no provenance.
+   - `unknown` — cannot tell.
+6. **Assertion target** — what is being checked?
+   - `published-contract` — a status code, error envelope, audit event schema, OpenAPI fragment, or consumer pact with a cited source.
+   - `observable-state` — the row that landed, the message that was published, the entity that was persisted.
+   - `response-value` — the SUT's HTTP or protocol-level response.
+   - `internal-mock-invocation` — a `verify(mock...)` on an owned collaborator (almost always a smell inside an integration test; likely `I-HC-A1` or `I-HC-B5`).
+   - `structural-shape` — only asserts that the response has certain fields, not their values.
+   - `none` — no assertion.
+7. **Smells matched** — list of codes from `references/smell-catalog.md` (integration section) plus any loaded extension entries with `Applies to: integration` or `Applies to: unit, integration`. Example: `I-HC-A2, I-HC-A5, dotnet.I-HC-A1`.
+8. **Positive signals matched** — list of codes. Example: `I-POS-3, I-POS-6, dotnet.POS-3`.
+9. **Verdict** — `specification` / `incidental` / `ambiguous`. `incidental` is the integration-rubric analogue of the unit rubric's `characterization` — a test that sweeps a lot of code through execution without a defensible scope.
+10. **Severity** — `block` / `warn` / `info`.
+11. **Recommended action** — one of: `rewrite-from-requirement` / `add-assertion` / `split` / `narrow-the-seam` / `move-to-unit-lane` / `replace-with-contract-test` / `delete` / `keep`.
+
+One finding per test, under exactly one rubric. If a test hits multiple smells, cite them all in the codes list but pick the highest severity for the overall verdict.
 
 ---
 
@@ -230,11 +295,30 @@ One finding per test. If a test hits multiple smells, cite them all in the codes
 - **Action:** rewrite-from-requirement. The test verifies `repo.Save` was called with a specific entity shape, not that the order was persisted as a client-observable outcome. Replace with an assertion on the returned order or on a state-query through the repository interface.
 ```
 
-Severity rules:
+Severity rules (apply to both rubrics; smell codes differ):
 
-- `block` — no assertions (HC-1), logic in the test (HC-4), tautology against trivial SUT (HC-2).
-- `warn` — characterization verdict, interaction-only assertions on owned code, pasted-literal provenance on non-trivial expected values.
-- `info` — low-confidence smells, ambiguous verdict, missing negative tests.
+- `block` — no assertions (`HC-1` / `I-HC-A10`), logic in the test (`HC-4`), tautology against trivial SUT (`HC-2`), every-dependency-mocked "integration" test (`I-HC-A1`), downstream service mocked at the transport layer (`I-HC-B5`), test hits a test-only endpoint that does not exist in production (`I-HC-B2`).
+- `warn` — characterization verdict (unit) or incidental verdict (integration), interaction-only assertions on owned code, pasted-literal provenance on non-trivial expected values, shared mutable fixture (`I-HC-A2`, `I-HC-A4`), `Sleep` / retry-until-green / polling-with-wall-clock (`I-HC-A5`), log-text assertion (`HC-6` / `I-HC-A6`), migration test against empty DB (`I-HC-A7`), auth test with only the happy path (`I-HC-B7`).
+- `info` — low-confidence smells (`LC-*` or `I-LC-*`), ambiguous verdict, missing negative tests.
+
+### Example integration finding
+
+```markdown
+#### `OrdersApiTests.cs::Get_Orders_Returns_Seeded_Rows` (L48)
+
+- **Rubric:** integration
+- **Scope:** "an integration test for the orders endpoint" — no stateable scope; depends on order from the previous test.
+- **Sub-lane:** A (in-process)
+- **Test size:** medium
+- **Seam narrowness:** broad — exercises HTTP pipeline + DI container + Cosmos emulator without isolating any one seam.
+- **Fixture/data provenance:** shared-mutable — shared `WebApplicationFactory<Program>` via `IClassFixture<>`, no per-test data scoping.
+- **Assertion target:** response-value (`orders.Should().HaveCount(1)`)
+- **Smells:** I-HC-A2, I-HC-A4, I-LC-6, dotnet.I-HC-A1
+- **Positive signals:** —
+- **Verdict:** incidental
+- **Severity:** warn
+- **Action:** narrow-the-seam. Rewrite so each test owns its data with a unique tenant id or partition key; assert on the specific rows the test created, not a global count. See `I-POS-4` (per-test data ownership).
+```
 
 ### Deep mode rollup
 
@@ -276,23 +360,42 @@ Then:
 
 ## Rules
 
+### Rules common to both rubrics
+
 - **Assume the code under test may be wrong.** Never use observed SUT output as ground truth for the expected value of any assertion you are evaluating.
 - **Test through the public API.** Do not flag missing tests for private methods, framework code, or pure delegation glue.
+- **Extensions augment, never override.** A carve-out suppresses a core smell only for the exact pattern it describes. When in doubt, prefer the core rule.
+- **Respect extension `Applies to:` tags.** Only cite an extension smell in a finding when the selected rubric matches the smell's `Applies to:` field (or the field is absent, which defaults to `unit`).
+- **Be honest about the limits of static audit.** When git history, coverage data, flake history, spec links, or contract pacts would change the verdict, say so and ask — do not fabricate certainty.
+- **Run mutation testing in deep mode when the tool is installed.** Check availability via the extension's detection command. If installed, run it per the extension; if not, skip and report install instructions. If installed but the SUT shape matches a documented limitation (e.g. Blazor WASM for Stryker.NET), skip with the documented reason and workaround. **Never hard-fail the audit on a mutation step failure** — static findings stand on their own. Mutation testing applies to both unit and in-process integration SUTs.
+- **Mutation findings augment, never override, static findings.** A surviving mutant in a file the static audit rated `strong` is a meaningful disagreement worth investigating, but it does not automatically downgrade the file to `weak`. Report it as a reconciliation finding, not a verdict change.
+- **One finding per test, under one rubric.** A test is either unit or integration, never both. Cite all matched smells in the codes list, but the overall verdict reflects the highest-severity smell under the selected rubric.
+- **Reward positive signals explicitly.** An audit that only complains gets tuned out.
+- **Stay read-only.** Do not modify tests or production code unless the user explicitly asks for fixes. Running a mutation tool is allowed because it does not modify checked-in files; its output directory (e.g. `StrykerOutput/`) should already be in `.gitignore` or flagged as needing to be added.
+
+### Rules specific to the unit rubric
+
 - **Mock invocation is a last resort.** Flag mocks of same-layer code; do not flag mocks of process boundaries (HTTP, database, filesystem, clock, message bus) unless the extension says otherwise.
 - **A test without a stateable requirement is a characterization test regardless of appearance.** The intent statement is the gate.
-- **Extensions augment, never override.** A carve-out suppresses a core smell only for the exact pattern it describes. When in doubt, prefer the core rule.
-- **Be honest about the limits of static audit.** When git history, coverage data, or spec links would change the verdict, say so and ask — do not fabricate certainty.
-- **Run mutation testing in deep mode when the tool is installed.** Check availability via the extension's detection command. If installed, run it per the extension; if not, skip and report install instructions. If installed but the SUT shape matches a documented limitation (e.g. Blazor WASM for Stryker.NET), skip with the documented reason and workaround. **Never hard-fail the audit on a mutation step failure** — static findings stand on their own.
-- **Mutation findings augment, never override, static findings.** A surviving mutant in a file the static audit rated `strong` is a meaningful disagreement worth investigating, but it does not automatically downgrade the file to `weak`. Report it as a reconciliation finding, not a verdict change.
-- **One finding per test.** Cite all matched smells in the codes list, but the overall verdict reflects the highest-severity smell.
-- **Reward positive signals explicitly.** An audit that only complains gets tuned out.
 - **Respect labeled characterization scaffolding.** A test file under a `characterization/`, `legacy/`, or `golden/` directory, or with a documented scaffold comment at the top, is *not* flagged as characterization smell — it is doing its job.
-- **Stay read-only.** Do not modify tests or production code unless the user explicitly asks for fixes. Running a mutation tool is allowed because it does not modify checked-in files; its output directory (e.g. `StrykerOutput/`) should already be in `.gitignore` or flagged as needing to be added.
+
+### Rules specific to the integration rubric
+
+- **Every integration test must state what it is integrating and why a unit test wouldn't do.** A test without a stateable scope is a smell regardless of how green it runs. The scope statement is the gate.
+- **Prefer narrow over broad integration tests.** One SUT, one real dependency, one seam. Broad tests must justify their breadth in their name or a comment.
+- **Inside an integration test, a mock is a scope leak.** Justify it (process or deployment boundary, no contract available) or move the test to the unit lane. The proof obligation for every integration-test mock is "why couldn't a contract test cover this?"
+- **At a service boundary, prefer a consumer-driven contract over a mock.** A passing contract test subsumes a mock.
+- **Test data is owned per-test.** Shared mutable fixtures are a smell (`I-HC-A2` / `I-HC-A4`).
+- **Log and trace assertions are valid only against published contracts.** Free-text logs are not contracts. Structured audit events with a documented schema are.
+- **Flake is a scope signal, not a quarantine problem.** Quarantining flakes hides underlying scope confusion.
 
 ## Common Mistakes
 
 Things the auditor itself must avoid:
 
+- **Applying the unit rubric to an integration test.** A test that constructs `WebApplicationFactory<T>` (or equivalent) and exercises a real HTTP seam through real middleware is not a unit test, regardless of project location. Route it to the integration rubric in step 0b and apply the scope-based central question. If the dispatch signals are ambiguous, ask the user — do not default to unit.
+- **Applying the integration rubric to a unit test.** A test that constructs the SUT directly with mocked dependencies (`new OrderService(mockRepo.Object, ...)`) is a unit test even if it lives in a project named `*Integration.Tests`. Route it to the unit rubric.
+- **Flagging heavy setup as `LC-7` when the test is correctly routed to the integration rubric.** Under the integration rubric, `WebApplicationFactory<T>` / `HostBuilder` / `TestServer` setup is expected and positive (`dotnet.POS-3`). The `LC-7` carve-out in `extensions/dotnet.md` is the safety net for when routing is uncertain, not the primary mechanism.
 - **Flagging snapshot tests whose output *is* the published contract** — API responses with a documented schema, RFC test vectors, locale-compiled message catalogs. Snapshots of *unspecified* rendered output are the smell; snapshots of *specified* output are positive.
 - **Treating `verify(mock...)` as a smell when the verified call *is* the observable behavior** — publishing to a message bus, emitting an audit event, calling an outbound HTTP endpoint. When the mocked thing is a process boundary and the verified call is what a client observes, it is specification.
 - **Calling a test tautological because the assertion duplicates a simple case** — when the test is actually a boundary case (`sum([]) == 0`, `reverse("") == ""`, `max([x]) == x`).
