@@ -149,13 +149,13 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("eval", $"document.documentElement.lang = '{LocaleService.CurrentLocale}'");
+            await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
         }
     }
 
     private async void HandleLocaleChanged()
     {
-        await JS.InvokeVoidAsync("eval", $"document.documentElement.lang = '{LocaleService.CurrentLocale}'");
+        await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
         await InvokeAsync(StateHasChanged);
     }
 

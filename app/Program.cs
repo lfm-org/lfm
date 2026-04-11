@@ -58,7 +58,7 @@ await localizer.LoadLocaleAsync("en");
 var js = host.Services.GetRequiredService<IJSRuntime>();
 try
 {
-    var browserLang = await js.InvokeAsync<string>("eval", "navigator.language || navigator.userLanguage || 'en'");
+    var browserLang = await js.InvokeAsync<string>("lfmGetBrowserLanguage");
     if (browserLang?.StartsWith("fi", StringComparison.OrdinalIgnoreCase) == true)
     {
         var localeService = host.Services.GetRequiredService<ILocaleService>();
