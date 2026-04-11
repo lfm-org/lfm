@@ -103,23 +103,41 @@ public class JsonStringLocalizerTests : IDisposable
     }
 
     [Fact]
-    public async Task Dispose_Unsubscribes_From_Locale_Service_So_Later_Changes_Do_Not_Reload()
+    public void Dispose_Unsubscribes_From_Locale_Service()
     {
-        var counting = new CountingLocaleHandler();
-        using var http = new HttpClient(counting) { BaseAddress = new Uri("http://localhost/") };
-        var localeService = new LocaleService();
+        // Deterministic kill for the `-=` → `+=` Stryker mutant on Dispose: polling for the
+        // absence of a fire-and-forget fetch can't distinguish "unsubscribed" from "still
+        // subscribed but the async handler hadn't landed yet". Assert subscriber count directly.
+        using var http = new HttpClient(new FakeLocaleHandler()) { BaseAddress = new Uri("http://localhost/") };
+        var localeService = new FakeLocaleService();
         var sut = new JsonStringLocalizer(http, localeService);
-        await sut.LoadLocaleAsync("en");
+        localeService.SubscriberCount.Should().Be(1, "constructor subscribes to OnLocaleChanged");
 
         sut.Dispose();
-        var beforeFi = counting.Loaded.GetValueOrDefault("fi");
 
-        localeService.SetLocale("fi");
-        // Give any (incorrectly still-subscribed) async handler time to fire.
-        await Task.Delay(100);
+        localeService.SubscriberCount.Should().Be(0, "Dispose must unsubscribe HandleLocaleChanged");
+    }
 
-        counting.Loaded.GetValueOrDefault("fi").Should().Be(beforeFi,
-            "after Dispose, locale changes must not trigger fetches via the disposed localizer");
+    [Fact]
+    public async Task GetAllStrings_Yields_All_Keys_For_Loaded_Current_Locale()
+    {
+        await _sut.LoadLocaleAsync("en");
+
+        var result = _sut.GetAllStrings(includeParentCultures: false).ToList();
+
+        result.Should().HaveCount(4);
+        result.Should().Contain(ls => ls.Name == "nav.runs" && ls.Value == "Runs");
+        result.Should().Contain(ls => ls.Name == "greeting" && ls.Value == "Hello, {0}!");
+    }
+
+    [Fact]
+    public void GetAllStrings_Yields_Nothing_When_Current_Locale_Not_Loaded()
+    {
+        // Fresh SUT (xUnit creates one per test) — CurrentLocale defaults to "en" but the cache
+        // is empty until LoadLocaleAsync is called, so GetAllStrings must yield an empty sequence.
+        var result = _sut.GetAllStrings(includeParentCultures: false).ToList();
+
+        result.Should().BeEmpty();
     }
 
     public void Dispose()
