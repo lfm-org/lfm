@@ -193,7 +193,7 @@
             var (run, insts) = await LoadBothAsync();
             if (run is null)
             {
-                state = new LoadingState<RunDetailDto>.Failure("Run not found.");
+                state = new LoadingState<RunDetailDto>.Failure(Loc["editRun.error.notFound"]);
                 return;
             }
 

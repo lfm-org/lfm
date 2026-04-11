@@ -112,7 +112,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Failed to load characters."));
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("characters.error.loadFailed")));
     }
 
     [Fact]

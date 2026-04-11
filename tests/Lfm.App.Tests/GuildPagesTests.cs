@@ -79,7 +79,7 @@ public class GuildPagesTests : ComponentTestBase
         var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Failed to load guild data."));
+            cut.Markup.Should().Contain(Loc("guild.error.loadFailed")));
 
         client.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

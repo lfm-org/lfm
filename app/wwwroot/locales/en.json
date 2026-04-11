@@ -114,6 +114,7 @@
     "editRun.saveFailed": "Failed to save run. Please try again.",
     "editRun.saveSuccess": "Run saved successfully.",
     "editRun.deleteFailed": "Failed to delete run. Please try again.",
+    "editRun.error.notFound": "Run not found.",
     "editRun.rosterSignedUp": "Roster ({0} signed up)",
     "editRun.noSignups": "No signups yet.",
     "editRun.columns.character": "Character",
@@ -136,6 +137,7 @@
     "characters.deleteAccount.button": "Delete My Account",
     "characters.deleteAccount.failed": "Failed to delete account. Please try again.",
     "characters.deleteAccount.error": "An unexpected error occurred. Please try again.",
+    "characters.error.loadFailed": "Failed to load characters.",
 
     "guild.title": "Guild",
     "guild.noGuild.title": "No guild found",
@@ -152,6 +154,7 @@
     "guild.yourAccess": "Your Access",
     "guild.canCreateRuns": "Can create runs:",
     "guild.canSignUp": "Can sign up:",
+    "guild.error.loadFailed": "Failed to load guild data.",
 
     "guildAdmin.title": "Guild Admin",
     "guildAdmin.overrideSettings": "Override Settings",

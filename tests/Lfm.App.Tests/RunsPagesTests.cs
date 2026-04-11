@@ -206,6 +206,6 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Run not found."));
+            cut.Markup.Should().Contain(Loc("editRun.error.notFound")));
     }
 }

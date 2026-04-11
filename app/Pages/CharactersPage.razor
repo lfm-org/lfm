@@ -123,7 +123,7 @@
             var chars = await BattleNetClient.GetCharactersAsync(CancellationToken.None);
             if (chars is null)
             {
-                state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure("Failed to load characters.");
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure(Loc["characters.error.loadFailed"]);
             }
             else
             {

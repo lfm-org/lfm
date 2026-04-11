@@ -36,7 +36,7 @@
             var dto = await GuildClient.GetAsync(CancellationToken.None);
             if (dto is null)
             {
-                state = new LoadingState<GuildDto>.Failure("Failed to load guild data.");
+                state = new LoadingState<GuildDto>.Failure(Loc["guild.error.loadFailed"]);
             }
             else
             {

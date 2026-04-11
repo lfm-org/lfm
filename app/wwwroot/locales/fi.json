@@ -114,6 +114,7 @@
     "editRun.saveFailed": "Muutosten tallentaminen ep\u00e4onnistui. Yrit\u00e4 uudelleen.",
     "editRun.saveSuccess": "Juoksu tallennettu onnistuneesti.",
     "editRun.deleteFailed": "Juoksun poistaminen ep\u00e4onnistui. Yrit\u00e4 uudelleen.",
+    "editRun.error.notFound": "Juoksua ei l\u00f6ytynyt.",
     "editRun.rosterSignedUp": "Kokoonpano ({0} ilmoittautunut)",
     "editRun.noSignups": "Ei ilmoittautumisia viel\u00e4.",
     "editRun.columns.character": "Hahmo",
@@ -136,6 +137,7 @@
     "characters.deleteAccount.button": "Poista tilini",
     "characters.deleteAccount.failed": "Tilin poistaminen ep\u00e4onnistui. Yrit\u00e4 uudelleen.",
     "characters.deleteAccount.error": "Odottamaton virhe tapahtui. Yrit\u00e4 uudelleen.",
+    "characters.error.loadFailed": "Hahmojen lataaminen ep\u00e4onnistui.",
 
     "guild.title": "Kilta",
     "guild.noGuild.title": "Kiltaa ei l\u00f6ytynyt",
@@ -152,6 +154,7 @@
     "guild.yourAccess": "Oikeutesi",
     "guild.canCreateRuns": "Voi luoda juoksuja:",
     "guild.canSignUp": "Voi ilmoittautua:",
+    "guild.error.loadFailed": "Kiltatietojen lataaminen ep\u00e4onnistui.",
 
     "guildAdmin.title": "Killan hallinta",
     "guildAdmin.overrideSettings": "Ohitusasetukset",
