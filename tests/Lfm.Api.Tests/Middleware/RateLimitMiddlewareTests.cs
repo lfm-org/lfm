@@ -197,6 +197,113 @@ public class RateLimitMiddlewareTests
     }
 
     [Fact]
+    public async Task Forwarded_for_header_overrides_remote_ip_for_bucketing()
+    {
+        // When the X-Forwarded-For header is present, the leftmost address must be
+        // used as the bucket key — otherwise a proxy in front of the function would
+        // collapse all client traffic into one bucket.
+        var options = DefaultOptions();
+        options.WriteRequestsPerMinute = 1;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        // First request: forwarded client A behind proxy 10.0.0.1
+        var (ctx1, _) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.1, 10.0.0.1");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        // Second request: same proxy, different forwarded client B → must get its own bucket
+        var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.2, 10.0.0.1");
+        var nextCalled = false;
+
+        await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
+
+        nextCalled.Should().BeTrue("client B must not share client A's rate-limit bucket");
+        httpCtx2.Response.StatusCode.Should().NotBe(429);
+    }
+
+    [Fact]
+    public async Task Forwarded_for_with_single_address_uses_it_as_bucket_key()
+    {
+        var options = DefaultOptions();
+        options.WriteRequestsPerMinute = 1;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        // Burn the limit for forwarded client A
+        var (ctx1, _) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.10");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        // Second request from same forwarded client must be 429 — proves the
+        // bucket key was the forwarded IP, not the proxy IP.
+        var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.10");
+        httpCtx2.Response.Body = new MemoryStream();
+
+        await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
+
+        httpCtx2.Response.StatusCode.Should().Be(429,
+            "the bucket key must be 203.0.113.10 (forwarded), not 10.0.0.1 (proxy)");
+    }
+
+    [Fact]
+    public async Task Forwarded_for_trims_whitespace_around_addresses()
+    {
+        // X-Forwarded-For commonly has spaces after commas — the parser must
+        // trim them so the leftmost address is matched correctly.
+        var options = DefaultOptions();
+        options.WriteRequestsPerMinute = 1;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        var (ctx1, _) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.50,   10.0.0.1");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            // Same client, no whitespace this time — must hit the same bucket
+            xForwardedFor: "203.0.113.50,10.0.0.1");
+        httpCtx2.Response.Body = new MemoryStream();
+
+        await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
+
+        httpCtx2.Response.StatusCode.Should().Be(429,
+            "whitespace variants of the same forwarded IP must hit the same bucket");
+    }
+
+    [Fact]
+    public async Task Empty_forwarded_for_falls_back_to_remote_ip()
+    {
+        var options = DefaultOptions();
+        options.WriteRequestsPerMinute = 1;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        var (ctx1, _) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.5",
+            xForwardedFor: "");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.5",
+            xForwardedFor: null);
+        httpCtx2.Response.Body = new MemoryStream();
+
+        await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
+
+        httpCtx2.Response.StatusCode.Should().Be(429,
+            "absent or empty X-Forwarded-For must fall back to RemoteIpAddress for bucketing");
+    }
+
+    [Fact]
     public async Task Disabled_rate_limiting_passes_all_requests()
     {
         var options = DefaultOptions(enabled: false);
