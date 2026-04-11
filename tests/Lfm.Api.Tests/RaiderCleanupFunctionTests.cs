@@ -177,6 +177,84 @@ public class RaiderCleanupFunctionTests
     // Test 5: Audit event emitted for expired raiders
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // Test: summary log entry counts removed/errors and includes the
+    // conditional error suffix only when errors > 0
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_logs_summary_with_removed_count_and_no_error_suffix_when_all_succeed()
+    {
+        var raidersList = new[] { MakeRaiderDoc("bnet-1"), MakeRaiderDoc("bnet-2") };
+
+        var raidersRepo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        raidersRepo.Setup(r => r.ListExpiredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raidersList);
+        raidersRepo.Setup(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
+        runsRepo.Setup(r => r.ScrubRaiderAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var logger = new TestLogger<RaiderCleanupFunction>();
+        var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
+        await fn.Run(MakeTimerInfo(), CancellationToken.None);
+
+        var summary = logger.Entries
+            .Should().ContainSingle(e => (e.Message ?? "").Contains("Raider cleanup: removed"))
+            .Subject;
+        summary.Properties["Removed"].Should().Be(2);
+        summary.Properties["ErrorSuffix"].Should().Be(string.Empty,
+            "the conditional ErrorSuffix must be empty when no errors occurred");
+    }
+
+    [Fact]
+    public async Task Run_logs_summary_with_error_suffix_when_one_raider_fails()
+    {
+        var raidersList = new[] { MakeRaiderDoc("bnet-fail"), MakeRaiderDoc("bnet-ok") };
+
+        var raidersRepo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        raidersRepo.Setup(r => r.ListExpiredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raidersList);
+        raidersRepo.Setup(r => r.DeleteAsync("bnet-ok", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
+        runsRepo.Setup(r => r.ScrubRaiderAsync("bnet-fail", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("scrub failed"));
+        runsRepo.Setup(r => r.ScrubRaiderAsync("bnet-ok", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var logger = new TestLogger<RaiderCleanupFunction>();
+        var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
+        await fn.Run(MakeTimerInfo(), CancellationToken.None);
+
+        var summary = logger.Entries
+            .Should().ContainSingle(e => (e.Message ?? "").Contains("Raider cleanup: removed"))
+            .Subject;
+        summary.Properties["Removed"].Should().Be(1, "only the second raider succeeded");
+        summary.Properties["ErrorSuffix"].Should().Be(", 1 error(s)",
+            "the conditional ErrorSuffix must contain the error count when errors > 0");
+    }
+
+    [Fact]
+    public async Task Run_logs_summary_with_zero_removed_when_no_expired_raiders()
+    {
+        var raidersRepo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        raidersRepo.Setup(r => r.ListExpiredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<RaiderDocument>());
+        var runsRepo = new Mock<IRunsRepository>(MockBehavior.Strict);
+
+        var logger = new TestLogger<RaiderCleanupFunction>();
+        var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
+        await fn.Run(MakeTimerInfo(), CancellationToken.None);
+
+        var summary = logger.Entries
+            .Should().ContainSingle(e => (e.Message ?? "").Contains("Raider cleanup: removed"))
+            .Subject;
+        summary.Properties["Removed"].Should().Be(0);
+        summary.Properties["ErrorSuffix"].Should().Be(string.Empty);
+    }
+
     [Fact]
     public async Task Run_emits_account_expired_audit_event()
     {
