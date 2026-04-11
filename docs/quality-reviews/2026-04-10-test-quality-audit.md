@@ -509,3 +509,124 @@ For a single-file targeted run (much faster — seconds, not minutes):
 ```bash
 dotnet stryker --mutate "**/<FileName>.cs" --reporter cleartext
 ```
+
+---
+
+## Post-remediation re-run (2026-04-11)
+
+**Date added:** 2026-04-11
+**Tool:** Stryker.NET 4.14.1
+**Scope:** fresh baselines on both targets after merging 10 audit-remediation branches (`audit-p0-quickwins` through `audit-cleanup-requireauth`) into `main`.
+
+### Headline results
+
+| Target | Baseline (2026-04-10/11) | Post-remediation (2026-04-11) | Delta |
+|---|---|---|---|
+| `tests/Lfm.Api.Tests` (API) | **38.60%** | **50.13%** | **+11.53 pp** |
+| `tests/Lfm.App.Core.Tests` (Core) | **26.61%** | **82.57%** | **+55.96 pp** |
+| Core covered-code score | 74.4% | **88.24%** | **+13.84 pp** |
+
+### Test-count movement
+
+| Project | Before | After | Delta |
+|---|---|---|---|
+| `tests/Lfm.Api.Tests` | 207 | **298** | +91 |
+| `tests/Lfm.App.Tests` | 82 | **79** | −3 (ToastHelper deleted, GuildAdmin duplicate removed) |
+| `tests/Lfm.App.Core.Tests` | 20 | **71** | +51 |
+| **Total** | **309** | **448** | **+139** |
+
+Format check (`dotnet format lfm.sln --verify-no-changes`) clean. `dotnet build lfm.sln -c Release` green.
+
+### API mutant-status movement
+
+| Category | Baseline | Post-remediation | Delta |
+|---|---|---|---|
+| **Killed** | 441 | **571** | +130 |
+| **Survived** | 189 | **169** | −20 |
+| **NoCoverage** | 514 | **402** | −112 |
+| Timeout | 1 | 3 | +2 |
+| Ignored | 178 | 178 | 0 |
+| CompileError | 240 | 240 | 0 |
+
+112 previously-uncovered mutants were moved into covered territory (primarily by new tests for `AuthMiddleware`, `AuthPolicyMiddleware`, `CorsMiddleware`, `AuditMiddleware`, `ReferenceSync`, `SiteAdminService`, and `ForwardedFor` parsing in `RateLimitMiddleware`). 130 additional mutants are now killed rather than surviving or uncovered. The remaining 169 survivors and 402 no-coverage mutants are concentrated in the Cosmos-facing repository classes (`RunsRepository`, `RaidersRepository`, `InstancesRepository`, `SpecializationsRepository`, `GuildRepository`), `Program.cs`/DI wiring, and the `BlizzardGameDataClient` / `BlizzardProfileClient` / `CharacterPortraitService` surface — all of which are either explicit process-boundary carve-outs (repositories, HTTP clients) or DI startup code.
+
+### Core mutant-status movement
+
+| Category | Baseline | Post-remediation | Delta |
+|---|---|---|---|
+| **Killed** | 28 | **89** | +61 |
+| **Survived** | 10 | **12** | +2 |
+| **NoCoverage** | 70 | **7** | −63 |
+| Timeout | 1 | 1 | 0 |
+| Ignored | 38 | 38 | 0 |
+| CompileError | 13 | 13 | 0 |
+
+63 previously-uncovered mutants now have direct test coverage via the new `BattleNetClientTests`, `MeClientTests`, `GuildClientTests`, `InstancesClientTests`, and `AppAuthenticationStateProviderTests`. Combined with the kills from the reconciliation work on `RunsClient`, `JsonStringLocalizer`, and `LocaleService`, the Core covered-code score reaches **88.24%** — above the 80% "strong" threshold.
+
+### Per-file post-remediation scores
+
+**API — files that moved most:**
+
+| File | Baseline score | Post score | Notes |
+|---|---|---|---|
+| `api/Middleware/AuthMiddleware.cs` | NoCoverage | covered | new `AuthMiddlewareTests` |
+| `api/Middleware/AuthPolicyMiddleware.cs` | NoCoverage | covered | new `AuthPolicyMiddlewareTests` |
+| `api/Middleware/CorsMiddleware.cs` | NoCoverage | covered | new `CorsMiddlewareTests` |
+| `api/Middleware/AuditMiddleware.cs` | NoCoverage | covered | new `AuditMiddlewareTests` |
+| `api/Services/ReferenceSync.cs` | NoCoverage (73 mutants) | **69.57%** | new `ReferenceSyncTests` |
+| `api/Services/SiteAdminService.cs` | NoCoverage | **31.58%** | new `SiteAdminServiceTests` (only the no-config paths are reachable without a real Key Vault — the remaining survivors are the KV-network path) |
+| `api/Services/GuildPermissions.cs` | ~adequate | **71.93%** | 1-hour stale-roster boundary + rank-fallback tests |
+| `api/Auth/DataProtectionSessionCipher.cs` | strong (2 survivors) | killed survivors | rival-purpose theory |
+| `api/Helpers/RunEditability.cs` | strong (1 survivor) | killed | `startTime==now` boundary test |
+| `api/Functions/HealthFunction.cs` | adequate (1 NoCoverage) | killed | `Live()` direct test |
+| `api/Functions/BattleNetCallbackFunction.cs` | 17 survivors | reduced | cookie-flag assertions |
+| `api/Functions/BattleNetLoginFunction.cs` | 5 survivors | reduced | cookie-flag assertions |
+| `api/Functions/RaiderCleanupFunction.cs` | 14 survivors | reduced | summary-log assertions with `TestLogger` |
+
+**Core — files that moved most:**
+
+| File | Baseline score | Post score |
+|---|---|---|
+| `Services/BattleNetClient.cs` | 0% (30 NoCoverage) | **77.78%** |
+| `Services/GuildClient.cs` | 0% (10 NoCoverage) | **85.71%** |
+| `Services/InstancesClient.cs` | 0% (5 NoCoverage) | **100.00%** |
+| `Services/MeClient.cs` | 0% (23 NoCoverage) | **85.71%** |
+| `Auth/AppAuthenticationStateProvider.cs` | 0% (20 NoCoverage) | **94.44%** |
+| `i18n/LocaleService.cs` | 87.50% | **100.00%** |
+| `Services/RunsClient.cs` | 55% | **80.00%** |
+| `i18n/JsonStringLocalizer.cs` | 55% | **65.00%** |
+
+### Worklist status — what shipped vs. what remains
+
+**Shipped (merged into `main`):**
+
+- **P0 block-severity:** `ToastHelperTests` deleted.
+- **P1 warn-severity (original worklist):** AuthPages render-without-crash rewrites, GuildAdmin duplicate removal, DTO fixture extraction (`InstancesList`, `SpecializationsList`, `WowUpdate`), `/health/ready` contract documented + assertion tightened, retry-count decoupling in `RunsSignup`.
+- **P1 mutation findings:** `AuthMiddleware` + `AuthPolicyMiddleware` tests, `HealthFunction.Live()` test, cookie-flag assertions on `BattleNetCallback` + `BattleNetLogin`, `ReferenceSync` tests, `startTime==now` boundary test, `DataProtectionSessionCipher` rival-purpose test.
+- **P1 `[core-mutation]`:** `BattleNetClientTests`, `MeClientTests`, `GuildClientTests`, `InstancesClientTests`, `AppAuthenticationStateProviderTests`.
+- **P2 warn-severity:** `MeDelete` `MockSequence`/`InSequence` rewrite, `BattleNetLogout` cookie-test split + SUT-shape pinning, app-side error strings localized (`characters.error.loadFailed`, `guild.error.loadFailed`, `editRun.error.notFound` added to both `en.json` and `fi.json`).
+- **P2 mutation findings:** `SiteAdminServiceTests` (no-config paths), `CorsMiddlewareTests`, `AuditMiddlewareTests`, `RateLimitMiddleware` `X-Forwarded-For` parsing tests, `GuildPermissions` 1-hour stale-roster boundary theory, `GuildPermissions` rank-with-no-explicit-permission-entry tests, `RaiderCleanup` summary-log assertions.
+- **P2 `[core-mutation]`:** `RunsClient` null-body + URL path + signup-non-null closure, `JsonStringLocalizer` dispose/locale-change lifecycle tests, `LocaleService` supported-locale theory.
+- **P3 info:** consolidated 16 per-file `Run_method_has_RequireAuth_attribute` reflection tests into a single `FunctionAuthorizationContractTests` ratchet with an explicit anonymous allow list.
+
+**Deferred / out of scope (not shipped):**
+
+- **Cosmos repository unit tests** (`RunsRepository`, `RaidersRepository`, `InstancesRepository`, `SpecializationsRepository`, `GuildRepository`) — explicit carve-out per the dotnet extension (process-boundary code; belongs in E2E lane).
+- **Blizzard HTTP client surface** (`BlizzardGameDataClient`, `BlizzardProfileClient`, `CharacterPortraitService`) — same rationale as repositories.
+- **`api/Program.cs` DI/startup wiring** — intentionally not unit-tested.
+- **`SiteAdminService` Key Vault network path** — currently 31.58% (only no-config branches covered). Covering the Key Vault call would require either a testable `SecretClient` seam or mocking `Azure.Security.KeyVault.Secrets`. Not taken in this pass.
+- **`JsonStringLocalizer` remaining 35%** — 4 survivors are in statement-removal mutants on the fire-and-forget `async void HandleLocaleChanged` path, which is hard to deterministically observe without an internal hook. Worth revisiting if the file is touched.
+
+### How to reproduce
+
+From repo root, after `dotnet tool restore`:
+
+```bash
+cd tests/Lfm.Api.Tests
+dotnet stryker --reporter cleartext --reporter json --reporter html
+# → 50.13% (~50s)
+
+cd ../Lfm.App.Core.Tests
+dotnet stryker
+# → 82.57% (~15s)
+```
