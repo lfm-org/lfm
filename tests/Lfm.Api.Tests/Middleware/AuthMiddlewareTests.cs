@@ -102,6 +102,8 @@ public class AuthMiddlewareTests
         items.Should().NotContainKey(SessionKeys.Principal);
     }
 
+    // Round-trip identity: the SessionPrincipal returned by ISessionCipher.Unprotect must land in
+    // HttpContext.Items unchanged — this pins the middleware's forwarding contract, not cipher behavior.
     [Fact]
     public async Task Invoke_sets_principal_when_cookie_decrypts_to_unexpired_session()
     {
