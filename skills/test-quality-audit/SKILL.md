@@ -148,6 +148,13 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
 2. **Enumerate test files.** Use Glob with the extension's file patterns. For each file:
    - Skim for infrastructure (fixtures, test bases, custom helpers) before reading individual tests.
    - Apply the per-test rubric (core + loaded extensions) to each test case.
+2.5. **SUT surface enumeration (gap detection — deep mode only).** See [§ SUT surface enumeration](#sut-surface-enumeration) below for the full procedure. In short:
+   - **Identify the SUT** for each audited test project by walking its `<ProjectReference>` closure (or the equivalent module import graph for non-.NET stacks) to the production project(s) under test.
+   - **Enumerate the testable surface** by running the stack extension's grep patterns against the SUT source tree: public methods / types, HTTP routes and function handlers, migration classes, throw sites, validation attributes. Extensions own the patterns; this file owns the workflow and the gap-report format.
+   - **Cross-reference against test discovery.** A symbol covered by the test project is one whose name (or, for routes and migrations, whose registration string / class name) appears in at least one test method name or test body.
+   - **Emit a gap report** (see [§ Gap report format](#gap-report-format) below) listing unreferenced entries. Each entry is a *probable* gap — grep is an approximate cross-reference — and the report says so explicitly.
+   - **Skip gracefully** when the stack extension has no **SUT surface enumeration** section. Record the skip reason and continue with static findings only. Never hard-fail the audit on a missing extension section.
+   - **Quick mode does not run this step.** Gap detection is suite-level; running it on a single-file or PR-diff target would produce nonsense. Step 2.5 fires only in deep mode.
 3. **Roll up per-file:**
    - Total tests.
    - Verdict counts: specification / characterization / ambiguous.
@@ -164,6 +171,7 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
    - Top findings ordered by impact.
    - **Audit-vs-mutation reconciliation** — if step 4 produced results, identify files where the static verdict and the mutation findings disagree. These are the highest-signal findings: a file rated `strong` by static audit but with surviving mutants reveals test-quality gaps neither method alone would catch.
    - **No-coverage discoveries** — if the mutation tool surfaced entire files with zero test coverage, list them. The static audit cannot see these because it only examines files that already have tests.
+   - **Gap report** — the output of step 2.5. List probable gaps by category (public API / routes / migrations / throw sites / validation attributes). When both step 2.5 and step 4 produced results, **reconcile** them: a symbol flagged as a probable gap by step 2.5 *and* appearing as a `NoCoverage` file in the mutation report is a **confirmed gap**; static-only probable gaps are weaker signal; mutation-only gaps (no grep match but covered at runtime) are a sign the step 2.5 grep patterns in the extension need tuning.
    - **Pyramid ratio** — count tests per rubric across the audited scope and report the distribution. Google's default guidance is roughly 70–80 % unit, 15–20 % integration, ≤10 % E2E (*Software Engineering at Google* ch. 11 on test sizing). Flag as a design finding when the inversion is sharp: unit < 60 % or E2E > 15 %. An inverted pyramid is a cost signal, not a per-test smell — it usually means unit-lane coverage is weak and teams compensated by writing expensive tests at the top.
 6. **Emit a prioritized remediation worklist** (`P0` / `P1` / `P2` / `P3`) similar to the code-quality-review output. Worklist items derived from mutation findings should be tagged `[mutation]` so they're distinguishable from purely-static findings.
 
@@ -235,6 +243,96 @@ In the step-5 suite assessment, the `Mutation testing` subsection must be presen
 - **Root cause:** <short explanation, referencing the extension's known-limitations section if applicable>
 - **Workaround:** <from the extension, if one is documented>
 - **Fallback:** static audit findings stand on their own.
+```
+
+---
+
+## SUT surface enumeration
+
+Step 2.5 of the deep-mode workflow. This is the skill's static gap-detection pass: *find tests that don't exist yet* for public API, HTTP routes, migrations, throw sites, and validation attributes in the SUT.
+
+Unlike mutation testing (step 4) which observes runtime kill behavior, surface enumeration reads the production code to ask "what ought to be tested?" and cross-references against the test project. Both are complementary — mutation testing catches tests that execute code without verifying it; surface enumeration catches code that has no test at all.
+
+### Why both static surface enumeration and mutation testing
+
+- **Static audit alone** only examines files that already have tests.
+- **Mutation testing** catches `NoCoverage` files at runtime, but only when the tool is installed and the SUT shape is supported (e.g. Stryker.NET cannot mutate Blazor WASM — see [extensions/dotnet.md § Known SUT limitations](extensions/dotnet.md)).
+- **Static surface enumeration** works on any SUT the stack extension has grep patterns for, even Blazor WASM. It produces *probable* gaps from grep, so it is noisier than mutation testing.
+- When both run on the same suite, a symbol flagged by both is a **confirmed gap**; a symbol flagged by static-only is a *probable* gap; a symbol flagged by mutation-only is a signal the grep patterns need tuning.
+
+### Procedure
+
+1. **Read the extension's SUT surface enumeration section.** Every extension that supports gap detection must provide: SUT identification instructions, grep patterns per gap class (API / routes / migrations / throw sites / validation), and cross-reference matching rules. Extensions without this section produce no gap report — record the skip reason and continue with static findings only.
+2. **Identify the SUT.** For each test project in scope, walk its `<ProjectReference>` closure (or equivalent module graph) to the production project(s) under test. Record the SUT project list in the gap-report header. A test project may have multiple SUT projects (e.g. a shared contract library plus the API that consumes it).
+3. **Enumerate testable surface** by running the extension's grep patterns against the SUT source tree. For each pattern, capture:
+   - A symbol identifier (method name, route template, migration class name, exception-throwing method name, validation-attribute target property).
+   - A source location (file path and line number).
+4. **Cross-reference against test discovery.** For each enumerated symbol, check whether its identifier appears in at least one test file. A test "covers" a symbol when:
+   - Its identifier appears in a test method name or attribute (`[Fact(DisplayName = "...")]`).
+   - Its identifier appears in a test body as an invocation target, a string literal (for routes), or a type reference (for migrations / exceptions).
+   - An indirect-coverage signal fires (e.g. a controller test exercises a service method indirectly — the extension may document known indirect-coverage patterns that suppress false positives).
+5. **Emit a gap report** (see [§ Gap report format](#gap-report-format) below). Each unreferenced entry is a *probable* gap because grep is an approximate cross-reference. A true negative requires either mutation testing or manual verification.
+6. **On extension section missing**, report: "Gap detection skipped — stack extension has no SUT surface enumeration section. Mutation testing remains the only gap-finding mechanism for this scope." Continue with static findings.
+
+### Gap classes
+
+The extension's patterns must populate these five categories. Extensions may add their own categories (e.g. `Gap-Resource` for a REST resource that has no test class) as long as they document them.
+
+- **`Gap-API`** — public type or method with no test reference. *Medium confidence:* indirect coverage via a caller is common.
+- **`Gap-Route`** — HTTP route / function handler / message-queue handler with no test reference to its route template, queue name, or topic. *High confidence:* routes are registered by string identity; a test that doesn't mention the string almost certainly doesn't cover it.
+- **`Gap-Migration`** — database migration class (or file) with no test reference to its class name. *High confidence.*
+- **`Gap-Throw`** — exception throw site with no test that both names the exception type and calls the containing method. *Medium confidence:* may be covered by a generic "error path" test that doesn't name the type.
+- **`Gap-Validate`** — a validation attribute (`[Required]`, `[StringLength]`, etc.) or custom validator on an input type with no test that sends a bad value for that field. *High confidence* on serialization-layer input types.
+
+### Rules
+
+- **Extensions own the grep patterns.** The core workflow is framework-neutral; language-specific patterns belong in `extensions/<stack>.md`.
+- **Gap detection is suite-level.** Never run step 2.5 in quick mode — a PR-diff or single-file audit produces noise.
+- **Never treat a probable gap as a confirmed gap** without verification. The report must flag each finding as probable and recommend mutation testing or manual review for confirmation.
+- **Reconcile with mutation testing** in step 5 when both steps produced output.
+
+### Gap report format
+
+In the step-5 suite assessment, emit a `### Gap report` subsection in one of two states:
+
+**State A — enumeration ran:**
+
+```markdown
+### Gap report (static SUT surface enumeration)
+
+- **SUT projects:** <project list>
+- **Method:** grep-based cross-reference from test files to SUT symbols via the stack extension's patterns. Weak signal — each finding is a *probable* gap and requires verification.
+
+| Class | Enumerated | Referenced from tests | Probable gaps | Confidence |
+|---|---|---|---|---|
+| `Gap-API` — public methods | <N> | <M> | <N-M> | medium |
+| `Gap-Route` — HTTP / function routes | <N> | <M> | <N-M> | high |
+| `Gap-Migration` — migration classes | <N> | <M> | <N-M> | high |
+| `Gap-Throw` — throw sites | <N> | <M> | <N-M> | medium |
+| `Gap-Validate` — validation attributes | <N> | <M> | <N-M> | high |
+
+#### Top probable gaps (highest confidence first)
+
+- **`Gap-Route`** — `DELETE /api/orders/{id}` (`api/Functions/OrdersApi.cs:88`): route registered, no test references the template. Likely true gap.
+- **`Gap-Migration`** — `AddOrderStatusColumnMigration` (`api/Migrations/0007_order_status.cs:14`): migration class name not mentioned in any test.
+- **`Gap-Validate`** — `[Required] CustomerId` on `CreateOrderRequest` (`shared/Requests.cs:22`): no test sends a request with missing `CustomerId`.
+- **`Gap-API`** — `OrderService.CancelOrderAsync` (`api/Services/OrderService.cs:42`): public, no test body references it. *Verify:* may be covered via a caller.
+- **`Gap-Throw`** — `throw new InvalidOperationException("Order already shipped")` (`api/Services/OrderService.cs:142`): no test names both the exception type and the method.
+
+#### Reconciliation with mutation testing (when step 4 produced results)
+
+- **Confirmed gaps** (static probable gap ∩ mutation `NoCoverage`): <list>
+- **Static-only probable gaps** (mutation saw runtime coverage): <list with note that indirect coverage exists>
+- **Mutation-only gaps** (no grep match but static cross-reference failed): <list — signal to tune the grep patterns in the extension>
+```
+
+**State B — enumeration skipped:**
+
+```markdown
+### Gap report
+
+- **Status:** skipped — <extension name> has no `SUT surface enumeration` section (or: target is quick mode / target is E2E-only).
+- **What this means:** static gap detection is unavailable for this scope. Mutation testing (if applicable) is the only gap-finding mechanism. Consider writing an extension section to enable surface enumeration.
 ```
 
 ---
@@ -432,6 +530,12 @@ Then:
 - **Shape:** `pyramid` / `diamond` / `inverted` / `hourglass`
 - **Finding:** <none / "unit coverage is thin — <percentage> unit vs Google 70-80% guidance" / "E2E inflated — <percentage> vs ≤10% guidance">
 
+### Gap report
+
+<One of the states documented in § SUT surface enumeration:
+ State A — enumeration ran (SUT projects list, counts table, top probable gaps, reconciliation with mutation)
+ State B — skipped (extension has no SUT surface enumeration section / quick mode / E2E-only scope)>
+
 ### Mutation testing
 
 <One of the three states documented in § Mutation testing (conditional):
@@ -459,6 +563,8 @@ Then:
 - **Be honest about the limits of static audit.** When git history, coverage data, flake history, spec links, or contract pacts would change the verdict, say so and ask — do not fabricate certainty.
 - **Run mutation testing in deep mode when the tool is installed.** Check availability via the extension's detection command. If installed, run it per the extension; if not, skip and report install instructions. If installed but the SUT shape matches a documented limitation (e.g. Blazor WASM for Stryker.NET), skip with the documented reason and workaround. **Never hard-fail the audit on a mutation step failure** — static findings stand on their own. Mutation testing applies to both unit and in-process integration SUTs.
 - **Mutation findings augment, never override, static findings.** A surviving mutant in a file the static audit rated `strong` is a meaningful disagreement worth investigating, but it does not automatically downgrade the file to `weak`. Report it as a reconciliation finding, not a verdict change.
+- **Run SUT surface enumeration in deep mode when the extension has the section.** See [§ SUT surface enumeration](#sut-surface-enumeration). Check whether the loaded extension declares grep patterns for gap classes. If yes, run step 2.5. If no, record the skip reason and continue. **Never run surface enumeration in quick mode** — gap detection is suite-level and produces noise on single-file or PR-diff targets.
+- **Gap findings are probable, not confirmed.** Grep is an approximate cross-reference: a public method covered indirectly via its caller will look untested. Each gap entry must carry a confidence annotation (`high` / `medium`) and a recommendation to verify via mutation testing or manual read before acting.
 - **One finding per test, under one rubric.** A test is either unit or integration, never both. Cite all matched smells in the codes list, but the overall verdict reflects the highest-severity smell under the selected rubric.
 - **Reward positive signals explicitly.** An audit that only complains gets tuned out.
 - **Stay read-only.** Do not modify tests or production code unless the user explicitly asks for fixes. Running a mutation tool is allowed because it does not modify checked-in files; its output directory (e.g. `StrykerOutput/`) should already be in `.gitignore` or flagged as needing to be added.
@@ -505,6 +611,8 @@ Things the auditor itself must avoid:
 - **Confusing E2E sub-lane S with an integration-lane security check.** A security test that only asserts response headers or cookie attributes at the HTTP level is integration sub-lane B work, not E2E. Sub-lane S exists to prove the browser *enforces* the policy (CSP blocks an injected script, the cookie jar honours `SameSite`, an iframe is blocked by `X-Frame-Options`). If the assertion does not need a browser, it is in the wrong lane.
 - **Flagging heavy setup as `LC-7` when the test is correctly routed to the integration or E2E rubric.** Under the integration rubric, `WebApplicationFactory<T>` / `HostBuilder` / `TestServer` setup is expected and positive (`dotnet.POS-3`). Under the E2E rubric, `StackFixture` / `IPlaywright` / browser-context factories / Testcontainers bringup are expected and positive. The `LC-7` carve-out in `extensions/dotnet.md` is the safety net for when routing is uncertain, not the primary mechanism.
 - **Flagging traces, screenshots, or DOM snapshots captured on failure as `E-HC-F7`.** Diagnostics captured only on failure and never consumed by an assertion are positive (`E-POS-7`), not a smell. `E-HC-F7` targets snapshots *used as the assertion*, not snapshots *written as post-mortem artifacts*.
+- **Treating a grep-based probable gap as a confirmed gap.** Step 2.5 gap findings are approximate. A public method tested indirectly via its caller, an interface method hit through its implementing class, and a private-by-intent-but-public-by-access method all look untested to grep. Mark each gap as probable in the report and recommend verification (mutation testing or manual review) before acting. Never convert a probable gap into a worklist item without a verification step.
+- **Running SUT surface enumeration in quick mode.** Gap detection is suite-level. A quick-mode audit on a PR diff or single file does not have enough scope to make the enumeration meaningful. Skip step 2.5 entirely in quick mode.
 - **Running mutation testing against an E2E target.** Mutation testing does not apply to E2E SUTs — the SUT is the whole deployed stack driven through a browser. Skip the step with state B or C and continue with static findings.
 - **Flagging snapshot tests whose output *is* the published contract** — API responses with a documented schema, RFC test vectors, locale-compiled message catalogs. Snapshots of *unspecified* rendered output are the smell; snapshots of *specified* output are positive.
 - **Treating `verify(mock...)` as a smell when the verified call *is* the observable behavior** — publishing to a message bus, emitting an audit event, calling an outbound HTTP endpoint. When the mocked thing is a process boundary and the verified call is what a client observes, it is specification.

@@ -47,6 +47,16 @@ Applies when `SKILL.md` step 0b selects the unit rubric. Cite as `HC-N`, `LC-N`,
 `POS-8` — Meaningful failure message on a non-trivial assertion; FluentAssertions `.Because(...)` or xUnit/NUnit message argument explains *what should be true and why*, not just that the assertion is present.
 `POS-9` — Property-based test harness detected (FsCheck, Hedgehog, Hypothesis, QuickCheck, CsCheck, or equivalent). A property-based test expressing an invariant over a generated domain is strictly stronger than any finite example-based test; reward it regardless of the test's other signals.
 
+### Gap codes (deep mode only)
+
+Emitted by the deep-mode workflow's [§ SUT surface enumeration](../SKILL.md#sut-surface-enumeration) step (step 2.5). Unlike `HC-*` / `LC-*` / `POS-*` which rate tests that exist, gap codes name tests that *don't* exist — probable misses found by grep cross-reference from the SUT to the test project. Each entry in the gap report is a probable gap, not a confirmed one; extensions own the grep patterns and confidence level.
+
+`Gap-API` — public type or method in the SUT has no test reference. *Confidence: medium* — may be covered indirectly via a caller; verify via mutation testing or manual read.
+`Gap-Route` — HTTP route, function handler, or message-queue handler has no test reference to its route template / queue name / topic. *Confidence: high* — routes are registered by string identity.
+`Gap-Migration` — database migration class has no test reference to its class name. *Confidence: high*.
+`Gap-Throw` — exception throw site has no test that both names the exception type and calls the containing method. *Confidence: medium* — may be covered by a generic error-path test that doesn't name the type.
+`Gap-Validate` — validation attribute (e.g. `[Required]`, `[StringLength]`) on an input type has no test that sends a bad value for that field. *Confidence: high* on serialization-layer input types.
+
 ## Integration rubric
 
 Applies when `SKILL.md` step 0b selects the integration rubric. Codes are prefixed `I-` to distinguish from unit-rubric codes above. Sub-lane A is in-process; sub-lane B is out-of-process contract. See [../../../docs/quality-reference/integration-testing.md §5](../../../docs/quality-reference/integration-testing.md) for the full rationale.

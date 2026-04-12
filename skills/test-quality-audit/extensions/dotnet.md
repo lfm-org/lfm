@@ -365,6 +365,87 @@ public async Task Get_Admin_Returns_Ok()
 
 ---
 
+## SUT surface enumeration
+
+Consumed by [SKILL.md § SUT surface enumeration](../SKILL.md#sut-surface-enumeration) — step 2.5 of the deep-mode workflow. This section declares the .NET-specific grep patterns the audit agent uses to enumerate testable symbols in a SUT and cross-reference them against a test project.
+
+### SUT identification
+
+For a given test project (`tests/Foo.Tests/Foo.Tests.csproj`):
+
+1. Parse the `<ItemGroup>` sections of the csproj and collect every `<ProjectReference Include="..." />` entry.
+2. For each referenced project, resolve the absolute path relative to the test csproj.
+3. Recurse: for each referenced project, parse its csproj and follow its own `<ProjectReference>` entries.
+4. Stop at projects whose SDK is **not** a production-code SDK (i.e. a test SDK like `Microsoft.NET.Sdk` + `xunit`/`bunit` references). The closure is the SUT.
+
+In this repo, for example:
+
+- `tests/Lfm.Api.Tests` → SUT closure: `api/Lfm.Api.csproj` + `shared/Lfm.Shared.csproj`.
+- `tests/Lfm.App.Core.Tests` → SUT closure: `app/Lfm.App.Core/Lfm.App.Core.csproj` + `shared/Lfm.Shared.csproj`.
+- `tests/Lfm.App.Tests` → SUT closure: `app/Lfm.App.csproj` (Blazor WASM) + `app/Lfm.App.Core/Lfm.App.Core.csproj` + `shared/Lfm.Shared.csproj`.
+
+### Grep patterns per gap class
+
+All patterns are case-sensitive ripgrep expressions applied to `.cs` files in the SUT. Each match returns a symbol identifier plus `file:line`.
+
+**`Gap-API` — public methods and types.** Multi-line aware. Detection patterns:
+
+- Public classes / records / structs / interfaces: `^\s*public\s+(sealed\s+|abstract\s+|static\s+|partial\s+)*(class|record|record\s+struct|struct|interface)\s+(?P<name>[A-Z][A-Za-z0-9_]*)`.
+- Public instance or static methods: `^\s*public\s+(static\s+|virtual\s+|override\s+|sealed\s+|async\s+|new\s+)*([A-Za-z0-9_<>?,\[\]\s]+)\s+(?P<name>[A-Z][A-Za-z0-9_]*)\s*\(` — then exclude matches where the captured name is a keyword, a constructor (same as the class name), or a C# operator. Ignore files under `obj/`, `bin/`, and generator-output paths.
+
+**`Gap-Route` — HTTP and Functions routes.** Detection patterns:
+
+- Azure Functions isolated: `\[Function\("(?P<name>[^"]+)"\)\]` — capture the function name and any adjacent `[HttpTrigger(...)]` route template.
+- HTTP trigger route: `\[HttpTrigger\([^)]*,\s*Route\s*=\s*"(?P<route>[^"]+)"\)\]`.
+- HTTP method + route in `HttpTrigger` args: `\[HttpTrigger\(AuthorizationLevel\.[A-Za-z]+,\s*"(?P<methods>[^"]+)"(?:,\s*Route\s*=\s*"(?P<route>[^"]+)")?`.
+- ASP.NET Core minimal API: `app\.Map(Get|Post|Put|Delete|Patch)\s*\(\s*"(?P<route>[^"]+)"`.
+- ASP.NET Core MVC attribute routing: `\[Route\("(?P<route>[^"]+)"\)\]` and `\[Http(Get|Post|Put|Delete|Patch)(\("(?P<route>[^"]+)"\))?\]`.
+
+**`Gap-Migration` — database migration classes.** Detection patterns:
+
+- Any class in `api/Migrations/` that inherits from or implements a migration base type: `:\s*(?:IAsync)?Migration\b` or `:\s*MigrationBase\b`.
+- Any file whose name matches `\d{4}_[a-z0-9_]+\.cs` under `api/Migrations/` — treat the class name declared at top-of-file as the migration identifier even if the base type is missing (documented repo convention).
+
+**`Gap-Throw` — exception throw sites.** Detection patterns:
+
+- `throw\s+new\s+(?P<type>[A-Z][A-Za-z0-9_]*Exception)\s*\(` — capture exception type.
+- Record the containing method via the nearest preceding `public|internal|private|protected` method declaration; the audit agent walks up from the match to the enclosing method name.
+- Exclude re-throws (`throw;` and `throw ex;`) — those are not new sites.
+
+**`Gap-Validate` — validation attributes on input types.** Detection patterns:
+
+- `\[(Required|StringLength|MaxLength|MinLength|Range|RegularExpression|EmailAddress|Url|CreditCard|Phone)(\([^)]*\))?\]` on a property declaration.
+- Capture the containing record / class (input type) and the property name — e.g. `CreateOrderRequest.CustomerId`.
+
+### Cross-reference matching
+
+For each enumerated symbol, the audit agent searches the test project tree (`tests/**/*.cs` except `obj/`, `bin/`, `TestResults/`, `StrykerOutput/`) for at least one of:
+
+- **`Gap-API`** — the symbol name appears as an identifier in any test method name (`public void CancelOrderAsync_...`) or test body (`sut.CancelOrderAsync(...)`, `new CancelOrderAsync...`). Word-boundary match: `\bCancelOrderAsync\b`.
+- **`Gap-Route`** — the route template appears as a string literal in any test body. Match the exact template after normalising case: `"orders/{id}"` or `"orders"`. Also match the Functions name from `[Function("...")]` as a string literal.
+- **`Gap-Migration`** — the migration class name appears as an identifier in any test body, or the migration file name appears as a path literal.
+- **`Gap-Throw`** — both the exception type (e.g. `InvalidOperationException`) *and* the containing method name appear in the same test method body. If either is missing, the throw site is a probable gap.
+- **`Gap-Validate`** — the input type's property name (e.g. `CustomerId`) appears in a test body that also references the input type (e.g. `new CreateOrderRequest { CustomerId = null }`).
+
+### Known indirect-coverage patterns (carve-outs)
+
+These patterns suppress a false-positive `Gap-API` entry:
+
+- A service method `Foo.BarAsync(...)` is covered indirectly when a Functions endpoint `Foo.BarFunction` that wraps it has a test, and the service type is registered in DI under the Functions project. Search DI registrations (`services.AddScoped<Foo>()` / `services.AddSingleton<Foo>()`) in the Functions project to establish wrapping; if a test exercises the wrapping endpoint, the service method is *indirectly covered* — record as "indirectly covered via `FooFunction`" and suppress the `Gap-API` entry.
+- A `MigrationRunner.RunAsync` test in `tests/Lfm.Api.Tests/` that exercises the runner with seed data covers every migration transitively if the test explicitly asserts post-state for each migration class. Search for the pattern and suppress `Gap-Migration` entries for the covered classes.
+
+### Confidence annotations
+
+- `Gap-API`: **medium** — indirect coverage via controllers / Functions / facade methods is common in this repo.
+- `Gap-Route`, `Gap-Migration`, `Gap-Validate`: **high** — these are registered by string or class identity with few indirect-coverage paths.
+- `Gap-Throw`: **medium** — generic error-path tests often exercise the method without naming the exception type.
+
+### Recommended `--mutate` follow-up
+
+When the gap report lists a probable `Gap-API` finding on a SUT shape that Stryker.NET supports, the audit agent may suggest a targeted mutation run to confirm: `dotnet stryker --mutate "<path>.cs" --reporter cleartext` (fast — seconds).
+
+---
+
 ## Carve-outs
 
 Patterns that look like core smells but are idiomatic in .NET and must not be flagged:
