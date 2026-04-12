@@ -1,13 +1,13 @@
 ---
 name: test-quality-audit
-description: Use when auditing unit or integration test quality — distinguishing specification tests from characterization tests (unit) or incidentally-scoped tests (integration), surfacing coupling and scope smells, and producing per-test findings with severity and recommended actions. Dispatches on detected test type. Supports quick single-file / PR-diff audits and deep suite-wide audits, with pluggable per-stack extensions for framework-specific smells.
+description: Use when auditing unit, integration, or E2E test quality — distinguishing specification tests from characterization tests (unit), incidentally-scoped tests (integration), or scope-and-provenance failures (E2E), surfacing coupling, scope, and browser-layer smells, and producing per-test findings with severity and recommended actions. Dispatches on detected test type. Supports quick single-file / PR-diff audits and deep suite-wide audits, with pluggable per-stack extensions for framework-specific smells.
 ---
 
 # Test Quality Audit
 
 ## Overview
 
-Audit tests for quality. The skill supports two rubrics and dispatches on detected test type in step 0b of the workflow:
+Audit tests for quality. The skill supports three rubrics and dispatches on detected test type in step 0b of the workflow:
 
 - **Unit rubric** — for unit tests and component tests. The central question for every test:
 
@@ -21,16 +21,25 @@ Audit tests for quality. The skill supports two rubrics and dispatches on detect
 
   If the answer is *nothing new*, the test is a slower, flakier duplicate of a unit test and should be deleted or moved. If the answer is *everything at once*, the test is unfocused and has no defensible scope. A test labeled "integration" without a stateable scope is a smell regardless of how green it runs.
 
-The skill selects the rubric in [§ 0b (Rubric selection)](#0b-select-the-rubric) based on test type detection. The central question applied to any given test is whichever one applies to the selected rubric.
+- **E2E rubric** — for browser-driven tests executed against a deployed or locally-launched stack through a real user agent. E2E tests inherit both failure modes above, amplified. Every E2E test must answer **two** central questions:
+
+  > *(scope)* What user-observable outcome does this test prove, and why couldn't a cheaper test prove the same thing?
+  >
+  > *(provenance)* Could this test have been written from the user story alone, without observing what the UI currently does?
+
+  A test that fails the scope question is slower and flakier than whatever lane it belongs in; move it down. A test that fails the provenance question is pinning current UI output — a screenshot of today's app wearing a test costume. The E2E rubric is split into four sub-lanes — **F** functional user journey, **A** accessibility audit, **P** performance budget, **S** security surface — because the failure modes are incompatible across the four.
+
+The skill selects the rubric in [§ 0b (Rubric selection)](#0b-select-the-rubric) based on test type detection. The central question(s) applied to any given test is whichever set applies to the selected rubric.
 
 **Before auditing, read the selected rubric:**
 
 - For **unit rubric** audits: [../../docs/quality-reference/unit-testing.md](../../docs/quality-reference/unit-testing.md) — principles, full rationale, and the complete unit smell list.
 - For **integration rubric** audits: [../../docs/quality-reference/integration-testing.md](../../docs/quality-reference/integration-testing.md) — principles, sub-lane distinctions (in-process vs out-of-process contract), and the complete integration smell list.
+- For **E2E rubric** audits: [../../docs/quality-reference/e2e-testing.md](../../docs/quality-reference/e2e-testing.md) — principles, the four sub-lanes (F / A / P / S), and the complete E2E smell list.
 
 Each document is the canonical rubric for its test type. This skill is the *workflow* for applying the selected rubric.
 
-**Read `references/smell-catalog.md`** for the compact code list used in reports. The unit rubric uses `HC-*`, `LC-*`, `POS-*`; the integration rubric uses `I-HC-A*`, `I-HC-B*`, `I-LC-*`, `I-POS-*`. Audit findings cite smells by code, not by restating them.
+**Read `references/smell-catalog.md`** for the compact code list used in reports. The unit rubric uses `HC-*`, `LC-*`, `POS-*`; the integration rubric uses `I-HC-A*`, `I-HC-B*`, `I-LC-*`, `I-POS-*`; the E2E rubric uses `E-HC-F*`, `E-HC-A*`, `E-HC-P*`, `E-HC-S*`, `E-LC-*`, `E-POS-*`. Audit findings cite smells by code, not by restating them.
 
 ## Audit Mode
 
@@ -74,8 +83,8 @@ Before applying the rubric, detect which stacks are present in the audit target.
 
 | Signal | Extension to load |
 |---|---|
-| `*.csproj` or `*.sln` in the target; `xunit`, `nunit`, `mstest`, `Moq`, `NSubstitute`, `bunit`, `FluentAssertions` package refs | `extensions/dotnet.md` |
-| `package.json` with `jest`, `vitest`, `mocha`, `@testing-library/*` in devDependencies | *(future)* `extensions/javascript.md` |
+| `*.csproj` or `*.sln` in the target; `xunit`, `nunit`, `mstest`, `Moq`, `NSubstitute`, `bunit`, `FluentAssertions`, `Microsoft.Playwright`, `Selenium.WebDriver` package refs | `extensions/dotnet.md` |
+| `package.json` with `jest`, `vitest`, `mocha`, `@testing-library/*`, `@playwright/test`, `cypress`, `webdriverio` in devDependencies | *(future)* `extensions/javascript.md` |
 | `pyproject.toml` or `setup.py` with `pytest` or `unittest` | *(future)* `extensions/python.md` |
 
 Detection rules:
@@ -101,17 +110,25 @@ If a carve-out and a core smell conflict, the carve-out wins *only* for the exac
 
 ### 0b. Select the rubric.
 
-After loading extensions, detect whether the audit target contains unit tests, integration tests, or a mix. Use the `Test type detection signals` section of each loaded extension. Signals in order of precedence:
+After loading extensions, detect whether the audit target contains unit tests, integration tests, E2E tests, or a mix. Use the `Test type detection signals` section of each loaded extension. Signals in order of precedence:
 
-1. **Explicit user instruction.** If the user said "audit the integration tests in X" or equivalent, use that.
-2. **Project-level signal.** Project name containing `Integration`, `E2E`, or `IntegrationTests`; or a transitive `<ProjectReference>` closure that names the integration-rubric SDK for the stack (e.g. `Microsoft.NET.Sdk.Web` for .NET). A `*.Tests` project with no integration markers defaults to **unit**.
-3. **File-level signal (from extension).** Presence of integration-routing types such as (for .NET) `WebApplicationFactory<T>`, `HostBuilder`, `TestServer`, `DistributedApplicationTestingBuilder`, Testcontainers clients, or emulator-endpoint `CosmosClient` / `BlobServiceClient` instances routes the file to the integration rubric.
+1. **Explicit user instruction.** If the user said "audit the integration tests in X" or "audit the E2E tests" or equivalent, use that.
+2. **Project-level signal.**
+   - Project name containing `E2E`, `EndToEnd`, or matching a browser-test convention; OR a `<PackageReference>` on a browser automation library (e.g. `Microsoft.Playwright`, `Selenium.WebDriver`, `@playwright/test`, `cypress`, `webdriverio`) routes the project to the **E2E** rubric.
+   - Project name containing `Integration`, `IntegrationTests`, or equivalent; OR a transitive `<ProjectReference>` closure that names the integration-rubric SDK for the stack (e.g. `Microsoft.NET.Sdk.Web` for .NET) routes the project to the **integration** rubric.
+   - A `*.Tests` project with no E2E or integration markers defaults to **unit**.
+3. **File-level signal (from extension).**
+   - Imports of a browser-automation namespace — `using Microsoft.Playwright;`, `using OpenQA.Selenium;`, `import { test } from '@playwright/test';`, `require('cypress')`, or equivalent — route the file to the **E2E** rubric.
+   - Presence of integration-routing types such as (for .NET) `WebApplicationFactory<T>`, `HostBuilder`, `TestServer`, `DistributedApplicationTestingBuilder`, Testcontainers clients, or emulator-endpoint `CosmosClient` / `BlobServiceClient` instances routes the file to the **integration** rubric.
 4. **Test-level signal.** A mixed file's tests are classified per-test using the same extension signals.
-5. **Fallback.** If none of the above apply clearly, ask the user which rubric to apply. Do not guess.
+5. **E2E sub-lane signal.** Once a test has been routed to E2E, classify it into a sub-lane (F / A / P / S) using its trait / category / tag metadata and body contents. Signals in order of precedence:
+   - `[Trait("Category", "Accessibility")]`, `@tag("a11y")`, axe-core / `AccessibilityHelper` / `AxeBuilder` import → sub-lane **A**.
+   - `[Trait("Category", "Perf")]`, `@tag("perf")`, Web Vitals / `PerformanceObserver` / `PerfHelper` / Lighthouse import → sub-lane **P**.
+   - `[Trait("Category", "Security")]`, `@tag("security")`, assertions on CSP / CORS / cookie attributes / cross-origin iframe blocking / tampered-cookie behaviour → sub-lane **S**.
+   - Otherwise → sub-lane **F** (functional user journey). This is the default when no other sub-lane signal fires.
+6. **Fallback.** If none of the above apply clearly, ask the user which rubric (and, for E2E, which sub-lane) to apply. Do not guess.
 
-Browser / E2E tests detected in the target are skipped with a note "E2E audit is not yet supported" — neither rubric is applied to them.
-
-Record which rubric was selected for each project / file / test. Deep-mode output includes this record in the suite assessment so the reader can audit the dispatch itself.
+Record which rubric (and, for E2E, which sub-lane) was selected for each project / file / test. Deep-mode output includes this record in the suite assessment so the reader can audit the dispatch itself.
 
 1. **Identify the target.** A file, a glob, a set of changed files from a PR diff, or a single test within a file.
 2. **Read supporting infrastructure first.** Before reading individual tests, Read any test base classes, fixtures, or custom helpers referenced by the target tests. This prevents flagging idiomatic uses of a helper as a smell.
@@ -167,6 +184,8 @@ Running both on the same audit produces a reconciliation: **agreement** where bo
 ### Procedure
 
 1. **Read the extension's Mutation tool section.** Every extension that supports mutation testing must provide: detection command, run command, install instructions, and a known-SUT-limitations list. Extensions without this section have no mutation tool declared — skip step 4 entirely and note "no mutation tool declared for this stack" in the output.
+
+   **E2E rubric targets are excluded from mutation testing.** The SUT for an E2E test is the whole deployed (or locally launched) stack driven through a real browser — there is no single compile unit a source-level mutator can operate on, and even if one existed, the mutation-kill signal would be dominated by browser timing rather than test assertions. If the audit target contains only E2E tests, report state B or state C as appropriate (no applicable tool) and move on. If the target mixes rubrics, run mutation testing against the unit and integration SUTs only and note the E2E exclusion explicitly in the output.
 2. **Detect tool availability** by running the extension's detection command. It should be cheap and side-effect-free (e.g. a tool list query). Parse the result to decide whether the tool is installed.
 3. **Check SUT shape against the extension's known-limitations list.** If the SUT matches a documented unsupported shape (e.g. Blazor WASM for Stryker.NET), skip the run with that reason and the suggested workaround.
 4. **Run the tool** per the extension's run command. Use the extension's default reporters (typically `json` + `cleartext` + `html`).
@@ -221,7 +240,7 @@ In the step-5 suite assessment, the `Mutation testing` subsection must be presen
 
 ## Per-Test Rubric
 
-Use the **unit rubric fields** below when the rubric selection in step 0b is `unit` (or `component`, which is unit-equivalent). Use the **integration rubric fields** below when it is `integration`. Each test gets a single finding under a single rubric.
+Use the **unit rubric fields** below when the rubric selection in step 0b is `unit` (or `component`, which is unit-equivalent). Use the **integration rubric fields** below when it is `integration`. Use the **E2E rubric fields** below when it is `e2e`. Each test gets a single finding under a single rubric.
 
 ### Unit rubric per-test fields
 
@@ -274,6 +293,46 @@ For every integration test case examined, emit these fields. Derived from [integ
 10. **Severity** — `block` / `warn` / `info`.
 11. **Recommended action** — one of: `rewrite-from-requirement` / `add-assertion` / `split` / `narrow-the-seam` / `move-to-unit-lane` / `replace-with-contract-test` / `delete` / `keep`.
 
+### E2E rubric per-test fields
+
+For every E2E test case examined, emit these fields. Derived from [e2e-testing.md § 9](../../docs/quality-reference/e2e-testing.md).
+
+1. **User-outcome statement** — one sentence answering: *what does the user accomplish or experience through this test?* If you cannot state one, say "no stateable user outcome" — that itself is a finding, and the provenance question has failed.
+2. **Scope statement** — one sentence answering: *why couldn't a cheaper test (unit or integration) prove the same thing?* If you cannot state one, say "no stateable scope" — that itself is a finding, and the scope question has failed.
+3. **Sub-lane** — `F` (functional user journey), `A` (accessibility audit), `P` (performance budget), or `S` (security surface).
+4. **Test size** (Google sizing) — E2E is almost always `large` (multi-process, real browser, real backend).
+5. **Selector provenance** — how does the test locate UI elements? One of:
+   - `accessible-name` — locators derived from accessible role, accessible name, visible text, label association, or placeholder.
+   - `test-id-with-accessible-fallback` — dedicated test-id attribute, used only when no accessible name is available.
+   - `test-id-only` — test-id with no accessible-name fallback even when one exists.
+   - `css-or-xpath` — raw CSS selectors, xpath, or deep DOM-path selectors.
+   - `mixed` — test uses more than one of the above.
+6. **Wait strategy** — one of:
+   - `condition-based` — waits only on observable state (visibility, URL, response, predicate).
+   - `mixed` — combination of condition-based and wall-clock waits.
+   - `wall-clock` — sleeps, fixed-duration delays, fixed-budget waits, retry-until-green loops.
+   - `none` — no explicit waits (may indicate the test races the UI).
+7. **Fixture and data provenance** — how is the test's state set up? One of:
+   - `per-test-factory` — each test creates its own user, data, and browser context.
+   - `shared-immutable` — a shared fixture no test mutates (acceptable).
+   - `shared-mutable` — a shared fixture tests mutate (a smell — likely `E-HC-F5`).
+   - `external-snapshot` — pinned to a snapshot / baseline / recorded payload.
+   - `pasted-literal` — expected value pasted from a run with no provenance.
+   - `unknown` — cannot tell.
+8. **Assertion target** — what is being checked?
+   - `user-observable-outcome` — a user-verifiable state: reached page, visible content, submitted form, completed task.
+   - `url-only` — only a URL match, no content check.
+   - `element-presence-only` — only that an element exists, not what it says or does.
+   - `snapshot` — DOM snapshot, golden file, serialized output.
+   - `pixel-baseline` — visual regression.
+   - `published-contract` — a WCAG rule set, Web Vitals threshold, CSP policy, or similar cited external source (positive for sub-lanes A/P/S).
+   - `none` — no assertion.
+9. **Smells matched** — list of codes from `references/smell-catalog.md` (E2E section) plus any loaded extension entries with `Applies to: e2e` or `Applies to: e2e, ...`. Example: `E-HC-F3, E-HC-F5, dotnet.E-HC-F1`.
+10. **Positive signals matched** — list of codes. Example: `E-POS-2, E-POS-6, dotnet.POS-3`.
+11. **Verdict** — `specification` / `characterization` / `incidental` / `ambiguous`. The unit rubric's `characterization` and the integration rubric's `incidental` both apply at the E2E layer: the first for tests that pin observed UI output (provenance failure), the second for tests with no defensible scope (scope failure). A test can fail either; cite the dominant failure in the verdict.
+12. **Severity** — `block` / `warn` / `info`.
+13. **Recommended action** — one of: `rewrite-from-user-story` / `add-assertion` / `split` / `narrow-the-journey` / `move-to-integration-lane` / `move-to-unit-lane` / `replace-selector-strategy` / `replace-wait-strategy` / `delete` / `keep`.
+
 One finding per test, under exactly one rubric. If a test hits multiple smells, cite them all in the codes list but pick the highest severity for the overall verdict.
 
 ---
@@ -295,11 +354,11 @@ One finding per test, under exactly one rubric. If a test hits multiple smells, 
 - **Action:** rewrite-from-requirement. The test verifies `repo.Save` was called with a specific entity shape, not that the order was persisted as a client-observable outcome. Replace with an assertion on the returned order or on a state-query through the repository interface.
 ```
 
-Severity rules (apply to both rubrics; smell codes differ):
+Severity rules (apply to all three rubrics; smell codes differ):
 
-- `block` — no assertions (`HC-1` / `I-HC-A10`), logic in the test (`HC-4`), tautology against trivial SUT (`HC-2`), every-dependency-mocked "integration" test (`I-HC-A1`), downstream service mocked at the transport layer (`I-HC-B5`), test hits a test-only endpoint that does not exist in production (`I-HC-B2`).
-- `warn` — characterization verdict (unit) or incidental verdict (integration), interaction-only assertions on owned code, pasted-literal provenance on non-trivial expected values, shared mutable fixture (`I-HC-A2`, `I-HC-A4`), `Sleep` / retry-until-green / polling-with-wall-clock (`I-HC-A5`), log-text assertion (`HC-6` / `I-HC-A6`), migration test against empty DB (`I-HC-A7`), auth test with only the happy path (`I-HC-B7`).
-- `info` — low-confidence smells (`LC-*` or `I-LC-*`), ambiguous verdict, missing negative tests.
+- `block` — no assertions (`HC-1` / `I-HC-A10` / `E-HC-F1`), logic in the test (`HC-4`), tautology against trivial SUT (`HC-2`), every-dependency-mocked "integration" test (`I-HC-A1`), downstream service mocked at the transport layer (`I-HC-B5`), test hits a test-only endpoint that does not exist in production (`I-HC-B2` / `E-HC-S5`), E2E test that re-proves an integration contract (`E-HC-F10`), E2E security test that asserts only server headers without browser enforcement (`E-HC-S1`).
+- `warn` — characterization verdict (unit) or incidental verdict (integration or E2E), interaction-only assertions on owned code, pasted-literal provenance on non-trivial expected values, shared mutable fixture (`I-HC-A2`, `I-HC-A4`, `E-HC-F5`), wall-clock waits (`I-HC-A5`, `E-HC-F3`), fragile setup (`I-HC-A11`, `E-HC-F11`), log-text assertion (`HC-6` / `I-HC-A6`), migration test against empty DB (`I-HC-A7`), auth test with only the happy path (`I-HC-B7` / `E-HC-S3`), implementation selectors in an E2E test (`E-HC-F2`), DOM snapshot or pixel baseline with no workflow (`E-HC-F7`, `E-HC-F8`), axe with no WCAG level (`E-HC-A5`), axe rule suppression with no justification (`E-HC-A1`), perf budget with no external source (`E-HC-P1`), single-sample perf assertion (`E-HC-P2`), localhost-only perf budget (`E-HC-P4`).
+- `info` — low-confidence smells (`LC-*` / `I-LC-*` / `E-LC-*`), ambiguous verdict, missing negative tests.
 
 ### Example integration finding
 
@@ -310,14 +369,35 @@ Severity rules (apply to both rubrics; smell codes differ):
 - **Scope:** "an integration test for the orders endpoint" — no stateable scope; depends on order from the previous test.
 - **Sub-lane:** A (in-process)
 - **Test size:** medium
-- **Seam narrowness:** broad — exercises HTTP pipeline + DI container + Cosmos emulator without isolating any one seam.
-- **Fixture/data provenance:** shared-mutable — shared `WebApplicationFactory<Program>` via `IClassFixture<>`, no per-test data scoping.
-- **Assertion target:** response-value (`orders.Should().HaveCount(1)`)
+- **Seam narrowness:** broad — exercises HTTP pipeline + DI container + real-database emulator without isolating any one seam.
+- **Fixture/data provenance:** shared-mutable — shared in-process host factory via class fixture, no per-test data scoping.
+- **Assertion target:** response-value (asserts a global row count)
 - **Smells:** I-HC-A2, I-HC-A4, I-LC-6, dotnet.I-HC-A1
 - **Positive signals:** —
 - **Verdict:** incidental
 - **Severity:** warn
 - **Action:** narrow-the-seam. Rewrite so each test owns its data with a unique tenant id or partition key; assert on the specific rows the test created, not a global count. See `I-POS-4` (per-test data ownership).
+```
+
+### Example E2E finding
+
+```markdown
+#### `SignInJourney.cs::Login_Flow_Works` (L32)
+
+- **Rubric:** e2e
+- **User-outcome:** "no stateable user outcome" — test name describes UI steps, not a user goal.
+- **Scope:** "sign-in integration" — but the assertion is on a URL match only; an integration test of the auth endpoint would prove the same thing without a browser.
+- **Sub-lane:** F (functional user journey)
+- **Test size:** large
+- **Selector provenance:** css-or-xpath — locates the button via a CSS class path that mirrors the current layout.
+- **Wait strategy:** wall-clock — `Task.Delay(2000)` after clicking the sign-in button, then a URL-only assertion.
+- **Fixture/data provenance:** shared-mutable — browser context reused across tests in the fixture.
+- **Assertion target:** url-only
+- **Smells:** E-HC-F1, E-HC-F2, E-HC-F3, E-HC-F5, E-HC-F6, E-HC-F10, E-LC-2
+- **Positive signals:** —
+- **Verdict:** characterization
+- **Severity:** block
+- **Action:** rewrite-from-user-story. Rename to `Anonymous_User_Signs_In_And_Reaches_Authenticated_Home`. Replace the CSS selector with an accessible-role locator for the sign-in button. Replace the sleep with a condition-based wait on the authenticated-home landmark. Assert on a user-observable element on the authenticated page (e.g. the user's display name). Give each test its own browser context. Consider whether the scope is actually integration-lane — an integration test of the auth callback endpoint would prove the contract cheaper.
 ```
 
 ### Deep mode rollup
@@ -389,13 +469,33 @@ Then:
 - **Log and trace assertions are valid only against published contracts.** Free-text logs are not contracts. Structured audit events with a documented schema are.
 - **Flake is a scope signal, not a quarantine problem.** Quarantining flakes hides underlying scope confusion.
 
+### Rules specific to the E2E rubric
+
+- **Every E2E test must state both its user outcome and its scope.** A test that fails either question (provenance or scope) is a smell regardless of how green it runs. The user-outcome statement and the scope statement are both gates.
+- **Default to no.** An E2E test is the slowest, flakiest, most expensive test in the suite. Route coverage to unit or integration first; promote to E2E only when the user outcome genuinely requires a browser.
+- **Name tests as user stories, not UI steps.** A test named for clicks and keystrokes is pinning the UI. A test named for what the user accomplishes is specifying a journey. The name is the provenance check.
+- **Use accessible-name locators.** Role, accessible name, visible text, label, placeholder. Implementation selectors (CSS class paths, xpath, internal ids) are characterization in disguise — flag as `E-HC-F2`.
+- **Condition-based waits only.** Wall-clock sleeps and fixed-budget waits are flake in slow motion at the E2E layer, doubly disqualifying because browsers expose real state predicates. Flag as `E-HC-F3`.
+- **Per-test browser context.** Shared cookies, localStorage, sessionStorage, or service workers across tests are the E2E analogue of shared mutable fixtures and fail in the same way. Flag as `E-HC-F5`.
+- **Snapshot equals characterization, amplified.** DOM snapshots (`E-HC-F7`) and pixel baselines (`E-HC-F8`) are valid only with a review gate, an owner, and a drift process. Without that scaffolding they pin today's build.
+- **Perf budgets cite an external source.** Web Vitals thresholds, RUM baselines, or team SLOs. A threshold with no source is a pasted literal (`E-HC-P1`).
+- **A11y audits cite a WCAG conformance level.** "Passes axe" without a level is not a contract (`E-HC-A5`). Rule suppressions carry linked justifications (`E-HC-A1`).
+- **Security tests exercise browser enforcement.** Header-value assertions belong in integration sub-lane B. Sub-lane S exists to prove the browser does what the header claims. Flag as `E-HC-S1`.
+- **Quarantine is a scope signal, not a fix.** A growing quarantine list is a design finding for the suite, not a backlog item.
+- **Traces and screenshots captured on failure are diagnostics, not assertions.** Do not flag them as `E-HC-F7` when they are only written on failure and never consumed by test logic.
+
 ## Common Mistakes
 
 Things the auditor itself must avoid:
 
 - **Applying the unit rubric to an integration test.** A test that constructs `WebApplicationFactory<T>` (or equivalent) and exercises a real HTTP seam through real middleware is not a unit test, regardless of project location. Route it to the integration rubric in step 0b and apply the scope-based central question. If the dispatch signals are ambiguous, ask the user — do not default to unit.
 - **Applying the integration rubric to a unit test.** A test that constructs the SUT directly with mocked dependencies (`new OrderService(mockRepo.Object, ...)`) is a unit test even if it lives in a project named `*Integration.Tests`. Route it to the unit rubric.
-- **Flagging heavy setup as `LC-7` when the test is correctly routed to the integration rubric.** Under the integration rubric, `WebApplicationFactory<T>` / `HostBuilder` / `TestServer` setup is expected and positive (`dotnet.POS-3`). The `LC-7` carve-out in `extensions/dotnet.md` is the safety net for when routing is uncertain, not the primary mechanism.
+- **Applying the integration rubric to an E2E test.** A test that drives a real browser through a real user agent (imports `Microsoft.Playwright`, `OpenQA.Selenium`, `@playwright/test`, `cypress`, or similar) is an E2E test, not an integration test, regardless of project name. Route it to the E2E rubric, then classify into sub-lane F / A / P / S. A Playwright test that asserts only server-side response headers with no browser-side enforcement check is a misrouted integration test — flag `E-HC-S1` and recommend moving to integration sub-lane B.
+- **Applying the E2E rubric to an integration contract test.** A test that asserts an HTTP status code, error envelope shape, or JSON response body through a network call but does *not* use a browser belongs in integration sub-lane B, not the E2E lane. Route to the integration rubric.
+- **Confusing E2E sub-lane S with an integration-lane security check.** A security test that only asserts response headers or cookie attributes at the HTTP level is integration sub-lane B work, not E2E. Sub-lane S exists to prove the browser *enforces* the policy (CSP blocks an injected script, the cookie jar honours `SameSite`, an iframe is blocked by `X-Frame-Options`). If the assertion does not need a browser, it is in the wrong lane.
+- **Flagging heavy setup as `LC-7` when the test is correctly routed to the integration or E2E rubric.** Under the integration rubric, `WebApplicationFactory<T>` / `HostBuilder` / `TestServer` setup is expected and positive (`dotnet.POS-3`). Under the E2E rubric, `StackFixture` / `IPlaywright` / browser-context factories / Testcontainers bringup are expected and positive. The `LC-7` carve-out in `extensions/dotnet.md` is the safety net for when routing is uncertain, not the primary mechanism.
+- **Flagging traces, screenshots, or DOM snapshots captured on failure as `E-HC-F7`.** Diagnostics captured only on failure and never consumed by an assertion are positive (`E-POS-7`), not a smell. `E-HC-F7` targets snapshots *used as the assertion*, not snapshots *written as post-mortem artifacts*.
+- **Running mutation testing against an E2E target.** Mutation testing does not apply to E2E SUTs — the SUT is the whole deployed stack driven through a browser. Skip the step with state B or C and continue with static findings.
 - **Flagging snapshot tests whose output *is* the published contract** — API responses with a documented schema, RFC test vectors, locale-compiled message catalogs. Snapshots of *unspecified* rendered output are the smell; snapshots of *specified* output are positive.
 - **Treating `verify(mock...)` as a smell when the verified call *is* the observable behavior** — publishing to a message bus, emitting an audit event, calling an outbound HTTP endpoint. When the mocked thing is a process boundary and the verified call is what a client observes, it is specification.
 - **Calling a test tautological because the assertion duplicates a simple case** — when the test is actually a boundary case (`sum([]) == 0`, `reverse("") == ""`, `max([x]) == x`).

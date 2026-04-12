@@ -149,6 +149,7 @@ Codes are prefixed `I-` to distinguish from the unit-testing rubric, which uses 
 8. **`I-HC-A8`** — Snapshot of a full entity graph with no schema source. Pure characterization at the integration layer.
 9. **`I-HC-A9`** — Test writes data and never cleans up — or only cleans up on the happy path. Flake compounds with run count.
 10. **`I-HC-A10`** *(integration analogue of unit-testing §6)* — Incidental coverage. The test sweeps a large amount of code into execution but the only assertion is "no exception thrown." High line coverage, near-zero behavioral coverage.
+11. **`I-HC-A11`** — Fragile setup. The arrange block depends on state or behavior it cannot guarantee: its own retry loop or wait-for-state, seed data the test did not create, a live third-party boundary with no stub, or a shared factory that mutates across tests without per-test isolation. Distinct from `I-HC-A2`/`I-HC-A4` (shared-state *mutation*): this smell targets the *arrange block itself* as a risk surface — setup that is non-deterministic by construction. Rewrite: seed preconditions with per-test factories and unique keys (`I-POS-4`); stub third-party boundaries at the process boundary; if the setup genuinely needs retries, that is a finding against the backend's determinism, not a reason to retry in the test.
 
 ### 5.2 High-confidence smells, sub-lane B (out-of-process contract) — `I-HC-B1..I-HC-B8`
 

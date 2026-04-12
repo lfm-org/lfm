@@ -1,14 +1,14 @@
 # Extension: .NET
 
-Covers .NET unit-test stacks: xUnit, NUnit, MSTest, bUnit (Blazor component testing), and the commonly-used mocking and assertion libraries (Moq, NSubstitute, FakeItEasy, FluentAssertions).
+Covers .NET unit, integration, and E2E test stacks: xUnit, NUnit, MSTest, bUnit (Blazor component testing), Playwright .NET (browser-driven E2E), Selenium.WebDriver, and the commonly-used mocking and assertion libraries (Moq, NSubstitute, FakeItEasy, FluentAssertions).
 
 ## Detection signals
 
 Load this extension when the audit target contains any of:
 
 - `*.csproj` or `*.sln` files.
-- A `.cs` file with `using Xunit;` / `using NUnit.Framework;` / `using Microsoft.VisualStudio.TestTools.UnitTesting;` / `using Bunit;`.
-- A `.csproj` with `<PackageReference Include="xunit"` / `"nunit"` / `"MSTest.TestAdapter"` / `"bunit"` / `"Moq"` / `"NSubstitute"` / `"FakeItEasy"` / `"FluentAssertions"`.
+- A `.cs` file with `using Xunit;` / `using NUnit.Framework;` / `using Microsoft.VisualStudio.TestTools.UnitTesting;` / `using Bunit;` / `using Microsoft.Playwright;` / `using OpenQA.Selenium;`.
+- A `.csproj` with `<PackageReference Include="xunit"` / `"nunit"` / `"MSTest.TestAdapter"` / `"bunit"` / `"Moq"` / `"NSubstitute"` / `"FakeItEasy"` / `"FluentAssertions"` / `"Microsoft.Playwright"` / `"Selenium.WebDriver"` / `"Testcontainers"`.
 - A `global.json` or `dotnet-tools.json` in the target tree.
 
 Detection glob shortcuts: `**/*.csproj`, `**/*Tests.cs`, `**/*Tests/*.cs`, `**/Tests/**/*.cs`.
@@ -36,13 +36,25 @@ Route to the unit rubric (the default) when:
 - The test instantiates the SUT directly (`new OrderService(mockRepo.Object, ...)`) with `Mock<T>` / `Substitute.For<T>` / `A.Fake<T>()` dependencies, and
 - The file does not import or construct any of the integration-rubric markers above.
 
+### E2E rubric signals
+
+Route the test (or the containing file / project) to the E2E rubric when any of these are present:
+
+- **Project-level.** Project name matches `*E2E*` or `*EndToEnd*`, OR the `.csproj` contains a `<PackageReference>` to `Microsoft.Playwright`, `Microsoft.Playwright.NUnit`, `Microsoft.Playwright.MSTest`, `Microsoft.Playwright.Xunit`, or `Selenium.WebDriver`.
+- **Using directive.** `using Microsoft.Playwright;`, `using Microsoft.Playwright.NUnit;`, `using Microsoft.Playwright.MSTest;`, `using OpenQA.Selenium;`, or `using OpenQA.Selenium.Chrome;`.
+- **Construction.** The test injects or constructs an `IPlaywright`, `IBrowser`, `IBrowserContext`, `IPage`, `IWebDriver`, or similar browser-session type.
+- **Base class or helper.** The test class inherits from `PageTest`, `ContextTest`, `BrowserTest` (Playwright NUnit/MSTest/Xunit base classes), or equivalent project-specific bases that expose a browser session.
+
+Once a file is routed to E2E, classify each test into a sub-lane (`F` functional / `A` accessibility / `P` performance / `S` security) using the sub-lane signals in [SKILL.md § 0b step 5](../SKILL.md#0b-select-the-rubric):
+
+- `[Trait("Category", "Accessibility")]` or axe / `AxeBuilder` / `AccessibilityHelper`-style imports → sub-lane **A**.
+- `[Trait("Category", "Perf")]` or Web Vitals / `PerformanceObserver` / `PerfHelper`-style imports → sub-lane **P**.
+- `[Trait("Category", "Security")]` or assertions on CSP / cookie jar / cross-origin iframe / tampered-cookie behaviour → sub-lane **S**.
+- Otherwise → sub-lane **F**.
+
 ### Mixed-file handling
 
-When a single test class contains both patterns — some tests use only mocked dependencies, others construct `WebApplicationFactory<T>` — classify each test method individually. The audit records the chosen rubric per test so the reader can audit the dispatch itself.
-
-### E2E / browser tests
-
-Files importing `Microsoft.Playwright`, `Selenium.WebDriver`, or similar browser-automation libraries are out of scope for both rubrics in this extension. `SKILL.md § 0b` handles them by skipping with a "E2E audit not yet supported" note.
+When a single test class contains multiple patterns — some tests use only mocked dependencies, some construct `WebApplicationFactory<T>`, some drive a browser via `IPage` — classify each test method individually. A test is unit, integration, *or* E2E under exactly one rubric; never more than one. The audit records the chosen rubric (and, for E2E, the sub-lane) per test so the reader can audit the dispatch itself.
 
 ---
 
@@ -314,7 +326,7 @@ Patterns that look like core smells but are idiomatic in .NET and must not be fl
 
 - **Do not flag `LC-1`** (mocking same-layer code) when the mocked type is an interface owned by the tested module *and* the project has a documented "test via seams" convention (e.g. a `CLAUDE.md` or `README.md` stating that interfaces exist specifically for testability). Ask before flagging if ambiguous.
 
-- **Do not flag `LC-7`** (excessive setup) when the setup is constructing an `IHost`, `WebApplicationFactory<T>`, `HostBuilder`, or `TestServer`. Under the new dispatch model (see [SKILL.md § 0b (Rubric selection)](../SKILL.md#0b-select-the-rubric)), these are **routing signals into the integration rubric** — tests using them should be audited under the integration rubric where heavy setup is expected, not the unit rubric at all. This carve-out stays in force as a **safety net for cases where the dispatch is uncertain**: if a test somehow reaches the unit rubric with one of these setups, suppress the `LC-7` finding rather than flagging a test that was misrouted.
+- **Do not flag `LC-7`** (excessive setup) when the setup is constructing an `IHost`, `WebApplicationFactory<T>`, `HostBuilder`, `TestServer`, an `IPlaywright` / `IBrowser` / `IBrowserContext` / `IPage`, an `IWebDriver`, a Testcontainers-based stack fixture, or a collection-level fixture that brings up a full backend for an E2E run. Under the new dispatch model (see [SKILL.md § 0b (Rubric selection)](../SKILL.md#0b-select-the-rubric)), these are **routing signals into the integration or E2E rubric** — tests using them should be audited under that rubric where heavy setup is expected, not the unit rubric at all. This carve-out stays in force as a **safety net for cases where the dispatch is uncertain**: if a test somehow reaches the unit rubric with one of these setups, suppress the `LC-7` finding rather than flagging a test that was misrouted.
 
 - **Do not flag `HC-10`** (snapshot tests pinning unspecified output) when the snapshot target is a JSON response whose schema is published via an OpenAPI document in the repo, a gRPC proto, or an equivalent contract document. Reference the contract in the carve-out decision.
 
