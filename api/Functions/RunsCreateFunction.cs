@@ -30,7 +30,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-create.ts</c>.
 /// </summary>
-public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPermissions, ILogger<RunsCreateFunction> logger)
+public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<RunsCreateFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -70,7 +70,11 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
                 return new BadRequestObjectResult(
                     new { error = "A guild run requires an active character in a guild" });
 
-            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
+            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raider is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canCreate)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", "guild rank denied"));

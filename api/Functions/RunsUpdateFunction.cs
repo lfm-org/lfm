@@ -35,7 +35,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-update.ts</c>.
 /// </summary>
-public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPermissions, IInstancesRepository instancesRepo, ILogger<RunsUpdateFunction> logger)
+public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, IInstancesRepository instancesRepo, ILogger<RunsUpdateFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -70,7 +70,11 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
                 { StatusCode = 403 };
             }
 
-            var canEdit = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
+            var raiderForEdit = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raiderForEdit is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var canEdit = await guildPermissions.CanCreateGuildRunsAsync(raiderForEdit, ct);
             if (!canEdit)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
@@ -130,7 +134,11 @@ public class RunsUpdateFunction(IRunsRepository repo, IGuildPermissions guildPer
                 return new BadRequestObjectResult(
                     new { error = "A guild run requires an active character in a guild" });
 
-            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
+            var raiderForPromotion = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raiderForPromotion is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raiderForPromotion, ct);
             if (!canCreate)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));

@@ -79,10 +79,12 @@ public class RunsUpdateFunctionTests
         Mock<IRunsRepository> repo,
         Mock<IGuildPermissions> permissions,
         Mock<IInstancesRepository> instancesRepo,
+        Mock<IRaidersRepository>? raidersRepo = null,
         TestLogger<RunsUpdateFunction>? logger = null)
     {
         return new RunsUpdateFunction(
             repo.Object,
+            (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
             permissions.Object,
             instancesRepo.Object,
             logger ?? new TestLogger<RunsUpdateFunction>());
@@ -177,7 +179,7 @@ public class RunsUpdateFunctionTests
         var instancesRepo = new Mock<IInstancesRepository>();
         var logger = new TestLogger<RunsUpdateFunction>();
 
-        var fn = MakeFunction(repo, permissions, instancesRepo, logger);
+        var fn = MakeFunction(repo, permissions, instancesRepo, logger: logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
@@ -261,7 +263,7 @@ public class RunsUpdateFunctionTests
         instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeInstances());
 
-        var fn = MakeFunction(repo, permissions, instancesRepo, logger);
+        var fn = MakeFunction(repo, permissions, instancesRepo, logger: logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);

@@ -24,7 +24,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-delete.ts</c>.
 /// </summary>
-public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPermissions, ILogger<RunsDeleteFunction> logger)
+public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<RunsDeleteFunction> logger)
 {
     [Function("runs-delete")]
     [RequireAuth]
@@ -56,7 +56,11 @@ public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPer
                 { StatusCode = 403 };
             }
 
-            var canDelete = await guildPermissions.CanDeleteGuildRunsAsync(principal, ct);
+            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raider is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var canDelete = await guildPermissions.CanDeleteGuildRunsAsync(raider, ct);
             if (!canDelete)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "failure", "guild rank denied"));

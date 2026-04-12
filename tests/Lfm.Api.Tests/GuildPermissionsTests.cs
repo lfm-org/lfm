@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Lfm.Api.Auth;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Moq;
@@ -9,15 +8,6 @@ namespace Lfm.Api.Tests;
 
 public class GuildPermissionsTests
 {
-    private static SessionPrincipal MakePrincipal(string? guildId = "42", string battleNetId = "bnet-1") =>
-        new(
-            BattleNetId: battleNetId,
-            BattleTag: "Player#1234",
-            GuildId: guildId,
-            GuildName: "Test Guild",
-            IssuedAt: DateTimeOffset.UtcNow,
-            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
-
     private static GuildDocument MakeGuildDoc(
         string id = "42",
         IReadOnlyList<BlizzardGuildRosterMember>? members = null,
@@ -42,10 +32,17 @@ public class GuildPermissionsTests
                 ]));
     }
 
+    /// <summary>
+    /// Makes a raider whose selected character belongs to guild 42 (matching the
+    /// default MakeGuildDoc). The GuildId on the character is what GuildResolver
+    /// uses to derive the guild — tests that verify "no guild" behaviour should
+    /// pass a raider with GuildId: null on the selected character.
+    /// </summary>
     private static RaiderDocument MakeRaiderDoc(
         string battleNetId = "bnet-1",
         string characterName = "Gm",
-        string realm = "silvermoon") =>
+        string realm = "silvermoon",
+        int? guildId = 42) =>
         new(
             Id: battleNetId,
             BattleNetId: battleNetId,
@@ -56,31 +53,29 @@ public class GuildPermissionsTests
                     Id: "char-1",
                     Region: "eu",
                     Realm: realm,
-                    Name: characterName)
+                    Name: characterName,
+                    GuildId: guildId,
+                    GuildName: guildId.HasValue ? "Test Guild" : null)
             ]);
 
-    private static GuildPermissions MakeSut(GuildDocument? guild, RaiderDocument? raider)
+    private static GuildPermissions MakeSut(GuildDocument? guild)
     {
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(guild);
 
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        return new GuildPermissions(guildRepo.Object, raidersRepo.Object);
+        return new GuildPermissions(guildRepo.Object);
     }
 
     // ─── IsAdminAsync ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task IsAdminAsync_returns_false_when_principal_has_no_guild()
+    public async Task IsAdminAsync_returns_false_when_raider_has_no_guild()
     {
-        var principal = MakePrincipal(guildId: null);
-        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc());
+        var raider = MakeRaiderDoc(guildId: null);
+        var sut = MakeSut(MakeGuildDoc());
 
-        var result = await sut.IsAdminAsync(principal, CancellationToken.None);
+        var result = await sut.IsAdminAsync(raider, CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -88,9 +83,9 @@ public class GuildPermissionsTests
     [Fact]
     public async Task IsAdminAsync_returns_false_when_guild_not_found()
     {
-        var sut = MakeSut(guild: null, raider: MakeRaiderDoc());
+        var sut = MakeSut(guild: null);
 
-        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.IsAdminAsync(MakeRaiderDoc(), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -98,9 +93,9 @@ public class GuildPermissionsTests
     [Fact]
     public async Task IsAdminAsync_returns_true_when_character_matches_rank_zero_member()
     {
-        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(MakeGuildDoc());
 
-        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.IsAdminAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().BeTrue();
     }
@@ -116,9 +111,9 @@ public class GuildPermissionsTests
                     Id: 1),
                 Rank: 3)
         ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.IsAdminAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -126,9 +121,9 @@ public class GuildPermissionsTests
     [Fact]
     public async Task IsAdminAsync_returns_false_when_no_character_matches()
     {
-        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Nomatch"));
+        var sut = MakeSut(MakeGuildDoc());
 
-        var result = await sut.IsAdminAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.IsAdminAsync(MakeRaiderDoc(characterName: "Nomatch"), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -139,9 +134,9 @@ public class GuildPermissionsTests
     public async Task CanCreateGuildRunsAsync_returns_false_when_roster_is_stale()
     {
         var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddHours(-2));
-        var sut = MakeSut(guild, MakeRaiderDoc());
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(), CancellationToken.None);
 
         result.Should().BeFalse("stale roster (≥ 1h) must block guild-run creation");
     }
@@ -150,9 +145,9 @@ public class GuildPermissionsTests
     public async Task CanCreateGuildRunsAsync_returns_false_when_roster_fetched_at_is_null()
     {
         var guild = MakeGuildDoc() with { BlizzardRosterFetchedAt = null };
-        var sut = MakeSut(guild, MakeRaiderDoc());
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -160,9 +155,9 @@ public class GuildPermissionsTests
     [Fact]
     public async Task CanCreateGuildRunsAsync_returns_true_for_rank_zero_by_default()
     {
-        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(MakeGuildDoc());
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().BeTrue();
     }
@@ -178,9 +173,9 @@ public class GuildPermissionsTests
                     Id: 1),
                 Rank: 2)
         ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Officer"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(characterName: "Officer"), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -200,9 +195,9 @@ public class GuildPermissionsTests
             rankPermissions: [
                 new GuildRankPermission(Rank: 2, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: false)
             ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Officer"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(characterName: "Officer"), CancellationToken.None);
 
         result.Should().BeTrue("explicit RankPermission.CanCreateGuildRuns=true overrides default");
     }
@@ -220,9 +215,9 @@ public class GuildPermissionsTests
                     Id: 1),
                 Rank: 5)
         ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanSignupGuildRunsAsync(MakeRaiderDoc(characterName: "Member"), CancellationToken.None);
 
         result.Should().BeTrue("default behaviour is that all ranks can sign up");
     }
@@ -242,9 +237,9 @@ public class GuildPermissionsTests
             rankPermissions: [
                 new GuildRankPermission(Rank: 7, CanCreateGuildRuns: false, CanSignupGuildRuns: false, CanDeleteGuildRuns: false)
             ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Initiate"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanSignupGuildRunsAsync(MakeRaiderDoc(characterName: "Initiate"), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -253,9 +248,9 @@ public class GuildPermissionsTests
     public async Task CanSignupGuildRunsAsync_returns_false_for_stale_roster_even_when_default_is_true()
     {
         var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddHours(-2));
-        var sut = MakeSut(guild, MakeRaiderDoc());
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanSignupGuildRunsAsync(MakeRaiderDoc(), CancellationToken.None);
 
         result.Should().BeFalse("stale roster must block signup even though default would be true");
     }
@@ -265,9 +260,9 @@ public class GuildPermissionsTests
     [Fact]
     public async Task CanDeleteGuildRunsAsync_returns_true_for_rank_zero_by_default()
     {
-        var sut = MakeSut(MakeGuildDoc(), MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(MakeGuildDoc());
 
-        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanDeleteGuildRunsAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().BeTrue();
     }
@@ -283,9 +278,9 @@ public class GuildPermissionsTests
                     Id: 1),
                 Rank: 1)
         ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Officer"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanDeleteGuildRunsAsync(MakeRaiderDoc(characterName: "Officer"), CancellationToken.None);
 
         result.Should().BeFalse("default behaviour is that only rank 0 can delete guild runs");
     }
@@ -301,9 +296,9 @@ public class GuildPermissionsTests
         // Pin the boundary at exactly 1 hour: ageMinutes==60 must be considered stale
         // because the production code uses (UtcNow - fetchedAt) >= TimeSpan.FromHours(1).
         var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-ageMinutes));
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().Be(expected, $"a roster fetched {ageMinutes} minutes ago should be {(expected ? "fresh" : "stale")}");
     }
@@ -315,9 +310,9 @@ public class GuildPermissionsTests
     public async Task CanSignupGuildRunsAsync_treats_one_hour_as_the_stale_boundary(int ageMinutes, bool expected)
     {
         var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-ageMinutes));
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanSignupGuildRunsAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().Be(expected);
     }
@@ -329,9 +324,9 @@ public class GuildPermissionsTests
     public async Task CanDeleteGuildRunsAsync_treats_one_hour_as_the_stale_boundary(int ageMinutes, bool expected)
     {
         var guild = MakeGuildDoc(rosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-ageMinutes));
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Gm"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanDeleteGuildRunsAsync(MakeRaiderDoc(characterName: "Gm"), CancellationToken.None);
 
         result.Should().Be(expected);
     }
@@ -358,9 +353,9 @@ public class GuildPermissionsTests
                 new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
                 new GuildRankPermission(Rank: 2, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: false),
             ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanCreateGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanCreateGuildRunsAsync(MakeRaiderDoc(characterName: "Member"), CancellationToken.None);
 
         result.Should().BeFalse("rank 5 has no explicit entry; default forbids non-zero ranks from creating runs");
     }
@@ -382,9 +377,9 @@ public class GuildPermissionsTests
                 new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
                 new GuildRankPermission(Rank: 2, CanCreateGuildRuns: false, CanSignupGuildRuns: false, CanDeleteGuildRuns: false),
             ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanSignupGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanSignupGuildRunsAsync(MakeRaiderDoc(characterName: "Member"), CancellationToken.None);
 
         result.Should().BeTrue("rank 5 has no explicit entry; default permits signup for all ranks");
     }
@@ -404,9 +399,9 @@ public class GuildPermissionsTests
             rankPermissions: [
                 new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
             ]);
-        var sut = MakeSut(guild, MakeRaiderDoc(characterName: "Member"));
+        var sut = MakeSut(guild);
 
-        var result = await sut.CanDeleteGuildRunsAsync(MakePrincipal(), CancellationToken.None);
+        var result = await sut.CanDeleteGuildRunsAsync(MakeRaiderDoc(characterName: "Member"), CancellationToken.None);
 
         result.Should().BeFalse("rank 5 has no explicit entry; only rank 0 can delete by default");
     }

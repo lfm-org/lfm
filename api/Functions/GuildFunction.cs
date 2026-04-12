@@ -27,7 +27,7 @@ namespace Lfm.Api.Functions;
 ///         Mirrors the TypeScript <c>saveCurrentGuildSettings</c> logic in
 ///         <c>functions/src/lib/guild/service.ts</c>.
 /// </summary>
-public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
+public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -71,7 +71,11 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
         if (principal.GuildId is null)
             return new NotFoundResult();
 
-        var isAdmin = await guildPermissions.IsAdminAsync(principal, cancellationToken);
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var isAdmin = await guildPermissions.IsAdminAsync(raider, cancellationToken);
         if (!isAdmin)
         {
             AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, principal.GuildId, "failure", "forbidden"));

@@ -127,7 +127,7 @@ public class RunsSignupFunction(
                 if (!isCreator && !isGuildMember)
                     return new NotFoundObjectResult(new { error = "Run not found" });
 
-                var canSignup = await guildPermissions.CanSignupGuildRunsAsync(principal, ct);
+                var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
                 if (!canSignup)
                 {
                     AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "failure", "guild rank denied"));

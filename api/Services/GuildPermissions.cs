@@ -1,28 +1,24 @@
-using Lfm.Api.Auth;
 using Lfm.Api.Repositories;
 
 namespace Lfm.Api.Services;
 
 /// <summary>
-/// Checks whether the principal holds rank 0 (guild master) in their guild's
+/// Checks whether the raider holds rank 0 (guild master) in their guild's
 /// Blizzard roster, mirroring the TypeScript <c>resolveGuildEditor</c> logic in
 /// <c>functions/src/lib/guild/context.ts</c>.
+/// Guild is derived from the raider's selected character via
+/// <c>GuildResolver.FromRaider</c>.
 /// </summary>
-public sealed class GuildPermissions(IGuildRepository guildRepo, IRaidersRepository raidersRepo) : IGuildPermissions
+public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermissions
 {
-    public async Task<bool> IsAdminAsync(SessionPrincipal principal, CancellationToken ct)
+    public async Task<bool> IsAdminAsync(RaiderDocument raider, CancellationToken ct)
     {
-        if (principal.GuildId is null) return false;
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+        if (guildId is null) return false;
 
-        var guildTask = guildRepo.GetAsync(principal.GuildId, ct);
-        var raiderTask = raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        var guild = await guildRepo.GetAsync(guildId, ct);
 
-        await Task.WhenAll(guildTask, raiderTask);
-
-        var guild = guildTask.Result;
-        var raider = raiderTask.Result;
-
-        if (guild?.BlizzardRosterRaw?.Members is null || raider is null) return false;
+        if (guild?.BlizzardRosterRaw?.Members is null) return false;
 
         // Build lookup maps mirroring resolveMatchedGuildRanks in
         // functions/src/lib/guild-member-match.ts.
@@ -50,27 +46,22 @@ public sealed class GuildPermissions(IGuildRepository guildRepo, IRaidersReposit
         return false;
     }
 
-    public async Task<bool> CanCreateGuildRunsAsync(SessionPrincipal principal, CancellationToken ct)
+    public async Task<bool> CanCreateGuildRunsAsync(RaiderDocument raider, CancellationToken ct)
     {
-        if (principal.GuildId is null) return false;
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+        if (guildId is null) return false;
 
-        var guildTask = guildRepo.GetAsync(principal.GuildId, ct);
-        var raiderTask = raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-
-        await Task.WhenAll(guildTask, raiderTask);
-
-        var guild = guildTask.Result;
-        var raider = raiderTask.Result;
+        var guild = await guildRepo.GetAsync(guildId, ct);
 
         // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
-        if (guild?.BlizzardRosterRaw?.Members is null || raider is null) return false;
+        if (guild?.BlizzardRosterRaw?.Members is null) return false;
 
         // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
         if (guild.BlizzardRosterFetchedAt is null) return false;
         if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
         if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
 
-        // Find the best (lowest) matched rank for the principal's characters.
+        // Find the best (lowest) matched rank for the raider's characters.
         // Mirrors resolveMatchedGuildRanks + Math.min(...matchedRanks).
         var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var member in guild.BlizzardRosterRaw.Members)
@@ -105,27 +96,22 @@ public sealed class GuildPermissions(IGuildRepository guildRepo, IRaidersReposit
         return bestRank.Value == 0;
     }
 
-    public async Task<bool> CanSignupGuildRunsAsync(SessionPrincipal principal, CancellationToken ct)
+    public async Task<bool> CanSignupGuildRunsAsync(RaiderDocument raider, CancellationToken ct)
     {
-        if (principal.GuildId is null) return false;
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+        if (guildId is null) return false;
 
-        var guildTask = guildRepo.GetAsync(principal.GuildId, ct);
-        var raiderTask = raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-
-        await Task.WhenAll(guildTask, raiderTask);
-
-        var guild = guildTask.Result;
-        var raider = raiderTask.Result;
+        var guild = await guildRepo.GetAsync(guildId, ct);
 
         // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
-        if (guild?.BlizzardRosterRaw?.Members is null || raider is null) return false;
+        if (guild?.BlizzardRosterRaw?.Members is null) return false;
 
         // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
         if (guild.BlizzardRosterFetchedAt is null) return false;
         if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
         if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
 
-        // Find the best (lowest) matched rank for the principal's characters.
+        // Find the best (lowest) matched rank for the raider's characters.
         var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var member in guild.BlizzardRosterRaw.Members)
             rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
@@ -159,27 +145,22 @@ public sealed class GuildPermissions(IGuildRepository guildRepo, IRaidersReposit
         return true;
     }
 
-    public async Task<bool> CanDeleteGuildRunsAsync(SessionPrincipal principal, CancellationToken ct)
+    public async Task<bool> CanDeleteGuildRunsAsync(RaiderDocument raider, CancellationToken ct)
     {
-        if (principal.GuildId is null) return false;
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+        if (guildId is null) return false;
 
-        var guildTask = guildRepo.GetAsync(principal.GuildId, ct);
-        var raiderTask = raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-
-        await Task.WhenAll(guildTask, raiderTask);
-
-        var guild = guildTask.Result;
-        var raider = raiderTask.Result;
+        var guild = await guildRepo.GetAsync(guildId, ct);
 
         // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
-        if (guild?.BlizzardRosterRaw?.Members is null || raider is null) return false;
+        if (guild?.BlizzardRosterRaw?.Members is null) return false;
 
         // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
         if (guild.BlizzardRosterFetchedAt is null) return false;
         if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
         if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
 
-        // Find the best (lowest) matched rank for the principal's characters.
+        // Find the best (lowest) matched rank for the raider's characters.
         var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var member in guild.BlizzardRosterRaw.Members)
             rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;

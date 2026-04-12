@@ -40,6 +40,22 @@ public class RunsCreateFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(string battleNetId = "bnet-admin") =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: 12345,
+                    GuildName: "Test Guild")
+            ]);
+
     private static HttpRequest MakePostRequest(object body)
     {
         var json = JsonSerializer.Serialize(body);
@@ -51,11 +67,13 @@ public class RunsCreateFunctionTests
 
     private static RunsCreateFunction MakeFunction(
         Mock<IRunsRepository> repo,
+        Mock<IRaidersRepository> raidersRepo,
         Mock<IGuildPermissions> permissions,
         TestLogger<RunsCreateFunction>? logger = null)
     {
         return new RunsCreateFunction(
             repo.Object,
+            raidersRepo.Object,
             permissions.Object,
             logger ?? new TestLogger<RunsCreateFunction>());
     }
@@ -86,6 +104,7 @@ public class RunsCreateFunctionTests
     {
         var principal = MakePrincipal(battleNetId: "bnet-admin", guildId: "12345");
         var created = MakeRunDoc("run-new");
+        var raider = MakeRaiderDoc("bnet-admin");
 
         var requestBody = new
         {
@@ -102,11 +121,15 @@ public class RunsCreateFunctionTests
         repo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var fn = MakeFunction(repo, permissions);
+        var fn = MakeFunction(repo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -135,9 +158,10 @@ public class RunsCreateFunctionTests
         };
 
         var repo = new Mock<IRunsRepository>();
+        var raidersRepo = new Mock<IRaidersRepository>();
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = MakeFunction(repo, permissions);
+        var fn = MakeFunction(repo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -156,6 +180,7 @@ public class RunsCreateFunctionTests
     public async Task Run_returns_403_for_guild_run_when_caller_lacks_permission()
     {
         var principal = MakePrincipal(battleNetId: "bnet-member", guildId: "12345");
+        var raider = MakeRaiderDoc("bnet-member");
 
         var requestBody = new
         {
@@ -166,12 +191,17 @@ public class RunsCreateFunctionTests
         };
 
         var repo = new Mock<IRunsRepository>();
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-member", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var logger = new TestLogger<RunsCreateFunction>();
-        var fn = MakeFunction(repo, permissions, logger);
+        var fn = MakeFunction(repo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -195,6 +225,7 @@ public class RunsCreateFunctionTests
     {
         var principal = MakePrincipal(battleNetId: "bnet-admin", guildId: "12345");
         var created = MakeRunDoc("run-new");
+        var raider = MakeRaiderDoc("bnet-admin");
         var logger = new TestLogger<RunsCreateFunction>();
 
         var requestBody = new
@@ -212,11 +243,15 @@ public class RunsCreateFunctionTests
         repo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanCreateGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var fn = MakeFunction(repo, permissions, logger);
+        var fn = MakeFunction(repo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);

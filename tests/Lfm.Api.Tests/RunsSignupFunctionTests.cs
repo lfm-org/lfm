@@ -241,7 +241,7 @@ public class RunsSignupFunctionTests
             .ReturnsAsync(raider);
 
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanSignupGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var logger = new TestLogger<RunsSignupFunction>();
