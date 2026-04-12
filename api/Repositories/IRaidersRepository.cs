@@ -67,7 +67,10 @@ public sealed record StoredSelectedCharacter(
     BlizzardCharacterMediaSummary? MediaSummary = null,
     int? ClassId = null,
     string? ClassName = null,
-    int? Level = null);
+    int? Level = null,
+    int? GuildId = null,
+    string? GuildName = null,
+    string? FetchedAt = null);
 
 /// <summary>
 /// Raider document as stored in the Cosmos "raiders" container.
