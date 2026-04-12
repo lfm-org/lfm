@@ -167,6 +167,14 @@ public class RunsDetailFunctionTests
             CancellationToken.None);
 
         result.Should().BeOfType<NotFoundObjectResult>();
+
+        // Ordering contract: the run must be looked up before the raider.
+        // If a future refactor reverses the order, this short-circuit test
+        // would silently still pass without the Verify below.
+        raidersRepo.Verify(
+            r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "a missing run must short-circuit before any raider lookup");
     }
 
     // ------------------------------------------------------------------

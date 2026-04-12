@@ -189,4 +189,41 @@ public class RunsListFunctionTests
         runs.Should().BeEmpty();
     }
 
+    // ------------------------------------------------------------------
+    // Test 4: Raider with no guild — falls back to ListForUserAsync
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_uses_ListForUserAsync_when_selected_character_has_no_guild()
+    {
+        // Raider whose selected character has no guild — GuildResolver returns (null, null)
+        // and the function must fall through to ListForUserAsync (non-guild query path).
+        var principal = MakePrincipal(battleNetId: "bnet-loner");
+        var ownCharacter = MakeCharacterEntry(raiderBattleNetId: "bnet-loner");
+        var doc = MakeRunDoc(runCharacters: [ownCharacter]);
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForUserAsync("bnet-loner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunDocument> { doc });
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-loner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-loner", guildId: null));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var runs = ok.Value.Should().BeAssignableTo<IReadOnlyList<RunSummaryDto>>().Subject;
+        runs.Should().HaveCount(1);
+
+        // The guild query must not be called when the raider has no guild.
+        repo.Verify(r => r.ListForGuildAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "a raider with no guild must use ListForUserAsync, not ListForGuildAsync");
+    }
+
 }

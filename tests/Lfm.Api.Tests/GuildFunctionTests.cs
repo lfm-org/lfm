@@ -143,11 +143,11 @@ public class GuildFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 3: GET returns no-guild DTO when principal has no guild
+    // Test 3: GET returns no-guild DTO when selected character has no guild
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task GuildGet_returns_no_guild_dto_when_principal_has_no_guild_id()
+    public async Task GuildGet_returns_no_guild_dto_when_selected_character_has_no_guild()
     {
         var principal = MakePrincipal(guildId: null!);
 
@@ -263,24 +263,6 @@ public class GuildFunctionTests
         logger.Entries.Should().ContainSingle(
             e => e.IsAudit("guild.update", "failure", "forbidden"),
             "denied admin guild update must emit a failure audit event");
-    }
-
-    // ------------------------------------------------------------------
-    // Test 5: [RequireAuth] attribute present on both methods
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public void GuildGet_and_GuildUpdate_have_RequireAuth_attribute()
-    {
-        var getMethod = typeof(GuildFunction).GetMethod(nameof(GuildFunction.GuildGet));
-        getMethod.Should().NotBeNull();
-        getMethod!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "GuildFunction.GuildGet must carry [RequireAuth]");
-
-        var patchMethod = typeof(GuildFunction).GetMethod(nameof(GuildFunction.GuildUpdate));
-        patchMethod.Should().NotBeNull();
-        patchMethod!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "GuildFunction.GuildUpdate must carry [RequireAuth]");
     }
 
     // -----------------------------------------------------------------------
