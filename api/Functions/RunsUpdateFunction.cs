@@ -55,7 +55,16 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         if (existing is null)
             return new NotFoundObjectResult(new { error = "Run not found" });
 
-        // 2. Permission check — mirrors runs-update.ts:
+        // 2. Load the raider once and derive guild info from the selected character.
+        //    principal.GuildId / GuildName are legacy session fields; guild info is
+        //    always taken from the raider's stored selected character.
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var (guildId, guildName) = GuildResolver.FromRaider(raider);
+
+        // 3. Permission check — mirrors runs-update.ts:
         //    Creator can always edit. Non-creator must be in the same guild with
         //    canCreateGuildRuns permission.
         var isCreator = existing.CreatorBattleNetId == principal.BattleNetId;
@@ -63,18 +72,14 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         {
             if (existing.Visibility != "GUILD"
                 || existing.CreatorGuildId is null
-                || principal.GuildId != existing.CreatorGuildId.ToString())
+                || guildId != existing.CreatorGuildId.ToString())
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "not creator"));
                 return new ObjectResult(new { error = "Only the run creator can update this run" })
                 { StatusCode = 403 };
             }
 
-            var raiderForEdit = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-            if (raiderForEdit is null)
-                return new NotFoundObjectResult(new { error = "Raider not found" });
-
-            var canEdit = await guildPermissions.CanCreateGuildRunsAsync(raiderForEdit, ct);
+            var canEdit = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canEdit)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
@@ -130,15 +135,11 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         var isGuildPromotion = body.Visibility == "GUILD" && existing.Visibility != "GUILD";
         if (isGuildPromotion)
         {
-            if (principal.GuildId is null)
+            if (guildId is null)
                 return new BadRequestObjectResult(
                     new { error = "A guild run requires an active character in a guild" });
 
-            var raiderForPromotion = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-            if (raiderForPromotion is null)
-                return new NotFoundObjectResult(new { error = "Raider not found" });
-
-            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raiderForPromotion, ct);
+            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canCreate)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
@@ -174,10 +175,10 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             InstanceId = effectiveInstanceId,
             InstanceName = matchedInstance.Name,
             CreatorGuild = isGuildPromotion
-                ? (principal.GuildName ?? "")
+                ? (guildName ?? "")
                 : existing.CreatorGuild,
             CreatorGuildId = isGuildPromotion
-                ? (principal.GuildId is not null && int.TryParse(principal.GuildId, out var gid) ? gid : existing.CreatorGuildId)
+                ? (guildId is not null && int.TryParse(guildId, out var gid) ? gid : existing.CreatorGuildId)
                 : existing.CreatorGuildId,
         };
 

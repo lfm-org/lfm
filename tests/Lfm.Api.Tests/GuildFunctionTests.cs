@@ -95,15 +95,20 @@ public class GuildFunctionTests
     {
         var principal = MakePrincipal();
         var guildDoc = MakeGuildDoc();
+        var raiderDoc = MakeRaiderDoc();
 
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
         var permissions = new Mock<IGuildPermissions>();
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = MakeFunction(guildRepo, permissions: permissions, logger: logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
@@ -123,7 +128,26 @@ public class GuildFunctionTests
     public async Task GuildGet_returns_no_guild_dto_when_principal_has_no_guild_id()
     {
         var principal = MakePrincipal(guildId: null!);
-        var fn = MakeFunction();
+
+        // Raider has a selected character but the character has no guild → FromRaider returns (null, null).
+        var raiderDoc = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "test-realm",
+                    Name: "Testchar")
+            ]);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var fn = MakeFunction(raidersRepo: raidersRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);

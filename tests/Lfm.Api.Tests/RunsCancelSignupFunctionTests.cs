@@ -85,10 +85,12 @@ public class RunsCancelSignupFunctionTests
 
     private static RunsCancelSignupFunction MakeFunction(
         Mock<IRunsRepository> runsRepo,
+        Mock<IRaidersRepository>? raidersRepo = null,
         TestLogger<RunsCancelSignupFunction>? logger = null)
     {
         return new RunsCancelSignupFunction(
             runsRepo.Object,
+            (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
             logger ?? new TestLogger<RunsCancelSignupFunction>());
     }
 
@@ -168,7 +170,7 @@ public class RunsCancelSignupFunctionTests
             .ReturnsAsync(updatedRun);
 
         var logger = new TestLogger<RunsCancelSignupFunction>();
-        var fn = MakeFunction(runsRepo, logger);
+        var fn = MakeFunction(runsRepo, logger: logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);

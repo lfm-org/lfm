@@ -39,7 +39,16 @@ public class MeFunctionTests
             Id: "bnet-1",
             BattleNetId: "bnet-1",
             SelectedCharacterId: "char-1",
-            Locale: "fi");
+            Locale: "fi",
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: 42,
+                    GuildName: "Test Guild")
+            ]);
 
         var repo = new Mock<IRaidersRepository>();
         repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))

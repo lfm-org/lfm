@@ -36,6 +36,24 @@ public class RunsDetailFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-1",
+        int? guildId = 12345) =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildId is not null ? "Test Guild" : null)
+            ]);
+
     private static RunDocument MakeRunDoc(
         string id = "run-1",
         string visibility = "PUBLIC",
@@ -97,7 +115,11 @@ public class RunsDetailFunctionTests
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(doc);
 
-        var fn = new RunsDetailFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(
@@ -133,7 +155,9 @@ public class RunsDetailFunctionTests
         repo.Setup(r => r.GetByIdAsync("missing-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync((RunDocument?)null);
 
-        var fn = new RunsDetailFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(
@@ -165,7 +189,11 @@ public class RunsDetailFunctionTests
         repo.Setup(r => r.GetByIdAsync("run-guild", It.IsAny<CancellationToken>()))
             .ReturnsAsync(doc);
 
-        var fn = new RunsDetailFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-outsider", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-outsider", guildId: 99999));
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(

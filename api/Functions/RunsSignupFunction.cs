@@ -80,6 +80,11 @@ public class RunsSignupFunction(
         if (raider is null)
             return new NotFoundObjectResult(new { error = "Raider not found" });
 
+        // Derive the caller's guild from the raider's selected character for the
+        // GUILD visibility check below. principal.GuildId is a legacy session field
+        // and is no longer populated.
+        var (callerGuildId, _) = GuildResolver.FromRaider(raider);
+
         var storedCharacter = raider.Characters?.FirstOrDefault(c => c.Id == body.CharacterId);
         if (storedCharacter is null)
             return new BadRequestObjectResult(new { error = "Character not found on your profile" });
@@ -120,9 +125,9 @@ public class RunsSignupFunction(
             if (run.Visibility == "GUILD")
             {
                 var isCreator = run.CreatorBattleNetId == principal.BattleNetId;
-                var isGuildMember = principal.GuildId is not null
+                var isGuildMember = callerGuildId is not null
                     && run.CreatorGuildId is not null
-                    && run.CreatorGuildId.ToString() == principal.GuildId;
+                    && run.CreatorGuildId.ToString() == callerGuildId;
 
                 if (!isCreator && !isGuildMember)
                     return new NotFoundObjectResult(new { error = "Run not found" });

@@ -34,6 +34,24 @@ public class RunsListFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-1",
+        int? guildId = 12345) =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildId is not null ? "Test Guild" : null)
+            ]);
+
     private static RunDocument MakeRunDoc(
         string id = "run-1",
         string visibility = "PUBLIC",
@@ -94,7 +112,11 @@ public class RunsListFunctionTests
         repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunDocument> { doc });
 
-        var fn = new RunsListFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -129,7 +151,11 @@ public class RunsListFunctionTests
         repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunDocument>());
 
-        var fn = new RunsListFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);

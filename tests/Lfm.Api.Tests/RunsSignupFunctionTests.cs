@@ -85,7 +85,8 @@ public class RunsSignupFunctionTests
 
     private static RaiderDocument MakeRaiderDoc(
         string battleNetId = "bnet-user",
-        string characterId = "char-1") =>
+        string characterId = "char-1",
+        int? guildId = null) =>
         new RaiderDocument(
             Id: battleNetId,
             BattleNetId: battleNetId,
@@ -96,7 +97,9 @@ public class RunsSignupFunctionTests
                     Id: characterId,
                     Region: "eu",
                     Realm: "silvermoon",
-                    Name: "Testchar")
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildId is not null ? "Test Guild" : null)
             ]);
 
     /// <summary>
@@ -230,7 +233,7 @@ public class RunsSignupFunctionTests
         // Caller is in same guild but lacks canSignupGuildRuns.
         var principal = MakePrincipal(battleNetId: "bnet-member", guildId: "12345");
         var run = MakeRunDoc(visibility: "GUILD", creatorGuildId: 12345);
-        var raider = MakeRaiderDoc(battleNetId: "bnet-member", characterId: "char-1");
+        var raider = MakeRaiderDoc(battleNetId: "bnet-member", characterId: "char-1", guildId: 12345);
 
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))

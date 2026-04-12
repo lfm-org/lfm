@@ -61,18 +61,23 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             return new BadRequestObjectResult(
                 new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
 
+        // Load the raider once and derive guild info from the selected character.
+        // principal.GuildId / GuildName are legacy session fields that are no
+        // longer populated in production.
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var (guildId, guildName) = GuildResolver.FromRaider(raider);
+
         // GUILD run guard: mirroring the checks in runs-create.ts.
         //   1. GUILD run requires the caller to belong to a guild.
         //   2. GUILD run requires the canCreateGuildRuns rank permission.
         if (body.Visibility == "GUILD")
         {
-            if (principal.GuildId is null)
+            if (guildId is null)
                 return new BadRequestObjectResult(
                     new { error = "A guild run requires an active character in a guild" });
-
-            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-            if (raider is null)
-                return new NotFoundObjectResult(new { error = "Raider not found" });
 
             var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canCreate)
@@ -86,7 +91,7 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
         var runId = Guid.NewGuid().ToString();
         var createdAt = DateTimeOffset.UtcNow.ToString("o");
 
-        var run = BuildRunDocument(body, principal, runId, createdAt);
+        var run = BuildRunDocument(body, principal, guildId, guildName, runId, createdAt);
         var created = await repo.CreateAsync(run, ct);
 
         AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, runId, "success", null));
@@ -101,6 +106,8 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
     internal static RunDocument BuildRunDocument(
         CreateRunRequest body,
         SessionPrincipal principal,
+        string? guildId,
+        string? guildName,
         string id,
         string createdAt)
     {
@@ -115,8 +122,8 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
         var expiryMs = startTimeMs + RunTtlAfterStartMs;
         var ttl = (int)Math.Max(MinTtlSeconds, (expiryMs - createdAtMs) / 1000);
 
-        int? creatorGuildId = principal.GuildId is not null
-            && int.TryParse(principal.GuildId, out var gid)
+        int? creatorGuildId = guildId is not null
+            && int.TryParse(guildId, out var gid)
             ? gid
             : null;
 
@@ -127,7 +134,7 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             Description: body.Description ?? "",
             ModeKey: body.ModeKey!,
             Visibility: body.Visibility!,
-            CreatorGuild: principal.GuildName ?? "",
+            CreatorGuild: guildName ?? "",
             CreatorGuildId: creatorGuildId,
             InstanceId: body.InstanceId!.Value,
             InstanceName: body.InstanceName ?? "",

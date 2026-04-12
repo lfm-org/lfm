@@ -41,6 +41,33 @@ public class RunsUpdateFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-creator",
+        int? guildId = 12345,
+        string? guildName = "Test Guild") =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildName)
+            ]);
+
+    private static Mock<IRaidersRepository> MakeRaidersRepoFor(RaiderDocument raider)
+    {
+        var m = new Mock<IRaidersRepository>();
+        m.Setup(r => r.GetByBattleNetIdAsync(raider.BattleNetId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        return m;
+    }
+
     private static HttpRequest MakePutRequest(object body)
     {
         var json = JsonSerializer.Serialize(body);
@@ -121,7 +148,9 @@ public class RunsUpdateFunctionTests
         instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeInstances());
 
-        var fn = MakeFunction(repo, permissions, instancesRepo);
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
@@ -179,7 +208,10 @@ public class RunsUpdateFunctionTests
         var instancesRepo = new Mock<IInstancesRepository>();
         var logger = new TestLogger<RunsUpdateFunction>();
 
-        var fn = MakeFunction(repo, permissions, instancesRepo, logger: logger);
+        // Raider's selected character is in guild 99999 — different from the run's creator guild.
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-other", guildId: 99999));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo, logger: logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
@@ -226,8 +258,9 @@ public class RunsUpdateFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
         var instancesRepo = new Mock<IInstancesRepository>();
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
 
-        var fn = MakeFunction(repo, permissions, instancesRepo);
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePutRequest(new { description = "Too late" }), "run-1", ctx, CancellationToken.None);
@@ -263,7 +296,9 @@ public class RunsUpdateFunctionTests
         instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeInstances());
 
-        var fn = MakeFunction(repo, permissions, instancesRepo, logger: logger);
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo, logger: logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
