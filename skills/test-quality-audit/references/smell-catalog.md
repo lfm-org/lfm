@@ -32,6 +32,8 @@ Applies when `SKILL.md` step 0b selects the unit rubric. Cite as `HC-N`, `LC-N`,
 `LC-6` — Zero negative tests for a function with documented error modes.
 `LC-7` — Excessive setup (>20 lines) for a single assertion; either too-many-dependencies SUT or test reconstructs production state instead of isolating behavior.
 `LC-8` — Parameterized test where all cases assert the same thing; parameterization isn't doing work.
+`LC-9` — Skipped / ignored / quarantined test with no linked justification (`Skip=""`, `[Ignore]` with no reason, or reason string containing no issue number, URL, or ticket reference). A quarantine without an exit criterion becomes the permanent home for the flake.
+`LC-10` — Non-trivial assertion with no failure message; a complex or non-obvious expected value asserted without a `Because(...)` reason, xUnit message argument, or inline comment tying the expectation to a requirement. On failure, the message tells a future debugger nothing.
 
 ### Positive signals (POS-*)
 
@@ -42,6 +44,7 @@ Applies when `SKILL.md` step 0b selects the unit rubric. Cite as `HC-N`, `LC-N`,
 `POS-5` — Separate tests for happy path and each distinct sad path.
 `POS-6` — Comments citing a requirement, spec, or invariant on non-obvious expected values.
 `POS-7` — Test expresses an invariant (round-trip, idempotency, commutativity, associativity, bounds).
+`POS-8` — Meaningful failure message on a non-trivial assertion; FluentAssertions `.Because(...)` or xUnit/NUnit message argument explains *what should be true and why*, not just that the assertion is present.
 
 ## Integration rubric
 
@@ -157,3 +160,26 @@ Sub-lanes: **F** functional user journey, **A** accessibility audit, **P** perfo
 `E-POS-7` — Traces, screenshots, DOM snapshots, console logs captured on failure *as diagnostics* — not consumed by any assertion.
 `E-POS-8` — Hermetic stack bringup (containerized adjacent dependencies, dynamic ports, readiness waits, deterministic seed data).
 `E-POS-9` — Security test exercises a browser-specific enforcement path (CSP blocks an injected script, cookie jar respects `SameSite`, cross-origin iframe blocked) rather than asserting a header value.
+
+## Meszaros xUnit Test Patterns cross-reference
+
+For auditors trained on Gerard Meszaros's *xUnit Test Patterns* (xunitpatterns.com), the canonical smell names map to core codes as follows. Core codes remain authoritative for audit findings because they split the failure mode by rubric (unit / integration / E2E); these mappings exist so cross-taxonomy reviewers can look up equivalents.
+
+| Meszaros name | Core equivalent(s) | Notes |
+|---|---|---|
+| Assertion-Free Test | `HC-1`, `I-HC-A10`, `E-HC-F1` | No assertion, or incidental coverage with only "did not throw". |
+| Obscure Test | `HC-7`, `LC-2`, `LC-4`, `LC-7`, `I-LC-2`, `E-HC-F6` | Intent not readable from the test; name, shape, setup, or vocabulary hides it. |
+| Fragile Test | `HC-5`, `HC-6`, `HC-10`, `LC-1`, `I-HC-B1`, `I-HC-B3`, `E-HC-F7`, `E-HC-F8` | Breaks on refactors that don't change behavior — interaction pinning, snapshot pinning, sensitive equality. |
+| Erratic Test | `HC-8`, `HC-11`, `LC-5`, `I-HC-A2`, `I-HC-A4`, `I-HC-A5`, `I-HC-A11`, `E-HC-F3`, `E-HC-F5`, `E-HC-F11` | Nondeterministic or order-dependent — shared fixtures, hardcoded clocks, wall-clock waits. |
+| Conditional Test Logic | `HC-4` | `if` / `for` / `while` / `try-catch` in the test body. |
+| Hard-Coded Test Data | `HC-3` | Pasted literal with no external provenance. |
+| Test Logic in Production | `I-HC-B2`, `E-HC-S5`, `I-HC-A6` (log-contract variant) | Test reaches a test-only endpoint, debug route, or production log-text coupling. |
+| Eager Test | `LC-8`, `I-LC-4`, `E-LC-3` | Parameterized test where all cases assert the same thing (no-op eager variant); a test bundling multiple distinct behaviors. |
+| Test Code Duplication | `E-LC-5` | Page Object god-object with duplicated navigation / setup across pages. |
+| Resource Optimism | `HC-11`, `I-HC-A5`, `I-HC-A11` | Test assumes the clock, filesystem, network, or shared fixture is in a known state without verifying it. |
+| Slow Test | `dotnet.LC-5` (slow unit), runtime-distribution subsection in deep-mode step 5 | Slow unit tests; slow integration or E2E tests are expected by rubric but still reported. |
+
+### Meszaros smells not directly captured as a core code
+
+- **Mystery Guest** — a test references an external fixture file whose contents are not visible in the test source. `HC-3` covers pasted-literal expected values but does not flag external-file opacity as such. If the fixture is tied to a spec and versioned, it is `POS-2`; otherwise the auditor should review manually and may cite Mystery Guest in the finding's free text.
+- **Assertion Roulette** — multiple unclearly-scoped assertions in one test such that a failure cannot be traced to one of them. The skill's "one finding per test" rule (see `SKILL.md` rules) reduces the impact but does not emit a dedicated code. `LC-10` (non-trivial assertion without a failure message) partially captures the symptom; a strict Meszaros auditor would flag multi-assert bundles separately.

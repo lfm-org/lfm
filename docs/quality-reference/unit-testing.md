@@ -151,6 +151,22 @@ A recurring fault line in the literature. A quality audit should take a position
 
 **Position:** treat mocks as a *cost*. Mocks are not automatically bad, but they carry a proof obligation: the mocked thing must represent an external boundary (HTTP, database, filesystem, clock, message bus, process boundary), not an owned collaborator. Mocking within the same module is a smell. Mocking at a process boundary is standard practice.
 
+### 7.1 Fowler's test-double taxonomy
+
+Fowler (following Meszaros) distinguishes five kinds of test double. The distinction matters for audit because different kinds carry different costs, and libraries like Moq / NSubstitute / FakeItEasy / Jest mocks / `unittest.mock` blur them into one construction syntax.
+
+- **Dummy** — an object passed around but never actually used (e.g. `null` or a filler for an unused parameter). Free.
+- **Stub** — provides canned answers to calls made during the test. The test verifies *state* (the SUT's return value or observable side effect), not which calls happened. Cost: the canned answers can drift from the real collaborator's contract, and there is no test-side signal when that drift happens.
+- **Spy** — a stub that also records how it was called, for later inspection. Adds interaction coupling that a pure stub does not.
+- **Mock** — pre-programmed with expectations about which calls it should receive; the test fails when the expectations are violated. Verifies *behavior* (the interaction between the SUT and the collaborator). Most expensive under refactoring — couples the test to the interaction, not the outcome.
+- **Fake** — a working implementation with a shortcut unsuitable for production (e.g. an in-memory repository, a hash-map-backed cache, a `FakeTimeProvider`, a capture-style `TestLogger<T>`). No interaction coupling; the only cost is maintenance.
+
+Google's preference order (**real > fake > mock**) and Khorikov's "mock only at process boundaries" rule both reduce to: *prefer the least-coupled double that still isolates the test*. A mock is a last resort; a fake is better when it exists; a real collaborator is best when the collaborator is owned.
+
+**Audit implication.** When the rubric flags a finding like `HC-5` (mock-return-then-mock-called-with) or `HC-6` (over-specified interaction assertions), the finding only applies to test doubles being used as *mocks* (behavior verification) — not stubs (state verification) that happen to be constructed with the same library. Extensions must distinguish the two: `.Verify(...)` / `.Received(...)` / `MustHaveHappened(...)` → mock; only `.Setup(...)` / `.Returns(...)` → stub. See `extensions/dotnet.md` § *Test double classification* for the .NET-specific signals.
+
+A `Fake*`, `InMemory*`, `TestLogger<T>`, `FakeTimeProvider`, or similarly-named working implementation is a **fake**, not a mock — even when constructed via a mocking library. These are positive signals (`dotnet.POS-5`, `dotnet.POS-6`), not smells.
+
 ---
 
 ## 8. Coverage, mutation, and the limits of static audit

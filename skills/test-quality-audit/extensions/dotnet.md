@@ -58,6 +58,41 @@ When a single test class contains multiple patterns — some tests use only mock
 
 ---
 
+## Test double classification
+
+Required reading for auditors: [../../../docs/quality-reference/unit-testing.md § 7.1](../../../docs/quality-reference/unit-testing.md) — the Fowler taxonomy (Dummy / Stub / Spy / Mock / Fake) that core smells like `HC-5` and `HC-6` are scoped to.
+
+Moq, NSubstitute, FakeItEasy, and Microsoft.Extensions.Logging.Testing all produce test doubles through one construction syntax but serve different roles in the taxonomy. Classify each double before applying interaction-pinning smells:
+
+### Moq
+
+- **Stub:** `new Mock<T>()` (or `Mock.Of<T>(...)`) plus only `.Setup(...)` / `.SetupGet(...)` / `.Returns(...)` / `.ReturnsAsync(...)`, with `mock.Object` passed to the SUT. **No `.Verify(...)` call anywhere in the test body.**
+- **Mock (behavior verification):** any `.Verify(...)` / `.VerifyAll()` / `.VerifyNoOtherCalls()` / `.VerifySet(...)` on the double. This is the lens under which `HC-5`, `HC-6`, `dotnet.HC-1` apply.
+- **Strict mock:** `new Mock<T>(MockBehavior.Strict)` — every call must be pre-setup; unspecified calls throw. Always a mock for taxonomy purposes.
+
+### NSubstitute
+
+- **Stub:** `Substitute.For<T>()` plus only `.Returns(...)` / `.ReturnsForAnyArgs(...)` / `.ReturnsNull()`, no `Received` call.
+- **Mock:** any `.Received(...)` / `.ReceivedWithAnyArgs(...)` / `.DidNotReceive(...)` / `.DidNotReceiveWithAnyArgs(...)` call.
+
+### FakeItEasy
+
+- **Stub:** `A.Fake<T>()` plus only `A.CallTo(() => ...).Returns(...)` / `.ReturnsNextFromSequence(...)`.
+- **Mock:** any `A.CallTo(() => ...).MustHaveHappened(...)` / `.MustNotHaveHappened()` / `.MustHaveHappenedOnceExactly()`.
+
+### Fakes (working implementations)
+
+Types named `Fake*`, `InMemory*`, `TestLogger<T>`, `FakeLogger` (Microsoft.Extensions.Logging.Testing), `CapturingLogger`, `FakeTimeProvider` (Microsoft.Extensions.TimeProvider.Testing), or any custom class that implements the real interface with a recording / in-memory / shortcut body are Fowler **fakes**, not mocks. Positive signals: `dotnet.POS-5` (capture logger), `dotnet.POS-6` (FakeTimeProvider). Do not apply `HC-5` / `HC-6` / `dotnet.HC-1` to fakes.
+
+### Interpretation rules
+
+- **Mixed use in one test.** If a test body constructs a `Mock<T>` that is treated as a stub (no `.Verify`) *and* another `Mock<U>` that is verified (mock), classify each double independently. Smells like `HC-5` apply only to the mocked collaborator.
+- **One mock per finding.** If a test has three mock collaborators and only one is over-verified, the finding names the offending collaborator rather than marking the entire test as `HC-6`.
+- **Same-module owned types.** `dotnet.HC-4` (mocking an owned concrete class) applies regardless of stub-vs-mock classification — the construction of a double against an owned concrete class is the smell, not the verification mode.
+- **Heavy `It.IsAny<T>()` in `Setup`.** `dotnet.LC-1` applies when the double is used as a stub — that's the case where `Setup` is the entire contract. A mock with `It.IsAny<T>()` in `Setup` plus a strict `.Verify` is a different smell (`dotnet.HC-1` or core `HC-6`) covered elsewhere.
+
+---
+
 ## Framework-specific high-confidence smells (`dotnet.HC-*`)
 
 ### `dotnet.HC-1` — Moq `.Verify(...)` with a specific `Times.Exactly(N)` matching loop count
