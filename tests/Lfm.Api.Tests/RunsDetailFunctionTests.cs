@@ -170,7 +170,42 @@ public class RunsDetailFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 3: GUILD run — returns 404 when user is not creator or guild member
+    // Test 3: GUILD run — returns 404 when raider document is missing
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_for_guild_run_when_raider_not_found()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1");
+
+        var doc = MakeRunDoc(
+            id: "run-guild",
+            visibility: "GUILD",
+            creatorBattleNetId: "bnet-other",
+            creatorGuildId: 12345);
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-guild", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(doc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            new DefaultHttpContext().Request,
+            "run-guild",
+            ctx,
+            CancellationToken.None);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: GUILD run — returns 404 when user is not creator or guild member
     // ------------------------------------------------------------------
 
     [Fact]

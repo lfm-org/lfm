@@ -16,14 +16,17 @@ namespace Lfm.Api.Functions;
 /// Serves GET /api/guild and PATCH /api/guild.
 ///
 /// GET  — returns the guild home view for the current user's guild.
-///         Returns 404 when the principal has no associated guild (GuildId is null)
-///         or the guild document does not exist in Cosmos.
+///         Returns <c>NoGuildDto</c> (200) when the raider exists but their
+///         selected character has no guild — this is the graceful no-guild path.
+///         Returns 404 when the raider document itself is missing, or the
+///         derived guild document does not exist in Cosmos.
 ///         Mirrors the TypeScript <c>currentGuildHandler</c> in
 ///         <c>functions/src/functions/guild.ts</c>.
 ///
 /// PATCH — updates guild settings (timezone, locale, slogan, rankPermissions).
 ///         Requires the caller to be a guild admin (rank 0 in the Blizzard roster).
 ///         Returns 403 when the caller is not an admin.
+///         Returns 404 when the raider or guild document is missing.
 ///         Mirrors the TypeScript <c>saveCurrentGuildSettings</c> logic in
 ///         <c>functions/src/lib/guild/service.ts</c>.
 /// </summary>

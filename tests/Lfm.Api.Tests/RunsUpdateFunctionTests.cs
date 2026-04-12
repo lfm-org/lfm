@@ -163,7 +163,39 @@ public class RunsUpdateFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 2: Run not found — returns 404
+    // Test 2: Raider not found — returns 404
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_when_raider_not_found()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-creator", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePutRequest(new { description = "Updated" }), "run-1", ctx, CancellationToken.None);
+
+        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: Run not found — returns 404
     // ------------------------------------------------------------------
 
     [Fact]

@@ -121,7 +121,29 @@ public class GuildFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 2: GET returns no-guild DTO when principal has no guild
+    // Test 2: GET returns 404 when raider document is missing
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildGet_returns_404_when_raider_not_found()
+    {
+        var principal = MakePrincipal();
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var fn = MakeFunction(raidersRepo: raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
+
+        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: GET returns no-guild DTO when principal has no guild
     // ------------------------------------------------------------------
 
     [Fact]

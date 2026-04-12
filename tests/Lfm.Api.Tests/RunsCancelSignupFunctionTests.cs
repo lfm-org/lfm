@@ -83,6 +83,24 @@ public class RunsCancelSignupFunctionTests
             SpecName: "Shadow",
             Role: null);
 
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-user",
+        int? guildId = null) =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildId is not null ? "Test Guild" : null)
+            ]);
+
     private static RunsCancelSignupFunction MakeFunction(
         Mock<IRunsRepository> runsRepo,
         Mock<IRaidersRepository>? raidersRepo = null,
@@ -151,7 +169,107 @@ public class RunsCancelSignupFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 3: Happy path — emits signup.cancel audit event
+    // Test 3: GUILD run — returns 404 when raider document is missing
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_for_guild_run_when_raider_not_found()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var entry = MakeCharacterEntry(battleNetId: "bnet-user");
+        var run = MakeRunDoc(
+            visibility: "GUILD",
+            creatorGuildId: 12345,
+            runCharacters: [entry]);
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var fn = MakeFunction(runsRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: GUILD run happy path — same-guild caller cancels signup (200)
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_cancels_signup_for_guild_run_when_caller_in_same_guild()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-user", guildId: "12345");
+        var entry = MakeCharacterEntry(battleNetId: "bnet-user");
+        var run = MakeRunDoc(
+            visibility: "GUILD",
+            creatorGuildId: 12345,
+            runCharacters: [entry]);
+
+        var updatedRun = run with { RunCharacters = [] };
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedRun);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-user", guildId: 12345));
+
+        var fn = MakeFunction(runsRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        var dto = okResult.Value.Should().BeOfType<RunDetailDto>().Subject;
+        dto.RunCharacters.Should().HaveCount(0);
+
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 5: GUILD run outsider — returns 404 (no information leakage)
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_for_guild_run_when_caller_in_different_guild()
+    {
+        // Caller belongs to guild 99999 — different from the run's creator guild (12345).
+        var principal = MakePrincipal(battleNetId: "bnet-outsider", guildId: "99999");
+        var run = MakeRunDoc(
+            visibility: "GUILD",
+            creatorGuildId: 12345,
+            runCharacters: []);
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-outsider", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-outsider", guildId: 99999));
+
+        var fn = MakeFunction(runsRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 6: Happy path — emits signup.cancel audit event
     // ------------------------------------------------------------------
 
     [Fact]

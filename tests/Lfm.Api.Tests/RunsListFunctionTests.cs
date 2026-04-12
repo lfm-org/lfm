@@ -139,7 +139,31 @@ public class RunsListFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 2: Empty list — returns 200 with empty array
+    // Test 2: Raider not found — returns 404
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_when_raider_not_found()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1");
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var repo = new Mock<IRunsRepository>();
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: Empty list — returns 200 with empty array
     // ------------------------------------------------------------------
 
     [Fact]
