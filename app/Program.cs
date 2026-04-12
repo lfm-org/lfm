@@ -13,6 +13,8 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+
 builder.Services.AddFluentUIComponents();
 builder.Services.AddSingleton<IDataCache, InMemoryDataCache>();
 builder.Services.AddSingleton<IThemeService, ThemeService>();
