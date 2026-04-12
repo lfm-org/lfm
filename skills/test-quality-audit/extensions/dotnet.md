@@ -474,6 +474,69 @@ When the gap report lists a probable `Gap-API` finding on a SUT shape that Stryk
 
 ---
 
+## Auth matrix enumeration
+
+Consumed by [SKILL.md § Auth matrix enumeration](../SKILL.md#auth-matrix-enumeration) — step 2.6 of the deep-mode workflow.
+
+### Protected-endpoint patterns
+
+Enumerate endpoints that require authentication. In .NET isolated Functions and ASP.NET Core:
+
+- **Functions isolated with HttpTrigger:** `\[HttpTrigger\(AuthorizationLevel\.(?P<level>Function|Admin|User|System|Anonymous)` — any level other than `Anonymous` is a protected endpoint. Capture the `Route = "..."` and HTTP methods.
+- **Functions with `[Authorize]`:** `using Microsoft.AspNetCore.Authorization;` plus `\[Authorize(\([^)]*\))?\]` on a `[Function(...)]`-decorated class or method.
+- **ASP.NET Core MVC / minimal API `[Authorize]`:** `\[Authorize(\([^)]*\))?\]` on a controller class or action method, or `app.MapGet(...).RequireAuthorization(...)` / `.RequireAuthorization("Policy")`.
+- **Custom authorization middleware:** any file in the SUT that registers `UseAuthentication()` / `UseAuthorization()` plus a per-route policy on the endpoint registration.
+
+Record scope / policy / role requirements by capturing the `[Authorize(Policy = "...")]` / `[Authorize(Roles = "...")]` argument, or the `.RequireAuthorization("<policy>")` string.
+
+### Auth scenario detection in tests
+
+For each enumerated endpoint, search the test project for each matrix column:
+
+- **`anonymous`** — a test that calls `factory.CreateClient()` (no auth handler configured) and asserts `401 Unauthorized` on the endpoint. Look for `HttpStatusCode.Unauthorized` or `.Should().Be(HttpStatusCode.Unauthorized)` alongside the endpoint route.
+- **`token-expired`** — a test that arranges a token with a `ValidTo` / `exp` claim in the past (e.g. `DateTimeOffset.UtcNow.AddMinutes(-5)` fed into a `JwtSecurityTokenHandler` or test-auth-handler factory).
+- **`token-tampered`** — a test that arranges a valid-format token whose signing key differs from the SUT's configuration, or a token whose `alg` is `none`, asserting `401`.
+- **`insufficient-scope`** — a test that uses a `TestAuthHandler` to present a principal *without* the required policy / role and asserts `403 Forbidden`.
+- **`sufficient-scope`** — a test that presents a principal with the required policy / role and asserts the documented success code.
+- **`cross-user`** — a test that presents user A's principal against a resource created by user B (e.g. a Cosmos partition key owned by user B) and asserts `403 Forbidden` or `404 Not Found`.
+
+### Carve-outs
+
+- **Policy-less `[Authorize]`** — an endpoint decorated with bare `[Authorize]` has no scope / role requirement. The `insufficient-scope` cell is `n/a` for that endpoint; do not flag it as a gap.
+- **Single-user product** — if the repo has no multi-tenant model (no per-user resource ownership), the `cross-user` cell is `n/a`. Detect by searching for `partitionKey` / `userId` / `tenantId` parameters on the endpoint; if none, mark `n/a`.
+- **`dotnet.I-HC-B1` already fires** — a test flagged under `dotnet.I-HC-B1` (happy-path-only against a `factory.CreateClient()`) is the same gap as the auth matrix rows. Emit one finding per endpoint, not one per test; reference both codes.
+
+---
+
+## Migration upgrade-path enumeration
+
+Consumed by [SKILL.md § Migration upgrade-path enumeration](../SKILL.md#migration-upgrade-path-enumeration) — step 2.7 of the deep-mode workflow.
+
+### Migration enumeration pattern
+
+For this repo and similar layouts:
+
+- **File glob:** `api/Migrations/*.cs` (or the equivalent subdirectory for the repo).
+- **Class detection:** any class whose file is under `api/Migrations/` *and* whose declaration matches `public (sealed )?class [A-Z][A-Za-z0-9_]*Migration` — the repo convention is the `Migration` suffix. Alternatively, the class inherits from a migration base type: `: \s*(IAsync)?Migration\b` / `: \s*MigrationBase\b`.
+- **Identifier:** the class name. Migration file names in this repo use a `NNNN_<snake_case>.cs` convention; use the class name, not the file prefix, as the identifier because tests reference the class.
+
+### Upgrade-path test detection
+
+For each enumerated migration, search the test project for a test method that satisfies **all three** conditions:
+
+1. **References the migration class name.** Either `new OrderStatusMigration()` construction or `typeof(OrderStatusMigration)` reference.
+2. **Arranges non-empty seed data before the migration runs.** Search the test method's Arrange block for at least one `CreateItemAsync(...)` / `InsertAsync(...)` / `.AddAsync(...)` / `SeedAsync(...)` call on a Cosmos / Entity Framework / equivalent data store, *before* the migration is invoked.
+3. **Asserts post-migration state.** After the migration invocation, the test reads rows back (`GetItemAsync`, `ReadItemAsync`, `QueryAsync`, etc.) and asserts a property of the returned data.
+
+If all three conditions fail, emit `Gap-MigUpgrade`. If condition 1 holds but 2 or 3 fail, emit `Gap-MigUpgrade` with a sharper note (e.g. "test exists but arranges no seed data — see `I-HC-A7`").
+
+### Repo-specific carve-outs
+
+- **Migrations runner test.** This repo runs migrations via a `MigrationRunner` in `api/Migrations/MigrationRunner.cs`. A single runner test that invokes the runner with seed data covers every migration class *if* the test explicitly asserts post-state for each class in the assertion block. Detect by searching for a test that references `MigrationRunner` and has an assertion block that names each migration class. When detected, suppress `Gap-MigUpgrade` for the covered migrations and note "covered transitively via `MigrationRunner` test".
+- **Migrations container tracking.** `CLAUDE.md` documents that migrations are tracked via a migrations container in Cosmos; each runs at most once. A test that verifies this tracking (e.g. "running MigrationRunner twice applies each migration only once") is a valuable positive (`I-POS-2`) but is **not** a substitute for per-migration upgrade-path tests — flag it separately.
+
+---
+
 ## Carve-outs
 
 Patterns that look like core smells but are idiomatic in .NET and must not be flagged:

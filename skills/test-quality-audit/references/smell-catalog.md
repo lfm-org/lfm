@@ -58,6 +58,8 @@ Emitted by the deep-mode workflow's [§ SUT surface enumeration](../SKILL.md#sut
 `Gap-Migration` — database migration class has no test reference to its class name. *Confidence: high*.
 `Gap-Throw` — exception throw site has no test that both names the exception type and calls the containing method. *Confidence: medium* — may be covered by a generic error-path test that doesn't name the type.
 `Gap-Validate` — validation attribute (e.g. `[Required]`, `[StringLength]`) on an input type has no test that sends a bad value for that field. *Confidence: high* on serialization-layer input types.
+`Gap-AuthZ` — protected endpoint has one or more uncovered cells in the auth scenario matrix (anonymous / token-expired / token-tampered / insufficient-scope / sufficient-scope / cross-user). Emitted by deep-mode step 2.6. *Confidence: high* — auth cells require explicit test setup, so indirect coverage is rare.
+`Gap-MigUpgrade` — database migration class has no test that arranges non-empty seed data before invoking the migration. An empty-database test (`I-HC-A7`) does not count. Emitted by deep-mode step 2.7. *Confidence: high* for repos with an expand-only migration rule.
 
 ## Integration rubric
 

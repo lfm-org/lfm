@@ -155,6 +155,17 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
    - **Emit a gap report** (see [§ Gap report format](#gap-report-format) below) listing unreferenced entries. Each entry is a *probable* gap — grep is an approximate cross-reference — and the report says so explicitly.
    - **Skip gracefully** when the stack extension has no **SUT surface enumeration** section. Record the skip reason and continue with static findings only. Never hard-fail the audit on a missing extension section.
    - **Quick mode does not run this step.** Gap detection is suite-level; running it on a single-file or PR-diff target would produce nonsense. Step 2.5 fires only in deep mode.
+2.6. **Auth/authz matrix coverage (deep mode only).** See [§ Auth matrix enumeration](#auth-matrix-enumeration) below. In short:
+   - **Enumerate protected endpoints** by matching the extension's auth-attribute patterns (e.g. `[Authorize]`, `[HttpTrigger(AuthorizationLevel.Function)]`, `authorize(...)` middleware). Each protected endpoint is a row in the matrix.
+   - **Define the matrix columns** as the minimum set of auth scenarios the audit expects: `anonymous`, `token-expired`, `token-tampered`, `insufficient-scope`, `sufficient-scope`, `cross-user`. Extensions may extend this list (e.g. `admin-only` for admin endpoints).
+   - **Cross-reference** each endpoint × scenario cell against the test project. A cell is covered when at least one test exercises that endpoint with that auth scenario and asserts the documented response (401, 403, 200, etc.).
+   - **Emit gap rows** as `Gap-AuthZ` entries in the gap report. Each row names the endpoint, the uncovered cells, and a confidence annotation.
+   - **Skip gracefully** when the extension has no auth-matrix section. Auth enumeration is optional per stack.
+2.7. **Migration upgrade-path enumeration (deep mode only).** See [§ Migration upgrade-path enumeration](#migration-upgrade-path-enumeration) below. In short:
+   - **Enumerate migration classes** via the extension's migration grep pattern (e.g. `api/Migrations/*.cs` for this repo).
+   - **Check for an upgrade-path test** for each migration: a test that (a) references the migration class name and (b) arranges non-empty seed data representing the N-1 schema state and (c) asserts the post-migration state. A migration test that runs against an empty database is a smell (`I-HC-A7`) but also a failed upgrade-path test under this step.
+   - **Emit gap rows** as `Gap-MigUpgrade` entries in the gap report. For a repo with an expand-only migration rule (see `CLAUDE.md`), every migration should have an upgrade-path test.
+   - **Skip gracefully** when the extension has no migration-upgrade section or the repo has no migrations directory.
 3. **Roll up per-file:**
    - Total tests.
    - Verdict counts: specification / characterization / ambiguous.
@@ -333,6 +344,88 @@ In the step-5 suite assessment, emit a `### Gap report` subsection in one of two
 
 - **Status:** skipped — <extension name> has no `SUT surface enumeration` section (or: target is quick mode / target is E2E-only).
 - **What this means:** static gap detection is unavailable for this scope. Mutation testing (if applicable) is the only gap-finding mechanism. Consider writing an extension section to enable surface enumeration.
+```
+
+---
+
+## Auth matrix enumeration
+
+Step 2.6 of the deep-mode workflow. Enumerates protected endpoints in the SUT and checks whether each cell of the auth scenario matrix has test coverage. Runs only in deep mode; skipped when the loaded extension has no auth-matrix section.
+
+### Why a matrix instead of per-test smells
+
+Core smells `I-HC-B7` and `E-HC-S3` already flag tests that only exercise the happy auth path. Those are per-test signals — they fire when a test is *there and incomplete*. Step 2.6 is a per-endpoint signal — it fires when a test is *missing* for an auth scenario. A happy-path-only test can trigger both: `I-HC-B7` as a per-test smell and `Gap-AuthZ` as a matrix gap.
+
+### Matrix columns
+
+At minimum, every protected endpoint should have a test for each of:
+
+- **`anonymous`** — request with no credentials. Expected response typically `401 Unauthorized`.
+- **`token-expired`** — request with a valid-format but expired token. Expected response typically `401 Unauthorized`.
+- **`token-tampered`** — request with a valid-format token whose signature does not verify. Expected response typically `401 Unauthorized`.
+- **`insufficient-scope`** — request with a valid token that lacks the required scope or role. Expected response typically `403 Forbidden`.
+- **`sufficient-scope`** — request with a valid token that has the required scope. Expected response typically `200 OK` (or the endpoint's documented success code).
+- **`cross-user`** — a user A request against a resource owned by user B. Expected response depends on the resource's ownership model: `403 Forbidden` or `404 Not Found`.
+
+Extensions may add columns (e.g. `admin-only` for endpoints behind an admin policy).
+
+### Procedure
+
+1. **Read the extension's auth-matrix section.** If absent, record the skip and continue.
+2. **Enumerate protected endpoints** by running the extension's auth-attribute patterns against the SUT. Collect route + HTTP method + required scope / role.
+3. **For each endpoint × matrix column**, cross-reference against the test project. A cell is covered when:
+   - A test body references the endpoint (via route template or Functions name) and
+   - The test arranges the matching auth state (no token / expired token / tampered token / valid token with insufficient scope / valid token with sufficient scope / different-user token) and
+   - The test asserts the documented response for that scenario.
+4. **Emit a `Gap-AuthZ` entry** in the gap report for each endpoint with at least one uncovered cell. Confidence: high — auth matrix cells require explicit test setup; indirect coverage is rare.
+
+### Output (appended to the step-5 gap report)
+
+```markdown
+#### Auth matrix coverage
+
+| Endpoint | anonymous | expired | tampered | insufficient | sufficient | cross-user |
+|---|---|---|---|---|---|---|
+| `GET /api/users/me` | ✓ | ✗ | ✗ | ✗ | ✓ | n/a |
+| `DELETE /api/orders/{id}` | ✓ | ✗ | ✗ | ✗ | ✓ | ✗ |
+
+- **`Gap-AuthZ`**: `GET /api/users/me` — missing: token-expired, token-tampered, insufficient-scope. The endpoint exercises only happy + anonymous paths.
+- **`Gap-AuthZ`**: `DELETE /api/orders/{id}` — missing: token-expired, token-tampered, insufficient-scope, cross-user. A cross-user test is especially important for a resource-owner endpoint.
+```
+
+---
+
+## Migration upgrade-path enumeration
+
+Step 2.7 of the deep-mode workflow. For each database migration in the SUT, check that there is an upgrade-path test that runs the migration against a representative prior-schema state (not an empty database).
+
+### Why an upgrade-path test, not a smoke test
+
+`I-HC-A7` flags migration tests run against an empty database as a smell — an empty-DB test passes for any migration that doesn't throw, including a broken one. The corollary is: every migration needs a test with seed data that represents a plausible N-1 state, applying the migration, and asserting that (a) existing rows still query correctly, (b) new columns have the expected default, and (c) the migration is idempotent if re-run.
+
+For a repo with an expand-only migration rule (see `CLAUDE.md` — "Migrations must be additive (expand-only)"), upgrade-path testing is the mechanism that enforces the rule: a migration that breaks existing queries fails its upgrade-path test.
+
+### Procedure
+
+1. **Read the extension's migration-upgrade section.** If absent, record the skip and continue.
+2. **Enumerate migration classes** via the extension's migration pattern (for .NET: files under `api/Migrations/*.cs`, or classes inheriting from a migration base type).
+3. **For each migration**, check whether at least one test method:
+   - References the migration class name (via `new MigrationX()` or `typeof(MigrationX)`).
+   - Arranges non-empty seed data before invoking the migration (via `CreateItemAsync` / `InsertAsync` / similar on the underlying data store) — specifically, the test body contains at least one insertion call before the migration invocation.
+   - Asserts post-migration state by querying the store or by reading at least one post-migrated row and asserting its shape.
+4. **Emit a `Gap-MigUpgrade` entry** in the gap report for each migration that lacks an upgrade-path test. Confidence: high — migration upgrade tests are mechanical and their absence is unambiguous.
+
+### Output (appended to the step-5 gap report)
+
+```markdown
+#### Migration upgrade-path coverage
+
+- **Enumerated:** <N migration classes>
+- **With upgrade-path test:** <M>
+- **Probable gaps:** <N-M>
+
+- **`Gap-MigUpgrade`**: `AddOrderStatusColumnMigration` (`api/Migrations/0007_order_status.cs`) — no test arranges non-empty seed data before running the migration. An empty-DB test (`I-HC-A7`) does not count.
+- **`Gap-MigUpgrade`**: `RenameCustomerEmailFieldMigration` (`api/Migrations/0008_rename_email.cs`) — no upgrade-path test. This migration renames a field; absence of an N-1-state test means breakage would only surface in production.
 ```
 
 ---
