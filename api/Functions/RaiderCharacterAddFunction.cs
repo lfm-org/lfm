@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
-using Lfm.Api.Options;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Contracts.Characters;
@@ -9,7 +8,6 @@ using Lfm.Contracts.Raiders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Options;
 
 namespace Lfm.Api.Functions;
 
@@ -34,16 +32,13 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public class RaiderCharacterAddFunction(
     IRaidersRepository repo,
-    IBlizzardProfileClient profileClient,
-    IOptions<BlizzardOptions> blizzardOptions)
+    IBlizzardProfileClient profileClient)
 {
     // 15 minutes in milliseconds — mirrors CHARACTER_PROFILE_TTL_MS in cache.ts.
     internal const int CharacterProfileTtlMs = 15 * 60 * 1000;
 
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
-
-    private readonly BlizzardOptions _blizzardOpts = blizzardOptions.Value;
 
     [Function("raider-character-add")]
     [RequireAuth]
@@ -87,7 +82,7 @@ public class RaiderCharacterAddFunction(
             return new NotFoundObjectResult(new { error = "Raider not found" });
 
         // 4. Ownership check against the cached account profile summary.
-        if (!IsCharacterOwnedByAccount(characterId, raider.AccountProfileSummary))
+        if (!IsCharacterOwnedByAccount(characterId, region, raider.AccountProfileSummary))
             return new ObjectResult(new { error = "Character not found in your Battle.net account" })
             { StatusCode = 403 };
 
@@ -117,7 +112,7 @@ public class RaiderCharacterAddFunction(
                 // Media is best-effort: client returns null on any failure.
                 media = await profileClient.GetCharacterMediaAsync(realm, lowerName, accessToken, ct);
             }
-            catch
+            catch (HttpRequestException)
             {
                 return new ObjectResult(new { error = "Failed to fetch character from Blizzard" })
                 { StatusCode = 502 };
@@ -147,10 +142,16 @@ public class RaiderCharacterAddFunction(
         else
             updatedCharacters.Add(stored);
 
+        var updatedPortraitCache = stored.PortraitUrl is not null
+            ? new Dictionary<string, string>(raider.PortraitCache ?? new Dictionary<string, string>())
+            { [characterId] = stored.PortraitUrl }
+            : raider.PortraitCache;
+
         var updatedRaider = raider with
         {
             Characters = updatedCharacters,
             SelectedCharacterId = characterId,
+            PortraitCache = updatedPortraitCache,
             Ttl = 180 * 86400,
         };
         await repo.UpsertAsync(updatedRaider, ct);
@@ -167,11 +168,11 @@ public class RaiderCharacterAddFunction(
     // ---------------------------------------------------------------------------
 
     /// <summary>
-    /// Returns true when an already-stored character can be reused without going
-    /// back to Blizzard — must have a specializations summary and a
-    /// <c>FetchedAt</c> timestamp within the 15-minute TTL window.
-    /// Mirrors <c>canReuseCachedCharacter</c> in the TS reference (minus the
-    /// test-mode bypass which .NET does not have).
+    /// Returns true when an existing stored character can be reused without calling Blizzard.
+    /// Mirrors <c>canReuseCachedCharacter</c> in <c>functions/src/functions/raider-character.ts</c>,
+    /// except: when a cached character exists but lacks specializations, we trigger a full
+    /// refetch rather than the TS optimization of fetching specs-only. The TS optimization is
+    /// safe to add if needed — for now we prefer simplicity over saving one API call per user.
     /// </summary>
     internal static bool CanReuseCachedCharacter(StoredSelectedCharacter? existing)
     {
@@ -185,30 +186,27 @@ public class RaiderCharacterAddFunction(
 
     /// <summary>
     /// Returns true when the given character id matches an entry in the cached
-    /// Blizzard account profile summary (case-insensitive on name and realm slug).
+    /// Blizzard account profile summary, using an exact string compare against the
+    /// full <c>{region}-{realm.slug}-{name}</c> id (all lowercased).
     /// A null profile is treated as "allow" — new raiders haven't yet synced their
     /// account profile, mirroring the TS handler's behaviour.
     /// </summary>
     internal static bool IsCharacterOwnedByAccount(
         string characterId,
+        string region,
         BlizzardAccountProfileSummary? accountProfileSummary)
     {
         if (accountProfileSummary is null) return true;
-        var normalized = characterId.ToLowerInvariant();
 
         foreach (var account in accountProfileSummary.WowAccounts ?? [])
-            foreach (var character in account.Characters ?? [])
+        {
+            foreach (var ch in account.Characters ?? [])
             {
-                // The character id has the form "{region}-{realm.slug}-{name}" all
-                // lowercased. The account profile entry might have different casing,
-                // so lowercase before comparing.
-                var slug = character.Realm.Slug?.ToLowerInvariant() ?? string.Empty;
-                var name = character.Name?.ToLowerInvariant() ?? string.Empty;
-                // Suffix match is sufficient — region isn't present on the account
-                // profile entry, so rely on "-{slug}-{name}" at the tail of the id.
-                if (normalized.EndsWith($"-{slug}-{name}", StringComparison.Ordinal))
+                var ownedId = $"{region}-{ch.Realm.Slug.ToLowerInvariant()}-{ch.Name.ToLowerInvariant()}";
+                if (string.Equals(characterId, ownedId, StringComparison.Ordinal))
                     return true;
             }
+        }
 
         return false;
     }

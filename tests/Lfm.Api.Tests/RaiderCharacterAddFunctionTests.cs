@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Options;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -12,9 +11,6 @@ using Lfm.Contracts.Raiders;
 using System.Text;
 using System.Text.Json;
 using Xunit;
-
-using BlizzardOptions = Lfm.Api.Options.BlizzardOptions;
-using MsOptions = Microsoft.Extensions.Options.Options;
 
 namespace Lfm.Api.Tests;
 
@@ -70,18 +66,8 @@ public class RaiderCharacterAddFunctionTests
 
     private static RaiderCharacterAddFunction MakeFunction(
         Mock<IRaidersRepository> repoMock,
-        Mock<IBlizzardProfileClient> profileMock)
-    {
-        var blizzardOpts = MsOptions.Create(new BlizzardOptions
-        {
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            Region = Region,
-            RedirectUri = "https://example.com/api/battlenet/callback",
-            AppBaseUrl = "https://example.com",
-        });
-        return new RaiderCharacterAddFunction(repoMock.Object, profileMock.Object, blizzardOpts);
-    }
+        Mock<IBlizzardProfileClient> profileMock) =>
+        new(repoMock.Object, profileMock.Object);
 
     private static BlizzardAccountProfileSummary MakeAccountProfileWithCharacter(string name, string realmSlug) =>
         new BlizzardAccountProfileSummary(
@@ -181,12 +167,15 @@ public class RaiderCharacterAddFunctionTests
         response.Character.SpecName.Should().Be("Holy");
         response.Character.PortraitUrl.Should().Be("https://render.worldofwarcraft.com/avatar.jpg");
 
-        // Upsert called once with selected character updated and the stored character present.
+        // Upsert called once with selected character updated, the stored character present,
+        // and the portrait cache populated.
         repo.Verify(r => r.UpsertAsync(
             It.Is<RaiderDocument>(d =>
                 d.SelectedCharacterId == "eu-silvermoon-aelrin" &&
                 d.Characters != null &&
-                d.Characters.Any(c => c.Id == "eu-silvermoon-aelrin" && c.GuildId == 42 && c.GuildName == "Midnight")),
+                d.Characters.Any(c => c.Id == "eu-silvermoon-aelrin" && c.GuildId == 42 && c.GuildName == "Midnight") &&
+                d.PortraitCache != null &&
+                d.PortraitCache["eu-silvermoon-aelrin"] == "https://render.worldofwarcraft.com/avatar.jpg"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -338,6 +327,71 @@ public class RaiderCharacterAddFunctionTests
         repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
         profileClient.Verify(p => p.GetCharacterProfileAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Ownership — hyphenated realm slug must not false-positive
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Regression test: the old suffix-match check would allow "eu-xx-mg-aelrin"
+    /// (character on realm "xx-mg") to pass when the account only contains
+    /// "aelrin" on realm "mg" — because "eu-xx-mg-aelrin".EndsWith("-mg-aelrin").
+    /// The exact-match fix must reject this.
+    /// </summary>
+    [Fact]
+    public void IsCharacterOwnedByAccount_does_not_false_positive_on_hyphenated_realm()
+    {
+        // Account contains aelrin on realm "mg".
+        var profile = new BlizzardAccountProfileSummary(
+            WowAccounts:
+            [
+                new BlizzardWowAccount(
+                    Id: 1,
+                    Characters:
+                    [
+                        new BlizzardAccountCharacter(
+                            Name: "Aelrin",
+                            Level: 80,
+                            Realm: new BlizzardRealmRef(Slug: "mg", Name: "Moonglade"),
+                            PlayableClass: new BlizzardNamedRef(Id: 2, Name: "Paladin"))
+                    ])
+            ]);
+
+        // The requested character is on realm "xx-mg" — a different realm whose slug
+        // ends with "-mg". Old suffix match would have returned true.
+        var result = RaiderCharacterAddFunction.IsCharacterOwnedByAccount(
+            characterId: "eu-xx-mg-aelrin",
+            region: "eu",
+            accountProfileSummary: profile);
+
+        result.Should().BeFalse("a character on realm 'mg' must not satisfy ownership for realm 'xx-mg'");
+    }
+
+    [Fact]
+    public void IsCharacterOwnedByAccount_returns_true_for_exact_match()
+    {
+        var profile = new BlizzardAccountProfileSummary(
+            WowAccounts:
+            [
+                new BlizzardWowAccount(
+                    Id: 1,
+                    Characters:
+                    [
+                        new BlizzardAccountCharacter(
+                            Name: "Aelrin",
+                            Level: 80,
+                            Realm: new BlizzardRealmRef(Slug: "silvermoon", Name: "Silvermoon"),
+                            PlayableClass: new BlizzardNamedRef(Id: 2, Name: "Paladin"))
+                    ])
+            ]);
+
+        var result = RaiderCharacterAddFunction.IsCharacterOwnedByAccount(
+            characterId: "eu-silvermoon-aelrin",
+            region: "eu",
+            accountProfileSummary: profile);
+
+        result.Should().BeTrue();
     }
 
     // -------------------------------------------------------------------------
