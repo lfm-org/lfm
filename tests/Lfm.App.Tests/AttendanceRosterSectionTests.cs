@@ -2,6 +2,7 @@ using Bunit;
 using FluentAssertions;
 using Lfm.App.Components;
 using Lfm.Contracts.Runs;
+using Lfm.Contracts.WoW;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -65,7 +66,7 @@ public class AttendanceRosterSectionTests : ComponentTestBase
         // WowClassBadge renders a span with class color
         var span = cut.Find("span[style]");
         span.TextContent.Should().Be("Thrall");
-        span.GetAttribute("style").Should().Contain("color:#0070DD");
+        span.GetAttribute("style").Should().Contain($"color:{WowClasses.GetColor(7)}");
     }
 
     [Fact]

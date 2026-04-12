@@ -119,6 +119,43 @@ public class JsonStringLocalizerTests : IDisposable
     }
 
     [Fact]
+    public async Task Missing_Key_With_Format_Args_Returns_Key_Name()
+    {
+        await _sut.LoadLocaleAsync("en");
+
+        var result = _sut["nonexistent.key", "arg1"];
+
+        result.Value.Should().Be("nonexistent.key");
+        result.ResourceNotFound.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadLocaleAsync_Skips_Fetch_When_Already_Cached()
+    {
+        var counting = new CountingLocaleHandler();
+        using var http = new HttpClient(counting) { BaseAddress = new Uri("http://localhost/") };
+        using var sut = new JsonStringLocalizer(http, _localeService);
+
+        await sut.LoadLocaleAsync("en");
+        await sut.LoadLocaleAsync("en");
+
+        counting.Loaded["en"].Should().Be(1, "second load must skip the fetch for an already-cached locale");
+    }
+
+    [Fact]
+    public async Task Fallback_Returns_Key_When_English_Not_Loaded()
+    {
+        await _sut.LoadLocaleAsync("fi");
+        _localeService.SetLocale("fi");
+
+        var result = _sut["only.in.en"];
+
+        result.Value.Should().Be("only.in.en",
+            "without English loaded as fallback, the key itself must be returned");
+        result.ResourceNotFound.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetAllStrings_Yields_All_Keys_For_Loaded_Current_Locale()
     {
         await _sut.LoadLocaleAsync("en");

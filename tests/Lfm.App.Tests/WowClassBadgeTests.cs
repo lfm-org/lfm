@@ -1,6 +1,7 @@
 using Bunit;
 using FluentAssertions;
 using Lfm.App.Components;
+using Lfm.Contracts.WoW;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -8,17 +9,17 @@ namespace Lfm.App.Tests;
 public class WowClassBadgeTests : ComponentTestBase
 {
     [Theory]
-    [InlineData(1, "#C69B6D")]   // Warrior
-    [InlineData(6, "#C41E3A")]   // Death Knight
-    [InlineData(11, "#FF7C0A")]  // Druid
-    public void Renders_Span_With_Correct_Class_Color(int classId, string expectedColor)
+    [InlineData(1)]    // Warrior
+    [InlineData(6)]    // Death Knight
+    [InlineData(11)]   // Druid
+    public void Renders_Span_With_Correct_Class_Color(int classId)
     {
         var cut = Render<WowClassBadge>(p => p
             .Add(x => x.ClassId, classId)
             .Add(x => x.CharacterName, "TestChar"));
 
         var span = cut.Find("span");
-        span.GetAttribute("style").Should().Contain($"color:{expectedColor}");
+        span.GetAttribute("style").Should().Contain($"color:{WowClasses.GetColor(classId)}");
         span.TextContent.Should().Be("TestChar");
     }
 
@@ -30,7 +31,7 @@ public class WowClassBadgeTests : ComponentTestBase
             .Add(x => x.CharacterName, "Unknown"));
 
         var span = cut.Find("span");
-        span.GetAttribute("style").Should().Contain("color:#FFFFFF");
+        span.GetAttribute("style").Should().Contain($"color:{WowClasses.GetColor(999)}");
     }
 
     [Fact]

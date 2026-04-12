@@ -66,21 +66,23 @@ public class GuildClientTests
     [Fact]
     public async Task GetAsync_returns_null_on_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
 
         var result = await client.GetAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
     public async Task GetAsync_returns_null_on_5xx_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
 
         var result = await client.GetAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must issue the request even when the server fails");
     }
 
     // ── UpdateAsync ──────────────────────────────────────────────────────────

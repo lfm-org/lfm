@@ -87,23 +87,17 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await charactersPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Intercept the refresh API call to confirm the button wires up correctly.
-        // The request will fail (no real Blizzard access token in E2E sessions),
-        // but we verify the call is initiated — the page should not crash.
-        var refreshCallInitiated = false;
-        Page!.Request += (_, req) =>
-        {
-            if (req.Url.Contains("/api/battlenet/characters/refresh"))
-                refreshCallInitiated = true;
-        };
-
         await Assertions.Expect(charactersPage.RefreshButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+
+        // Wait for the refresh API request to be dispatched after clicking the button.
+        var refreshRequestTask = Page!.WaitForRequestAsync(
+            req => req.Url.Contains("/api/battlenet/characters/refresh"),
+            new() { Timeout = 10000 });
+
         await charactersPage.ClickRefreshAsync();
 
-        // Wait briefly for the request to be dispatched.
-        await Page.WaitForTimeoutAsync(2000);
-
-        refreshCallInitiated.Should().BeTrue(
+        var refreshRequest = await refreshRequestTask;
+        refreshRequest.Url.Should().Contain("/api/battlenet/characters/refresh",
             "clicking the refresh button should POST to /api/battlenet/characters/refresh");
 
         Log("Refresh API call confirmed dispatched");

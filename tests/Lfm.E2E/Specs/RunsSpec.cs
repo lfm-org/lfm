@@ -62,11 +62,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Wait for the form to load (instance dropdown is populated)
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        // Select the first available instance via fluent-select web component:
-        // click to open the dropdown, then click the first real option (skip the placeholder).
+        // Known limitation: FluentUI <fluent-select> web component does not expose
+        // standard ARIA combobox/option roles to Playwright. Prefer GetByRole once
+        // upstream support lands (microsoft/fluentui-blazor#2614). Until then, use the
+        // element ID set on the component.
         var instanceSelect = Page.Locator("#instance-select");
         await instanceSelect.ClickAsync();
-        // Wait for options to be rendered; select the second fluent-option (index 0 = placeholder)
         var firstRealOption = Page.Locator("#instance-select fluent-option").Nth(1);
         await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
         await firstRealOption.ClickAsync();
@@ -85,14 +86,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             new System.Text.RegularExpressions.Regex(@"/runs/[^/]+$"),
             new() { Timeout = 20000 });
 
-        // Navigate back to the runs list and verify the new run's description is present
+        // Navigate back to the runs list and verify the new run appears by its unique description
         await runsPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(runsPage.CreateRunButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // The runs list shows instanceName; the created run should appear in the list
-        var allRunItems = runsPage.AllRunItems;
-        var count = await allRunItems.CountAsync();
-        count.Should().BeGreaterThan(0, "at least the newly created run should appear in the list");
+        await Assertions.Expect(Page.GetByText(uniqueRunName)).ToBeVisibleAsync(
+            new() { Timeout = 15000 });
     }
 
     [Fact]
@@ -140,11 +139,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task CancelSignup_Remove_DisappearsFromRoster()
+    public async Task EditRunPage_DisplaysSeededRoster()
     {
-        // This test verifies that after navigating to the run detail the roster is shown.
-        // Full cancel-signup UI is on the edit page roster grid — this test verifies
-        // the UI reflects the roster state from seed data.
+        // Verifies the edit page renders the roster with seeded character data.
         var encodedId = Uri.EscapeDataString(DefaultSeed.TestRunId);
         await Page!.GotoAsync(
             $"{fixture.Stack.AppBaseUrl}/runs/{encodedId}/edit",

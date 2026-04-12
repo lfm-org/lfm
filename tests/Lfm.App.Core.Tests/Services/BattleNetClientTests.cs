@@ -71,31 +71,34 @@ public class BattleNetClientTests
     [Fact]
     public async Task GetCharactersAsync_returns_null_when_server_returns_5xx()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must issue the request even when the server fails");
     }
 
     [Fact]
     public async Task GetCharactersAsync_returns_null_when_handler_throws_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
     public async Task GetCharactersAsync_returns_null_when_handler_throws_JsonException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new JsonException("bad payload")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new JsonException("bad payload")));
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
@@ -130,21 +133,23 @@ public class BattleNetClientTests
     [Fact]
     public async Task RefreshCharactersAsync_returns_null_on_non_success_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadGateway));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadGateway));
 
         var result = await client.RefreshCharactersAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1);
     }
 
     [Fact]
     public async Task RefreshCharactersAsync_returns_null_on_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("boom")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("boom")));
 
         var result = await client.RefreshCharactersAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
@@ -188,49 +193,53 @@ public class BattleNetClientTests
     [Fact]
     public async Task GetPortraitsAsync_returns_null_on_non_success_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
 
         var result = await client.GetPortraitsAsync(
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1);
     }
 
     [Fact]
     public async Task GetPortraitsAsync_returns_null_on_TaskCanceledException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new TaskCanceledException()));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new TaskCanceledException()));
 
         var result = await client.GetPortraitsAsync(
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
     public async Task GetPortraitsAsync_returns_null_when_handler_throws_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
 
         var result = await client.GetPortraitsAsync(
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
     public async Task GetPortraitsAsync_returns_null_when_handler_throws_JsonException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new JsonException("bad payload")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new JsonException("bad payload")));
 
         var result = await client.GetPortraitsAsync(
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]

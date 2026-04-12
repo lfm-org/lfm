@@ -105,12 +105,12 @@ public class AppAuthenticationStateProviderTests
         var meClient = new Mock<IMeClient>();
         meClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeMe(locale: "fi"));
-        var localeService = new Mock<ILocaleService>();
-        var sut = new AppAuthenticationStateProvider(meClient.Object, localeService.Object);
+        var localeService = new LocaleService();
+        var sut = new AppAuthenticationStateProvider(meClient.Object, localeService);
 
         await sut.GetAuthenticationStateAsync();
 
-        localeService.Verify(s => s.SetLocale("fi"), Times.Once);
+        localeService.CurrentLocale.Should().Be("fi");
     }
 
     [Fact]
@@ -119,12 +119,12 @@ public class AppAuthenticationStateProviderTests
         var meClient = new Mock<IMeClient>();
         meClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeMe(locale: null));
-        var localeService = new Mock<ILocaleService>();
-        var sut = new AppAuthenticationStateProvider(meClient.Object, localeService.Object);
+        var localeService = new LocaleService();
+        var sut = new AppAuthenticationStateProvider(meClient.Object, localeService);
 
         await sut.GetAuthenticationStateAsync();
 
-        localeService.Verify(s => s.SetLocale(It.IsAny<string>()), Times.Never);
+        localeService.CurrentLocale.Should().Be("en");
     }
 
     [Fact]
@@ -153,5 +153,20 @@ public class AppAuthenticationStateProviderTests
         await sut.GetAuthenticationStateAsync();
 
         meClient.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
+    }
+
+    [Fact]
+    public async Task NotifyStateChanged_fires_AuthenticationStateChanged_event()
+    {
+        var meClient = new Mock<IMeClient>();
+        meClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(MakeMe());
+        var sut = new AppAuthenticationStateProvider(meClient.Object, Mock.Of<ILocaleService>());
+        await sut.GetAuthenticationStateAsync();
+        var eventFired = false;
+        sut.AuthenticationStateChanged += _ => { eventFired = true; };
+
+        sut.NotifyStateChanged();
+
+        eventFired.Should().BeTrue("NotifyStateChanged must fire AuthenticationStateChanged for Blazor subscribers");
     }
 }

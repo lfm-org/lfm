@@ -222,4 +222,42 @@ public class RunsClientTests
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task CancelSignupAsync_deletes_signup_subpath()
+    {
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
+
+        var result = await client.CancelSignupAsync("run-1", CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be("run-1");
+        handler.LastRequest!.Method.Should().Be(HttpMethod.Delete);
+        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs/run-1/signup");
+    }
+
+    [Fact]
+    public async Task CancelSignupAsync_returns_null_on_non_success_status()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
+
+        var result = await client.CancelSignupAsync("run-1", CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CancelSignupAsync_escapes_run_id_in_path()
+    {
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
+
+        await client.CancelSignupAsync("run with spaces/and?weird", CancellationToken.None);
+
+        handler.LastRequest!.RequestUri!.PathAndQuery.Should()
+            .StartWith("/api/runs/")
+            .And.EndWith("/signup")
+            .And.Contain("%2F")
+            .And.NotContain(" ")
+            .And.NotContain("?weird");
+    }
 }

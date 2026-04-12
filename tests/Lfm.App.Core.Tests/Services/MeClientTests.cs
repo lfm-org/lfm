@@ -45,31 +45,34 @@ public class MeClientTests
     [Fact]
     public async Task GetAsync_returns_null_when_handler_throws_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
 
         var result = await client.GetAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
     public async Task GetAsync_returns_null_when_handler_throws_TaskCanceledException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new TaskCanceledException()));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new TaskCanceledException()));
 
         var result = await client.GetAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     [Fact]
     public async Task GetAsync_returns_null_on_5xx_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
 
         var result = await client.GetAsync(CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must issue the request even when the server fails");
     }
 
     // ── UpdateAsync ──────────────────────────────────────────────────────────
@@ -93,21 +96,23 @@ public class MeClientTests
     [Fact]
     public async Task UpdateAsync_returns_null_on_non_success_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadRequest));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadRequest));
 
         var result = await client.UpdateAsync(new UpdateMeRequest("xx"), CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1);
     }
 
     [Fact]
     public async Task UpdateAsync_returns_null_on_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("connection refused")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("connection refused")));
 
         var result = await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
 
         result.Should().BeNull();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 
     // ── DeleteAsync ──────────────────────────────────────────────────────────
@@ -127,20 +132,22 @@ public class MeClientTests
     [Fact]
     public async Task DeleteAsync_returns_false_on_non_success_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Forbidden));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Forbidden));
 
         var result = await client.DeleteAsync(CancellationToken.None);
 
         result.Should().BeFalse();
+        handler.CallCount.Should().Be(1);
     }
 
     [Fact]
     public async Task DeleteAsync_returns_false_on_HttpRequestException()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network unreachable")));
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network unreachable")));
 
         var result = await client.DeleteAsync(CancellationToken.None);
 
         result.Should().BeFalse();
+        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
     }
 }
