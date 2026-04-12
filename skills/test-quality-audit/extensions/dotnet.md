@@ -234,6 +234,34 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ---
 
+### `dotnet.LC-6` — `[Theory]` on a numeric parameter without boundary values
+
+**Applies to:** `unit, integration` — refines core `LC-11`.
+
+**Detection:** a `[Theory]` method with a numeric parameter (`int`, `long`, `double`, `decimal`, `float`) or collection parameter (`string`, `T[]`, `IEnumerable<T>`, `List<T>`). Collect every `[InlineData(...)]` / `[MemberData(...)]` / `[ClassData(...)]` row feeding that parameter. Flag if **none** of these boundary values appear in at least one row:
+
+- Numeric: `0`, `1`, `-1`, `int.MaxValue`, `int.MinValue` (scale to the numeric type).
+- String: `""` (empty), single-character literal, `null`.
+- Collection: `new T[] {}`, `new T[] { x }`, `null`.
+
+**Why low-confidence:** the test may be intentionally scoped to a narrow equivalence class. Always flag with a note that boundary analysis is missing; the author can dismiss if the scope is narrow by design.
+
+**Rewrite:** add at least one boundary row, or add a separate `[Fact]` for each boundary the function is specified to handle.
+
+---
+
+### `dotnet.LC-7` — Positive-only test with no sibling negative test
+
+**Applies to:** `unit, integration` — refines core `LC-12`.
+
+**Detection:** a `[Fact]` whose name ends in `_Returns_*`, `_Succeeds`, `_Persists_*`, `_Creates_*`, `_Updates_*`, `_Completes_*`, `_Is_*` on a method that has at least one `throw new *Exception` statement, a `Result.Fail` / `Error.*` return, or `[Required]` / `[Range]` / custom validator on its input type. The method must be detected via the test's SUT construction (`var sut = new Foo(...); sut.Bar(...)`). Flag when no sibling test method on the same class targets the same method with a name matching `_Throws_*`, `_Fails_*`, `_Rejects_*`, `_Returns_Error_*`, or `_Validates_*`.
+
+**Why low-confidence:** the test file may organize negative cases into a separate file (e.g. `OrderServiceValidationTests.cs` alongside `OrderServiceTests.cs`). Before flagging, grep the whole test project for any test whose body constructs the same SUT and targets the same method with an expected-exception pattern (`Assert.Throws<...>` / `.Should().Throw<...>()`). Only flag if zero sibling negative tests exist across the project.
+
+**Rewrite:** add a sibling test for each distinct sad path (`POS-5` positive signal in the core rubric).
+
+---
+
 ## Framework-specific positive signals (`dotnet.POS-*`)
 
 ### `dotnet.POS-1` — `[Theory]` with `TheoryData<...>` or `MemberData` and *varied* expected values

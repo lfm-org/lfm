@@ -34,6 +34,8 @@ Applies when `SKILL.md` step 0b selects the unit rubric. Cite as `HC-N`, `LC-N`,
 `LC-8` — Parameterized test where all cases assert the same thing; parameterization isn't doing work.
 `LC-9` — Skipped / ignored / quarantined test with no linked justification (`Skip=""`, `[Ignore]` with no reason, or reason string containing no issue number, URL, or ticket reference). A quarantine without an exit criterion becomes the permanent home for the flake.
 `LC-10` — Non-trivial assertion with no failure message; a complex or non-obvious expected value asserted without a `Because(...)` reason, xUnit message argument, or inline comment tying the expectation to a requirement. On failure, the message tells a future debugger nothing.
+`LC-11` — Parameterized test on a numeric or collection input with no boundary values. A `[Theory]` / `[TestCase]` / `it.each` exercising a function that takes `int`, `long`, `double`, `decimal`, `string`, or a collection without at least one of `0`, `1`, `-1`, `int.MaxValue`, empty collection, single-element collection, or null. Boundary-value analysis (ISTQB CTFL) is the standard gap for finite-case parameterized tests.
+`LC-12` — Positive test with no sibling negative test. A test named `..._Returns_...` / `..._Succeeds` / `..._Persists` on a method that has at least one documented failure mode (throws, returns error, returns null / `Result.Fail`, validates input), and no sibling test on the same method whose name matches `..._Throws_...` / `..._Fails_...` / `..._Rejects_...` / `..._Returns_Error_...`. The test covers only the happy path.
 
 ### Positive signals (POS-*)
 
