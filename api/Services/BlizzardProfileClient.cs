@@ -91,11 +91,24 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
         var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await _httpClient.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode)
-            return null;
+        try
+        {
+            var response = await _httpClient.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+                return null;
 
-        var json = await response.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<BlizzardCharacterMediaSummary>(json, _jsonOptions);
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonSerializer.Deserialize<BlizzardCharacterMediaSummary>(json, _jsonOptions);
+        }
+        catch (HttpRequestException)
+        {
+            // Best-effort: swallow transport failures so the caller can continue without media.
+            return null;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // Timeout from HttpClient (not user cancellation): treat as best-effort failure.
+            return null;
+        }
     }
 }
