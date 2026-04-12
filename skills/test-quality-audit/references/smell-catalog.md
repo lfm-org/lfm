@@ -45,6 +45,7 @@ Applies when `SKILL.md` step 0b selects the unit rubric. Cite as `HC-N`, `LC-N`,
 `POS-6` — Comments citing a requirement, spec, or invariant on non-obvious expected values.
 `POS-7` — Test expresses an invariant (round-trip, idempotency, commutativity, associativity, bounds).
 `POS-8` — Meaningful failure message on a non-trivial assertion; FluentAssertions `.Because(...)` or xUnit/NUnit message argument explains *what should be true and why*, not just that the assertion is present.
+`POS-9` — Property-based test harness detected (FsCheck, Hedgehog, Hypothesis, QuickCheck, CsCheck, or equivalent). A property-based test expressing an invariant over a generated domain is strictly stronger than any finite example-based test; reward it regardless of the test's other signals.
 
 ## Integration rubric
 

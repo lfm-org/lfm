@@ -164,6 +164,7 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
    - Top findings ordered by impact.
    - **Audit-vs-mutation reconciliation** — if step 4 produced results, identify files where the static verdict and the mutation findings disagree. These are the highest-signal findings: a file rated `strong` by static audit but with surviving mutants reveals test-quality gaps neither method alone would catch.
    - **No-coverage discoveries** — if the mutation tool surfaced entire files with zero test coverage, list them. The static audit cannot see these because it only examines files that already have tests.
+   - **Pyramid ratio** — count tests per rubric across the audited scope and report the distribution. Google's default guidance is roughly 70–80 % unit, 15–20 % integration, ≤10 % E2E (*Software Engineering at Google* ch. 11 on test sizing). Flag as a design finding when the inversion is sharp: unit < 60 % or E2E > 15 %. An inverted pyramid is a cost signal, not a per-test smell — it usually means unit-lane coverage is weak and teams compensated by writing expensive tests at the top.
 6. **Emit a prioritized remediation worklist** (`P0` / `P1` / `P2` / `P3`) similar to the code-quality-review output. Worklist items derived from mutation findings should be tagged `[mutation]` so they're distinguishable from purely-static findings.
 
 ---
@@ -259,11 +260,12 @@ For every unit test case examined, emit these fields:
    - `internal-mock-invocation` — a `verify(mock...)` on an owned collaborator.
    - `structural-shape` — only asserts that the result has certain fields/types, not their values.
    - `none` — no assertion.
-4. **Smells matched** — list of codes from `references/smell-catalog.md` (unit section) plus any loaded extension. Example: `HC-2, dotnet.HC-1`.
-5. **Positive signals matched** — list of codes. Example: `POS-2, dotnet.POS-3`.
-6. **Verdict** — `specification` / `characterization` / `ambiguous`.
-7. **Severity** — `block` / `warn` / `info`.
-8. **Recommended action** — one of: `rewrite-from-requirement` / `add-assertion` / `split` / `delete` / `keep`.
+4. **Test size** (Google sizing) — `small` (single process, no I/O, no sleep, no real clock), `medium` (single machine, localhost only, no external network), `large` (multi-machine). Unit tests should be `small` by construction; a unit test that touches filesystem, network, or the real clock is a candidate for lane migration. Flag `LC-7` or extension slow-unit-test smell (`dotnet.LC-5`) when size > `small`.
+5. **Smells matched** — list of codes from `references/smell-catalog.md` (unit section) plus any loaded extension. Example: `HC-2, dotnet.HC-1`.
+6. **Positive signals matched** — list of codes. Example: `POS-2, dotnet.POS-3`.
+7. **Verdict** — `specification` / `characterization` / `ambiguous`.
+8. **Severity** — `block` / `warn` / `info`.
+9. **Recommended action** — one of: `rewrite-from-requirement` / `add-assertion` / `split` / `delete` / `keep` / `move-to-integration-lane`.
 
 ### Integration rubric per-test fields
 
@@ -421,6 +423,14 @@ Then:
 - **Overall verdict:** <strong / adequate / weak / not assessed>
 - **Top risks:** <3-5 bullets by impact>
 - **Verification limits:** <what neither static audit nor mutation testing can determine>
+
+### Pyramid ratio
+
+- **Unit:** <N tests> (<percentage>)
+- **Integration:** <N tests> (<percentage>)
+- **E2E:** <N tests> (<percentage>) — break down by sub-lane F/A/P/S when non-zero
+- **Shape:** `pyramid` / `diamond` / `inverted` / `hourglass`
+- **Finding:** <none / "unit coverage is thin — <percentage> unit vs Google 70-80% guidance" / "E2E inflated — <percentage> vs ≤10% guidance">
 
 ### Mutation testing
 

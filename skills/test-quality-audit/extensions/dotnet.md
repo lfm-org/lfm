@@ -288,6 +288,20 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ---
 
+### `dotnet.POS-7` — Property-based test harness (FsCheck / CsCheck / Hedgehog)
+
+**Applies to:** `unit, integration` — refines core `POS-9`.
+
+**Detection:** any of:
+- `using FsCheck;` / `using FsCheck.Xunit;` plus a `[Property]` attribute on a test method.
+- `using CsCheck;` plus a `Gen.*` generator expression feeding `.Sample(...)`.
+- `using Hedgehog;` plus `Property.ForAll(...)`.
+- A `[Theory]` whose data source is a seeded RNG yielding values across a declared equivalence class.
+
+**Why positive:** a property-based test expresses a domain invariant over a generated input space instead of pinning a finite set of examples. Correct implementations pass for the whole domain; characterization tests written from observed output cannot be phrased this way. Reward under both unit and integration rubrics.
+
+---
+
 ## Framework-specific integration smells (`dotnet.I-*`)
 
 These smells apply only under the integration rubric (step 0b selected `integration`). They refine core integration codes (`I-HC-A*`, `I-HC-B*`) with .NET-specific detection hints and rewrites.
