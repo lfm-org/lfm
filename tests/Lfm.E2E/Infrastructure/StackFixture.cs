@@ -153,7 +153,16 @@ public class StackFixture : IAsyncLifetime
         }
 
         _playwright = await Playwright.CreateAsync();
-        Browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
+
+        // Allow pointing Playwright at a locally-provided Chromium binary for environments
+        // where Playwright's auto-download cache is unavailable (sandboxed CI, offline runs).
+        // Null → Playwright uses its bundled browser, preserving default behaviour.
+        var chromiumExecutablePath = Environment.GetEnvironmentVariable("LFM_E2E_CHROMIUM_PATH");
+        Browser = await _playwright.Chromium.LaunchAsync(new()
+        {
+            Headless = true,
+            ExecutablePath = string.IsNullOrWhiteSpace(chromiumExecutablePath) ? null : chromiumExecutablePath,
+        });
     }
 
     public async Task DisposeAsync()
