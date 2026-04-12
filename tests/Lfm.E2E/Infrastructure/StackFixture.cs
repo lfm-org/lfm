@@ -120,7 +120,17 @@ public class StackFixture : IAsyncLifetime
             ? await File.ReadAllTextAsync(_appSettingsPath)
             : null;
         await File.WriteAllTextAsync(_appSettingsPath,
-            $$"""{"ApiBaseUrl":"http://localhost:{{_apiPort}}"}""");
+            $$"""
+            {
+              "ApiBaseUrl": "http://localhost:{{_apiPort}}",
+              "Logging": {
+                "LogLevel": {
+                  "Default": "Warning",
+                  "Microsoft.AspNetCore": "Error"
+                }
+              }
+            }
+            """);
 
         // Start Blazor app
         _appProcess = StartBackground("dotnet",

@@ -15,6 +15,8 @@ namespace Lfm.E2E.Specs;
 public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
+    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
+
     public override async Task InitializeAsync()
     {
         await base.InitializeAsync();

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Lfm.E2E.Infrastructure;
 
@@ -28,6 +29,7 @@ public abstract class E2ETestBase : IAsyncLifetime
     private readonly ConcurrentQueue<string> _consoleMessages = new();
     private readonly ConcurrentQueue<string> _requestFailures = new();
     private readonly ConcurrentQueue<string> _consoleErrors = new();
+    private readonly ConcurrentQueue<string> _consoleWarnings = new();
 
     protected E2ETestBase(ITestOutputHelper output)
     {
@@ -50,6 +52,13 @@ public abstract class E2ETestBase : IAsyncLifetime
     /// Subclasses may override for more descriptive names.
     /// </summary>
     protected virtual string TestName => GetType().Name;
+
+    /// <summary>
+    /// Substrings to ignore when checking for unexpected console errors/warnings
+    /// in <see cref="DisposeAsync"/>. Subclasses override this to whitelist
+    /// known-acceptable patterns (e.g., expected 401 responses on anonymous pages).
+    /// </summary>
+    protected virtual string[] IgnoredConsolePatterns => [];
 
     public virtual Task InitializeAsync() => Task.CompletedTask;
 
@@ -77,6 +86,27 @@ public abstract class E2ETestBase : IAsyncLifetime
         }
 
         LogCapturedMessages();
+
+        if (Page is not null)
+        {
+            var patterns = IgnoredConsolePatterns;
+            var errors = GetConsoleErrors(patterns);
+            var warnings = GetConsoleWarnings(patterns);
+
+            if (errors.Count > 0 || warnings.Count > 0)
+            {
+                var details = new List<string>();
+                foreach (var e in errors)
+                    details.Add($"  [ERROR] {e}");
+                foreach (var w in warnings)
+                    details.Add($"  [WARNING] {w}");
+
+                throw new XunitException(
+                    $"Browser console contained {errors.Count} error(s) and " +
+                    $"{warnings.Count} warning(s):\n" +
+                    string.Join("\n", details));
+            }
+        }
     }
 
     /// <summary>
@@ -96,6 +126,10 @@ public abstract class E2ETestBase : IAsyncLifetime
                 if (msg.Type == "error")
                 {
                     _consoleErrors.Enqueue(msg.Text);
+                }
+                else if (msg.Type == "warning")
+                {
+                    _consoleWarnings.Enqueue(msg.Text);
                 }
             }
         };
@@ -143,6 +177,19 @@ public abstract class E2ETestBase : IAsyncLifetime
     protected IReadOnlyList<string> GetConsoleErrors(params string[] ignoreSubstrings)
     {
         return _consoleErrors
+            .Where(text => !ignoreSubstrings.Any(ignore =>
+                text.Contains(ignore, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Returns a snapshot of browser console warnings captured by
+    /// <see cref="AttachDiagnosticListeners"/> since the test started,
+    /// excluding any warning whose text contains one of <paramref name="ignoreSubstrings"/>.
+    /// </summary>
+    protected IReadOnlyList<string> GetConsoleWarnings(params string[] ignoreSubstrings)
+    {
+        return _consoleWarnings
             .Where(text => !ignoreSubstrings.Any(ignore =>
                 text.Contains(ignore, StringComparison.OrdinalIgnoreCase)))
             .ToList();

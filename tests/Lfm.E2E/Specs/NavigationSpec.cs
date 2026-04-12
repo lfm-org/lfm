@@ -14,6 +14,8 @@ namespace Lfm.E2E.Specs;
 public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
+    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
+
     public override async Task InitializeAsync()
     {
         await base.InitializeAsync();
@@ -43,13 +45,6 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(landingPage.BattleNetSignInCard).ToBeVisibleAsync(new() { Timeout = 10000 });
         var ctaVisible = await landingPage.IsSignInButtonVisibleAsync();
         ctaVisible.Should().BeTrue();
-
-        // Anonymous /api/me probes reliably return 401 and show up in the console;
-        // ignore those so the assertion stays focused on unhandled startup errors
-        // (JSInterop failures, CSP violations, Blazor renderer crashes).
-        var errors = GetConsoleErrors("401", "/api/me");
-        errors.Should().BeEmpty(
-            "the landing page must render without unhandled browser errors");
     }
 
     [Fact]
