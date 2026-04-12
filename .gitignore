@@ -145,6 +145,9 @@ publish/
 # Stryker.NET mutation testing reports
 StrykerOutput/
 
+# Test determinism verification runs
+.test-determinism/
+
 # .NET local settings (secrets)
 api/local.settings.json
 app/wwwroot/appsettings.Development.json
