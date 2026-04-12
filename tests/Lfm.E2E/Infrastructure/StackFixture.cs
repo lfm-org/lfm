@@ -104,6 +104,7 @@ public class StackFixture : IAsyncLifetime
                 ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
                 ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
                 ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
+                ["PRIVACY_EMAIL"] = "privacy@e2e.test",
             },
             _apiOutput);
 

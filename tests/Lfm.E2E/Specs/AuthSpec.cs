@@ -14,7 +14,10 @@ namespace Lfm.E2E.Specs;
 public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
+    // "battle.net" ignores the external Battle.net OAuth assets that fail to load
+    // after SignIn_ClickButton_RedirectsToBattleNetOAuth navigates the browser to
+    // the real https://eu.battle.net authorize page (which is offline in E2E).
+    protected override string[] IgnoredConsolePatterns => ["401", "/api/me", "battle.net"];
 
     public override async Task InitializeAsync()
     {
