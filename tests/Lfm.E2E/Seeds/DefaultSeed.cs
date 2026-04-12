@@ -94,6 +94,8 @@ public static class DefaultSeed
                             },
                         },
                     },
+                    ["guildId"] = 12345,
+                    ["guildName"] = "Test Guild",
                 },
                 // Second character on the primary raider — used by SelectCharacter tests.
                 new Dictionary<string, object?>
@@ -122,6 +124,8 @@ public static class DefaultSeed
                             },
                         },
                     },
+                    ["guildId"] = 12345,
+                    ["guildName"] = "Test Guild",
                 },
             },
             ["accountProfileSummary"] = new Dictionary<string, object?>
@@ -199,6 +203,8 @@ public static class DefaultSeed
                             },
                         },
                     },
+                    ["guildId"] = 12345,
+                    ["guildName"] = "Test Guild",
                 },
             },
             ["accountProfileSummary"] = new Dictionary<string, object?>
