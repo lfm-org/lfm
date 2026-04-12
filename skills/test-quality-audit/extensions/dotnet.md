@@ -170,6 +170,20 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 
 ---
 
+### `dotnet.HC-7` — `DateTime.Now` / `DateTime.Today` / `DateTimeOffset.Now` in a test body
+
+**Applies to:** `unit, integration`
+
+**Detection:** any test method body containing `DateTime\.(Now|Today|UtcNow)` or `DateTimeOffset\.(Now|UtcNow)` as a direct call (not through a `TimeProvider` abstraction). More specific than core `HC-11` — `dotnet.HC-7` covers the .NET idiom.
+
+**Smell:** the test reads the real clock. Tests that use the real clock pass when the author runs them and fail at midnight or on daylight-saving transitions. Core `HC-11` covers the general case; this smell refines detection for .NET.
+
+**Carve-out:** if the test calls `DateTime.UtcNow` solely to generate a unique identifier (e.g. `$"test-{DateTime.UtcNow.Ticks}"`) and does not use the value in an assertion, do not flag. The canonical unique-id generation pattern is benign.
+
+**Rewrite:** inject `TimeProvider` (.NET 8+) and use `FakeTimeProvider` with a pinned instant — see `dotnet.POS-6`.
+
+---
+
 ### `dotnet.HC-6` — Single-line `[Fact]` with structural-only assertion on a nullable method
 
 **Applies to:** `unit, integration`
@@ -247,6 +261,35 @@ saved.Select(s => s.Name).Should().BeEquivalentTo(items);
 **Why low-confidence:** the test may be intentionally scoped to a narrow equivalence class. Always flag with a note that boundary analysis is missing; the author can dismiss if the scope is narrow by design.
 
 **Rewrite:** add at least one boundary row, or add a separate `[Fact]` for each boundary the function is specified to handle.
+
+---
+
+### `dotnet.LC-8` — `CultureInfo.CurrentCulture` / `CurrentUICulture` read in a test body without explicit set
+
+**Applies to:** `unit, integration`
+
+**Detection:** `CultureInfo\.(CurrentCulture|CurrentUICulture)` read anywhere in the test body without a preceding `CultureInfo\.(CurrentCulture|CurrentUICulture)\s*=\s*new CultureInfo\(` assignment or a `using` block that scopes the culture.
+
+**Why low-confidence:** the test will pass on the author's machine and fail on a CI agent whose locale differs. Parsing, formatting, and collation depend on culture; assertions on parsed dates / formatted numbers are the most common failure mode.
+
+**Rewrite:** set the culture explicitly per test (`CultureInfo.CurrentCulture = CultureInfo.InvariantCulture`) in the Arrange block, restored in a `Dispose` or `finally`, or inject an `IFormatProvider` into the SUT and use `CultureInfo.InvariantCulture` in the test.
+
+---
+
+### `dotnet.LC-9` — Platform-specific path / line-ending / separator literal in a test body
+
+**Applies to:** `unit, integration`
+
+**Detection:** any of the following in a test body without a platform-abstracting call:
+
+- Literal `\\` (Windows path separator) or `"/"` (Unix path separator) concatenated into a path.
+- `Environment.NewLine` in an assertion expected value.
+- `\r\n` or `\n` literal in a string-equals assertion.
+- Hardcoded `C:\\`, `/tmp/`, `/home/`, `/var/` in a path.
+
+**Why low-confidence:** the test passes on the author's platform and fails on the other. `Environment.NewLine` evaluates to `\r\n` on Windows and `\n` on Linux — an assertion comparing rendered output with a literal `\n` fails on the other platform.
+
+**Rewrite:** use `Path.Combine(...)` or `Path.DirectorySeparatorChar` for paths; use `"\n"` (or a regex `\r?\n`) for line endings; parameterize over platforms if the behavior is platform-sensitive.
 
 ---
 
@@ -552,6 +595,42 @@ Patterns that look like core smells but are idiomatic in .NET and must not be fl
 - **Do not flag `HC-10`** (snapshot tests pinning unspecified output) when the snapshot target is a JSON response whose schema is published via an OpenAPI document in the repo, a gRPC proto, or an equivalent contract document. Reference the contract in the carve-out decision.
 
 - **Do not flag `dotnet.HC-2`** (logger content as contract) when the log call is via a source-generated `[LoggerMessage]` method whose name is namespaced as an audit event (e.g. `LogAuditUserDeleted`) — the event *is* the contract.
+
+---
+
+## Determinism verification
+
+Consumed by [SKILL.md § Determinism verification](../SKILL.md#determinism-verification) — step 4.5 of the deep-mode workflow.
+
+### Cheap-rerun command
+
+Run the non-E2E test project twice, each with structured output for diffing:
+
+```bash
+dotnet test tests/<Project>.Tests/<Project>.Tests.csproj \
+  --no-build -c Release \
+  --logger "trx;LogFileName=run1.trx" \
+  --results-directory ./.test-determinism/run1
+dotnet test tests/<Project>.Tests/<Project>.Tests.csproj \
+  --no-build -c Release \
+  --logger "trx;LogFileName=run2.trx" \
+  --results-directory ./.test-determinism/run2
+```
+
+Compare via `dotnet-trx` or a manual diff of the `<UnitTestResult outcome="Passed|Failed|Skipped">` attributes.
+
+### Gating
+
+- **Project size:** skip and recommend targeted rerun of top-N slowest tests when the test project has ≥ 500 test methods. Determine via `grep -c '\[Fact\|\[Theory' tests/<Project>.Tests/**/*.cs`.
+- **Total elapsed time from run 1:** if run 1 takes more than 60 seconds, warn the user before running run 2. Abort if an interactive audit and the user declines.
+- **E2E projects:** never run. E2E suites are expensive and browser-dominated; determinism verification there requires different tooling.
+
+### Recommended scope for this repo
+
+- `tests/Lfm.Api.Tests` — small, reruns cheaply.
+- `tests/Lfm.App.Core.Tests` — small, reruns cheaply.
+- `tests/Lfm.App.Tests` (bUnit) — small, reruns cheaply.
+- `tests/Lfm.E2E` — do **not** rerun. The E2E docker stack bringup makes a second full run prohibitive; the audit agent should recommend `--filter FullyQualifiedName~FlakeCandidate` reruns of specific tests identified by static smells instead.
 
 ---
 

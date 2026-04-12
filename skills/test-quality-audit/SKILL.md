@@ -177,6 +177,12 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
    - **If installed** — run it against the SUT per the extension's instructions, capture the score and surviving-mutant details, and incorporate the findings into step 5 below. If the run fails for reasons the extension documents as known SUT limitations (e.g. Blazor WASM), record the failure reason and continue with static findings only.
    - **If not installed** — skip the mutation run and record the skip reason. Include the extension's install instructions in the step-6 output so the user can enable it for a future audit.
    - **Never hard-fail the audit on a mutation step failure.** Static findings stand on their own.
+4.5. **Determinism verification (optional, deep mode only, gated on project size).** See [§ Determinism verification](#determinism-verification) below.
+   - **Rationale:** per-test smells like `HC-11` / `I-HC-A5` / `E-HC-F3` flag *suspected* flake. Running the suite twice proves flake from runtime evidence.
+   - **Gating:** run only when the audited test project has < 500 test methods *and* the user opts in for the session *or* the extension declares the suite as cheap-to-rerun. Skip for larger suites with a note recommending a targeted rerun of the top-N slowest tests instead.
+   - **Procedure:** run the non-E2E test project(s) twice in sequence via the extension's cheap-rerun command (for .NET: `dotnet test --no-build --verbosity quiet`). Compare the pass / fail / error list between the two runs.
+   - **On difference**, flag each diverged test as a runtime-proven determinism finding. A diverged test is a stronger signal than a static `HC-11` smell — it is evidence, not suspicion.
+   - **Skip gracefully** when the extension has no cheap-rerun command, when the suite is too large, or when prior steps of the audit already produced enough static determinism findings to act on.
 5. **Produce overall assessment:**
    - Suite-level verdict.
    - Top findings ordered by impact.
@@ -184,6 +190,8 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
    - **No-coverage discoveries** — if the mutation tool surfaced entire files with zero test coverage, list them. The static audit cannot see these because it only examines files that already have tests.
    - **Gap report** — the output of step 2.5. List probable gaps by category (public API / routes / migrations / throw sites / validation attributes). When both step 2.5 and step 4 produced results, **reconcile** them: a symbol flagged as a probable gap by step 2.5 *and* appearing as a `NoCoverage` file in the mutation report is a **confirmed gap**; static-only probable gaps are weaker signal; mutation-only gaps (no grep match but covered at runtime) are a sign the step 2.5 grep patterns in the extension need tuning.
    - **Pyramid ratio** — count tests per rubric across the audited scope and report the distribution. Google's default guidance is roughly 70–80 % unit, 15–20 % integration, ≤10 % E2E (*Software Engineering at Google* ch. 11 on test sizing). Flag as a design finding when the inversion is sharp: unit < 60 % or E2E > 15 %. An inverted pyramid is a cost signal, not a per-test smell — it usually means unit-lane coverage is weak and teams compensated by writing expensive tests at the top.
+   - **Runtime distribution** — if any `.trx` / JUnit XML test result file is available in the repo (glob: `**/TestResults/*.trx`, `**/test-results/*.xml`), parse it and extract the top-10 slowest tests with their elapsed time. Flag any unit test > 100 ms and any in-process integration test > 2 s for slow-test review; do not gate on this, just report. Skip silently if no test-result files are present.
+   - **Determinism findings** — if step 4.5 ran, list any test that diverged between the two runs. Each diverged test is a runtime-proven flake finding; annotate with the suspected cause from the static smells if one was detected.
 6. **Emit a prioritized remediation worklist** (`P0` / `P1` / `P2` / `P3`) similar to the code-quality-review output. Worklist items derived from mutation findings should be tagged `[mutation]` so they're distinguishable from purely-static findings.
 
 ---
@@ -430,6 +438,47 @@ For a repo with an expand-only migration rule (see `CLAUDE.md` — "Migrations m
 
 ---
 
+## Determinism verification
+
+Step 4.5 of the deep-mode workflow. Runs the non-E2E test suite twice in sequence and compares the pass / fail list. Any test that passes once and fails once (or produces a different error) is a runtime-proven flake — stronger evidence than any static smell.
+
+### Why two runs is worth the cost
+
+Static smells `HC-11`, `LC-5`, `I-HC-A5`, `I-HC-A11`, `E-HC-F3` all flag *suspected* determinism problems. Two runs convert suspicion into evidence. The cost is a second test-suite execution. Gate on:
+
+- **Suite size** — a test project with < 500 methods and known-fast execution (< 60 s) reruns cheaply. Larger suites take proportionally longer; the audit agent should recommend but not run.
+- **User opt-in** — an interactive audit should ask "run determinism verification?" before the second execution when the first run took > 30 seconds. A batch audit should respect a config flag.
+- **Extension support** — the loaded extension must declare a cheap-rerun command. Without it, skip the step.
+- **Existing findings** — if prior steps already produced five or more static determinism smells, the marginal value of the second run is lower. Run only if the user explicitly asks.
+
+### Procedure
+
+1. **Read the extension's determinism-verification section.** If absent, skip.
+2. **Run the test project(s) once** via the extension's cheap-rerun command. Capture the pass / fail list — prefer test-result XML (`.trx` for .NET, JUnit XML for most other stacks) for structured parsing.
+3. **Run the same test project(s) again**, isolated from the first run's state (fresh process for xUnit / NUnit, `pytest --forked` for Python). Capture a second pass / fail list.
+4. **Diff the two lists:**
+   - A test that passed both times → stable.
+   - A test that failed both times → deterministic failure (a non-flake bug).
+   - A test that passed once and failed once → **flake**. This is the finding.
+   - A test that errored with a different exception between runs → also a flake.
+5. **Emit a `## Determinism findings` subsection** in the step-5 suite assessment listing each flake, its test name, the failure messages from both runs, and the suspected cause (cross-reference to any static smell that fired on that test).
+
+### Output (appended to the step-5 suite assessment)
+
+```markdown
+### Determinism findings (runtime-proven)
+
+- **`OrderServiceTests.GetOrders_Returns_Seeded_Rows`** — passed run 1, failed run 2 with `assert HaveCount(1), was 2`. Matches static smell `dotnet.I-HC-A1` (shared `WebApplicationFactory` with no per-test data scoping). Root cause: prior test left rows in the container.
+- **`TokenCacheTests.Expires_After_Ttl`** — passed run 1, passed run 2 with different elapsed time (490 ms vs 512 ms). No divergence; not flagged.
+```
+```markdown
+### Determinism findings (skipped)
+
+- **Reason:** suite size (827 test methods) exceeds the 500-method threshold for automatic rerun. Recommend: rerun the top-10 slowest tests from the `## Runtime distribution` subsection instead, or opt in explicitly for a full rerun.
+```
+
+---
+
 ## Per-Test Rubric
 
 Use the **unit rubric fields** below when the rubric selection in step 0b is `unit` (or `component`, which is unit-equivalent). Use the **integration rubric fields** below when it is `integration`. Use the **E2E rubric fields** below when it is `e2e`. Each test gets a single finding under a single rubric.
@@ -628,6 +677,18 @@ Then:
 <One of the states documented in § SUT surface enumeration:
  State A — enumeration ran (SUT projects list, counts table, top probable gaps, reconciliation with mutation)
  State B — skipped (extension has no SUT surface enumeration section / quick mode / E2E-only scope)>
+
+### Runtime distribution
+
+- **Source:** `.trx` / JUnit XML file parsed from the most recent test run (or "none found — skipped")
+- **Top 10 slowest tests:** `<test name> — <elapsed>` (one line each)
+- **Findings:** <any unit test > 100 ms; any in-process integration test > 2 s; total-time warning if > 5 min>
+
+### Determinism findings
+
+<One of:
+ Section from § Determinism verification (runtime-proven flakes with suspected causes)
+ Skipped (reason: suite too large / extension has no cheap-rerun command / no static smells to motivate run)>
 
 ### Mutation testing
 
