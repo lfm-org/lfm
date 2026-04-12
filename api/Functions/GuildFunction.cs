@@ -46,7 +46,7 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
         if (principal.GuildId is null)
-            return new NotFoundResult();
+            return new OkObjectResult(GuildMapper.NoGuildDto());
 
         var guildDoc = await guildRepo.GetAsync(principal.GuildId, cancellationToken);
         if (guildDoc is null)

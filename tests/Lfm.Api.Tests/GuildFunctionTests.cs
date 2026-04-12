@@ -97,7 +97,27 @@ public class GuildFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 2: PATCH admin success (200)
+    // Test 2: GET returns no-guild DTO when principal has no guild
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildGet_returns_no_guild_dto_when_principal_has_no_guild_id()
+    {
+        var principal = MakePrincipal(guildId: null!);
+        var fn = MakeFunction();
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var dto = ok.Value.Should().BeOfType<GuildDto>().Subject;
+        dto.Guild.Should().BeNull();
+        dto.Setup.IsInitialized.Should().BeFalse();
+        dto.Setup.RequiresSetup.Should().BeTrue();
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: PATCH admin success (200)
     // ------------------------------------------------------------------
 
     [Fact]

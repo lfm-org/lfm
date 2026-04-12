@@ -9,6 +9,25 @@ namespace Lfm.Api.Functions;
 /// </summary>
 internal static class GuildMapper
 {
+    internal static GuildDto NoGuildDto() =>
+        new(
+            Guild: null,
+            Setup: new GuildSetupDto(
+                IsInitialized: false,
+                RequiresSetup: true,
+                RankDataFresh: false,
+                RankDataFetchedAt: null,
+                Timezone: "UTC",
+                Locale: "en"),
+            Settings: null,
+            Editor: new GuildEditorDto(CanEdit: false, Mode: "member"),
+            MemberPermissions: new GuildMemberPermissionsDto(
+                MatchedRank: null,
+                CanCreateGuildRuns: false,
+                CanSignupGuildRuns: false,
+                CanDeleteGuildRuns: false,
+                RankDataFresh: false));
+
     internal static GuildDto MapToDto(GuildDocument doc)
     {
         var profile = doc.BlizzardProfileRaw;

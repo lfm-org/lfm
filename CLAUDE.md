@@ -87,7 +87,7 @@ Playwright .NET against full Docker stack (Cosmos, Azurite, Functions, Blazor ap
 
 Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category!=Perf"`.
 
-**Rules:** Only claim "full e2e passed" after running the full E2E suite without filters. Keep coverage deterministic and local-first — no routine real Battle.net deps.
+**Rules:** Only claim "full e2e passed" after running the full E2E suite without filters. Keep coverage deterministic and local-first — no routine real Battle.net deps. **Bug fixes must include tests** — add or update tests that cover the fixed behavior. No bugfix is complete without a test that would have caught the regression.
 
 ## Infrastructure Development
 
