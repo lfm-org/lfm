@@ -18,4 +18,13 @@ public interface IBlizzardProfileClient
     /// Thrown when the Blizzard API returns a non-success status code.
     /// </exception>
     Task<BlizzardAccountProfileSummary> GetAccountProfileSummaryAsync(string accessToken, CancellationToken ct);
+
+    Task<BlizzardCharacterProfileResponse> GetCharacterProfileAsync(
+        string realm, string name, string accessToken, CancellationToken ct);
+
+    Task<BlizzardCharacterSpecializationsResponse> GetCharacterSpecializationsAsync(
+        string realm, string name, string accessToken, CancellationToken ct);
+
+    Task<BlizzardCharacterMediaSummary?> GetCharacterMediaAsync(
+        string realm, string name, string accessToken, CancellationToken ct);
 }
