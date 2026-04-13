@@ -32,84 +32,20 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
             await Context.CloseAsync();
     }
 
-    [Fact]
-    public async Task ProtectedRoute_Unauthenticated_RedirectsFromRuns()
+    [Theory]
+    [InlineData("/runs", "%2Fruns")]
+    [InlineData("/characters", "%2Fcharacters")]
+    [InlineData("/runs/new", "%2Fruns%2Fnew")]
+    [InlineData("/guild", "%2Fguild")]
+    [InlineData("/guild/admin", "%2Fguild%2Fadmin")]
+    [InlineData("/instances", "%2Finstances")]
+    public async Task ProtectedRoute_Unauthenticated_RedirectsToLogin(string route, string expectedRedirectParam)
     {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}{route}",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns$"),
-            new() { Timeout = 30000 });
-
-        var loginPage = new LoginPage(Page);
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
-    [Fact]
-    public async Task ProtectedRoute_Unauthenticated_RedirectsFromCharacters()
-    {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fcharacters$"),
-            new() { Timeout = 30000 });
-
-        var loginPage = new LoginPage(Page);
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
-    [Fact]
-    public async Task ProtectedRoute_Unauthenticated_RedirectsFromCreateRun()
-    {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs/new",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns%2Fnew$"),
-            new() { Timeout = 30000 });
-
-        var loginPage = new LoginPage(Page);
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
-    [Fact]
-    public async Task ProtectedRoute_Unauthenticated_RedirectsFromGuild()
-    {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fguild$"),
-            new() { Timeout = 30000 });
-
-        var loginPage = new LoginPage(Page);
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
-    [Fact]
-    public async Task ProtectedRoute_Unauthenticated_RedirectsFromGuildAdmin()
-    {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild/admin",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fguild%2Fadmin$"),
-            new() { Timeout = 30000 });
-
-        var loginPage = new LoginPage(Page);
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
-    [Fact]
-    public async Task ProtectedRoute_Unauthenticated_RedirectsFromInstances()
-    {
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/instances",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        await Assertions.Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Finstances$"),
+            new System.Text.RegularExpressions.Regex($@"/login\?redirect={expectedRedirectParam}$"),
             new() { Timeout = 30000 });
 
         var loginPage = new LoginPage(Page);
