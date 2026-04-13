@@ -182,7 +182,15 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         // Success message should appear confirming the save.
         await Assertions.Expect(guildAdminPage.SuccessMessage).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        Log($"Guild settings saved successfully with slogan: {newSlogan}");
+        // Re-read: reload the page and verify the persisted slogan round-tripped
+        // through Cosmos. The success banner alone proves the API returned 200 —
+        // it does not prove the value persisted, which a future regression that
+        // swallows the body would silently break.
+        await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 15000 });
+        var persistedSlogan = await guildAdminPage.SloganField.InputValueAsync();
+        persistedSlogan.Should().Be(newSlogan,
+            "the slogan must round-trip through Cosmos and be visible on reload");
     }
 
     // -------------------------------------------------------------------------

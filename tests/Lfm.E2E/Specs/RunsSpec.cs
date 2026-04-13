@@ -215,6 +215,17 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
         // Expect the success banner
         await Assertions.Expect(runsPage.SaveSuccessBanner).ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        // Re-read: navigate to the run detail and verify the persisted description
+        // round-tripped through Cosmos. The banner alone proves the API returned
+        // 200 — it does not prove the value actually persisted, which a future
+        // regression that swallows the body would silently break.
+        await Page.GotoAsync(
+            $"{fixture.Stack.AppBaseUrl}/runs/{encodedId}",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
+        await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(Page.GetByText(updatedDescription)).ToBeVisibleAsync(
+            new() { Timeout = 10000 });
     }
 
     [Fact]
