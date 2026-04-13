@@ -16,7 +16,9 @@
 
 ### `dns.HC-1` — Secret material in `appsettings*.json` / `.csproj` / `*.props`
 
-**Pattern:** any of the following in a committed file:
+**Relationship to core:** this code is the .NET-specific extension of core `DSO-HC-1` (secrets in source control). Core `DSO-HC-1` applies to any file; `dns.HC-1` adds .NET-file-specific patterns and places the finding under the `dotnet-security` extension's remediation flow. When both fire for the same file, cite `dns.HC-1` (more specific wins) and suppress the duplicate core finding.
+
+**Pattern:** any of the following in a committed `.cs`, `.csproj`, `*.props`, `appsettings*.json`, or `local.settings.json` file:
 - AWS access key shape (`AKIA[0-9A-Z]{16}`)
 - Azure storage account key shape (`AccountKey=[A-Za-z0-9+/=]{88}`)
 - GitHub PAT shape (`ghp_[A-Za-z0-9]{36}`)
@@ -26,7 +28,17 @@
 - `Cosmos__Endpoint` or similar concatenated with `;AccountKey=`
 - Any private key header (`-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----`)
 
-**Detection:** pre-existing secret-scanning rules; the extension runs these as a final check. Any real-shape credential in a committed file is a smell — **including** placeholder values shaped like real credentials in `.env.example` or `appsettings.Example.json`.
+**Detection (per-pattern ripgrep):**
+```
+rg -nE 'AKIA[0-9A-Z]{16}' <path>
+rg -nE 'AccountKey=[A-Za-z0-9+/=]{88}' <path>
+rg -nE 'ghp_[A-Za-z0-9]{36}' <path>
+rg -nE 'xox[baprs]-[A-Za-z0-9-]+' <path>
+rg -nE 'Blizzard__ClientSecret\s*[:=]\s*["''][^"'']+' <path>
+rg -nE '^-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----' <path>
+```
+
+Any real-shape credential in a committed file is a smell — **including** placeholder values shaped like real credentials in `.env.example` or `appsettings.Example.json`.
 
 **Severity:** `block`
 

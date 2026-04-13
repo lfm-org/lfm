@@ -38,7 +38,7 @@ The classification `enforcing` vs `decorative` applies §1 of the rubric — the
 
 ### Test
 - **Present if:** DAST / authenticated API scan / fuzzing / IAST job exists; business-logic tests exist for authz-critical endpoints.
-- **Enforcing if:** tests block merges; test-quality-audit E-HC-S sub-lane tests exist.
+- **Enforcing if:** tests block merges; the repo's E2E suite contains tests in test-quality-audit's E sub-lane S family (codes `E-HC-S1`..`E-HC-S5`), especially `E-HC-S4` for CSP / CORS / frame-ancestors browser-side blocking.
 - **Decorative if:** tests exist but run only on `main`, or are gated on a flag that's never set.
 - **Missing if:** no security-class tests.
 

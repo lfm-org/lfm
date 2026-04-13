@@ -110,13 +110,32 @@ Reused verbatim from OWASP. The skill cites these codes directly rather than re-
 | `CICD-SEC-9` | §4.9 | Improper Artifact Integrity Validation |
 | `CICD-SEC-10` | §4.10 | Insufficient Logging and Visibility |
 
+### CICD-SEC-* — detection hints for deep-mode step 4
+
+Deep-mode step 4 of the skill scans the repo for each CICD-SEC anti-pattern. The extensions already cover most of these via their own codes; the table below maps each CICD-SEC-N to the primary extension code(s) that detect it plus any repo-observable signals the extensions do not cover. When an extension finding fires, cite both the extension code and the parent CICD-SEC-N.
+
+| Anti-pattern | Primary detection | Additional signals |
+|---|---|---|
+| `CICD-SEC-1` | MCP branch-protection probe (`DSO-HC-4`) | `.github/branch-protection.yml` absent, `CODEOWNERS` absent, admin bypass enabled |
+| `CICD-SEC-2` | MCP collaborator probe, `gha.HC-4` | Stale accounts via `mcp__github__get_team_members`, shared PATs as CI secrets |
+| `CICD-SEC-3` | `gha.HC-2`, `docker.HC-2`, `DSO-HC-2` | `*.csproj` `<PackageReference>` without committed lockfile; `dependabot.yml` absent |
+| `CICD-SEC-4` | `gha.HC-3`, `gha.HC-6` (Direct-PPE); `DSO-SUB-2` (Indirect-PPE) | Workflow imports a template from a weaker repo — check `uses:` against known org allow-list |
+| `CICD-SEC-5` | `gha.HC-1`, `gha.POS-2` (OIDC) inverse | Any workflow job with `permissions: write-all` or unspecified permissions |
+| `CICD-SEC-6` | `dns.HC-1`, `DSO-HC-1`, `DSO-HC-7`, `docker.HC-3` | Long-lived `AZURE_CREDENTIALS` JSON in CI secrets; `gha.POS-2` inverse |
+| `CICD-SEC-7` | `docker.HC-5` (privileged), `bicep.HC-3` (local auth) | Public CI dashboards; outdated plugins — requires MCP or manual inspection |
+| `CICD-SEC-8` | `gha.HC-2` (third-party tag pin), `DSO-LC-4` (> 20 unrelated publishers) | Marketplace Actions beyond an org allow-list; unvetted OAuth apps granted org scopes |
+| `CICD-SEC-9` | `DSO-HC-11` (unsigned artifacts), `docker.HC-2` | No `cosign sign` / `cosign verify` in release workflow; no SLSA provenance |
+| `CICD-SEC-10` | `DSO-HC-12` (no log forwarding), `DSO-SUB-6` (missing security-relevant fields) | No `Microsoft.Insights/diagnosticSettings` on Functions/App Service; no SIEM integration |
+
+Each row is a cross-reference, not a separate finding. Deep-mode step 4 rolls up the `CICD-SEC-*` coverage based on the extension findings already collected in step 5, plus the "Additional signals" checks when an extension does not cover them.
+
 ## Extension codes
 
 Extension codes are namespaced with the extension's short name. Full descriptions live in each extension file; this section is a quick index.
 
 ### `gha.*` — github-actions extension
 
-See `extensions/github-actions.md` for the full table.
+See `../extensions/github-actions.md` for the full table.
 
 | Code | Intent |
 |---|---|
@@ -132,7 +151,7 @@ See `extensions/github-actions.md` for the full table.
 
 ### `bicep.*` — bicep extension
 
-See `extensions/bicep.md` for the full table.
+See `../extensions/bicep.md` for the full table.
 
 **Band 1 (always-block):**
 
@@ -173,7 +192,7 @@ See `extensions/bicep.md` for the full table.
 
 ### `docker.*` — dockerfile extension
 
-See `extensions/dockerfile.md` for the full table.
+See `../extensions/dockerfile.md` for the full table.
 
 | Code | Intent |
 |---|---|
@@ -187,7 +206,7 @@ See `extensions/dockerfile.md` for the full table.
 
 ### `dns.*` — dotnet-security extension
 
-See `extensions/dotnet-security.md` for the full table.
+See `../extensions/dotnet-security.md` for the full table.
 
 | Code | Intent |
 |---|---|

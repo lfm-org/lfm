@@ -29,12 +29,14 @@
 
 **Pattern:** `uses: <owner>/<repo>@<ref>` where `<ref>` is not a 40-character commit SHA. Examples: `@main`, `@v1`, `@v1.2.3`, `@latest`.
 
-**Detection (ripgrep):**
-```
-uses:\s*[^#\n]+@(?!([a-f0-9]{40}))[^\s#]+
-```
+**Detection (two-pass, default ripgrep — avoids lookaround):**
 
-**Severity:** `block` (third-party) / `warn` (first-party actions in same org)
+1. Enumerate every `uses:` line: `rg -nE 'uses:\s*\S+@\S+' .github/workflows/`
+2. For each match, extract the ref after `@` and check whether it is exactly 40 hex characters. Any ref that is not → `gha.HC-2` finding. Refs that are 40 hex → `gha.POS-3` positive.
+
+(If the caller insists on a single-pass regex, `rg --pcre2 'uses:\s*[^#\n]+@(?!([a-f0-9]{40}))[^\s#]+'` works with PCRE2. The two-pass form is preferred because it also drives `gha.POS-3` without a second scan.)
+
+**Severity:** `block` (third-party) / `warn` (first-party actions when manual ownership verification confirms the action is in the same GitHub org as the audited repo — see carve-out below)
 
 **Rubric:** devsecops.md §5.1.2; CICD-SEC-3; OpenSSF Scorecard Pinned-Dependencies.
 
@@ -125,5 +127,5 @@ run:.*\$\{\{\s*(github\.event|inputs)\.
 
 ## Carve-outs
 
-- **Do not flag `gha.HC-2` for first-party actions pinned to a version tag when the action is in the same org and the org has branch protection.** In practice this is noisy for monorepos; require a pin for third-party only in `warn` mode.
+- **Do not flag `gha.HC-2` as `block` for first-party actions pinned to a version tag when the action is in the same GitHub org as the audited repo.** "Same org" is not detectable from static grep alone — determine it by parsing `uses: owner/repo@ref` and comparing `owner` against the repo's GitHub org (inferred from `git remote get-url origin` or passed as an audit parameter). When the check is inconclusive, treat the finding as `block` — the carve-out is a downgrade, not a suppression. Monorepos may configure a known first-party-org list in `config.yaml` in a future version; for v1, the downgrade requires explicit opt-in per audit run.
 - **Do not flag `gha.HC-1` on reusable workflow files that declare `permissions:` at the caller site.** The permissions declaration propagates.

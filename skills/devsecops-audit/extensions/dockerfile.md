@@ -34,12 +34,19 @@ Plus: any Dockerfile with zero `USER` lines.
 
 **Pattern:** any `FROM` line whose reference is `image:tag` or `image:tag@sha256:` but the sha256 portion is missing.
 
-**Detection (ripgrep):**
-```
-^FROM\s+[^\s]+(?<!@sha256:[a-f0-9]{64})\s*($|AS)
-```
+**Detection (two-pass, default ripgrep — avoids lookbehind):**
 
-**Severity:** `block` (third-party registry) / `warn` (organization-internal registry with signed tags)
+1. Enumerate every `FROM` line: `rg -nE '^FROM\s+\S+' **/Dockerfile* **/Dockerfile`
+2. For each match, check whether the image reference contains `@sha256:[a-f0-9]{64}`. Any reference without a digest → `docker.HC-2` finding. All references digest-pinned across the file → `docker.POS-1` positive.
+
+**Compose variant (portable regex — `\n` in character classes is grep-dialect dependent, so use `[:space:]`):**
+
+- Unpinned: `rg -nE '^\s*image:\s*[^@[:space:]]+:[^@[:space:]]+$' docker-compose*.y?ml`
+- Pinned: `rg -nE '^\s*image:\s*[^[:space:]]+@sha256:[a-f0-9]{64}\b' docker-compose*.y?ml`
+
+(If the caller insists on a single-pass regex, `rg --pcre2 '^FROM\s+[^\s]+(?<!@sha256:[a-f0-9]{64})\s*($|AS)'` works with PCRE2.)
+
+**Severity:** `block` (third-party registry) / `warn` (organization-internal registry with signed tags, or Microsoft-owned `mcr.microsoft.com` registries per carve-out)
 
 **Rubric:** devsecops.md §5.1.8; CICD-SEC-3; CICD-SEC-9.
 
