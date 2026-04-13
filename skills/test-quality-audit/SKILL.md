@@ -61,7 +61,7 @@ Use for: a full test suite, a module's worth of tests, or a pre-refactor quality
 
 - Enumerate all tests in scope.
 - Per-test findings + per-file rollup + suite-level verdict + prioritized remediation worklist.
-- **Run the extension's mutation-testing tool if it is installed** (see [Mutation testing step](#mutation-testing-conditional) below). Skip gracefully with install instructions if it is not.
+- **Run the extension's mutation-testing tool if it is installed** (see [references/procedures/mutation-testing.md](references/procedures/mutation-testing.md)). Skip gracefully with install instructions if it is not.
 
 Trigger phrases: "full test audit", "audit the test suite", "deep test audit", "review all our tests", "find characterization tests".
 
@@ -160,20 +160,20 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
 2. **Enumerate test files.** Use Glob with the extension's file patterns. For each file:
    - Skim for infrastructure (fixtures, test bases, custom helpers) before reading individual tests.
    - Apply the per-test rubric (core + loaded extensions) to each test case.
-2.5. **SUT surface enumeration (gap detection — deep mode only).** See [§ SUT surface enumeration](#sut-surface-enumeration) below for the full procedure. In short:
+2.5. **SUT surface enumeration (gap detection — deep mode only).** See [references/procedures/sut-surface-enumeration.md](references/procedures/sut-surface-enumeration.md) for the full procedure. In short:
    - **Identify the SUT** for each audited test project by walking its `<ProjectReference>` closure (or the equivalent module import graph for non-.NET stacks) to the production project(s) under test.
    - **Enumerate the testable surface** by running the stack extension's grep patterns against the SUT source tree: public methods / types, HTTP routes and function handlers, migration classes, throw sites, validation attributes. Extensions own the patterns; this file owns the workflow and the gap-report format.
    - **Cross-reference against test discovery.** A symbol covered by the test project is one whose name (or, for routes and migrations, whose registration string / class name) appears in at least one test method name or test body.
-   - **Emit a gap report** (see [§ Gap report format](#gap-report-format) below) listing unreferenced entries. Each entry is a *probable* gap — grep is an approximate cross-reference — and the report says so explicitly.
+   - **Emit a gap report** (see [references/procedures/sut-surface-enumeration.md § Gap report format](references/procedures/sut-surface-enumeration.md#gap-report-format)) listing unreferenced entries. Each entry is a *probable* gap — grep is an approximate cross-reference — and the report says so explicitly.
    - **Skip gracefully** when the stack extension has no **SUT surface enumeration** section. Record the skip reason and continue with static findings only. Never hard-fail the audit on a missing extension section.
    - **Quick mode does not run this step.** Gap detection is suite-level; running it on a single-file or PR-diff target would produce nonsense. Step 2.5 fires only in deep mode.
-2.6. **Auth/authz matrix coverage (deep mode only).** See [§ Auth matrix enumeration](#auth-matrix-enumeration) below. In short:
+2.6. **Auth/authz matrix coverage (deep mode only).** See [references/procedures/auth-matrix-enumeration.md](references/procedures/auth-matrix-enumeration.md). In short:
    - **Enumerate protected endpoints** by matching the extension's auth-attribute patterns (e.g. `[Authorize]`, `[HttpTrigger(AuthorizationLevel.Function)]`, `authorize(...)` middleware). Each protected endpoint is a row in the matrix.
    - **Define the matrix columns** as the minimum set of auth scenarios the audit expects: `anonymous`, `token-expired`, `token-tampered`, `insufficient-scope`, `sufficient-scope`, `cross-user`. Extensions may extend this list (e.g. `admin-only` for admin endpoints).
    - **Cross-reference** each endpoint × scenario cell against the test project. A cell is covered when at least one test exercises that endpoint with that auth scenario and asserts the documented response (401, 403, 200, etc.).
    - **Emit gap rows** as `Gap-AuthZ` entries in the gap report. Each row names the endpoint, the uncovered cells, and a confidence annotation.
    - **Skip gracefully** when the extension has no auth-matrix section. Auth enumeration is optional per stack.
-2.7. **Migration upgrade-path enumeration (deep mode only).** See [§ Migration upgrade-path enumeration](#migration-upgrade-path-enumeration) below. In short:
+2.7. **Migration upgrade-path enumeration (deep mode only).** See [references/procedures/migration-upgrade-path.md](references/procedures/migration-upgrade-path.md). In short:
    - **Enumerate migration classes** via the extension's migration grep pattern (e.g. `api/Migrations/*.cs` for this repo).
    - **Check for an upgrade-path test** for each migration: a test that (a) references the migration class name and (b) arranges non-empty seed data representing the N-1 schema state and (c) asserts the post-migration state. A migration test that runs against an empty database is a smell (`I-HC-A7`) but also a failed upgrade-path test under this step.
    - **Emit gap rows** as `Gap-MigUpgrade` entries in the gap report. For a repo with an expand-only migration rule (see `CLAUDE.md`), every migration should have an upgrade-path test.
@@ -183,13 +183,13 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
    - Verdict counts: specification / characterization / ambiguous.
    - Top smells by frequency.
    - File-level quality: `strong` / `adequate` / `weak` / `not assessed`.
-4. **Mutation testing (conditional).** See [§ Mutation testing (conditional)](#mutation-testing-conditional) below for the full procedure. In short:
+4. **Mutation testing (conditional).** See [references/procedures/mutation-testing.md](references/procedures/mutation-testing.md) for the full procedure. In short:
    - Read the loaded extension's **Mutation tool** section.
    - Run the extension's **detection command** to check whether the tool is installed.
    - **If installed** — run it against the SUT per the extension's instructions, capture the score and surviving-mutant details, and incorporate the findings into step 5 below. If the run fails for reasons the extension documents as known SUT limitations (e.g. Blazor WASM), record the failure reason and continue with static findings only.
    - **If not installed** — skip the mutation run and record the skip reason. Include the extension's install instructions in the step-6 output so the user can enable it for a future audit.
    - **Never hard-fail the audit on a mutation step failure.** Static findings stand on their own.
-4.5. **Determinism verification (optional, deep mode only, gated on project size).** See [§ Determinism verification](#determinism-verification) below.
+4.5. **Determinism verification (optional, deep mode only, gated on project size).** See [references/procedures/determinism-verification.md](references/procedures/determinism-verification.md).
    - **Rationale:** per-test smells like `HC-11` / `I-HC-A5` / `E-HC-F3` flag *suspected* flake. Running the suite twice proves flake from runtime evidence.
    - **Gating:** run only when the audited test project has < 500 test methods *and* the user opts in for the session *or* the extension declares the suite as cheap-to-rerun. Skip for larger suites with a note recommending a targeted rerun of the top-N slowest tests instead.
    - **Procedure:** run the non-E2E test project(s) twice in sequence via the extension's cheap-rerun command (for .NET: `dotnet test --no-build --verbosity quiet`). Compare the pass / fail / error list between the two runs.
@@ -210,284 +210,41 @@ Record which rubric (and, for E2E, which sub-lane) was selected for each project
 
 ## Mutation testing (conditional)
 
-Mutation testing runs as step 4 of the deep-mode workflow **whenever the extension's declared tool is installed**, and is skipped gracefully otherwise. It is not run in quick mode.
+Runs as step 4 of the deep-mode workflow when the loaded extension declares a mutation tool and the tool is installed. Static audit grades *test quality*; mutation testing grades *test effectiveness*. The highest-signal finding is a file rated `strong` by static audit that nevertheless has surviving mutants — that disagreement lives in the audit-vs-mutation reconciliation.
 
-### Why it is part of deep mode
-
-Static audit grades **test quality**. Mutation testing grades **test effectiveness**. The two catch different things:
-
-- Static audit catches characterization tests (locked current behavior), mock-verification smells, and pasted-literal expected values. It cannot see whether assertions actually verify anything, nor whether files exist without tests at all.
-- Mutation testing catches surviving mutants (code that changed without any test failing) and no-coverage gaps (code no test ever exercises). It cannot tell you whether a high-scoring test is pinning the right behavior or the wrong one.
-
-Running both on the same audit produces a reconciliation: **agreement** where both say "fine" or both say "broken" is trustworthy; **disagreement** is where the real findings live. A file rated `strong` by static audit that has surviving mutants is the single highest-signal result mutation testing can produce.
-
-### Procedure
-
-1. **Read the extension's Mutation tool section.** Every extension that supports mutation testing must provide: detection command, run command, install instructions, and a known-SUT-limitations list. Extensions without this section have no mutation tool declared — skip step 4 entirely and note "no mutation tool declared for this stack" in the output.
-
-   **E2E rubric targets are excluded from mutation testing.** The SUT for an E2E test is the whole deployed (or locally launched) stack driven through a real browser — there is no single compile unit a source-level mutator can operate on, and even if one existed, the mutation-kill signal would be dominated by browser timing rather than test assertions. If the audit target contains only E2E tests, report state B or state C as appropriate (no applicable tool) and move on. If the target mixes rubrics, run mutation testing against the unit and integration SUTs only and note the E2E exclusion explicitly in the output.
-2. **Detect tool availability** by running the extension's detection command. It should be cheap and side-effect-free (e.g. a tool list query). Parse the result to decide whether the tool is installed.
-3. **Check SUT shape against the extension's known-limitations list.** If the SUT matches a documented unsupported shape (e.g. Blazor WASM for Stryker.NET), skip the run with that reason and the suggested workaround.
-4. **Run the tool** per the extension's run command. Use the extension's default reporters (typically `json` + `cleartext` + `html`).
-5. **On run failure**, capture the failure reason from the tool's output. If it matches a documented limitation, treat as "skipped — limitation"; otherwise, treat as "attempted, failed — <reason>". In both cases, continue with static findings.
-6. **On success**, parse the report and extract:
-   - Overall mutation score.
-   - Per-file killed / survived / no-coverage counts.
-   - Surviving-mutant details for files the static audit rated `strong` (the audit-vs-mutation disagreements).
-   - List of files with zero coverage (all mutants `NoCoverage`).
-
-### Output states
-
-In the step-5 suite assessment, the `Mutation testing` subsection must be present in exactly one of these three states:
-
-**State A — ran successfully:**
-
-```markdown
-### Mutation testing
-
-- **Tool:** <name and version>
-- **Scope:** <which projects ran>
-- **Mutation score:** <percentage> (<killed> killed / <survived> survived / <no_coverage> no-coverage / <timeout> timeout)
-- **Files with zero coverage:** <count>, top examples: <file list>
-- **Audit-vs-mutation agreements (static rated weak/adequate + survivors):** <file list>
-- **Audit-vs-mutation disagreements (static rated strong + survivors):** <file list with counts> — highest-value findings
-- **Notes:** <any scope caveats, e.g. "Blazor WASM SUT excluded per extension limitation">
-```
-
-**State B — tool not installed:**
-
-```markdown
-### Mutation testing
-
-- **Status:** skipped — <tool name> not installed
-- **To enable:** <install command from extension>
-- **Why this matters:** <one sentence on what mutation testing adds>
-```
-
-**State C — attempted, failed (or limitation hit):**
-
-```markdown
-### Mutation testing
-
-- **Status:** attempted, failed — <reason>
-- **Tool:** <name and version>
-- **Root cause:** <short explanation, referencing the extension's known-limitations section if applicable>
-- **Workaround:** <from the extension, if one is documented>
-- **Fallback:** static audit findings stand on their own.
-```
+**Read [references/procedures/mutation-testing.md](references/procedures/mutation-testing.md) before running step 4.** It documents the full procedure (detection command → SUT shape check → run → parse) and the three output states (A: ran successfully, B: tool not installed, C: attempted and failed). Never run in quick mode. Never run against E2E audit targets.
 
 ---
 
 ## SUT surface enumeration
 
-Step 2.5 of the deep-mode workflow. This is the skill's static gap-detection pass: *find tests that don't exist yet* for public API, HTTP routes, migrations, throw sites, and validation attributes in the SUT.
+Runs as step 2.5 of the deep-mode workflow. This is the skill's static gap-detection pass: *find tests that don't exist yet* for public API, HTTP routes, migrations, throw sites, and validation attributes in the SUT. Complementary to mutation testing — surface enumeration catches code with no test at all; mutation testing catches tests that execute code without verifying it.
 
-Unlike mutation testing (step 4) which observes runtime kill behavior, surface enumeration reads the production code to ask "what ought to be tested?" and cross-references against the test project. Both are complementary — mutation testing catches tests that execute code without verifying it; surface enumeration catches code that has no test at all.
-
-### Why both static surface enumeration and mutation testing
-
-- **Static audit alone** only examines files that already have tests.
-- **Mutation testing** catches `NoCoverage` files at runtime, but only when the tool is installed and the SUT shape is supported (e.g. Stryker.NET cannot mutate Blazor WASM — see [extensions/dotnet-core.md § Known SUT limitations](extensions/dotnet-core.md)).
-- **Static surface enumeration** works on any SUT the stack extension has grep patterns for, even Blazor WASM. It produces *probable* gaps from grep, so it is noisier than mutation testing.
-- When both run on the same suite, a symbol flagged by both is a **confirmed gap**; a symbol flagged by static-only is a *probable* gap; a symbol flagged by mutation-only is a signal the grep patterns need tuning.
-
-### Procedure
-
-1. **Read the extension's SUT surface enumeration section.** Every extension that supports gap detection must provide: SUT identification instructions, grep patterns per gap class (API / routes / migrations / throw sites / validation), and cross-reference matching rules. Extensions without this section produce no gap report — record the skip reason and continue with static findings only.
-2. **Identify the SUT.** For each test project in scope, walk its `<ProjectReference>` closure (or equivalent module graph) to the production project(s) under test. Record the SUT project list in the gap-report header. A test project may have multiple SUT projects (e.g. a shared contract library plus the API that consumes it).
-3. **Enumerate testable surface** by running the extension's grep patterns against the SUT source tree. For each pattern, capture:
-   - A symbol identifier (method name, route template, migration class name, exception-throwing method name, validation-attribute target property).
-   - A source location (file path and line number).
-4. **Cross-reference against test discovery.** For each enumerated symbol, check whether its identifier appears in at least one test file. A test "covers" a symbol when:
-   - Its identifier appears in a test method name or attribute (`[Fact(DisplayName = "...")]`).
-   - Its identifier appears in a test body as an invocation target, a string literal (for routes), or a type reference (for migrations / exceptions).
-   - An indirect-coverage signal fires (e.g. a controller test exercises a service method indirectly — the extension may document known indirect-coverage patterns that suppress false positives).
-5. **Emit a gap report** (see [§ Gap report format](#gap-report-format) below). Each unreferenced entry is a *probable* gap because grep is an approximate cross-reference. A true negative requires either mutation testing or manual verification.
-6. **On extension section missing**, report: "Gap detection skipped — stack extension has no SUT surface enumeration section. Mutation testing remains the only gap-finding mechanism for this scope." Continue with static findings.
-
-### Gap classes
-
-The extension's patterns must populate these five categories. Extensions may add their own categories (e.g. `Gap-Resource` for a REST resource that has no test class) as long as they document them.
-
-- **`Gap-API`** — public type or method with no test reference. *Medium confidence:* indirect coverage via a caller is common.
-- **`Gap-Route`** — HTTP route / function handler / message-queue handler with no test reference to its route template, queue name, or topic. *High confidence:* routes are registered by string identity; a test that doesn't mention the string almost certainly doesn't cover it.
-- **`Gap-Migration`** — database migration class (or file) with no test reference to its class name. *High confidence.*
-- **`Gap-Throw`** — exception throw site with no test that both names the exception type and calls the containing method. *Medium confidence:* may be covered by a generic "error path" test that doesn't name the type.
-- **`Gap-Validate`** — a validation attribute (`[Required]`, `[StringLength]`, etc.) or custom validator on an input type with no test that sends a bad value for that field. *High confidence* on serialization-layer input types.
-
-### Rules
-
-- **Extensions own the grep patterns.** The core workflow is framework-neutral; language-specific patterns belong in `extensions/<stack>.md`.
-- **Gap detection is suite-level.** Never run step 2.5 in quick mode — a PR-diff or single-file audit produces noise.
-- **Never treat a probable gap as a confirmed gap** without verification. The report must flag each finding as probable and recommend mutation testing or manual review for confirmation.
-- **Reconcile with mutation testing** in step 5 when both steps produced output.
-
-### Gap report format
-
-In the step-5 suite assessment, emit a `### Gap report` subsection in one of two states:
-
-**State A — enumeration ran:**
-
-```markdown
-### Gap report (static SUT surface enumeration)
-
-- **SUT projects:** <project list>
-- **Method:** grep-based cross-reference from test files to SUT symbols via the stack extension's patterns. Weak signal — each finding is a *probable* gap and requires verification.
-
-| Class | Enumerated | Referenced from tests | Probable gaps | Confidence |
-|---|---|---|---|---|
-| `Gap-API` — public methods | <N> | <M> | <N-M> | medium |
-| `Gap-Route` — HTTP / function routes | <N> | <M> | <N-M> | high |
-| `Gap-Migration` — migration classes | <N> | <M> | <N-M> | high |
-| `Gap-Throw` — throw sites | <N> | <M> | <N-M> | medium |
-| `Gap-Validate` — validation attributes | <N> | <M> | <N-M> | high |
-
-#### Top probable gaps (highest confidence first)
-
-- **`Gap-Route`** — `DELETE /api/orders/{id}` (`api/Functions/OrdersApi.cs:88`): route registered, no test references the template. Likely true gap.
-- **`Gap-Migration`** — `AddOrderStatusColumnMigration` (`api/Migrations/0007_order_status.cs:14`): migration class name not mentioned in any test.
-- **`Gap-Validate`** — `[Required] CustomerId` on `CreateOrderRequest` (`shared/Requests.cs:22`): no test sends a request with missing `CustomerId`.
-- **`Gap-API`** — `OrderService.CancelOrderAsync` (`api/Services/OrderService.cs:42`): public, no test body references it. *Verify:* may be covered via a caller.
-- **`Gap-Throw`** — `throw new InvalidOperationException("Order already shipped")` (`api/Services/OrderService.cs:142`): no test names both the exception type and the method.
-
-#### Reconciliation with mutation testing (when step 4 produced results)
-
-- **Confirmed gaps** (static probable gap ∩ mutation `NoCoverage`): <list>
-- **Static-only probable gaps** (mutation saw runtime coverage): <list with note that indirect coverage exists>
-- **Mutation-only gaps** (no grep match but static cross-reference failed): <list — signal to tune the grep patterns in the extension>
-```
-
-**State B — enumeration skipped:**
-
-```markdown
-### Gap report
-
-- **Status:** skipped — <extension name> has no `SUT surface enumeration` section (or: target is quick mode / target is E2E-only).
-- **What this means:** static gap detection is unavailable for this scope. Mutation testing (if applicable) is the only gap-finding mechanism. Consider writing an extension section to enable surface enumeration.
-```
+**Read [references/procedures/sut-surface-enumeration.md](references/procedures/sut-surface-enumeration.md) before running step 2.5.** It documents the full procedure (read extension patterns → identify SUT → enumerate → cross-reference → emit gap report), the five gap classes (`Gap-API`, `Gap-Route`, `Gap-Migration`, `Gap-Throw`, `Gap-Validate`), the rules (suite-level only, probable not confirmed, reconcile with mutation testing), and the two gap-report output states. Never run in quick mode. Never run against E2E audit targets.
 
 ---
 
 ## Auth matrix enumeration
 
-Step 2.6 of the deep-mode workflow. Enumerates protected endpoints in the SUT and checks whether each cell of the auth scenario matrix has test coverage. Runs only in deep mode; skipped when the loaded extension has no auth-matrix section.
+Runs as step 2.6 of the deep-mode workflow. Enumerates protected endpoints in the SUT and checks each cell of the auth scenario matrix (`anonymous`, `token-expired`, `token-tampered`, `insufficient-scope`, `sufficient-scope`, `cross-user`) for test coverage. Per-endpoint signal — fires when a test is *missing* for a scenario. Complementary to core smells `I-HC-B7` / `E-HC-S3` which fire when a test is *there and incomplete*.
 
-### Why a matrix instead of per-test smells
-
-Core smells `I-HC-B7` and `E-HC-S3` already flag tests that only exercise the happy auth path. Those are per-test signals — they fire when a test is *there and incomplete*. Step 2.6 is a per-endpoint signal — it fires when a test is *missing* for an auth scenario. A happy-path-only test can trigger both: `I-HC-B7` as a per-test smell and `Gap-AuthZ` as a matrix gap.
-
-### Matrix columns
-
-At minimum, every protected endpoint should have a test for each of:
-
-- **`anonymous`** — request with no credentials. Expected response typically `401 Unauthorized`.
-- **`token-expired`** — request with a valid-format but expired token. Expected response typically `401 Unauthorized`.
-- **`token-tampered`** — request with a valid-format token whose signature does not verify. Expected response typically `401 Unauthorized`.
-- **`insufficient-scope`** — request with a valid token that lacks the required scope or role. Expected response typically `403 Forbidden`.
-- **`sufficient-scope`** — request with a valid token that has the required scope. Expected response typically `200 OK` (or the endpoint's documented success code).
-- **`cross-user`** — a user A request against a resource owned by user B. Expected response depends on the resource's ownership model: `403 Forbidden` or `404 Not Found`.
-
-Extensions may add columns (e.g. `admin-only` for endpoints behind an admin policy).
-
-### Procedure
-
-1. **Read the extension's auth-matrix section.** If absent, record the skip and continue.
-2. **Enumerate protected endpoints** by running the extension's auth-attribute patterns against the SUT. Collect route + HTTP method + required scope / role.
-3. **For each endpoint × matrix column**, cross-reference against the test project. A cell is covered when:
-   - A test body references the endpoint (via route template or Functions name) and
-   - The test arranges the matching auth state (no token / expired token / tampered token / valid token with insufficient scope / valid token with sufficient scope / different-user token) and
-   - The test asserts the documented response for that scenario.
-4. **Emit a `Gap-AuthZ` entry** in the gap report for each endpoint with at least one uncovered cell. Confidence: high — auth matrix cells require explicit test setup; indirect coverage is rare.
-
-### Output (appended to the step-5 gap report)
-
-```markdown
-#### Auth matrix coverage
-
-| Endpoint | anonymous | expired | tampered | insufficient | sufficient | cross-user |
-|---|---|---|---|---|---|---|
-| `GET /api/users/me` | ✓ | ✗ | ✗ | ✗ | ✓ | n/a |
-| `DELETE /api/orders/{id}` | ✓ | ✗ | ✗ | ✗ | ✓ | ✗ |
-
-- **`Gap-AuthZ`**: `GET /api/users/me` — missing: token-expired, token-tampered, insufficient-scope. The endpoint exercises only happy + anonymous paths.
-- **`Gap-AuthZ`**: `DELETE /api/orders/{id}` — missing: token-expired, token-tampered, insufficient-scope, cross-user. A cross-user test is especially important for a resource-owner endpoint.
-```
+**Read [references/procedures/auth-matrix-enumeration.md](references/procedures/auth-matrix-enumeration.md) before running step 2.6.** It documents the matrix columns, the cross-reference procedure, and the `Gap-AuthZ` output format. Runs only in deep mode. Integration-rubric scope. Skipped when the loaded extension has no auth-matrix section.
 
 ---
 
 ## Migration upgrade-path enumeration
 
-Step 2.7 of the deep-mode workflow. For each database migration in the SUT, check that there is an upgrade-path test that runs the migration against a representative prior-schema state (not an empty database).
+Runs as step 2.7 of the deep-mode workflow. For each database migration in the SUT, checks that an upgrade-path test exists that runs the migration against representative prior-schema seed data (not an empty database). Enforces the "expand-only" migration rule: a migration that breaks existing queries fails its upgrade-path test. Complementary to core smell `I-HC-A7` which flags empty-DB migration tests.
 
-### Why an upgrade-path test, not a smoke test
-
-`I-HC-A7` flags migration tests run against an empty database as a smell — an empty-DB test passes for any migration that doesn't throw, including a broken one. The corollary is: every migration needs a test with seed data that represents a plausible N-1 state, applying the migration, and asserting that (a) existing rows still query correctly, (b) new columns have the expected default, and (c) the migration is idempotent if re-run.
-
-For a repo with an expand-only migration rule (see `CLAUDE.md` — "Migrations must be additive (expand-only)"), upgrade-path testing is the mechanism that enforces the rule: a migration that breaks existing queries fails its upgrade-path test.
-
-### Procedure
-
-1. **Read the extension's migration-upgrade section.** If absent, record the skip and continue.
-2. **Enumerate migration classes** via the extension's migration pattern (for .NET: files under `api/Migrations/*.cs`, or classes inheriting from a migration base type).
-3. **For each migration**, check whether at least one test method:
-   - References the migration class name (via `new MigrationX()` or `typeof(MigrationX)`).
-   - Arranges non-empty seed data before invoking the migration (via `CreateItemAsync` / `InsertAsync` / similar on the underlying data store) — specifically, the test body contains at least one insertion call before the migration invocation.
-   - Asserts post-migration state by querying the store or by reading at least one post-migrated row and asserting its shape.
-4. **Emit a `Gap-MigUpgrade` entry** in the gap report for each migration that lacks an upgrade-path test. Confidence: high — migration upgrade tests are mechanical and their absence is unambiguous.
-
-### Output (appended to the step-5 gap report)
-
-```markdown
-#### Migration upgrade-path coverage
-
-- **Enumerated:** <N migration classes>
-- **With upgrade-path test:** <M>
-- **Probable gaps:** <N-M>
-
-- **`Gap-MigUpgrade`**: `AddOrderStatusColumnMigration` (`api/Migrations/0007_order_status.cs`) — no test arranges non-empty seed data before running the migration. An empty-DB test (`I-HC-A7`) does not count.
-- **`Gap-MigUpgrade`**: `RenameCustomerEmailFieldMigration` (`api/Migrations/0008_rename_email.cs`) — no upgrade-path test. This migration renames a field; absence of an N-1-state test means breakage would only surface in production.
-```
+**Read [references/procedures/migration-upgrade-path.md](references/procedures/migration-upgrade-path.md) before running step 2.7.** It documents the three-condition detection (references migration class + seeds non-empty state + asserts post-state) and the `Gap-MigUpgrade` output format. Runs only in deep mode. Integration-rubric scope. Skipped when the loaded extension has no migration-upgrade section.
 
 ---
 
 ## Determinism verification
 
-Step 4.5 of the deep-mode workflow. Runs the non-E2E test suite twice in sequence and compares the pass / fail list. Any test that passes once and fails once (or produces a different error) is a runtime-proven flake — stronger evidence than any static smell.
+Runs as step 4.5 of the deep-mode workflow. Runs the non-E2E test suite twice in sequence and compares the pass / fail list. A test that passes once and fails once is a runtime-proven flake — stronger evidence than any static smell. Converts suspicion (`HC-11`, `LC-5`, `I-HC-A5`, `I-HC-A11`, `E-HC-F3`) into evidence.
 
-### Why two runs is worth the cost
-
-Static smells `HC-11`, `LC-5`, `I-HC-A5`, `I-HC-A11`, `E-HC-F3` all flag *suspected* determinism problems. Two runs convert suspicion into evidence. The cost is a second test-suite execution. Gate on:
-
-- **Suite size** — a test project with < 500 methods and known-fast execution (< 60 s) reruns cheaply. Larger suites take proportionally longer; the audit agent should recommend but not run.
-- **User opt-in** — an interactive audit should ask "run determinism verification?" before the second execution when the first run took > 30 seconds. A batch audit should respect a config flag.
-- **Extension support** — the loaded extension must declare a cheap-rerun command. Without it, skip the step.
-- **Existing findings** — if prior steps already produced five or more static determinism smells, the marginal value of the second run is lower. Run only if the user explicitly asks.
-
-### Procedure
-
-1. **Read the extension's determinism-verification section.** If absent, skip.
-2. **Run the test project(s) once** via the extension's cheap-rerun command. Capture the pass / fail list — prefer test-result XML (`.trx` for .NET, JUnit XML for most other stacks) for structured parsing.
-3. **Run the same test project(s) again**, isolated from the first run's state (fresh process for xUnit / NUnit, `pytest --forked` for Python). Capture a second pass / fail list.
-4. **Diff the two lists:**
-   - A test that passed both times → stable.
-   - A test that failed both times → deterministic failure (a non-flake bug).
-   - A test that passed once and failed once → **flake**. This is the finding.
-   - A test that errored with a different exception between runs → also a flake.
-5. **Emit a `## Determinism findings` subsection** in the step-5 suite assessment listing each flake, its test name, the failure messages from both runs, and the suspected cause (cross-reference to any static smell that fired on that test).
-
-### Output (appended to the step-5 suite assessment)
-
-```markdown
-### Determinism findings (runtime-proven)
-
-- **`OrderServiceTests.GetOrders_Returns_Seeded_Rows`** — passed run 1, failed run 2 with `assert HaveCount(1), was 2`. Matches static smell `dotnet.I-HC-A1` (shared `WebApplicationFactory` with no per-test data scoping). Root cause: prior test left rows in the container.
-- **`TokenCacheTests.Expires_After_Ttl`** — passed run 1, passed run 2 with different elapsed time (490 ms vs 512 ms). No divergence; not flagged.
-```
-```markdown
-### Determinism findings (skipped)
-
-- **Reason:** suite size (827 test methods) exceeds the 500-method threshold for automatic rerun. Recommend: rerun the top-10 slowest tests from the `## Runtime distribution` subsection instead, or opt in explicitly for a full rerun.
-```
+**Read [references/procedures/determinism-verification.md](references/procedures/determinism-verification.md) before running step 4.5.** It documents the gating rules (suite size < 500 methods, run-1 under 60 s, user opt-in), the two-run diff procedure, and the `Determinism findings` output section. Optional. Skipped when the extension has no cheap-rerun command or when the suite is too large. Never run against E2E projects.
 
 ---
 
@@ -656,65 +413,9 @@ Severity rules (apply to all three rubrics; smell codes differ):
 
 ### Deep mode rollup
 
-After all per-test findings, add:
+After all per-test findings, emit a per-file rollup table, a suite-level assessment block (pyramid ratio, gap report, runtime distribution, determinism findings, mutation testing subsection), and a prioritized remediation worklist.
 
-```markdown
-## Per-file rollup
-
-| File | Tests | Spec | Char | Ambig | Top smells | Grade |
-|---|---|---|---|---|---|---|
-| `OrderServiceTests.cs` | 14 | 6 | 5 | 3 | HC-5, HC-7, dotnet.HC-1 | weak |
-```
-
-Then:
-
-```markdown
-## Suite assessment
-
-- **Extensions loaded:** dotnet
-- **Overall verdict:** <strong / adequate / weak / not assessed>
-- **Top risks:** <3-5 bullets by impact>
-- **Verification limits:** <what neither static audit nor mutation testing can determine>
-
-### Pyramid ratio
-
-- **Unit:** <N tests> (<percentage>)
-- **Integration:** <N tests> (<percentage>)
-- **E2E:** <N tests> (<percentage>) — break down by sub-lane F/A/P/S when non-zero
-- **Shape:** `pyramid` / `diamond` / `inverted` / `hourglass`
-- **Finding:** <none / "unit coverage is thin — <percentage> unit vs Google 70-80% guidance" / "E2E inflated — <percentage> vs ≤10% guidance">
-
-### Gap report
-
-<One of the states documented in § SUT surface enumeration:
- State A — enumeration ran (SUT projects list, counts table, top probable gaps, reconciliation with mutation)
- State B — skipped (extension has no SUT surface enumeration section / quick mode / E2E-only scope)>
-
-### Runtime distribution
-
-- **Source:** `.trx` / JUnit XML file parsed from the most recent test run (or "none found — skipped")
-- **Top 10 slowest tests:** `<test name> — <elapsed>` (one line each)
-- **Findings:** <any unit test > 100 ms; any in-process integration test > 2 s; total-time warning if > 5 min>
-
-### Determinism findings
-
-<One of:
- Section from § Determinism verification (runtime-proven flakes with suspected causes)
- Skipped (reason: suite too large / extension has no cheap-rerun command / no static smells to motivate run)>
-
-### Mutation testing
-
-<One of the three states documented in § Mutation testing (conditional):
- State A — ran successfully (score + reconciliation bullets)
- State B — skipped, tool not installed (install command + one-liner rationale)
- State C — attempted and failed, or hit documented limitation (root cause + workaround)>
-
-## Prioritized remediation worklist
-
-- **P0** — <work item, expected impact, effort estimate>
-- **P1** — <work item> `[mutation]` ← tag items surfaced by mutation testing
-- **P2** — ...
-```
+**Read [references/procedures/deep-mode-output-format.md](references/procedures/deep-mode-output-format.md) before producing step-5 / step-6 output.** It carries the full templates for `## Per-file rollup`, `## Suite assessment`, and `## Prioritized remediation worklist`, with pointers back to the three sub-procedures that own individual subsections (SUT surface enumeration owns `### Gap report`, determinism verification owns `### Determinism findings`, mutation testing owns `### Mutation testing`).
 
 ---
 
@@ -729,7 +430,7 @@ Then:
 - **Be honest about the limits of static audit.** When git history, coverage data, flake history, spec links, or contract pacts would change the verdict, say so and ask — do not fabricate certainty.
 - **Run mutation testing in deep mode when the tool is installed.** Check availability via the extension's detection command. If installed, run it per the extension; if not, skip and report install instructions. If installed but the SUT shape matches a documented limitation (e.g. Blazor WASM for Stryker.NET), skip with the documented reason and workaround. **Never hard-fail the audit on a mutation step failure** — static findings stand on their own. Mutation testing applies to both unit and in-process integration SUTs.
 - **Mutation findings augment, never override, static findings.** A surviving mutant in a file the static audit rated `strong` is a meaningful disagreement worth investigating, but it does not automatically downgrade the file to `weak`. Report it as a reconciliation finding, not a verdict change.
-- **Run SUT surface enumeration in deep mode when the extension has the section.** See [§ SUT surface enumeration](#sut-surface-enumeration). Check whether the loaded extension declares grep patterns for gap classes. If yes, run step 2.5. If no, record the skip reason and continue. **Never run surface enumeration in quick mode** — gap detection is suite-level and produces noise on single-file or PR-diff targets.
+- **Run SUT surface enumeration in deep mode when the extension has the section.** See [references/procedures/sut-surface-enumeration.md](references/procedures/sut-surface-enumeration.md). Check whether the loaded extension declares grep patterns for gap classes. If yes, run step 2.5. If no, record the skip reason and continue. **Never run surface enumeration in quick mode** — gap detection is suite-level and produces noise on single-file or PR-diff targets.
 - **Gap findings are probable, not confirmed.** Grep is an approximate cross-reference: a public method covered indirectly via its caller will look untested. Each gap entry must carry a confidence annotation (`high` / `medium`) and a recommendation to verify via mutation testing or manual read before acting.
 - **One finding per test, under one rubric.** A test is either unit or integration, never both. Cite all matched smells in the codes list, but the overall verdict reflects the highest-severity smell under the selected rubric.
 - **Reward positive signals explicitly.** An audit that only complains gets tuned out.
