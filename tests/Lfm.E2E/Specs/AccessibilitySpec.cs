@@ -111,7 +111,17 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             page.GetByRole(AriaRole.Heading, new() { Name = "Runs" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        await AccessibilityHelper.ScanAndAssert(page, Output, "/runs");
+        await AccessibilityHelper.ScanAndAssert(page, Output, "/runs (load)");
+
+        // Re-scan after surfacing the detail panel — this is the dynamic content
+        // surface that load-time scans miss (`E-HC-A2`). Selecting a run swaps in
+        // the roster grid, the Edit button, and the attendance-grouped sections.
+        await AccessibilityHelper.ScanAfterAsync(page, Output, "/runs (run selected)", async () =>
+        {
+            var runsPage = new RunsPage(page);
+            await runsPage.SelectRunAsync(DefaultSeed.TestRunId);
+            await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        });
     }
 
     [Fact]
@@ -138,12 +148,23 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     [Fact]
     public async Task CharactersPage_MeetsWcag22AA()
     {
+        // Stub the portrait endpoint so we don't trip the fire-and-forget crash
+        // documented in CharactersPage_Loads_DisplaysCharacterList.
         await using var authContext = await AuthHelper.AuthenticatedContextAsync(
             fixture.Stack.Browser,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl);
 
         var page = await authContext.NewPageAsync();
+        await page.RouteAsync("**/api/battlenet/character-portraits", async route =>
+        {
+            await route.FulfillAsync(new()
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = "{\"portraits\":{}}",
+            });
+        });
 
         await page.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
@@ -153,7 +174,19 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             page.GetByRole(AriaRole.Heading, new() { Name = "My Characters" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        await AccessibilityHelper.ScanAndAssert(page, Output, "/characters");
+        await AccessibilityHelper.ScanAndAssert(page, Output, "/characters (load)");
+
+        // Re-scan after dirtying the delete-confirmation field. Typing into the
+        // FluentUI text-field surfaces the disabled→enabled state of the delete
+        // button — a transition that load-time scans miss (`E-HC-A2`).
+        await AccessibilityHelper.ScanAfterAsync(page, Output, "/characters (delete field dirty)", async () =>
+        {
+            var deleteField = page.Locator("fluent-text-field[placeholder='FORGET ME'] input");
+            await Assertions.Expect(deleteField).ToBeVisibleAsync(new() { Timeout = 10000 });
+            await deleteField.ClickAsync();
+            await deleteField.PressSequentiallyAsync("FORG");
+            await page.Keyboard.PressAsync("Tab");
+        });
     }
 
     [Fact]
@@ -195,7 +228,18 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             page.GetByRole(AriaRole.Heading, new() { Name = "Guild Admin" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        await AccessibilityHelper.ScanAndAssert(page, Output, "/guild/admin");
+        await AccessibilityHelper.ScanAndAssert(page, Output, "/guild/admin (load)");
+
+        // Re-scan after dirtying the slogan field. The form's dirty state, the
+        // Save button's enabled transition, and any inline validation hints all
+        // live behind interaction (`E-HC-A2`).
+        await AccessibilityHelper.ScanAfterAsync(page, Output, "/guild/admin (slogan dirty)", async () =>
+        {
+            var guildAdminPage = new GuildAdminPage(page);
+            await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 10000 });
+            await guildAdminPage.SloganField.FillAsync($"E2E a11y dirty {Guid.NewGuid():N}");
+            await page.Keyboard.PressAsync("Tab");
+        });
     }
 
     [Fact]

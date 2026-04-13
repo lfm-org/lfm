@@ -21,6 +21,26 @@ public static class AccessibilityHelper
     };
 
     /// <summary>
+    /// Performs a user interaction and then re-runs the WCAG 2.2 AA scan,
+    /// catching violations introduced by dynamic content (modals, dropdowns,
+    /// dirty form state, focus traps) that a load-time scan cannot see.
+    /// Most real a11y bugs live after the first interaction (`E-HC-A2`).
+    /// </summary>
+    /// <param name="page">The Playwright page to scan.</param>
+    /// <param name="output">xUnit test output helper.</param>
+    /// <param name="context">Human-readable label included in the assertion message — typically describes the post-interaction state.</param>
+    /// <param name="interaction">The interaction to perform before scanning.</param>
+    public static async Task ScanAfterAsync(
+        IPage page,
+        ITestOutputHelper output,
+        string context,
+        Func<Task> interaction)
+    {
+        await interaction();
+        await ScanAndAssert(page, output, context);
+    }
+
+    /// <summary>
     /// Runs an axe-core scan on the current page with WCAG 2.2 AA tags and
     /// asserts there are zero violations. Violation details are written to
     /// <paramref name="output"/> for easy debugging in test output.
