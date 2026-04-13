@@ -15,10 +15,7 @@ namespace Lfm.E2E.Specs;
 public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    // "battle.net" ignores the external Battle.net OAuth assets that fail to load
-    // after SignInButton_ActivatesWithEnter navigates the browser to the real
-    // https://eu.battle.net authorize page (which is offline in E2E).
-    protected override string[] IgnoredConsolePatterns => ["401", "/api/me", "battle.net"];
+    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
 
     public override async Task InitializeAsync()
     {
@@ -317,6 +314,11 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         // Pressing Enter on the sign-in button should initiate the OAuth request
         await loginRequestTask;
+
+        // Park the page on about:blank so the disposal-time console-error
+        // assertion does not pick up the 404 cascade for the offline external
+        // Battle.net assets the browser tried to load after the redirect.
+        await Page.GotoAsync("about:blank");
     }
 
     [Fact]
