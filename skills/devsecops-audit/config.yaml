@@ -1,0 +1,20 @@
+# DevSecOps audit skill configuration
+#
+# costStance controls whether cost-gated (Band 2) smells fire.
+#   free   — Band 1 only; Band 2 suppressed with one info finding per extension.
+#   mixed  — Band 1 + Band 2 codes explicitly listed in mixedEnabled.
+#   full   — Band 1 + all Band 2 smells.
+#
+# Resolution precedence (highest wins):
+#   1. --cost-stance invocation arg
+#   2. this file
+#   3. CLAUDE.md § "Cost Guidance" auto-detect
+#   4. hard default: full
+
+costStance: free
+
+# Band 2 codes to enable when costStance=mixed. Ignored otherwise.
+# Example:
+#   mixedEnabled:
+#     - bicep.B2-5   # KV Premium: paying for HSM-backed keys per compliance
+mixedEnabled: []
