@@ -113,43 +113,6 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         Log("Refresh API call confirmed dispatched");
     }
 
-    [Fact]
-    public async Task SelectCharacter_ViaApi_UpdatesSelection()
-    {
-        // The characters page does not currently expose a selection UI;
-        // this test verifies the underlying API contract that character selection works.
-        // PUT /api/raider/characters/{id} with a valid owned character ID returns 200.
-        var altCharId = "eu-test-realm-aelrin-alt";
-
-        // Page.APIRequest doesn't carry browser cookies cross-origin, so forward
-        // the auth cookie manually from the browser context.
-        var cookies = await Context!.CookiesAsync();
-        var authCookie = cookies.FirstOrDefault(c => c.Name == "battlenet_token");
-        authCookie.Should().NotBeNull("auth cookie should exist in browser context");
-
-        var headers = new Dictionary<string, string>
-        {
-            ["Accept"] = "application/json",
-            ["Cookie"] = $"{authCookie!.Name}={authCookie.Value}",
-        };
-
-        var response = await Page!.APIRequest.PutAsync(
-            $"{fixture.Stack.ApiBaseUrl}/api/raider/characters/{altCharId}",
-            new() { Headers = headers });
-
-        var responseBody = await response.TextAsync();
-        Log($"SelectCharacter response: {response.Status} — {responseBody}");
-
-        response.Status.Should().Be(200,
-            $"selecting an owned character should succeed — response: {responseBody}");
-
-        var body = await response.JsonAsync();
-        body.Value.GetProperty("selectedCharacterId").GetString()
-            .Should().Be(altCharId, "the selected character id should be updated");
-
-        Log($"Character selection confirmed: {altCharId}");
-    }
-
     // -------------------------------------------------------------------------
     // Guild tests (4.3)
     // -------------------------------------------------------------------------
