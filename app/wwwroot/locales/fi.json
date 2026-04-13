@@ -36,8 +36,6 @@
     "loginFailed.subtitle": "Jokin meni pieleen kirjautumisen aikana. Yrit\u00e4 uudelleen.",
     "loginFailed.button": "Yrit\u00e4 uudelleen",
 
-    "loginSuccess.signingIn": "Kirjaudutaan sis\u00e4\u00e4n\u2026",
-
     "goodbye.title": "N\u00e4kemiin",
     "goodbye.body1": "Tilisi on poistettu. Toivottavasti n\u00e4emme sinut viel\u00e4 joskus.",
     "goodbye.body2": "Kaikki tietosi on poistettu j\u00e4rjestelmist\u00e4mme.",

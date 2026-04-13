@@ -36,8 +36,6 @@
     "loginFailed.subtitle": "Something went wrong while signing in. Please try again.",
     "loginFailed.button": "Try Again",
 
-    "loginSuccess.signingIn": "Signing in\u2026",
-
     "goodbye.title": "Goodbye",
     "goodbye.body1": "Your account has been deleted. We hope to see you again sometime.",
     "goodbye.body2": "All your data has been removed from our systems.",

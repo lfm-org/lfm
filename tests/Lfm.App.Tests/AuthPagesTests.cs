@@ -49,27 +49,6 @@ public class AuthPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void LoginSuccessPage_Renders_And_Redirects_To_Default()
-    {
-        var nav = Services.GetRequiredService<BunitNavigationManager>();
-
-        Render<LoginSuccessPage>();
-
-        nav.History.Should().ContainSingle(e => e.Uri.EndsWith("/runs"));
-    }
-
-    [Fact]
-    public void LoginSuccessPage_Renders_And_Redirects_To_Redirect_Param()
-    {
-        var nav = Services.GetRequiredService<BunitNavigationManager>();
-        nav.NavigateTo("/login/success?redirect=%2Fguild");
-
-        Render<LoginSuccessPage>();
-
-        nav.History.Should().Contain(e => e.Uri.EndsWith("/guild"));
-    }
-
-    [Fact]
     public void LoginFailedPage_Renders_Title_Subtitle_And_Retry_Button()
     {
         var cut = Render<LoginFailedPage>();
