@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Lfm.Api.Functions;
 using Lfm.Api.Options;
@@ -108,5 +109,82 @@ public class HealthFunctionTests
         obj.StatusCode.Should().Be(503);
         var statusProp = obj.Value!.GetType().GetProperty("status")!.GetValue(obj.Value);
         statusProp.Should().Be("unready");
+    }
+
+    // ------------------------------------------------------------------
+    // Health endpoints must not leak sensitive configuration in their
+    // response bodies. Replaces the deleted SecuritySpec.cs E2E test
+    // `HealthEndpoint_NoSensitiveInfo`, which exercised the full Docker
+    // stack to prove the same property at much higher cost. Asserts on
+    // the JSON-serialized form of every health response shape (live,
+    // ready-success, ready-cosmos-error, ready-unexpected-error) since
+    // a future refactor that swaps `ex.GetType().Name` for `ex.ToString()`
+    // would be a real regression.
+    // ------------------------------------------------------------------
+
+    private static readonly string[] SensitiveSubstrings =
+    [
+        "AccountKey",
+        "AccountEndpoint",
+        "connectionString",
+        "password",
+        "secret",
+        "ClientSecret",
+    ];
+
+    private static void AssertNoSensitiveSubstrings(string body, string context)
+    {
+        foreach (var marker in SensitiveSubstrings)
+        {
+            body.Should().NotContain(marker,
+                $"{context} response body must not leak '{marker}' to clients");
+        }
+    }
+
+    [Fact]
+    public void Live_response_body_does_not_leak_sensitive_configuration()
+    {
+        var (fn, _) = CreateReadyFunction();
+
+        var result = fn.Live(new DefaultHttpContext().Request);
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(ok.Value);
+        AssertNoSensitiveSubstrings(json, "/api/health");
+    }
+
+    [Fact]
+    public async Task Ready_success_response_body_does_not_leak_sensitive_configuration()
+    {
+        var (fn, mockDb) = CreateReadyFunction();
+        mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DatabaseResponse)null!);
+
+        var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(ok.Value);
+        AssertNoSensitiveSubstrings(json, "/api/health/ready (success)");
+    }
+
+    [Fact]
+    public async Task Ready_failure_response_body_does_not_leak_sensitive_configuration()
+    {
+        // CosmosException messages typically contain the account endpoint and
+        // diagnostic JSON. The contract is that we expose only the exception
+        // *type name*, not the message. Pin it: a refactor that swaps
+        // `ex.GetType().Name` for `ex.ToString()` or `ex.Message` would
+        // surface AccountEndpoint and request diagnostics to clients.
+        var (fn, mockDb) = CreateReadyFunction();
+        mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new CosmosException(
+                "Service unavailable. AccountEndpoint=https://test.documents.azure.com; AccountKey=topsecret",
+                System.Net.HttpStatusCode.ServiceUnavailable, 0, "", 0));
+
+        var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
+
+        var obj = result.Should().BeOfType<ObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(obj.Value);
+        AssertNoSensitiveSubstrings(json, "/api/health/ready (failure)");
     }
 }

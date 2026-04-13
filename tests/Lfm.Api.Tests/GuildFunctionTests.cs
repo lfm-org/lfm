@@ -311,4 +311,56 @@ public class GuildFunctionTests
             result: "success"),
             "guild update must emit an audit event with action=guild.update and result=success");
     }
+
+    // ------------------------------------------------------------------
+    // XSS payload in slogan — the slogan is user-supplied free text. The
+    // contract is that the API stores it verbatim and does not 500 on any
+    // payload shape; XSS prevention belongs at the render layer (Blazor
+    // encodes by default). Replaces the deleted SecuritySpec.cs E2E test
+    // `XssPayload_InFormFields_Sanitized`, which exercised the full Docker
+    // stack to prove the same property at a much higher cost.
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildUpdate_persists_script_tag_slogan_verbatim_without_500()
+    {
+        const string XssSlogan = "<script>alert('xss')</script><img src=x onerror=alert(1)>";
+
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc();
+        var raiderDoc = MakeRaiderDoc();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+        GuildDocument? captured = null;
+        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
+            .Callback<GuildDocument, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest(new
+        {
+            timezone = "Europe/London",
+            locale = "en-gb",
+            slogan = XssSlogan,
+        });
+
+        var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
+
+        result.Should().BeOfType<OkObjectResult>(
+            "an XSS payload in a free-text field must not produce a server error; sanitisation belongs at the render layer");
+        captured.Should().NotBeNull();
+        captured!.Slogan.Should().Be(XssSlogan,
+            "the API stores user free-text verbatim; the render layer is responsible for HTML-encoding on output");
+    }
 }
