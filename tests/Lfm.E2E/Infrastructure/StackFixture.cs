@@ -1,6 +1,13 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using Testcontainers.Azurite;
 using Testcontainers.CosmosDb;
@@ -36,21 +43,13 @@ public class StackFixture : IAsyncLifetime
     private int _appPort = DefaultAppPort;
 
     private Process? _apiProcess;
-    private Process? _appProcess;
+    private WebApplication? _appHost;
     private IPlaywright? _playwright;
     private readonly StringBuilder _apiOutput = new();
-    private readonly StringBuilder _appOutput = new();
-    private string? _appSettingsPath;
-    private string? _appSettingsOriginal;
 
     public async Task InitializeAsync()
     {
         var repoRoot = FindRepoRoot();
-
-        // Pre-sweep any orphaned Blazor dev servers from a prior crashed run.
-        // Otherwise a stale process bound to a port in our random range will
-        // make this run's port assignment collide and fail with EADDRINUSE.
-        KillStaleBlazorDevServers();
 
         _apiPort = DefaultApiPort + Random.Shared.Next(0, 100);
         _appPort = DefaultAppPort + Random.Shared.Next(0, 100);
@@ -113,19 +112,22 @@ public class StackFixture : IAsyncLifetime
             },
             _apiOutput);
 
-        // Overwrite appsettings.json in wwwroot so the Blazor WASM client
-        // (which runs in the browser and cannot read server-side env vars) picks up
-        // the dynamically assigned API port. The original is restored in DisposeAsync.
-        //
-        // RISK: This overwrites a git-tracked file (app/wwwroot/appsettings.json).
-        // If the test process is killed before DisposeAsync runs the restore is skipped,
-        // leaving the file in a mutated state. Manual recovery: git checkout -- app/wwwroot/appsettings.json
-        var appWwwroot = Path.Combine(repoRoot, "app", "wwwroot");
-        _appSettingsPath = Path.Combine(appWwwroot, "appsettings.json");
-        _appSettingsOriginal = File.Exists(_appSettingsPath)
-            ? await File.ReadAllTextAsync(_appSettingsPath)
-            : null;
-        await File.WriteAllTextAsync(_appSettingsPath,
+        // Publish the Blazor WASM app so we serve precompiled wwwroot files —
+        // the same shape Static Web Apps serves in production. Avoids the dev
+        // server entirely and the orphan-grandchild process tree it produced.
+        var appPublishDir = Path.Combine(Path.GetTempPath(), $"lfm-e2e-app-{_appPort}");
+        var appPublishExitCode = RunProcess("dotnet",
+            $"publish {Path.Combine(repoRoot, "app", "Lfm.App.csproj")} -c Release -o {appPublishDir}",
+            repoRoot, timeoutSec: 240);
+        if (appPublishExitCode != 0)
+            throw new InvalidOperationException(
+                $"dotnet publish (app) failed with exit code {appPublishExitCode}");
+        var appWwwroot = Path.Combine(appPublishDir, "wwwroot");
+
+        // Inject the dynamic API port into the published wwwroot's appsettings.json.
+        // Writing into the publish dir (not the git-tracked source) means a killed
+        // test process leaves no residue behind in the working tree.
+        await File.WriteAllTextAsync(Path.Combine(appWwwroot, "appsettings.json"),
             $$"""
             {
               "ApiBaseUrl": "http://localhost:{{_apiPort}}",
@@ -138,25 +140,21 @@ public class StackFixture : IAsyncLifetime
             }
             """);
 
-        // Start Blazor app
-        _appProcess = StartBackground("dotnet",
-            $"run --project {Path.Combine(repoRoot, "app", "Lfm.App.csproj")} -c Release --no-build --urls http://localhost:{_appPort}",
-            repoRoot,
-            new Dictionary<string, string>(),
-            _appOutput);
-
         try
         {
             await WaitForHttp($"http://localhost:{_apiPort}/api/health", timeoutSec: 120);
-            await WaitForHttp($"http://localhost:{_appPort}", timeoutSec: 60);
         }
         catch (TimeoutException)
         {
             throw new TimeoutException(
-                $"Timed out waiting for stack.\n" +
-                $"--- API output (port {_apiPort}) ---\n{_apiOutput}\n" +
-                $"--- App output (port {_appPort}) ---\n{_appOutput}");
+                $"Timed out waiting for API.\n" +
+                $"--- API output (port {_apiPort}) ---\n{_apiOutput}");
         }
+
+        // Build and start the in-process Kestrel host that serves the published
+        // wwwroot. This is the local equivalent of Static Web Apps in production.
+        _appHost = BuildAppHost(repoRoot, appPublishDir, appWwwroot, _appPort, _apiPort);
+        await _appHost.StartAsync();
 
         _playwright = await Playwright.CreateAsync();
 
@@ -173,34 +171,22 @@ public class StackFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        // Order matters: stop the browser first (drops any pending requests),
+        // then the in-process app host (so it stops accepting new requests
+        // before its dependencies disappear), then the API process, then the
+        // backing data stores. The composition lets us sequence cleanly with
+        // none of the dev-server grandchild orphan races the old `dotnet run`
+        // approach forced us to brute-force around.
         if (Browser is not null) await Browser.CloseAsync();
         _playwright?.Dispose();
-        KillProcess(_appProcess);
+        if (_appHost is not null)
+        {
+            try { await _appHost.StopAsync(); } catch { /* best effort */ }
+            await _appHost.DisposeAsync();
+        }
         KillProcess(_apiProcess);
-        // `dotnet run` spawns the Blazor dev server (`blazor-devserver.dll`)
-        // as a grandchild process. `Kill(entireProcessTree: true)` on the
-        // wrapper sometimes races with that grandchild, leaving an orphan
-        // bound to the assigned port. Sweep any leftover dev servers that
-        // belong to this repository so the next test run isn't blocked by
-        // a stale port. Linux/macOS only — `pgrep` is a no-op on Windows.
-        KillStaleBlazorDevServers();
         CosmosClient?.Dispose();
         await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
-        // Best-effort restore of the git-tracked appsettings.json (see InitializeAsync comment).
-        if (_appSettingsPath is not null)
-        {
-            try
-            {
-                if (_appSettingsOriginal is not null)
-                    await File.WriteAllTextAsync(_appSettingsPath, _appSettingsOriginal);
-                else if (File.Exists(_appSettingsPath))
-                    File.Delete(_appSettingsPath);
-            }
-            catch
-            {
-                // Best effort — do not mask the primary test failure.
-            }
-        }
     }
 
     private static string FindRepoRoot()
@@ -276,32 +262,85 @@ public class StackFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Sweep any <c>blazor-devserver.dll</c> grandchildren that survived the
-    /// process-tree kill on the parent <c>dotnet run</c>. Without this, repeated
-    /// E2E runs accumulate orphan dev servers holding random ports in the
-    /// 5199-5298 range, eventually colliding with new <c>InitializeAsync</c>
-    /// runs and producing instant <c>EADDRINUSE</c> failures across whole spec
-    /// classes. Best-effort: pgrep is Linux/macOS only.
+    /// Build the in-process Kestrel host that serves the published Blazor
+    /// wwwroot. Replicates the production Static Web Apps configuration: same
+    /// static files, same global headers from <c>staticwebapp.config.json</c>,
+    /// SPA fallback to <c>index.html</c> for client-routed paths.
     /// </summary>
-    private static void KillStaleBlazorDevServers()
+    private static WebApplication BuildAppHost(
+        string repoRoot, string contentRoot, string wwwroot, int appPort, int apiPort)
     {
-        try
+        // Read the production global headers once at startup so any drift in
+        // staticwebapp.config.json is visible at test time as well as at
+        // unit-rubric contract-test time (StaticWebAppConfigContractTests).
+        var swaConfigPath = Path.Combine(repoRoot, "app", "wwwroot", "staticwebapp.config.json");
+        var swaConfig = JsonNode.Parse(File.ReadAllText(swaConfigPath))
+            ?? throw new InvalidOperationException(
+                $"staticwebapp.config.json at {swaConfigPath} is not valid JSON");
+        var swaHeaders = swaConfig["globalHeaders"]?.AsObject()
+            .ToDictionary(kv => kv.Key, kv => kv.Value!.GetValue<string>())
+            ?? new Dictionary<string, string>();
+
+        // The production CSP whitelists the production API origin in connect-src
+        // and img-src. The local stack runs the API on a dynamically-assigned
+        // localhost port, which would otherwise be blocked by the browser. Append
+        // the local API origin everywhere the production host appears so the
+        // local stack enforces a real CSP without breaking same-app requests.
+        // The unit-rubric contract test (StaticWebAppConfigContractTests) still
+        // pins the production CSP from the source file — this patch only affects
+        // the in-memory header served by the local Kestrel host.
+        if (swaHeaders.TryGetValue("Content-Security-Policy", out var csp))
         {
-            var psi = new ProcessStartInfo("pkill",
-                "-9 -f \"blazor-devserver.*Lfm.App\"")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-            };
-            using var proc = Process.Start(psi);
-            proc?.WaitForExit(2000);
+            swaHeaders["Content-Security-Policy"] = csp.Replace(
+                "https://lfm-api.dinosauruskeksi.com",
+                $"https://lfm-api.dinosauruskeksi.com http://localhost:{apiPort}");
         }
-        catch
+
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            // Best effort. Windows lacks pkill; on that platform the leak
-            // simply persists until the test agent restarts.
-        }
+            ContentRootPath = contentRoot,
+            WebRootPath = wwwroot,
+            Args = [],
+        });
+        builder.WebHost.UseUrls($"http://localhost:{appPort}");
+        // Suppress ASP.NET Core's startup banner so it doesn't clutter test output.
+        builder.Logging.ClearProviders();
+
+        var fileProvider = new PhysicalFileProvider(wwwroot);
+        var contentTypeProvider = new FileExtensionContentTypeProvider();
+        // .wasm is in the default provider as of net5+, but be explicit so a
+        // future framework regression doesn't break Blazor streaming compilation.
+        contentTypeProvider.Mappings[".wasm"] = "application/wasm";
+
+        var app = builder.Build();
+
+        // Global-header middleware runs first so even SPA fallback responses
+        // carry the production headers.
+        app.Use(async (ctx, next) =>
+        {
+            foreach (var (k, v) in swaHeaders)
+                ctx.Response.Headers[k] = v;
+            await next();
+        });
+
+        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider });
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = fileProvider,
+            ContentTypeProvider = contentTypeProvider,
+            // Blazor publish output includes .blat, .dat, .dll, .pdb files that
+            // the framework default provider does not know about. Serve them
+            // generically — the browser treats them as opaque blobs.
+            ServeUnknownFileTypes = true,
+            DefaultContentType = "application/octet-stream",
+        });
+
+        // SPA fallback: every non-asset path returns index.html so the WASM
+        // router can take over. Mirrors the navigationFallback rule in
+        // staticwebapp.config.json.
+        app.MapFallbackToFile("index.html");
+
+        return app;
     }
 
     private static async Task WaitForHttp(string url, int timeoutSec = 60)
