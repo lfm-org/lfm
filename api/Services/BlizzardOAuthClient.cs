@@ -73,8 +73,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         if (string.IsNullOrEmpty(codeChallenge))
             throw new ArgumentException("Code challenge must not be empty.", nameof(codeChallenge));
 
-        var region = _opts.Region.ToLowerInvariant();
-        var host = $"https://{region}.battle.net/oauth/authorize";
+        var host = OAuthHost() + "/oauth/authorize";
 
         var qb = new QueryBuilder
         {
@@ -88,6 +87,18 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         };
 
         return host + qb.ToQueryString();
+    }
+
+    /// <summary>
+    /// Resolves the OAuth base host. Returns <see cref="BlizzardOptions.OAuthBaseUrl"/>
+    /// when set (E2E test override) or the production region-specific Battle.net host.
+    /// </summary>
+    private string OAuthHost()
+    {
+        if (!string.IsNullOrEmpty(_opts.OAuthBaseUrl))
+            return _opts.OAuthBaseUrl.TrimEnd('/');
+        var region = _opts.Region.ToLowerInvariant();
+        return $"https://{region}.battle.net";
     }
 
     /// <inheritdoc/>
@@ -133,8 +144,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         string codeVerifier,
         CancellationToken cancellationToken = default)
     {
-        var region = _opts.Region.ToLowerInvariant();
-        var tokenUrl = $"https://{region}.battle.net/oauth/token";
+        var tokenUrl = OAuthHost() + "/oauth/token";
 
         var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -169,8 +179,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         string accessToken,
         CancellationToken cancellationToken = default)
     {
-        var region = _opts.Region.ToLowerInvariant();
-        var userInfoUrl = $"https://{region}.battle.net/oauth/userinfo";
+        var userInfoUrl = OAuthHost() + "/oauth/userinfo";
 
         var request = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

@@ -21,7 +21,8 @@ public class BlizzardOAuthClientTests
     private static BlizzardOAuthClient MakeClient(
         string clientId = "test-client",
         string region = "eu",
-        string redirectUri = "https://example.com/api/battlenet/callback")
+        string redirectUri = "https://example.com/api/battlenet/callback",
+        string? oauthBaseUrl = null)
     {
         var opts = MsOptions.Create(new BlizzardOptions
         {
@@ -30,6 +31,7 @@ public class BlizzardOAuthClientTests
             Region = region,
             RedirectUri = redirectUri,
             AppBaseUrl = "https://example.com",
+            OAuthBaseUrl = oauthBaseUrl,
         });
 
         // Use ephemeral Data Protection for unit tests (no Azure storage required).
@@ -106,6 +108,41 @@ public class BlizzardOAuthClientTests
         var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
 
         new Uri(url).Host.Should().Be(expectedHost);
+    }
+
+    [Fact]
+    public void BuildAuthorizeUrl_uses_OAuthBaseUrl_override_when_set()
+    {
+        // The override allows the E2E stack to point the OAuth client at a
+        // local WireMock stub instead of the real Battle.net host. Production
+        // leaves the option unset; tests set it via Blizzard__OAuthBaseUrl.
+        var client = MakeClient(
+            region: "eu",
+            oauthBaseUrl: "http://localhost:9999");
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
+
+        var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
+
+        var uri = new Uri(url);
+        uri.Host.Should().Be("localhost", "the override must replace the regional Battle.net host");
+        uri.Port.Should().Be(9999, "the override port must be honoured");
+        uri.AbsolutePath.Should().Be("/oauth/authorize",
+            "the override must preserve the OAuth path layout");
+    }
+
+    [Fact]
+    public void BuildAuthorizeUrl_strips_trailing_slash_from_OAuthBaseUrl_override()
+    {
+        // A trailing slash in the override would produce double-slash URLs
+        // like http://localhost:9999//oauth/authorize, which some HTTP servers
+        // (including WireMock) treat as a different path. Pin the trim.
+        var client = MakeClient(oauthBaseUrl: "http://localhost:9999/");
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
+
+        var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
+
+        url.Should().NotContain("//oauth/", "trailing slash in the override must be trimmed");
+        url.Should().Contain("/oauth/authorize");
     }
 
     [Fact]
