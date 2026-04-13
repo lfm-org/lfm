@@ -21,6 +21,7 @@
     <PackageReference Include="Deque.AxeCore.Playwright" Version="4.11.1" />
     <PackageReference Include="FluentAssertions" Version="8.9.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
+    <PackageReference Include="WireMock.Net" Version="1.7.4" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">

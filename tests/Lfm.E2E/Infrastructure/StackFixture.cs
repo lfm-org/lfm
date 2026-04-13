@@ -11,6 +11,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using Testcontainers.Azurite;
 using Testcontainers.CosmosDb;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
+using WireMock.Settings;
 using Xunit;
 
 namespace Lfm.E2E.Infrastructure;
@@ -37,6 +41,14 @@ public class StackFixture : IAsyncLifetime
     public string ApiBaseUrl => $"http://localhost:{_apiPort}";
     public string AppBaseUrl => $"http://localhost:{_appPort}";
 
+    /// <summary>
+    /// Recent API process stdout/stderr for test failure diagnostics. The
+    /// buffer accumulates for the lifetime of the fixture; tests that need
+    /// to dump the log on failure can read this property and pass it to
+    /// their test output helper.
+    /// </summary>
+    public string ApiProcessLog => _apiOutput.ToString();
+
     private const int DefaultApiPort = 7171;
     private const int DefaultAppPort = 5199;
     private int _apiPort = DefaultApiPort;
@@ -44,8 +56,19 @@ public class StackFixture : IAsyncLifetime
 
     private Process? _apiProcess;
     private WebApplication? _appHost;
+    private WireMockServer? _oauthStub;
     private IPlaywright? _playwright;
     private readonly StringBuilder _apiOutput = new();
+
+    /// <summary>
+    /// Base URL of the in-process WireMock server that stubs the Battle.net
+    /// OAuth endpoints (<c>/oauth/authorize</c>, <c>/oauth/token</c>,
+    /// <c>/oauth/userinfo</c>). The API's OAuth client is pointed at this URL
+    /// via the <c>Blizzard__OAuthBaseUrl</c> env var so the production callback
+    /// flow can be exercised end-to-end without touching real Battle.net.
+    /// </summary>
+    public string OAuthStubBaseUrl => _oauthStub?.Url
+        ?? throw new InvalidOperationException("OAuth stub has not been started yet.");
 
     public async Task InitializeAsync()
     {
@@ -77,6 +100,10 @@ public class StackFixture : IAsyncLifetime
                 },
             });
 
+        // Start the OAuth stub server before publishing the API so we know its
+        // URL when constructing the func-start environment variables.
+        _oauthStub = StartOAuthStub();
+
         // Publish API
         var apiPublishDir = Path.Combine(Path.GetTempPath(), $"lfm-e2e-api-{_apiPort}");
         var publishExitCode = RunProcess("dotnet",
@@ -107,6 +134,8 @@ public class StackFixture : IAsyncLifetime
                 ["Blizzard__Region"] = "eu",
                 ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
                 ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
+                ["Blizzard__OAuthBaseUrl"] = _oauthStub.Url ?? throw new InvalidOperationException(
+                    "WireMock OAuth stub did not return a base URL after start"),
                 ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
                 ["PRIVACY_EMAIL"] = "privacy@e2e.test",
             },
@@ -185,6 +214,10 @@ public class StackFixture : IAsyncLifetime
             await _appHost.DisposeAsync();
         }
         KillProcess(_apiProcess);
+        // The OAuth stub has no state that survives the process, so we can
+        // stop it after the API without risk of in-flight requests hanging.
+        _oauthStub?.Stop();
+        _oauthStub?.Dispose();
         CosmosClient?.Dispose();
         await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
     }
@@ -259,6 +292,63 @@ public class StackFixture : IAsyncLifetime
         if (proc is null || proc.HasExited) return;
         try { proc.Kill(entireProcessTree: true); }
         catch { /* best effort */ }
+    }
+
+    /// <summary>
+    /// Start an in-process WireMock server that stubs the three Battle.net
+    /// OAuth endpoints the API hits during the login flow:
+    ///   - <c>GET /oauth/authorize</c>   — returns a 302 back to the API
+    ///     callback URL with <c>code=&lt;fake&gt;&amp;state=&lt;echoed&gt;</c>
+    ///     so the API's state validation passes.
+    ///   - <c>POST /oauth/token</c>      — returns a canned access token.
+    ///   - <c>GET /oauth/userinfo</c>    — returns a canned Battle.net user.
+    /// The API's OAuth client is pointed at this server via
+    /// <c>Blizzard__OAuthBaseUrl</c>. Replaces the real
+    /// <c>https://{region}.battle.net</c> host so E2E tests can exercise the
+    /// production callback flow hermetically.
+    /// </summary>
+    private static WireMockServer StartOAuthStub()
+    {
+        var server = WireMockServer.Start(new WireMockServerSettings
+        {
+            UseSSL = false,
+            // Bind to an ephemeral port; the test infrastructure reads Url
+            // back out and hands it to the API via the env var.
+            StartAdminInterface = false,
+        });
+
+        // GET /oauth/authorize — echo state back to the API callback.
+        // The Location template uses Handlebars so request.query.state and
+        // request.query.redirect_uri come from the inbound request. WireMock
+        // URL-decodes query parameters before exposing them to templates, so
+        // the rendered Location is a real absolute URL (not double-encoded).
+        server
+            .Given(Request.Create().WithPath("/oauth/authorize").UsingGet())
+            .RespondWith(Response.Create()
+                .WithStatusCode(302)
+                .WithHeader("Location",
+                    "{{request.query.redirect_uri}}?code=e2e-fake-code&state={{request.query.state}}")
+                .WithTransformer());
+
+        // POST /oauth/token — canned access token.
+        server
+            .Given(Request.Create().WithPath("/oauth/token").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""{"access_token":"e2e-fake-access-token","token_type":"Bearer","expires_in":3600}"""));
+
+        // GET /oauth/userinfo — canned Battle.net identity. The id is chosen
+        // so the raider upsert creates a fresh raider in Cosmos for every run;
+        // a numeric ID chosen to not collide with DefaultSeed's known ids.
+        server
+            .Given(Request.Create().WithPath("/oauth/userinfo").UsingGet())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""{"id":987654321,"battletag":"OAuthTest#1234"}"""));
+
+        return server;
     }
 
     /// <summary>
