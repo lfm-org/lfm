@@ -20,10 +20,12 @@ session_id=$(jq -r '.session_id // empty' <<<"$input")
 cwd=$(jq -r '.cwd // empty' <<<"$input")
 
 # ---- locate repo root -------------------------------------------------------
+# Use lfm.sln as the identity marker rather than basename, so the hook still
+# fires inside worktrees under .worktrees/<slug>/ (CLAUDE.md mandates them).
 [[ -z "$cwd" ]] && cwd="$PWD"
 repo_root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)
 [[ -z "$repo_root" ]] && exit 0
-[[ "$(basename "$repo_root")" != "lfm" ]] && exit 0
+[[ -f "$repo_root/lfm.sln" ]] || exit 0
 
 # ---- loop protection: per-session marker ------------------------------------
 marker_dir="$repo_root/.cache/claude-hooks"
@@ -37,7 +39,7 @@ git -C "$repo_root" rev-parse --verify --quiet main >/dev/null || exit 0
 # Diff working tree + committed changes on branch against main, restricted to
 # the unit-test lanes. Excludes E2E (tests/Lfm.E2E/).
 changed=$(git -C "$repo_root" diff --name-only main -- \
-  'tests/Lfm.Api.Tests' 'tests/Lfm.App.Tests' 2>/dev/null \
+  'tests/Lfm.Api.Tests' 'tests/Lfm.App.Tests' 'tests/Lfm.App.Core.Tests' 2>/dev/null \
   | grep -E 'Tests?\.cs$' || true)
 
 [[ -z "$changed" ]] && exit 0
