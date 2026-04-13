@@ -13,13 +13,21 @@ public class InstancesPage(IPage page)
     public ILocator Heading =>
         _page.GetByText("Instances");
 
-    /// <summary>The data grid that lists raid instances.</summary>
+    /// <summary>
+    /// The data grid that lists raid instances. FluentDataGrid compiles to a
+    /// <c>&lt;table class="fluent-data-grid"&gt;</c> element — not a custom
+    /// <c>&lt;fluent-data-grid&gt;</c> HTML element.
+    /// </summary>
     public ILocator InstanceGrid =>
-        _page.Locator("fluent-data-grid");
+        _page.Locator("table.fluent-data-grid");
 
-    /// <summary>Individual rows within the instance list grid.</summary>
+    /// <summary>
+    /// Individual data rows within the instance grid. Header rows have
+    /// <c>row-type="header"</c>; data rows are plain <c>&lt;tr class="fluent-data-grid-row"&gt;</c>
+    /// without a <c>row-type</c> attribute.
+    /// </summary>
     public ILocator InstanceRows =>
-        _page.Locator("fluent-data-grid-row[row-type='default']");
+        _page.Locator("tr.fluent-data-grid-row:not([row-type])");
 
     public async Task GotoAsync(string appBaseUrl)
     {

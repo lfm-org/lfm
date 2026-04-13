@@ -67,7 +67,10 @@ public sealed record StoredSelectedCharacter(
     BlizzardCharacterMediaSummary? MediaSummary = null,
     int? ClassId = null,
     string? ClassName = null,
-    int? Level = null);
+    int? Level = null,
+    int? GuildId = null,
+    string? GuildName = null,
+    string? FetchedAt = null);
 
 /// <summary>
 /// Raider document as stored in the Cosmos "raiders" container.
@@ -98,6 +101,37 @@ public sealed record RaiderDocument(
     IReadOnlyList<StoredSelectedCharacter>? Characters = null,
     // portraitCache: map of "{region}-{realm}-{name}" → portrait URL (populated by portrait refresh).
     IReadOnlyDictionary<string, string>? PortraitCache = null);
+
+// ---------------------------------------------------------------------------
+// Blizzard character profile — response from /profile/wow/character/{realm}/{name}
+// ---------------------------------------------------------------------------
+
+public sealed record BlizzardCharacterGuildRef(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string? Name = null);
+
+public sealed record BlizzardCharacterProfileResponse(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("level")] int Level,
+    [property: JsonPropertyName("character_class")] BlizzardNamedRef? CharacterClass = null,
+    [property: JsonPropertyName("race")] BlizzardNamedRef? Race = null,
+    [property: JsonPropertyName("realm")] BlizzardRealmRef? Realm = null,
+    [property: JsonPropertyName("guild")] BlizzardCharacterGuildRef? Guild = null);
+
+// ---------------------------------------------------------------------------
+// Blizzard character specializations — response from /profile/wow/character/{realm}/{name}/specializations
+// ---------------------------------------------------------------------------
+
+public sealed record BlizzardSpecializationRef(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string? Name = null);
+
+public sealed record BlizzardSpecializationEntry(
+    [property: JsonPropertyName("specialization")] BlizzardSpecializationRef Specialization);
+
+public sealed record BlizzardCharacterSpecializationsResponse(
+    [property: JsonPropertyName("active_specialization")] BlizzardSpecializationRef? ActiveSpecialization = null,
+    [property: JsonPropertyName("specializations")] IReadOnlyList<BlizzardSpecializationEntry>? Specializations = null);
 
 public interface IRaidersRepository
 {

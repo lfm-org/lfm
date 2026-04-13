@@ -6,6 +6,7 @@ using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
+using Lfm.Api.Services;
 using Lfm.Contracts.Runs;
 
 namespace Lfm.Api.Functions;
@@ -27,7 +28,10 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-cancel-signup.ts</c>.
 /// </summary>
-public class RunsCancelSignupFunction(IRunsRepository runsRepo, ILogger<RunsCancelSignupFunction> logger)
+public class RunsCancelSignupFunction(
+    IRunsRepository runsRepo,
+    IRaidersRepository raidersRepo,
+    ILogger<RunsCancelSignupFunction> logger)
 {
     [Function("runs-cancel-signup")]
     [RequireAuth]
@@ -50,9 +54,17 @@ public class RunsCancelSignupFunction(IRunsRepository runsRepo, ILogger<RunsCanc
         if (run.Visibility == "GUILD")
         {
             var isCreator = run.CreatorBattleNetId == principal.BattleNetId;
-            var isGuildMember = principal.GuildId is not null
+
+            // Derive the caller's guild from the raider's selected character.
+            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raider is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var (guildId, _) = GuildResolver.FromRaider(raider);
+
+            var isGuildMember = guildId is not null
                 && run.CreatorGuildId is not null
-                && run.CreatorGuildId.ToString() == principal.GuildId;
+                && run.CreatorGuildId.ToString() == guildId;
 
             if (!isCreator && !isGuildMember)
                 return new NotFoundObjectResult(new { error = "Run not found" });

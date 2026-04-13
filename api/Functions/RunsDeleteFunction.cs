@@ -24,7 +24,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-delete.ts</c>.
 /// </summary>
-public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPermissions, ILogger<RunsDeleteFunction> logger)
+public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<RunsDeleteFunction> logger)
 {
     [Function("runs-delete")]
     [RequireAuth]
@@ -47,16 +47,24 @@ public class RunsDeleteFunction(IRunsRepository repo, IGuildPermissions guildPer
         var isCreator = existing.CreatorBattleNetId == principal.BattleNetId;
         if (!isCreator)
         {
+            // Load the raider and derive guild info from the selected character.
+            // principal.GuildId is a legacy session field and is no longer populated.
+            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raider is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var (guildId, _) = GuildResolver.FromRaider(raider);
+
             if (existing.Visibility != "GUILD"
                 || existing.CreatorGuildId is null
-                || principal.GuildId != existing.CreatorGuildId.ToString())
+                || guildId != existing.CreatorGuildId.ToString())
             {
                 AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "failure", "not creator"));
                 return new ObjectResult(new { error = "Only the run creator can delete this run" })
                 { StatusCode = 403 };
             }
 
-            var canDelete = await guildPermissions.CanDeleteGuildRunsAsync(principal, ct);
+            var canDelete = await guildPermissions.CanDeleteGuildRunsAsync(raider, ct);
             if (!canDelete)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "failure", "guild rank denied"));

@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
+using Lfm.Api.Services;
 using Lfm.Contracts.Runs;
 
 namespace Lfm.Api.Functions;
@@ -21,7 +22,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Results are ordered by startTime ascending.
 /// </summary>
-public class RunsListFunction(IRunsRepository repo)
+public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRepo)
 {
     [Function("runs-list")]
     [RequireAuth]
@@ -32,8 +33,14 @@ public class RunsListFunction(IRunsRepository repo)
     {
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
-        IReadOnlyList<RunDocument> runs = principal.GuildId is not null
-            ? await repo.ListForGuildAsync(principal.GuildId, principal.BattleNetId, ct)
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+
+        IReadOnlyList<RunDocument> runs = guildId is not null
+            ? await repo.ListForGuildAsync(guildId, principal.BattleNetId, ct)
             : await repo.ListForUserAsync(principal.BattleNetId, ct);
 
         var dtos = runs

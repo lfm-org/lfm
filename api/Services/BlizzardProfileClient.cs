@@ -47,4 +47,68 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
         return JsonSerializer.Deserialize<BlizzardAccountProfileSummary>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Blizzard profile endpoint returned empty response.");
     }
+
+    /// <inheritdoc/>
+    public async Task<BlizzardCharacterProfileResponse> GetCharacterProfileAsync(
+        string realm, string name, string accessToken, CancellationToken ct)
+    {
+        var path = $"profile/wow/character/{Uri.EscapeDataString(realm)}/{Uri.EscapeDataString(name)}" +
+                   $"?namespace={Uri.EscapeDataString(_profileNamespace)}&locale=en_US";
+        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<BlizzardCharacterProfileResponse>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Blizzard character profile returned empty response.");
+    }
+
+    /// <inheritdoc/>
+    public async Task<BlizzardCharacterSpecializationsResponse> GetCharacterSpecializationsAsync(
+        string realm, string name, string accessToken, CancellationToken ct)
+    {
+        var path = $"profile/wow/character/{Uri.EscapeDataString(realm)}/{Uri.EscapeDataString(name)}/specializations" +
+                   $"?namespace={Uri.EscapeDataString(_profileNamespace)}&locale=en_US";
+        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<BlizzardCharacterSpecializationsResponse>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Blizzard character specializations returned empty response.");
+    }
+
+    /// <inheritdoc/>
+    public async Task<BlizzardCharacterMediaSummary?> GetCharacterMediaAsync(
+        string realm, string name, string accessToken, CancellationToken ct)
+    {
+        var path = $"profile/wow/character/{Uri.EscapeDataString(realm)}/{Uri.EscapeDataString(name)}/character-media" +
+                   $"?namespace={Uri.EscapeDataString(_profileNamespace)}&locale=en_US";
+        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        try
+        {
+            var response = await _httpClient.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonSerializer.Deserialize<BlizzardCharacterMediaSummary>(json, _jsonOptions);
+        }
+        catch (HttpRequestException)
+        {
+            // Best-effort: swallow transport failures so the caller can continue without media.
+            return null;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // Timeout from HttpClient (not user cancellation): treat as best-effort failure.
+            return null;
+        }
+    }
 }

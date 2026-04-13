@@ -47,6 +47,11 @@ public class StackFixture : IAsyncLifetime
     {
         var repoRoot = FindRepoRoot();
 
+        // Pre-sweep any orphaned Blazor dev servers from a prior crashed run.
+        // Otherwise a stale process bound to a port in our random range will
+        // make this run's port assignment collide and fail with EADDRINUSE.
+        KillStaleBlazorDevServers();
+
         _apiPort = DefaultApiPort + Random.Shared.Next(0, 100);
         _appPort = DefaultAppPort + Random.Shared.Next(0, 100);
 
@@ -104,6 +109,7 @@ public class StackFixture : IAsyncLifetime
                 ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
                 ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
                 ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
+                ["PRIVACY_EMAIL"] = "privacy@e2e.test",
             },
             _apiOutput);
 
@@ -153,7 +159,16 @@ public class StackFixture : IAsyncLifetime
         }
 
         _playwright = await Playwright.CreateAsync();
-        Browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
+
+        // Allow pointing Playwright at a locally-provided Chromium binary for environments
+        // where Playwright's auto-download cache is unavailable (sandboxed CI, offline runs).
+        // Null → Playwright uses its bundled browser, preserving default behaviour.
+        var chromiumExecutablePath = Environment.GetEnvironmentVariable("LFM_E2E_CHROMIUM_PATH");
+        Browser = await _playwright.Chromium.LaunchAsync(new()
+        {
+            Headless = true,
+            ExecutablePath = string.IsNullOrWhiteSpace(chromiumExecutablePath) ? null : chromiumExecutablePath,
+        });
     }
 
     public async Task DisposeAsync()
@@ -162,6 +177,13 @@ public class StackFixture : IAsyncLifetime
         _playwright?.Dispose();
         KillProcess(_appProcess);
         KillProcess(_apiProcess);
+        // `dotnet run` spawns the Blazor dev server (`blazor-devserver.dll`)
+        // as a grandchild process. `Kill(entireProcessTree: true)` on the
+        // wrapper sometimes races with that grandchild, leaving an orphan
+        // bound to the assigned port. Sweep any leftover dev servers that
+        // belong to this repository so the next test run isn't blocked by
+        // a stale port. Linux/macOS only — `pgrep` is a no-op on Windows.
+        KillStaleBlazorDevServers();
         CosmosClient?.Dispose();
         await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
         // Best-effort restore of the git-tracked appsettings.json (see InitializeAsync comment).
@@ -251,6 +273,35 @@ public class StackFixture : IAsyncLifetime
         if (proc is null || proc.HasExited) return;
         try { proc.Kill(entireProcessTree: true); }
         catch { /* best effort */ }
+    }
+
+    /// <summary>
+    /// Sweep any <c>blazor-devserver.dll</c> grandchildren that survived the
+    /// process-tree kill on the parent <c>dotnet run</c>. Without this, repeated
+    /// E2E runs accumulate orphan dev servers holding random ports in the
+    /// 5199-5298 range, eventually colliding with new <c>InitializeAsync</c>
+    /// runs and producing instant <c>EADDRINUSE</c> failures across whole spec
+    /// classes. Best-effort: pgrep is Linux/macOS only.
+    /// </summary>
+    private static void KillStaleBlazorDevServers()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("pkill",
+                "-9 -f \"blazor-devserver.*Lfm.App\"")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(2000);
+        }
+        catch
+        {
+            // Best effort. Windows lacks pkill; on that platform the leak
+            // simply persists until the test agent restarts.
+        }
     }
 
     private static async Task WaitForHttp(string url, int timeoutSec = 60)

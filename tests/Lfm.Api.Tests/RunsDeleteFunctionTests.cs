@@ -37,13 +37,31 @@ public class RunsDeleteFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(string battleNetId = "bnet-creator") =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: 12345,
+                    GuildName: "Test Guild")
+            ]);
+
     private static RunsDeleteFunction MakeFunction(
         Mock<IRunsRepository> repo,
         Mock<IGuildPermissions> permissions,
+        Mock<IRaidersRepository>? raidersRepo = null,
         TestLogger<RunsDeleteFunction>? logger = null)
     {
         return new RunsDeleteFunction(
             repo.Object,
+            (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
             permissions.Object,
             logger ?? new TestLogger<RunsDeleteFunction>());
     }
@@ -97,7 +115,7 @@ public class RunsDeleteFunctionTests
         okResult.Value.Should().BeEquivalentTo(new { deleted = true });
 
         repo.Verify(r => r.DeleteAsync("run-1", It.IsAny<CancellationToken>()), Times.Once);
-        permissions.Verify(p => p.CanDeleteGuildRunsAsync(It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()), Times.Never);
+        permissions.Verify(p => p.CanDeleteGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -109,6 +127,7 @@ public class RunsDeleteFunctionTests
     {
         // Caller belongs to guild 12345 (same as run) but lacks canDeleteGuildRuns.
         var principal = MakePrincipal(battleNetId: "bnet-other", guildId: "12345");
+        var raider = MakeRaiderDoc("bnet-other");
         var existing = MakeRunDoc(
             creatorBattleNetId: "bnet-creator",
             creatorGuildId: 12345,
@@ -118,12 +137,16 @@ public class RunsDeleteFunctionTests
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-other", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanDeleteGuildRunsAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.CanDeleteGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var logger = new TestLogger<RunsDeleteFunction>();
-        var fn = MakeFunction(repo, permissions, logger);
+        var fn = MakeFunction(repo, permissions, raidersRepo, logger);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 
@@ -184,7 +207,7 @@ public class RunsDeleteFunctionTests
 
         var permissions = new Mock<IGuildPermissions>();
 
-        var fn = MakeFunction(repo, permissions, logger);
+        var fn = MakeFunction(repo, permissions, logger: logger);
         var ctx = MakeFunctionContext(principal);
         var req = new DefaultHttpContext().Request;
 

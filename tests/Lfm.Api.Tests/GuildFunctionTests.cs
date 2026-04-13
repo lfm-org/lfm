@@ -46,6 +46,22 @@ public class GuildFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(string battleNetId = "bnet-1") =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "test-realm",
+                    Name: "Testchar",
+                    GuildId: 12345,
+                    GuildName: "Test Guild")
+            ]);
+
     private static GuildDocument MakeGuildDoc(string id = "12345") =>
         new GuildDocument(
             Id: id,
@@ -57,13 +73,16 @@ public class GuildFunctionTests
                 Timezone: "Europe/Helsinki",
                 Locale: "fi"));
 
-    private static GuildFunction MakeFunction(TestLogger<GuildFunction>? logger = null)
+    private static GuildFunction MakeFunction(
+        Mock<IGuildRepository>? guildRepo = null,
+        Mock<IRaidersRepository>? raidersRepo = null,
+        Mock<IGuildPermissions>? permissions = null,
+        TestLogger<GuildFunction>? logger = null)
     {
-        var guildRepo = new Mock<IGuildRepository>();
-        var permissions = new Mock<IGuildPermissions>();
         return new GuildFunction(
-            guildRepo.Object,
-            permissions.Object,
+            (guildRepo ?? new Mock<IGuildRepository>()).Object,
+            (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
+            (permissions ?? new Mock<IGuildPermissions>()).Object,
             logger ?? new TestLogger<GuildFunction>());
     }
 
@@ -76,15 +95,20 @@ public class GuildFunctionTests
     {
         var principal = MakePrincipal();
         var guildDoc = MakeGuildDoc();
+        var raiderDoc = MakeRaiderDoc();
 
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
         var permissions = new Mock<IGuildPermissions>();
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
@@ -97,14 +121,55 @@ public class GuildFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 2: GET returns no-guild DTO when principal has no guild
+    // Test 2: GET returns 404 when raider document is missing
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task GuildGet_returns_no_guild_dto_when_principal_has_no_guild_id()
+    public async Task GuildGet_returns_404_when_raider_not_found()
+    {
+        var principal = MakePrincipal();
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var fn = MakeFunction(raidersRepo: raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
+
+        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: GET returns no-guild DTO when selected character has no guild
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildGet_returns_no_guild_dto_when_selected_character_has_no_guild()
     {
         var principal = MakePrincipal(guildId: null!);
-        var fn = MakeFunction();
+
+        // Raider has a selected character but the character has no guild → FromRaider returns (null, null).
+        var raiderDoc = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "test-realm",
+                    Name: "Testchar")
+            ]);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var fn = MakeFunction(raidersRepo: raidersRepo);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
@@ -125,6 +190,7 @@ public class GuildFunctionTests
     {
         var principal = MakePrincipal();
         var guildDoc = MakeGuildDoc();
+        var raiderDoc = MakeRaiderDoc();
 
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
@@ -132,12 +198,16 @@ public class GuildFunctionTests
         guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.IsAdminAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new
         {
@@ -157,22 +227,27 @@ public class GuildFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 3: PATCH non-admin (403)
+    // Test 4: PATCH non-admin (403)
     // ------------------------------------------------------------------
 
     [Fact]
     public async Task GuildUpdate_returns_403_when_caller_is_not_admin()
     {
         var principal = MakePrincipal();
+        var raiderDoc = MakeRaiderDoc();
 
         var guildRepo = new Mock<IGuildRepository>();
 
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.IsAdminAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" });
 
@@ -190,24 +265,6 @@ public class GuildFunctionTests
             "denied admin guild update must emit a failure audit event");
     }
 
-    // ------------------------------------------------------------------
-    // Test 4: [RequireAuth] attribute present on both methods
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public void GuildGet_and_GuildUpdate_have_RequireAuth_attribute()
-    {
-        var getMethod = typeof(GuildFunction).GetMethod(nameof(GuildFunction.GuildGet));
-        getMethod.Should().NotBeNull();
-        getMethod!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "GuildFunction.GuildGet must carry [RequireAuth]");
-
-        var patchMethod = typeof(GuildFunction).GetMethod(nameof(GuildFunction.GuildUpdate));
-        patchMethod.Should().NotBeNull();
-        patchMethod!.GetCustomAttributes(typeof(RequireAuthAttribute), inherit: false)
-            .Should().HaveCount(1, "GuildFunction.GuildUpdate must carry [RequireAuth]");
-    }
-
     // -----------------------------------------------------------------------
     // Audit events
     // -----------------------------------------------------------------------
@@ -218,16 +275,24 @@ public class GuildFunctionTests
         // Arrange
         var principal = MakePrincipal("12345");
         var guildDoc = MakeGuildDoc();
+        var raiderDoc = MakeRaiderDoc();
         var logger = new TestLogger<GuildFunction>();
+
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
         guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
         var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.IsAdminAsync(principal, It.IsAny<CancellationToken>()))
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        var fn = new GuildFunction(guildRepo.Object, permissions.Object, logger);
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new
         {

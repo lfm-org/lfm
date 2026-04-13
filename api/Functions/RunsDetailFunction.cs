@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
+using Lfm.Api.Services;
 using Lfm.Contracts.Runs;
 
 namespace Lfm.Api.Functions;
@@ -21,7 +22,7 @@ namespace Lfm.Api.Functions;
 ///       * the requesting user belongs to the same guild as the creator.
 ///   - All other cases return 404 (no information leakage).
 /// </summary>
-public class RunsDetailFunction(IRunsRepository repo)
+public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raidersRepo)
 {
     [Function("runs-detail")]
     [RequireAuth]
@@ -43,9 +44,19 @@ public class RunsDetailFunction(IRunsRepository repo)
         if (run.Visibility == "GUILD")
         {
             var isCreator = run.CreatorBattleNetId == principal.BattleNetId;
-            var isGuildMember = principal.GuildId is not null
+
+            // Derive the caller's guild from their raider's selected character so
+            // that guild membership is always taken from the stored character data
+            // (principal.GuildId is a legacy session field that is no longer populated).
+            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+            if (raider is null)
+                return new NotFoundObjectResult(new { error = "Raider not found" });
+
+            var (guildId, _) = GuildResolver.FromRaider(raider);
+
+            var isGuildMember = guildId is not null
                 && run.CreatorGuildId is not null
-                && run.CreatorGuildId.ToString() == principal.GuildId;
+                && run.CreatorGuildId.ToString() == guildId;
 
             if (!isCreator && !isGuildMember)
                 return new NotFoundObjectResult(new { error = "Run not found" });

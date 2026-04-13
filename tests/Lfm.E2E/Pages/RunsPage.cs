@@ -37,9 +37,17 @@ public class RunsPage(IPage page)
     public ILocator RosterHeading =>
         _page.GetByText("Roster (", new() { Exact = false });
 
-    /// <summary>Roster data grid on the run detail panel.</summary>
+    /// <summary>
+    /// Roster data grid on the run detail panel. The roster is grouped by
+    /// reviewed attendance (IN / BENCH / LATE / OUT / AWAY), so one grid is
+    /// rendered per group present on the run. FluentDataGrid compiles to a
+    /// <c>&lt;table class="fluent-data-grid"&gt;</c> element — not a custom
+    /// <c>&lt;fluent-data-grid&gt;</c> HTML element. Resolves to the first
+    /// grid so that assertions like <c>ToBeVisibleAsync</c> are not ambiguous
+    /// when multiple attendance groups are rendered.
+    /// </summary>
     public ILocator RosterGrid =>
-        _page.Locator("fluent-data-grid");
+        _page.Locator("table.fluent-data-grid").First;
 
     /// <summary>"Edit" button in the run detail panel (links to /runs/{id}/edit).</summary>
     public ILocator EditButton =>

@@ -15,6 +15,16 @@ namespace Lfm.E2E.Specs;
 public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
+    // The seeded raider has `accountProfileRefreshedAt = now`, so the refresh
+    // endpoint returns 429 on the RefreshCharacters_Click test. That test's
+    // intent is to verify the button is wired to the correct route, not that
+    // the refresh actually completes — ignore the 429 from the refresh path.
+    // The browser console only carries the status code in <c>msg.Text</c>
+    // (not the URL), so we filter on the literal "status of 429" substring.
+    // The 401 / /api/me pattern is the default for all specs.
+    protected override string[] IgnoredConsolePatterns =>
+        ["401", "/api/me", "status of 429"];
+
     public override async Task InitializeAsync()
     {
         await base.InitializeAsync();

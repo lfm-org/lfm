@@ -26,9 +26,11 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
 
         var isAdmin = await siteAdmin.IsAdminAsync(principal.BattleNetId, cancellationToken);
 
+        var (_, guildName) = GuildResolver.FromRaider(raider);
+
         return new OkObjectResult(new MeResponse(
             BattleNetId: principal.BattleNetId,
-            GuildName: principal.GuildName,
+            GuildName: guildName,
             SelectedCharacterId: raider.SelectedCharacterId,
             IsSiteAdmin: isAdmin,
             Locale: raider.Locale));

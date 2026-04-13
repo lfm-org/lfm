@@ -81,15 +81,33 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Submit
         await runsPage.CreateRunSubmitButton.ClickAsync();
 
-        // Should navigate to the newly created run's detail page
+        // Should navigate to the newly created run's detail page. The URL
+        // before submit is `/runs/new`, so the regex must exclude that exact
+        // slug to avoid matching the pre-submit URL (which would make
+        // WaitForURLAsync return immediately).
         await Page.WaitForURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/runs/[^/]+$"),
+            new System.Text.RegularExpressions.Regex(@"/runs/(?!new$)[^/]+$"),
             new() { Timeout = 20000 });
 
-        // Navigate back to the runs list and verify the new run appears by its unique description
+        // Capture the newly created run's id from the detail URL.
+        // The runs list only displays instance name / mode / date / signup count —
+        // not the description — so we must assert by run id, not by the unique
+        // description we filled in above.
+        var detailUrl = Page.Url;
+        var runId = detailUrl.Substring(detailUrl.LastIndexOf('/') + 1);
+        runId = Uri.UnescapeDataString(runId);
+
+        // Navigate back to the runs list and verify the new run appears in the list panel.
         await runsPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(runsPage.CreateRunButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
+        await Assertions.Expect(runsPage.RunItem(runId)).ToBeVisibleAsync(
+            new() { Timeout = 15000 });
+
+        // Click through to the detail panel and verify the unique description is
+        // rendered there — this is the end-to-end proof that the body we submitted
+        // round-tripped through Cosmos and the runs-detail sanitizer.
+        await runsPage.SelectRunAsync(runId);
         await Assertions.Expect(Page.GetByText(uniqueRunName)).ToBeVisibleAsync(
             new() { Timeout = 15000 });
     }

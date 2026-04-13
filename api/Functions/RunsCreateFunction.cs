@@ -30,7 +30,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-create.ts</c>.
 /// </summary>
-public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPermissions, ILogger<RunsCreateFunction> logger)
+public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<RunsCreateFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -61,16 +61,25 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
             return new BadRequestObjectResult(
                 new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
 
+        // Load the raider once and derive guild info from the selected character.
+        // principal.GuildId / GuildName are legacy session fields that are no
+        // longer populated in production.
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var (guildId, guildName) = GuildResolver.FromRaider(raider);
+
         // GUILD run guard: mirroring the checks in runs-create.ts.
         //   1. GUILD run requires the caller to belong to a guild.
         //   2. GUILD run requires the canCreateGuildRuns rank permission.
         if (body.Visibility == "GUILD")
         {
-            if (principal.GuildId is null)
+            if (guildId is null)
                 return new BadRequestObjectResult(
                     new { error = "A guild run requires an active character in a guild" });
 
-            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(principal, ct);
+            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canCreate)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", "guild rank denied"));
@@ -82,7 +91,7 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
         var runId = Guid.NewGuid().ToString();
         var createdAt = DateTimeOffset.UtcNow.ToString("o");
 
-        var run = BuildRunDocument(body, principal, runId, createdAt);
+        var run = BuildRunDocument(body, principal, guildId, guildName, runId, createdAt);
         var created = await repo.CreateAsync(run, ct);
 
         AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, runId, "success", null));
@@ -97,6 +106,8 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
     internal static RunDocument BuildRunDocument(
         CreateRunRequest body,
         SessionPrincipal principal,
+        string? guildId,
+        string? guildName,
         string id,
         string createdAt)
     {
@@ -111,8 +122,8 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
         var expiryMs = startTimeMs + RunTtlAfterStartMs;
         var ttl = (int)Math.Max(MinTtlSeconds, (expiryMs - createdAtMs) / 1000);
 
-        int? creatorGuildId = principal.GuildId is not null
-            && int.TryParse(principal.GuildId, out var gid)
+        int? creatorGuildId = guildId is not null
+            && int.TryParse(guildId, out var gid)
             ? gid
             : null;
 
@@ -123,7 +134,7 @@ public class RunsCreateFunction(IRunsRepository repo, IGuildPermissions guildPer
             Description: body.Description ?? "",
             ModeKey: body.ModeKey!,
             Visibility: body.Visibility!,
-            CreatorGuild: principal.GuildName ?? "",
+            CreatorGuild: guildName ?? "",
             CreatorGuildId: creatorGuildId,
             InstanceId: body.InstanceId!.Value,
             InstanceName: body.InstanceName ?? "",

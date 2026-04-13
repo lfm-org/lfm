@@ -63,6 +63,11 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         await loginPage.ClickSignInAsync();
 
         await loginRequestTask;
+
+        // Park the page on about:blank so the disposal-time console-error
+        // assertion does not pick up the 404 cascade for the offline external
+        // Battle.net assets the browser tried to load after the redirect.
+        await Page.GotoAsync("about:blank");
     }
 
     [Fact]

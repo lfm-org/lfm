@@ -36,6 +36,24 @@ public class RunsDetailFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-1",
+        int? guildId = 12345) =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildId is not null ? "Test Guild" : null)
+            ]);
+
     private static RunDocument MakeRunDoc(
         string id = "run-1",
         string visibility = "PUBLIC",
@@ -97,7 +115,11 @@ public class RunsDetailFunctionTests
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(doc);
 
-        var fn = new RunsDetailFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(
@@ -133,7 +155,9 @@ public class RunsDetailFunctionTests
         repo.Setup(r => r.GetByIdAsync("missing-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync((RunDocument?)null);
 
-        var fn = new RunsDetailFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(
@@ -143,10 +167,53 @@ public class RunsDetailFunctionTests
             CancellationToken.None);
 
         result.Should().BeOfType<NotFoundObjectResult>();
+
+        // Ordering contract: the run must be looked up before the raider.
+        // If a future refactor reverses the order, this short-circuit test
+        // would silently still pass without the Verify below.
+        raidersRepo.Verify(
+            r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "a missing run must short-circuit before any raider lookup");
     }
 
     // ------------------------------------------------------------------
-    // Test 3: GUILD run — returns 404 when user is not creator or guild member
+    // Test 3: GUILD run — returns 404 when raider document is missing
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_for_guild_run_when_raider_not_found()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1");
+
+        var doc = MakeRunDoc(
+            id: "run-guild",
+            visibility: "GUILD",
+            creatorBattleNetId: "bnet-other",
+            creatorGuildId: 12345);
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-guild", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(doc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            new DefaultHttpContext().Request,
+            "run-guild",
+            ctx,
+            CancellationToken.None);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: GUILD run — returns 404 when user is not creator or guild member
     // ------------------------------------------------------------------
 
     [Fact]
@@ -165,7 +232,11 @@ public class RunsDetailFunctionTests
         repo.Setup(r => r.GetByIdAsync("run-guild", It.IsAny<CancellationToken>()))
             .ReturnsAsync(doc);
 
-        var fn = new RunsDetailFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-outsider", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-outsider", guildId: 99999));
+
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(

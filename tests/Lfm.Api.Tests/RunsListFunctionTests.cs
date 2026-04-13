@@ -34,6 +34,24 @@ public class RunsListFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
+    private static RaiderDocument MakeRaiderDoc(
+        string battleNetId = "bnet-1",
+        int? guildId = 12345) =>
+        new RaiderDocument(
+            Id: battleNetId,
+            BattleNetId: battleNetId,
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    GuildId: guildId,
+                    GuildName: guildId is not null ? "Test Guild" : null)
+            ]);
+
     private static RunDocument MakeRunDoc(
         string id = "run-1",
         string visibility = "PUBLIC",
@@ -94,7 +112,11 @@ public class RunsListFunctionTests
         repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunDocument> { doc });
 
-        var fn = new RunsListFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -117,7 +139,31 @@ public class RunsListFunctionTests
     }
 
     // ------------------------------------------------------------------
-    // Test 2: Empty list — returns 200 with empty array
+    // Test 2: Raider not found — returns 404
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_404_when_raider_not_found()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1");
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        var repo = new Mock<IRunsRepository>();
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+    }
+
+    // ------------------------------------------------------------------
+    // Test 3: Empty list — returns 200 with empty array
     // ------------------------------------------------------------------
 
     [Fact]
@@ -129,7 +175,11 @@ public class RunsListFunctionTests
         repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunDocument>());
 
-        var fn = new RunsListFunction(repo.Object);
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -137,6 +187,43 @@ public class RunsListFunctionTests
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var runs = ok.Value.Should().BeAssignableTo<IReadOnlyList<RunSummaryDto>>().Subject;
         runs.Should().BeEmpty();
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: Raider with no guild — falls back to ListForUserAsync
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_uses_ListForUserAsync_when_selected_character_has_no_guild()
+    {
+        // Raider whose selected character has no guild — GuildResolver returns (null, null)
+        // and the function must fall through to ListForUserAsync (non-guild query path).
+        var principal = MakePrincipal(battleNetId: "bnet-loner");
+        var ownCharacter = MakeCharacterEntry(raiderBattleNetId: "bnet-loner");
+        var doc = MakeRunDoc(runCharacters: [ownCharacter]);
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForUserAsync("bnet-loner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunDocument> { doc });
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-loner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-loner", guildId: null));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var runs = ok.Value.Should().BeAssignableTo<IReadOnlyList<RunSummaryDto>>().Subject;
+        runs.Should().HaveCount(1);
+
+        // The guild query must not be called when the raider has no guild.
+        repo.Verify(r => r.ListForGuildAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "a raider with no guild must use ListForUserAsync, not ListForGuildAsync");
     }
 
 }

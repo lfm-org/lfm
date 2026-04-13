@@ -16,18 +16,21 @@ namespace Lfm.Api.Functions;
 /// Serves GET /api/guild and PATCH /api/guild.
 ///
 /// GET  — returns the guild home view for the current user's guild.
-///         Returns 404 when the principal has no associated guild (GuildId is null)
-///         or the guild document does not exist in Cosmos.
+///         Returns <c>NoGuildDto</c> (200) when the raider exists but their
+///         selected character has no guild — this is the graceful no-guild path.
+///         Returns 404 when the raider document itself is missing, or the
+///         derived guild document does not exist in Cosmos.
 ///         Mirrors the TypeScript <c>currentGuildHandler</c> in
 ///         <c>functions/src/functions/guild.ts</c>.
 ///
 /// PATCH — updates guild settings (timezone, locale, slogan, rankPermissions).
 ///         Requires the caller to be a guild admin (rank 0 in the Blizzard roster).
 ///         Returns 403 when the caller is not an admin.
+///         Returns 404 when the raider or guild document is missing.
 ///         Mirrors the TypeScript <c>saveCurrentGuildSettings</c> logic in
 ///         <c>functions/src/lib/guild/service.ts</c>.
 /// </summary>
-public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
+public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -45,10 +48,18 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
     {
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
-        if (principal.GuildId is null)
+        // Derive the caller's guild from the raider's selected character. The
+        // session principal's GuildId is a legacy field that is no longer populated.
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+
+        if (guildId is null)
             return new OkObjectResult(GuildMapper.NoGuildDto());
 
-        var guildDoc = await guildRepo.GetAsync(principal.GuildId, cancellationToken);
+        var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
         if (guildDoc is null)
             return new NotFoundResult();
 
@@ -68,13 +79,18 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
     {
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
-        if (principal.GuildId is null)
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
+        if (raider is null)
+            return new NotFoundObjectResult(new { error = "Raider not found" });
+
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+        if (guildId is null)
             return new NotFoundResult();
 
-        var isAdmin = await guildPermissions.IsAdminAsync(principal, cancellationToken);
+        var isAdmin = await guildPermissions.IsAdminAsync(raider, cancellationToken);
         if (!isAdmin)
         {
-            AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, principal.GuildId, "failure", "forbidden"));
+            AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, guildId, "failure", "forbidden"));
             return new ObjectResult(new { error = "forbidden" }) { StatusCode = 403 };
         }
 
@@ -92,7 +108,7 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
             return new BadRequestObjectResult(
                 new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
 
-        var guildDoc = await guildRepo.GetAsync(principal.GuildId, cancellationToken);
+        var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
         if (guildDoc is null)
             return new NotFoundResult();
 
@@ -123,7 +139,7 @@ public class GuildFunction(IGuildRepository guildRepo, IGuildPermissions guildPe
 
         await guildRepo.UpsertAsync(updatedDoc, cancellationToken);
 
-        AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, principal.GuildId, "success", null));
+        AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, guildId, "success", null));
 
         return new OkObjectResult(GuildMapper.MapToDto(updatedDoc));
     }
