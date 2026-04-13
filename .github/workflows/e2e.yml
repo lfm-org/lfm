@@ -2,11 +2,6 @@ name: E2E
 
 on:
   workflow_dispatch:
-    inputs:
-      include_perf:
-        description: 'Include performance tests'
-        type: boolean
-        default: false
   pull_request:
     branches: [main]
     paths:
@@ -84,7 +79,6 @@ jobs:
         run: >
           dotnet test tests/Lfm.E2E/Lfm.E2E.csproj
           -c Release --no-build
-          ${{ inputs.include_perf != true && '--filter "Category!=Perf"' || '' }}
           --logger "trx;LogFileName=e2e.trx"
           --logger "console;verbosity=normal"
           --results-directory ./artifacts/e2e-results

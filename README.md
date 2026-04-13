@@ -94,7 +94,7 @@ dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app
 ## E2E Tests
 
 ```bash
-dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category!=Perf"
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release
 ```
 
 Requires the Docker test stack from `docker-compose.test.yml`.

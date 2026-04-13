@@ -83,11 +83,11 @@ xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers.
 
 ### E2E tests
 
-Playwright .NET against full Docker stack (Cosmos, Azurite, Functions, Blazor app). `docker-compose.test.yml` manages the stack. Filter categories: `dotnet test --filter "Category!=Perf"` for default run, omit filter for perf specs.
+Playwright .NET against full Docker stack (Cosmos, Azurite, Functions, Blazor app). `docker-compose.test.yml` manages the stack.
 
-Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category!=Perf"`.
+Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release`.
 
-**Rules:** Only claim "full e2e passed" after running the full E2E suite without filters. Keep coverage deterministic and local-first — no routine real Battle.net deps. **Bug fixes must include tests** — add or update tests that cover the fixed behavior. No bugfix is complete without a test that would have caught the regression.
+**Rules:** Only claim "full e2e passed" after running the full E2E suite. Keep coverage deterministic and local-first — no routine real Battle.net deps. **Bug fixes must include tests** — add or update tests that cover the fixed behavior. No bugfix is complete without a test that would have caught the regression.
 
 ## Infrastructure Development
 

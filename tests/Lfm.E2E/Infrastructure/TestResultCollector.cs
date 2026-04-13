@@ -69,8 +69,7 @@ public static class TestResultCollector
                 Timestamp: DateTime.UtcNow.ToString("o"),
                 Duration: $"{elapsed.TotalSeconds:F1}s",
                 Summary: new ReportSummary(results.Length, passed, failed, skipped),
-                Tests: results,
-                Performance: PerfResultCollector.GetAll());
+                Tests: results);
 
             var options = new JsonSerializerOptions
             {
@@ -123,8 +122,7 @@ public sealed record TestResult(
     string Duration,
     string? Error = null,
     string? DomSnapshot = null,
-    IReadOnlyList<AxeViolation>? Violations = null,
-    PerfMetrics? PerfMetrics = null);
+    IReadOnlyList<AxeViolation>? Violations = null);
 
 /// <summary>
 /// A single axe-core WCAG violation for structured JSON output.
@@ -144,8 +142,7 @@ public sealed record TestReport(
     string Timestamp,
     string Duration,
     ReportSummary Summary,
-    IReadOnlyList<TestResult> Tests,
-    IReadOnlyDictionary<string, PerfMetrics>? Performance);
+    IReadOnlyList<TestResult> Tests);
 
 /// <summary>
 /// Summary counts for the report.
