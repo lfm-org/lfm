@@ -16,13 +16,29 @@ Extensions **never override** core rules. A carve-out suppresses a specific core
 
 ## File layout
 
-One `.md` file per stack, named after the language or ecosystem — not after a single test framework — because one stack usually supports multiple frameworks:
+One set of `.md` files per stack, named after the language or ecosystem — not after a single test framework — because one stack usually supports multiple frameworks. A stack extension uses one of two shapes:
 
-- `dotnet.md` — covers xUnit, NUnit, MSTest, bUnit, and the usual mocking/assertion libraries.
+### Single-file
+
+Everything lives in `<stack>.md`. Use when the stack's smells and procedures fit under the per-file size target. Example candidates:
+
 - `javascript.md` — would cover Jest, Vitest, Mocha, and the Testing Library family.
 - `python.md` — would cover pytest and unittest.
 - `java.md` — would cover JUnit 5, TestNG, Mockito.
 - `go.md` — would cover the standard `testing` package and testify.
+
+### Core + rubric addons
+
+One `<stack>-core.md` file shared across all rubrics plus up to three `<stack>-unit.md` / `<stack>-integration.md` / `<stack>-e2e.md` files carrying only the content that is exclusive to one rubric. Use when a stack has enough rubric-neutral content (smells marked `Applies to: unit, integration`, procedures that apply under multiple rubrics) that a strict by-rubric split would force duplicating content across files.
+
+Currently the .NET extension uses this shape:
+
+- `dotnet-core.md` — detection signals, test-type dispatch, test-double taxonomy, rubric-neutral smells (`dotnet.HC-*`, `dotnet.LC-*`, `dotnet.POS-*`), carve-outs, SUT surface enumeration, determinism verification, and the Stryker mutation tool declaration. Always loaded when .NET is detected.
+- `dotnet-unit.md` — `Applies to: unit` smells only (`dotnet.HC-4`, `dotnet.LC-1`, `dotnet.LC-3`, `dotnet.LC-5`). Loaded when step 0b selects the unit rubric.
+- `dotnet-integration.md` — `dotnet.I-*` smells, auth matrix enumeration, migration upgrade-path enumeration. Loaded when step 0b selects the integration rubric.
+- `dotnet-e2e.md` — E2E sub-lane refinements and future `dotnet.E-*` smells (stub today). Loaded when step 0b selects the E2E rubric.
+
+**Loading rule for core + addon extensions:** always load the `-core.md` file (it owns detection and test-type dispatch). After step 0b selects the rubric(s), load the addon that matches each selected rubric. Load multiple addons for mixed-rubric audit targets.
 
 ## Required sections
 
@@ -69,6 +85,11 @@ Add an extension when the audit agent's static analysis on a stack produces obvi
 
 ## Keep extensions small
 
-A few hundred lines maximum. If an extension grows beyond that, split by test framework within the stack (`dotnet-xunit.md`, `dotnet-bunit.md`) rather than nesting deeply in one file.
+A few hundred lines per file is the target. If an extension grows beyond that, split the file. Two split shapes are supported:
+
+- **By rubric (preferred when content is rubric-partitioned).** Extract a `<stack>-core.md` for rubric-neutral content and create `<stack>-unit.md` / `<stack>-integration.md` / `<stack>-e2e.md` addons for rubric-exclusive content. See the `dotnet` extension for the current reference implementation. The skill loads only what the selected rubric needs.
+- **By test framework (preferred when content is framework-partitioned).** For stacks whose smells cluster around specific frameworks with little shared content, split into `<stack>-<framework>.md` files — e.g. `dotnet-xunit.md`, `dotnet-bunit.md`. Each file stays focused on one framework's idioms.
+
+Pick the split that minimises duplication. If most of the stack's smells declare `Applies to: unit, integration` (rubric-neutral), the by-rubric split with a core file avoids duplicating those smells across addon files. If most of the stack's smells are framework-specific with little rubric overlap, the by-framework split is cleaner.
 
 Concise extensions load cheaply — the audit agent may load several at once for polyglot repos.

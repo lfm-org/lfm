@@ -73,25 +73,37 @@ Trigger phrases: "full test audit", "audit the test suite", "deep test audit", "
 
 The core rubric is framework-neutral. **Extensions** are per-stack smell packs loaded on demand that add framework-specific smells, positive signals, and carve-outs (explicit "do not flag" rules for patterns that look smelly in the core rubric but are idiomatic in a given framework).
 
-Extensions live in `extensions/*.md`. Read `extensions/README.md` for the full convention. Current extensions:
+Extensions live in `extensions/*.md`. Read `extensions/README.md` for the full convention, including the two supported file layouts (single-file vs. core + rubric addons). Current extensions:
 
-- [extensions/dotnet.md](extensions/dotnet.md) — .NET / xUnit / NUnit / MSTest / bUnit / Moq / NSubstitute / FluentAssertions
+- **.NET** — core + rubric addons. [extensions/dotnet-core.md](extensions/dotnet-core.md) is the shared core (detection, test-type dispatch, test doubles, rubric-neutral smells, SUT surface enumeration, determinism verification, Stryker mutation tool); [extensions/dotnet-unit.md](extensions/dotnet-unit.md), [extensions/dotnet-integration.md](extensions/dotnet-integration.md), and [extensions/dotnet-e2e.md](extensions/dotnet-e2e.md) are the rubric-specific addons. Covers xUnit, NUnit, MSTest, bUnit, Playwright .NET, Selenium, Moq, NSubstitute, FakeItEasy, FluentAssertions, Testcontainers, Stryker.NET.
 
 ### Detection phase (step 0 of every audit)
 
-Before applying the rubric, detect which stacks are present in the audit target. Load every matching extension:
+Before applying the rubric, detect which stacks are present in the audit target. Load every matching extension's **core file**; rubric addons are loaded later, after step 0b selects the rubric (see next subsection).
 
-| Signal | Extension to load |
+| Signal | Extension core to load |
 |---|---|
-| `*.csproj` or `*.sln` in the target; `xunit`, `nunit`, `mstest`, `Moq`, `NSubstitute`, `bunit`, `FluentAssertions`, `Microsoft.Playwright`, `Selenium.WebDriver` package refs | `extensions/dotnet.md` |
+| `*.csproj` or `*.sln` in the target; `xunit`, `nunit`, `mstest`, `Moq`, `NSubstitute`, `bunit`, `FluentAssertions`, `Microsoft.Playwright`, `Selenium.WebDriver` package refs | `extensions/dotnet-core.md` |
 | `package.json` with `jest`, `vitest`, `mocha`, `@testing-library/*`, `@playwright/test`, `cypress`, `webdriverio` in devDependencies | *(future)* `extensions/javascript.md` |
 | `pyproject.toml` or `setup.py` with `pytest` or `unittest` | *(future)* `extensions/python.md` |
 
 Detection rules:
 
-- **Multiple stacks** — load all matching extensions. Note to the user which were loaded.
+- **Multiple stacks** — load all matching extension cores. Note to the user which were loaded.
 - **No matching extension** — proceed with the core rubric only. Note the missing extension as a limitation in the output; if the stack is common, recommend that a new extension be written.
 - **Framework-specific grep hints** live in the extension, not here.
+
+### Rubric addon loading (after step 0b)
+
+After step 0b selects the rubric(s) for the audit target, load the matching rubric addon(s) for each loaded extension core:
+
+| Rubric selected for a test / file / project | `dotnet` addon to load |
+|---|---|
+| `unit` (or `component`) | `extensions/dotnet-unit.md` |
+| `integration` | `extensions/dotnet-integration.md` |
+| `e2e` | `extensions/dotnet-e2e.md` |
+
+For a mixed-rubric audit target (e.g. a test project containing both unit and integration tests), load every addon that at least one test in the target needs. Single-file extensions (those that ship `<stack>.md` only, with no addons) have no addon load step — they are fully resident after the detection phase. See `extensions/README.md` for the full convention.
 
 ### Precedence
 
@@ -275,7 +287,7 @@ Unlike mutation testing (step 4) which observes runtime kill behavior, surface e
 ### Why both static surface enumeration and mutation testing
 
 - **Static audit alone** only examines files that already have tests.
-- **Mutation testing** catches `NoCoverage` files at runtime, but only when the tool is installed and the SUT shape is supported (e.g. Stryker.NET cannot mutate Blazor WASM — see [extensions/dotnet.md § Known SUT limitations](extensions/dotnet.md)).
+- **Mutation testing** catches `NoCoverage` files at runtime, but only when the tool is installed and the SUT shape is supported (e.g. Stryker.NET cannot mutate Blazor WASM — see [extensions/dotnet-core.md § Known SUT limitations](extensions/dotnet-core.md)).
 - **Static surface enumeration** works on any SUT the stack extension has grep patterns for, even Blazor WASM. It produces *probable* gaps from grep, so it is noisier than mutation testing.
 - When both run on the same suite, a symbol flagged by both is a **confirmed gap**; a symbol flagged by static-only is a *probable* gap; a symbol flagged by mutation-only is a signal the grep patterns need tuning.
 
@@ -763,7 +775,7 @@ Things the auditor itself must avoid:
 - **Applying the integration rubric to an E2E test.** A test that drives a real browser through a real user agent (imports `Microsoft.Playwright`, `OpenQA.Selenium`, `@playwright/test`, `cypress`, or similar) is an E2E test, not an integration test, regardless of project name. Route it to the E2E rubric, then classify into sub-lane F / A / P / S. A Playwright test that asserts only server-side response headers with no browser-side enforcement check is a misrouted integration test — flag `E-HC-S1` and recommend moving to integration sub-lane B.
 - **Applying the E2E rubric to an integration contract test.** A test that asserts an HTTP status code, error envelope shape, or JSON response body through a network call but does *not* use a browser belongs in integration sub-lane B, not the E2E lane. Route to the integration rubric.
 - **Confusing E2E sub-lane S with an integration-lane security check.** A security test that only asserts response headers or cookie attributes at the HTTP level is integration sub-lane B work, not E2E. Sub-lane S exists to prove the browser *enforces* the policy (CSP blocks an injected script, the cookie jar honours `SameSite`, an iframe is blocked by `X-Frame-Options`). If the assertion does not need a browser, it is in the wrong lane.
-- **Flagging heavy setup as `LC-7` when the test is correctly routed to the integration or E2E rubric.** Under the integration rubric, `WebApplicationFactory<T>` / `HostBuilder` / `TestServer` setup is expected and positive (`dotnet.POS-3`). Under the E2E rubric, `StackFixture` / `IPlaywright` / browser-context factories / Testcontainers bringup are expected and positive. The `LC-7` carve-out in `extensions/dotnet.md` is the safety net for when routing is uncertain, not the primary mechanism.
+- **Flagging heavy setup as `LC-7` when the test is correctly routed to the integration or E2E rubric.** Under the integration rubric, `WebApplicationFactory<T>` / `HostBuilder` / `TestServer` setup is expected and positive (`dotnet.POS-3`). Under the E2E rubric, `StackFixture` / `IPlaywright` / browser-context factories / Testcontainers bringup are expected and positive. The `LC-7` carve-out in `extensions/dotnet-core.md` is the safety net for when routing is uncertain, not the primary mechanism.
 - **Flagging traces, screenshots, or DOM snapshots captured on failure as `E-HC-F7`.** Diagnostics captured only on failure and never consumed by an assertion are positive (`E-POS-7`), not a smell. `E-HC-F7` targets snapshots *used as the assertion*, not snapshots *written as post-mortem artifacts*.
 - **Treating a grep-based probable gap as a confirmed gap.** Step 2.5 gap findings are approximate. A public method tested indirectly via its caller, an interface method hit through its implementing class, and a private-by-intent-but-public-by-access method all look untested to grep. Mark each gap as probable in the report and recommend verification (mutation testing or manual review) before acting. Never convert a probable gap into a worklist item without a verification step.
 - **Running SUT surface enumeration in quick mode.** Gap detection is suite-level. A quick-mode audit on a PR diff or single file does not have enough scope to make the enumeration meaningful. Skip step 2.5 entirely in quick mode.
