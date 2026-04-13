@@ -90,8 +90,14 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task RefreshCharacters_Click_UpdatesFromBattleNet()
+    public async Task RefreshCharactersButton_DispatchesRefreshRequest()
     {
+        // Verifies the refresh button is wired to the correct API route.
+        // The actual refresh outcome (updated character data) is not asserted
+        // here — the seeded raider has accountProfileRefreshedAt = now, so the
+        // server returns 429 and no data update happens. Asserting the
+        // user-observable update would require a freshly-aged raider in the
+        // seed; for now the test pins the wire-up only.
         var charactersPage = new CharactersPage(Page!);
 
         await charactersPage.GotoAsync(fixture.Stack.AppBaseUrl);
@@ -99,7 +105,6 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(charactersPage.RefreshButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // Wait for the refresh API request to be dispatched after clicking the button.
         var refreshRequestTask = Page!.WaitForRequestAsync(
             req => req.Url.Contains("/api/battlenet/characters/refresh"),
             new() { Timeout = 10000 });
@@ -109,8 +114,6 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         var refreshRequest = await refreshRequestTask;
         refreshRequest.Url.Should().Contain("/api/battlenet/characters/refresh",
             "clicking the refresh button should POST to /api/battlenet/characters/refresh");
-
-        Log("Refresh API call confirmed dispatched");
     }
 
     // -------------------------------------------------------------------------

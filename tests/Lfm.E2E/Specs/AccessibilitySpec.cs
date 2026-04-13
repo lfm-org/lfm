@@ -224,22 +224,32 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task TabOrder_FollowsLogicalFlow()
+    public async Task TabFromBody_FirstStopIsSkipToContentLink()
     {
+        // WCAG 2.4.1 (Bypass Blocks): the skip-to-content link must be the
+        // FIRST tab stop on every page so keyboard users can jump past the
+        // navbar. The link is declared at the top of MainLayout.razor.
+        // Walking the actual sequence and asserting position 1 catches both
+        // a missing skip link AND any element accidentally inserted before it
+        // (toolbar, banner ad, etc.) that would push it further down the
+        // tab order. The previous version only asserted that focus moved off
+        // <body>, which any element on the page would satisfy — that is a
+        // characterization smell (`E-HC-F1`).
         var loginPage = new LoginPage(Page!);
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Press Tab from the body and collect the focused element tag
         await Page!.Keyboard.PressAsync("Tab");
-        var firstFocus = await Page.EvaluateAsync<string>(
-            "() => document.activeElement?.tagName ?? ''");
 
-        // Tab should land on an interactive element, not body or html
-        firstFocus.Should().NotBeNullOrWhiteSpace(
-            "Tab from body should move focus to the first interactive element");
-        firstFocus.ToUpperInvariant().Should().NotBe("BODY",
-            "Tab from body should move focus off the body element");
+        var firstTag = await Page.EvaluateAsync<string>(
+            "() => document.activeElement?.tagName?.toUpperCase() ?? ''");
+        var firstText = await Page.EvaluateAsync<string>(
+            "() => (document.activeElement?.textContent ?? '').trim()");
+
+        firstTag.Should().Be("A",
+            "the first tab stop must be the skip-to-content anchor");
+        firstText.Should().Be("Skip to content",
+            "the first tab stop must be the skip-to-content link, not a navbar element");
     }
 
     [Fact]
