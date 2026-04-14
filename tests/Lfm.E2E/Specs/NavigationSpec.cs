@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -44,7 +43,7 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(landingPage.RoleCoverageCard).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(landingPage.BattleNetSignInCard).ToBeVisibleAsync(new() { Timeout = 10000 });
         var ctaVisible = await landingPage.IsSignInButtonVisibleAsync();
-        ctaVisible.Should().BeTrue();
+        Assert.True(ctaVisible);
     }
 
     [Fact]
@@ -119,14 +118,14 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             await authPage.WaitForURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/characters$"),
                 new() { Timeout = 15000 });
-            authPage.Url.Should().Contain("/characters");
+            Assert.Contains("/characters", authPage.Url);
 
             // Navigate via the Guild link
             await navBar.GuildLink.ClickAsync();
             await authPage.WaitForURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/guild$"),
                 new() { Timeout = 15000 });
-            authPage.Url.Should().Contain("/guild");
+            Assert.Contains("/guild", authPage.Url);
         }
         finally
         {

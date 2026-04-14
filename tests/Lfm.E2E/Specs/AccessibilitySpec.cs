@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -290,10 +289,8 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         var firstText = await Page.EvaluateAsync<string>(
             "() => (document.activeElement?.textContent ?? '').trim()");
 
-        firstTag.Should().Be("A",
-            "the first tab stop must be the skip-to-content anchor");
-        firstText.Should().Be("Skip to content",
-            "the first tab stop must be the skip-to-content link, not a navbar element");
+        Assert.Equal("A", firstTag);
+        Assert.Equal("Skip to content", firstText);
     }
 
     [Fact]
@@ -315,8 +312,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         }
 
         // The login page must have at least the sign-in button reachable via Tab
-        focusedTags.Should().NotBeEmpty(
-            "the login page must have at least one Tab-reachable interactive element");
+        Assert.NotEmpty(focusedTags);
     }
 
     [Fact]
@@ -343,8 +339,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             return hasOutline || hasShadow;
         }");
 
-        hasFocusStyle.Should().BeTrue(
-            "focused elements must have a visible focus indicator (outline or box-shadow)");
+        Assert.True(hasFocusStyle);
     }
 
     // -------------------------------------------------------------------------

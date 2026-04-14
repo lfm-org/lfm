@@ -1,7 +1,7 @@
 using Deque.AxeCore.Commons;
 using Deque.AxeCore.Playwright;
-using FluentAssertions;
 using Microsoft.Playwright;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Lfm.E2E.Helpers;
@@ -72,7 +72,8 @@ public static class AccessibilityHelper
             }
         }
 
-        results.Violations.Should().BeEmpty(
+        Assert.True(
+            !results.Violations.Any(),
             $"page {context ?? page.Url} has WCAG 2.2 AA violations");
     }
 }

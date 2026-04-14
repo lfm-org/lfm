@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;

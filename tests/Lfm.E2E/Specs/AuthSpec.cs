@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -41,7 +40,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
         var visible = await loginPage.IsSignInButtonVisibleAsync();
-        visible.Should().BeTrue();
+        Assert.True(visible);
     }
 
     [Fact]

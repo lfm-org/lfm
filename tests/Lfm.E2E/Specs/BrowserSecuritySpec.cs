@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -74,15 +73,13 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
 
             var jsCookieView = await authPage.EvaluateAsync<string>("() => document.cookie");
 
-            jsCookieView.Should().NotContain("battlenet_token",
-                "the auth cookie is HttpOnly and must not be visible to scripts via document.cookie");
+            Assert.DoesNotContain("battlenet_token", jsCookieView);
 
             // Sanity check: the cookie *does* exist in the browser jar — Playwright
             // can see it via the protocol because it bypasses the DOM. If this
             // fails the test setup is broken, not the contract under test.
             var jarCookies = await authContext.CookiesAsync();
-            jarCookies.Should().Contain(c => c.Name == "battlenet_token",
-                "the auth cookie must exist in the browser jar (otherwise the JS-blocked check is meaningless)");
+            Assert.Contains(jarCookies, c => c.Name == "battlenet_token");
         }
         finally
         {
@@ -112,8 +109,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             }
             """);
 
-        fetchOutcome.Should().Be("blocked",
-            "a fetch from an unregistered origin must be blocked by the browser's CORS check; got: " + fetchOutcome);
+        Assert.Equal("blocked", fetchOutcome);
     }
 
     [Fact]
@@ -151,8 +147,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             }
             """);
 
-        iframeState.Should().Be("blocked",
-            "X-Frame-Options: DENY must prevent the app from being framed by an unregistered origin; got: " + iframeState);
+        Assert.Equal("blocked", iframeState);
     }
 
     [Fact]
@@ -176,7 +171,6 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             }
             """);
 
-        pwnedFlag.Should().NotBe(true,
-            "an inline script injected at runtime must be blocked by CSP script-src directives that omit 'unsafe-inline'");
+        Assert.NotEqual(true, pwnedFlag);
     }
 }

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -112,8 +111,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await charactersPage.ClickRefreshAsync();
 
         var refreshRequest = await refreshRequestTask;
-        refreshRequest.Url.Should().Contain("/api/battlenet/characters/refresh",
-            "clicking the refresh button should POST to /api/battlenet/characters/refresh");
+        Assert.Contains("/api/battlenet/characters/refresh", refreshRequest.Url);
     }
 
     // -------------------------------------------------------------------------
@@ -189,8 +187,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 15000 });
         var persistedSlogan = await guildAdminPage.SloganField.InputValueAsync();
-        persistedSlogan.Should().Be(newSlogan,
-            "the slogan must round-trip through Cosmos and be visible on reload");
+        Assert.Equal(newSlogan, persistedSlogan);
     }
 
     // -------------------------------------------------------------------------

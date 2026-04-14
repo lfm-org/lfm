@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -129,8 +128,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // The seeded run has exactly 1 signup ("Aelrin").
         await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
         var rosterText = await runsPage.RosterHeading.InnerTextAsync();
-        rosterText.Should().Contain("Roster (1)",
-            "the seeded run has exactly one signup; a regression in the count rendering would silently weaken every other roster test");
+        Assert.Contains("Roster (1)", rosterText);
 
         await Assertions.Expect(runsPage.RosterGrid).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(Page!.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
@@ -156,8 +154,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(runsPage.RosterGrid).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         var rosterText = await runsPage.RosterHeading.InnerTextAsync();
-        rosterText.Should().Contain("Roster (1)",
-            "the seeded run has exactly one signup; deep-link navigation must show the same roster as list-click navigation");
+        Assert.Contains("Roster (1)", rosterText);
 
         await Assertions.Expect(Page.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
     }

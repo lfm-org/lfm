@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
@@ -86,20 +85,20 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
         // Landing page
         await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        Page.Url.Should().NotContain("/login?redirect");
+        Assert.DoesNotContain("/login?redirect", Page.Url);
 
         // Login page
         await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/login",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
         var loginPage = new LoginPage(Page);
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        Page.Url.Should().Contain("/login");
-        Page.Url.Should().NotContain("redirect=");
+        Assert.Contains("/login", Page.Url);
+        Assert.DoesNotContain("redirect=", Page.Url);
 
         // Privacy page
         await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/privacy",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        Page.Url.Should().Contain("/privacy");
-        Page.Url.Should().NotContain("/login?redirect");
+        Assert.Contains("/privacy", Page.Url);
+        Assert.DoesNotContain("/login?redirect", Page.Url);
     }
 }
