@@ -1,0 +1,44 @@
+@using Lfm.Contracts.Runs
+@using Lfm.Contracts.WoW
+@inject IStringLocalizer Loc
+
+<div class="character-row" style="--class-color:@WowClasses.GetColor(Character.CharacterClassId)">
+    <div class="character-row__main">
+        <span class="character-row__name">@Character.CharacterName</span>
+        <span class="character-row__sub">@ClassSpec()</span>
+    </div>
+    <span class="attendance-pill attendance-pill--@AttendanceClass(Character.ReviewedAttendance)">
+        @AttendanceLabel(Character.ReviewedAttendance)
+    </span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RunCharacterDto Character { get; set; } = default!;
+
+    private string ClassSpec()
+    {
+        var className = Character.CharacterClassName;
+        var spec = Character.SpecName;
+        return string.IsNullOrWhiteSpace(spec) ? className : $"{className} \u00B7 {spec}";
+    }
+
+    private string AttendanceClass(string attendance) => attendance switch
+    {
+        "IN" => "in",
+        "LATE" => "late",
+        "BENCH" => "bench",
+        "OUT" => "out",
+        "AWAY" => "away",
+        _ => "unknown"
+    };
+
+    private string AttendanceLabel(string attendance) => attendance switch
+    {
+        "IN" => Loc["runs.attendance.in"],
+        "LATE" => Loc["runs.attendance.late"],
+        "BENCH" => Loc["runs.attendance.bench"],
+        "OUT" => Loc["runs.attendance.out"],
+        "AWAY" => Loc["runs.attendance.away"],
+        _ => attendance
+    };
+}
