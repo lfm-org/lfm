@@ -1,5 +1,4 @@
 using Bunit;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -60,7 +59,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var cut = Render<RunsPage>();
 
-        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
     }
 
     [Fact]
@@ -74,7 +73,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Liberation of Undermine"));
+            Assert.Contains("Liberation of Undermine", cut.Markup));
     }
 
     [Fact]
@@ -88,7 +87,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("runs.empty")));
+            Assert.Contains(Loc("runs.empty"), cut.Markup));
     }
 
     [Fact]
@@ -102,7 +101,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<RunsPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Network error"));
+            Assert.Contains("Network error", cut.Markup));
     }
 
     // ── CreateRunPage ────────────────────────────────────────────────────────
@@ -119,7 +118,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var cut = Render<CreateRunPage>();
 
-        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
     }
 
     [Fact]
@@ -135,7 +134,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("createRun.title")));
+            Assert.Contains(Loc("createRun.title"), cut.Markup));
     }
 
     [Fact]
@@ -151,7 +150,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<CreateRunPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("createRun.submit")));
+            Assert.Contains(Loc("createRun.submit"), cut.Markup));
     }
 
     // ── EditRunPage ──────────────────────────────────────────────────────────
@@ -170,7 +169,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
-        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
     }
 
     [Fact]
@@ -188,7 +187,7 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("editRun.saveChanges")));
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
     }
 
     [Fact]
@@ -206,6 +205,6 @@ public class RunsPagesTests : ComponentTestBase
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("editRun.error.notFound")));
+            Assert.Contains(Loc("editRun.error.notFound"), cut.Markup));
     }
 }

@@ -1,6 +1,5 @@
 using Bunit;
 using Bunit.TestDoubles;
-using FluentAssertions;
 using Lfm.App.Layout;
 using Lfm.App.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +16,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.Markup.Should().Contain(Loc("nav.logo"));
+        Assert.Contains(Loc("nav.logo"), cut.Markup);
     }
 
     [Fact]
@@ -27,7 +26,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("nav.signIn")));
+        cut.WaitForAssertion(() => Assert.Contains(Loc("nav.signIn"), cut.Markup));
     }
 
     [Fact]
@@ -41,9 +40,9 @@ public class LayoutTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain(Loc("nav.runs"));
-            cut.Markup.Should().Contain(Loc("nav.guild"));
-            cut.Markup.Should().Contain(Loc("nav.characters"));
+            Assert.Contains(Loc("nav.runs"), cut.Markup);
+            Assert.Contains(Loc("nav.guild"), cut.Markup);
+            Assert.Contains(Loc("nav.characters"), cut.Markup);
         });
     }
 
@@ -56,7 +55,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("nav.signOut")));
+        cut.WaitForAssertion(() => Assert.Contains(Loc("nav.signOut"), cut.Markup));
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "unique-page-marker")));
 
-        cut.Markup.Should().Contain("unique-page-marker");
+        Assert.Contains("unique-page-marker", cut.Markup);
     }
 
     [Fact]
@@ -76,9 +75,9 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.Markup.Should().Contain(Loc("footer.privacyPolicy"));
-        cut.Markup.Should().Contain(Loc("locale.en"));
-        cut.Markup.Should().Contain(Loc("locale.fi"));
+        Assert.Contains(Loc("footer.privacyPolicy"), cut.Markup);
+        Assert.Contains(Loc("locale.en"), cut.Markup);
+        Assert.Contains(Loc("locale.fi"), cut.Markup);
     }
 
     [Fact]
@@ -88,7 +87,7 @@ public class LayoutTests : ComponentTestBase
         var cut = Render<MainLayout>(p =>
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
-        cut.Markup.Should().Contain(Loc("a11y.skipToContent"));
+        Assert.Contains(Loc("a11y.skipToContent"), cut.Markup);
     }
 
     [Fact]
@@ -99,7 +98,7 @@ public class LayoutTests : ComponentTestBase
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         var toggle = cut.Find("fluent-button[aria-label*='mode']");
-        toggle.Should().NotBeNull();
+        Assert.NotNull(toggle);
     }
 
     [Fact]
@@ -110,6 +109,6 @@ public class LayoutTests : ComponentTestBase
             p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
 
         var toggle = cut.Find("fluent-button[aria-label='Switch to light mode']");
-        toggle.Should().NotBeNull();
+        Assert.NotNull(toggle);
     }
 }

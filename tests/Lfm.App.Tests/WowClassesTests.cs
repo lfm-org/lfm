@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Contracts.WoW;
 using Xunit;
 
@@ -22,7 +21,7 @@ public class WowClassesTests
     [InlineData(13, "#33937F")]
     public void GetColor_Returns_Correct_Color_For_Known_Classes(int classId, string expected)
     {
-        WowClasses.GetColor(classId).Should().Be(expected);
+        Assert.Equal(expected, WowClasses.GetColor(classId));
     }
 
     [Theory]
@@ -32,6 +31,6 @@ public class WowClassesTests
     [InlineData(999)]
     public void GetColor_Returns_White_For_Unknown_Classes(int classId)
     {
-        WowClasses.GetColor(classId).Should().Be("#FFFFFF");
+        Assert.Equal("#FFFFFF", WowClasses.GetColor(classId));
     }
 }

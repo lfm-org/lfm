@@ -1,5 +1,4 @@
 using Bunit;
-using FluentAssertions;
 using Lfm.App.Components;
 using Lfm.Contracts.WoW;
 using Xunit;
@@ -19,8 +18,8 @@ public class WowClassBadgeTests : ComponentTestBase
             .Add(x => x.CharacterName, "TestChar"));
 
         var span = cut.Find("span");
-        span.GetAttribute("style").Should().Contain($"color:{WowClasses.GetColor(classId)}");
-        span.TextContent.Should().Be("TestChar");
+        Assert.Contains($"color:{WowClasses.GetColor(classId)}", span.GetAttribute("style"));
+        Assert.Equal("TestChar", span.TextContent);
     }
 
     [Fact]
@@ -31,7 +30,7 @@ public class WowClassBadgeTests : ComponentTestBase
             .Add(x => x.CharacterName, "Unknown"));
 
         var span = cut.Find("span");
-        span.GetAttribute("style").Should().Contain($"color:{WowClasses.GetColor(999)}");
+        Assert.Contains($"color:{WowClasses.GetColor(999)}", span.GetAttribute("style"));
     }
 
     [Fact]
@@ -42,6 +41,6 @@ public class WowClassBadgeTests : ComponentTestBase
             .Add(x => x.CharacterName, "Frostbolt"));
 
         var span = cut.Find("span");
-        span.GetAttribute("style").Should().Contain("font-weight:600");
+        Assert.Contains("font-weight:600", span.GetAttribute("style"));
     }
 }

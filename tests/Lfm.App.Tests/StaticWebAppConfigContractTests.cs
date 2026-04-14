@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using FluentAssertions;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -17,13 +16,12 @@ public class StaticWebAppConfigContractTests
 
     private static JsonObject LoadGlobalHeaders()
     {
-        File.Exists(ConfigPath).Should().BeTrue(
-            $"staticwebapp.config.json should be copied to test output at {ConfigPath}");
+        Assert.True(File.Exists(ConfigPath));
 
         var root = JsonNode.Parse(File.ReadAllText(ConfigPath));
-        root.Should().NotBeNull("staticwebapp.config.json must be valid JSON");
+        Assert.NotNull(root);
         var headers = root!["globalHeaders"]?.AsObject();
-        headers.Should().NotBeNull("staticwebapp.config.json must declare a globalHeaders object");
+        Assert.NotNull(headers);
         return headers!;
     }
 
@@ -35,12 +33,11 @@ public class StaticWebAppConfigContractTests
     {
         var headers = LoadGlobalHeaders();
 
-        headers["X-Content-Type-Options"]!.GetValue<string>().Should().Be("nosniff");
-        headers["X-Frame-Options"]!.GetValue<string>().Should().Be("DENY");
-        headers["Referrer-Policy"]!.GetValue<string>().Should().Be("strict-origin-when-cross-origin");
-        headers["Permissions-Policy"]!.GetValue<string>().Should().Contain("camera=()");
-        headers["Content-Security-Policy"].Should().NotBeNull(
-            "globalHeaders must declare a Content-Security-Policy");
+        Assert.Equal("nosniff", headers["X-Content-Type-Options"]!.GetValue<string>());
+        Assert.Equal("DENY", headers["X-Frame-Options"]!.GetValue<string>());
+        Assert.Equal("strict-origin-when-cross-origin", headers["Referrer-Policy"]!.GetValue<string>());
+        Assert.Contains("camera=()", headers["Permissions-Policy"]!.GetValue<string>());
+        Assert.NotNull(headers["Content-Security-Policy"]);
     }
 
     [Fact]
@@ -48,7 +45,7 @@ public class StaticWebAppConfigContractTests
     {
         // default-src 'self' is the Blazor WASM SPA's allow-list floor — every fetch
         // category not explicitly relaxed must fall back to same-origin only.
-        GetCsp().Should().Contain("default-src 'self'");
+        Assert.Contains("default-src 'self'", GetCsp());
     }
 
     [Fact]
@@ -61,9 +58,9 @@ public class StaticWebAppConfigContractTests
         // the test source itself free of the literal substring (lint hooks scan files
         // for the substring outside its CSP context).
         var csp = GetCsp();
-        csp.Should().Contain("script-src 'self'");
+        Assert.Contains("script-src 'self'", csp);
         var wasmDirective = "wasm-unsafe-" + "eval";
-        csp.Should().Contain(wasmDirective);
+        Assert.Contains(wasmDirective, csp);
     }
 
     [Fact]
@@ -73,6 +70,6 @@ public class StaticWebAppConfigContractTests
         // production. Dropping the API host from connect-src would break every
         // authenticated request silently in the deployed app while leaving local
         // dev (which uses dotnet run on the same machine) green.
-        GetCsp().Should().Contain("https://lfm-api.dinosauruskeksi.com");
+        Assert.Contains("https://lfm-api.dinosauruskeksi.com", GetCsp());
     }
 }

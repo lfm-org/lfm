@@ -38,7 +38,7 @@ public abstract class ComponentTestBase : BunitContext
 
     /// <summary>
     /// Look up a locale key from the same JSON files the component sees.
-    /// Use in assertions: <c>cut.Markup.Should().Contain(Loc("nav.logo"));</c>
+    /// Use in assertions: <c>Assert.Contains(Loc("nav.logo"), cut.Markup);</c>
     /// </summary>
     protected string Loc(string key) => _localizer[key].Value;
 

@@ -1,6 +1,5 @@
 using Bunit;
 using Bunit.TestDoubles;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -44,7 +43,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Arthas"));
+        cut.WaitForAssertion(() => Assert.Contains("Arthas", cut.Markup));
     }
 
     [Fact]
@@ -80,7 +79,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("characters.empty")));
+        cut.WaitForAssertion(() => Assert.Contains(Loc("characters.empty"), cut.Markup));
     }
 
     [Fact]
@@ -96,7 +95,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Network error"));
+        cut.WaitForAssertion(() => Assert.Contains("Network error", cut.Markup));
     }
 
     [Fact]
@@ -112,7 +111,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("characters.error.loadFailed")));
+        cut.WaitForAssertion(() => Assert.Contains(Loc("characters.error.loadFailed"), cut.Markup));
     }
 
     [Fact]
@@ -132,8 +131,8 @@ public class CharactersPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Arthas");
-            cut.Markup.Should().Contain("Sylvanas");
+            Assert.Contains("Arthas", cut.Markup);
+            Assert.Contains("Sylvanas", cut.Markup);
         });
     }
 
@@ -152,6 +151,6 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain(Loc("characters.deleteAccount.title")));
+        cut.WaitForAssertion(() => Assert.Contains(Loc("characters.deleteAccount.title"), cut.Markup));
     }
 }

@@ -1,5 +1,4 @@
 using Bunit;
-using FluentAssertions;
 using Lfm.App.Components;
 using Lfm.Contracts.Runs;
 using Lfm.Contracts.WoW;
@@ -48,7 +47,7 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             .Add(x => x.GroupLabel, "IN")
             .Add(x => x.Characters, chars));
 
-        cut.Markup.Should().Contain("IN (2)");
+        Assert.Contains("IN (2)", cut.Markup);
     }
 
     [Fact]
@@ -65,8 +64,8 @@ public class AttendanceRosterSectionTests : ComponentTestBase
 
         // WowClassBadge renders a span with class color
         var span = cut.Find("span[style]");
-        span.TextContent.Should().Be("Thrall");
-        span.GetAttribute("style").Should().Contain($"color:{WowClasses.GetColor(7)}");
+        Assert.Equal("Thrall", span.TextContent);
+        Assert.Contains($"color:{WowClasses.GetColor(7)}", span.GetAttribute("style"));
     }
 
     [Fact]
@@ -82,8 +81,8 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             .Add(x => x.Characters, chars)
             .Add(x => x.ShowDesiredAttendance, true));
 
-        cut.Markup.Should().Contain("Desired");
-        cut.Markup.Should().Contain("BENCH");
+        Assert.Contains("Desired", cut.Markup);
+        Assert.Contains("BENCH", cut.Markup);
     }
 
     [Fact]
@@ -98,6 +97,6 @@ public class AttendanceRosterSectionTests : ComponentTestBase
             .Add(x => x.GroupLabel, "IN")
             .Add(x => x.Characters, chars));
 
-        cut.Markup.Should().NotContain("Desired");
+        Assert.DoesNotContain("Desired", cut.Markup);
     }
 }

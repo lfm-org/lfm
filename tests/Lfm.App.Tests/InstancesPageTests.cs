@@ -1,5 +1,4 @@
 using Bunit;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -21,7 +20,7 @@ public class InstancesPageTests : ComponentTestBase
 
         var cut = Render<InstancesPage>();
 
-        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
     }
 
     [Fact]
@@ -36,6 +35,6 @@ public class InstancesPageTests : ComponentTestBase
         Services.AddSingleton(client.Object);
 
         var cut = Render<InstancesPage>();
-        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Liberation of Undermine"));
+        cut.WaitForAssertion(() => Assert.Contains("Liberation of Undermine", cut.Markup));
     }
 }

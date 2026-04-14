@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FluentAssertions;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -12,10 +11,10 @@ public class LocaleParityTests
     private static Dictionary<string, string> LoadLocale(string locale)
     {
         var path = Path.Combine(LocalesDir, $"{locale}.json");
-        File.Exists(path).Should().BeTrue($"locale file {locale}.json should exist at {path}");
+        Assert.True(File.Exists(path));
         var json = File.ReadAllText(path);
         var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-        dict.Should().NotBeNull();
+        Assert.NotNull(dict);
         return dict!;
     }
 
@@ -27,9 +26,7 @@ public class LocaleParityTests
 
         var missingInFi = en.Keys.Except(fi.Keys).ToList();
 
-        missingInFi.Should().BeEmpty(
-            "every key in en.json must have a corresponding key in fi.json. Missing: {0}",
-            string.Join(", ", missingInFi));
+        Assert.Empty(missingInFi);
     }
 
     [Fact]
@@ -40,9 +37,7 @@ public class LocaleParityTests
 
         var missingInEn = fi.Keys.Except(en.Keys).ToList();
 
-        missingInEn.Should().BeEmpty(
-            "every key in fi.json must have a corresponding key in en.json. Extra: {0}",
-            string.Join(", ", missingInEn));
+        Assert.Empty(missingInEn);
     }
 
     [Fact]
@@ -54,7 +49,7 @@ public class LocaleParityTests
             .Select(kv => kv.Key)
             .ToList();
 
-        emptyKeys.Should().BeEmpty("no English locale key should have an empty value");
+        Assert.Empty(emptyKeys);
     }
 
     [Fact]
@@ -66,6 +61,6 @@ public class LocaleParityTests
             .Select(kv => kv.Key)
             .ToList();
 
-        emptyKeys.Should().BeEmpty("no Finnish locale key should have an empty value");
+        Assert.Empty(emptyKeys);
     }
 }

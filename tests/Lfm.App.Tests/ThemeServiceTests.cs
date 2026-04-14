@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.App.Services;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
@@ -12,7 +11,7 @@ public class ThemeServiceTests
     {
         var sut = new ThemeService();
 
-        sut.Mode.Should().Be(DesignThemeModes.Dark);
+        Assert.Equal(DesignThemeModes.Dark, sut.Mode);
     }
 
     [Fact]
@@ -22,7 +21,7 @@ public class ThemeServiceTests
 
         sut.Toggle();
 
-        sut.Mode.Should().Be(DesignThemeModes.Light);
+        Assert.Equal(DesignThemeModes.Light, sut.Mode);
     }
 
     [Fact]
@@ -33,7 +32,7 @@ public class ThemeServiceTests
         sut.Toggle();
         sut.Toggle();
 
-        sut.Mode.Should().Be(DesignThemeModes.Dark);
+        Assert.Equal(DesignThemeModes.Dark, sut.Mode);
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class ThemeServiceTests
 
         sut.SetMode(DesignThemeModes.Light);
 
-        sut.Mode.Should().Be(DesignThemeModes.Light);
+        Assert.Equal(DesignThemeModes.Light, sut.Mode);
     }
 
     [Fact]
@@ -55,8 +54,8 @@ public class ThemeServiceTests
 
         sut.SetMode(DesignThemeModes.Dark);
 
-        changeCount.Should().Be(0);
-        sut.Mode.Should().Be(DesignThemeModes.Dark);
+        Assert.Equal(0, changeCount);
+        Assert.Equal(DesignThemeModes.Dark, sut.Mode);
     }
 
     [Fact]
@@ -68,7 +67,7 @@ public class ThemeServiceTests
 
         sut.Toggle();
 
-        changeCount.Should().Be(1);
+        Assert.Equal(1, changeCount);
     }
 
     [Fact]
@@ -80,7 +79,7 @@ public class ThemeServiceTests
 
         sut.SetMode(DesignThemeModes.Light);
 
-        changeCount.Should().Be(1);
+        Assert.Equal(1, changeCount);
     }
 
     [Fact]
@@ -92,6 +91,6 @@ public class ThemeServiceTests
 
         sut.SetMode(DesignThemeModes.Dark);
 
-        changeCount.Should().Be(0);
+        Assert.Equal(0, changeCount);
     }
 }

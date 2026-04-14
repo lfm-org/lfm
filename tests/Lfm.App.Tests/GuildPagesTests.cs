@@ -1,5 +1,4 @@
 using Bunit;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -23,7 +22,7 @@ public class GuildPagesTests : ComponentTestBase
 
         var cut = Render<GuildPage>();
 
-        cut.FindAll("fluent-progress-ring").Should().NotBeEmpty();
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
     }
 
     [Fact]
@@ -42,7 +41,7 @@ public class GuildPagesTests : ComponentTestBase
         var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("guild.noGuild.title")));
+            Assert.Contains(Loc("guild.noGuild.title"), cut.Markup));
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class GuildPagesTests : ComponentTestBase
         var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain("Stormchasers"));
+            Assert.Contains("Stormchasers", cut.Markup));
     }
 
     [Fact]
@@ -75,7 +74,7 @@ public class GuildPagesTests : ComponentTestBase
         var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
-            cut.Markup.Should().Contain(Loc("guild.error.loadFailed")));
+            Assert.Contains(Loc("guild.error.loadFailed"), cut.Markup));
     }
 
     // ── GuildAdminPage ───────────────────────────────────────────────────────
@@ -88,6 +87,6 @@ public class GuildPagesTests : ComponentTestBase
 
         var cut = Render<GuildAdminPage>();
 
-        cut.Markup.Should().Contain(Loc("guildAdmin.title"));
+        Assert.Contains(Loc("guildAdmin.title"), cut.Markup);
     }
 }

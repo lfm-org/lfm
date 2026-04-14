@@ -1,6 +1,5 @@
 using Bunit;
 using Bunit.TestDoubles;
-using FluentAssertions;
 using Lfm.App.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -14,9 +13,9 @@ public class AuthPagesTests : ComponentTestBase
     {
         var cut = Render<LandingPage>();
 
-        cut.Markup.Should().Contain(Loc("landing.title"));
-        cut.Markup.Should().Contain(Loc("landing.subtitle"));
-        cut.Markup.Should().Contain(Loc("landing.signIn"));
+        Assert.Contains(Loc("landing.title"), cut.Markup);
+        Assert.Contains(Loc("landing.subtitle"), cut.Markup);
+        Assert.Contains(Loc("landing.signIn"), cut.Markup);
     }
 
     [Fact]
@@ -28,10 +27,10 @@ public class AuthPagesTests : ComponentTestBase
 
         cut.Find("fluent-button").Click();
 
-        var entry = nav.History.Should().ContainSingle().Subject;
-        entry.Uri.Should().StartWith("http://localhost:7071/api/battlenet/login");
-        entry.Uri.Should().Contain("redirect=%2Fruns");
-        entry.Options.ForceLoad.Should().BeTrue();
+        var entry = Assert.Single(nav.History);
+        Assert.StartsWith("http://localhost:7071/api/battlenet/login", entry.Uri);
+        Assert.Contains("redirect=%2Fruns", entry.Uri);
+        Assert.True(entry.Options.ForceLoad);
     }
 
     [Fact]
@@ -44,8 +43,8 @@ public class AuthPagesTests : ComponentTestBase
 
         cut.Find("fluent-button").Click();
 
-        var forceEntry = nav.History.Should().Contain(e => e.Options.ForceLoad).Subject;
-        forceEntry.Uri.Should().Contain("redirect=%2Fguild");
+        var forceEntry = Assert.Single(nav.History, e => e.Options.ForceLoad);
+        Assert.Contains("redirect=%2Fguild", forceEntry.Uri);
     }
 
     [Fact]
@@ -53,9 +52,9 @@ public class AuthPagesTests : ComponentTestBase
     {
         var cut = Render<LoginFailedPage>();
 
-        cut.Markup.Should().Contain(Loc("loginFailed.title"));
-        cut.Markup.Should().Contain(Loc("loginFailed.subtitle"));
-        cut.Markup.Should().Contain(Loc("loginFailed.button"));
+        Assert.Contains(Loc("loginFailed.title"), cut.Markup);
+        Assert.Contains(Loc("loginFailed.subtitle"), cut.Markup);
+        Assert.Contains(Loc("loginFailed.button"), cut.Markup);
     }
 
     [Fact]
@@ -63,9 +62,9 @@ public class AuthPagesTests : ComponentTestBase
     {
         var cut = Render<GoodbyePage>();
 
-        cut.Markup.Should().Contain(Loc("goodbye.title"));
-        cut.Markup.Should().Contain(Loc("goodbye.body1"));
-        cut.Markup.Should().Contain(Loc("goodbye.signIn"));
+        Assert.Contains(Loc("goodbye.title"), cut.Markup);
+        Assert.Contains(Loc("goodbye.body1"), cut.Markup);
+        Assert.Contains(Loc("goodbye.signIn"), cut.Markup);
     }
 
     [Fact]
@@ -73,13 +72,13 @@ public class AuthPagesTests : ComponentTestBase
     {
         var cut = Render<PrivacyPolicyPage>();
 
-        cut.Markup.Should().Contain(Loc("privacy.title"));
-        cut.Markup.Should().Contain(Loc("privacy.controller.heading"));
-        cut.Markup.Should().Contain(Loc("privacy.data.heading"));
-        cut.Markup.Should().Contain(Loc("privacy.cookies.heading"));
-        cut.Markup.Should().Contain(Loc("privacy.thirdParty.heading"));
-        cut.Markup.Should().Contain(Loc("privacy.retention.heading"));
-        cut.Markup.Should().Contain(Loc("privacy.rights.heading"));
-        cut.Markup.Should().Contain(Loc("privacy.contact.heading"));
+        Assert.Contains(Loc("privacy.title"), cut.Markup);
+        Assert.Contains(Loc("privacy.controller.heading"), cut.Markup);
+        Assert.Contains(Loc("privacy.data.heading"), cut.Markup);
+        Assert.Contains(Loc("privacy.cookies.heading"), cut.Markup);
+        Assert.Contains(Loc("privacy.thirdParty.heading"), cut.Markup);
+        Assert.Contains(Loc("privacy.retention.heading"), cut.Markup);
+        Assert.Contains(Loc("privacy.rights.heading"), cut.Markup);
+        Assert.Contains(Loc("privacy.contact.heading"), cut.Markup);
     }
 }
