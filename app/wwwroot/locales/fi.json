@@ -136,6 +136,8 @@
     "characters.deleteAccount.failed": "Tilin poistaminen ep\u00e4onnistui. Yrit\u00e4 uudelleen.",
     "characters.deleteAccount.error": "Odottamaton virhe tapahtui. Yrit\u00e4 uudelleen.",
     "characters.error.loadFailed": "Hahmojen lataaminen ep\u00e4onnistui.",
+    "characters.active": "Aktiivinen",
+    "characters.error.selectFailed": "Aktiivisen hahmon asettaminen ep\u00e4onnistui. Yrit\u00e4 uudelleen.",
 
     "guild.title": "Kilta",
     "guild.noGuild.title": "Kiltaa ei l\u00f6ytynyt",

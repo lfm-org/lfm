@@ -136,6 +136,8 @@
     "characters.deleteAccount.failed": "Failed to delete account. Please try again.",
     "characters.deleteAccount.error": "An unexpected error occurred. Please try again.",
     "characters.error.loadFailed": "Failed to load characters.",
+    "characters.active": "Active",
+    "characters.error.selectFailed": "Failed to set active character. Please try again.",
 
     "guild.title": "Guild",
     "guild.noGuild.title": "No guild found",
