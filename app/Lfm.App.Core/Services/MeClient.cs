@@ -33,6 +33,20 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         }
     }
 
+    public async Task<bool> SelectCharacterAsync(string id, CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.PutAsync($"api/raider/characters/{id}", content: null, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> DeleteAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");

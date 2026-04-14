@@ -149,4 +149,40 @@ public class MeClientTests
         Assert.False(result);
         Assert.Equal(1, handler.CallCount);
     }
+
+    // ── SelectCharacterAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SelectCharacterAsync_returns_true_on_200()
+    {
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.OK));
+
+        var result = await client.SelectCharacterAsync("eu-silvermoon-arthas", CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal(HttpMethod.Put, handler.LastRequest!.Method);
+        Assert.Equal("/api/raider/characters/eu-silvermoon-arthas", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task SelectCharacterAsync_returns_false_on_403()
+    {
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Forbidden));
+
+        var result = await client.SelectCharacterAsync("eu-silvermoon-arthas", CancellationToken.None);
+
+        Assert.False(result);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task SelectCharacterAsync_returns_false_on_HttpRequestException()
+    {
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network error")));
+
+        var result = await client.SelectCharacterAsync("eu-silvermoon-arthas", CancellationToken.None);
+
+        Assert.False(result);
+        Assert.Equal(1, handler.CallCount);
+    }
 }
