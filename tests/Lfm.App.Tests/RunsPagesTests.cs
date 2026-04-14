@@ -104,6 +104,150 @@ public class RunsPagesTests : ComponentTestBase
             Assert.Contains("Network error", cut.Markup));
     }
 
+    private static RunCharacterDto MakeCharacter(
+        string id,
+        string name,
+        int classId = 8,
+        string className = "Mage",
+        string? role = "DPS",
+        string attendance = "IN",
+        string? spec = "Arcane") =>
+        new(
+            Id: id,
+            CharacterId: $"char-{id}",
+            CharacterName: name,
+            CharacterRealm: "Test Realm",
+            CharacterLevel: 80,
+            CharacterClassId: classId,
+            CharacterClassName: className,
+            CharacterRaceId: 1,
+            CharacterRaceName: "Human",
+            DesiredAttendance: attendance,
+            ReviewedAttendance: attendance,
+            SpecId: 62,
+            SpecName: spec,
+            Role: role,
+            IsCurrentUser: false);
+
+    private static RunDetailDto MakeDetailWithRoster(IReadOnlyList<RunCharacterDto> characters) =>
+        MakeDetail() with { RunCharacters = characters };
+
+    [Fact]
+    public void RunsPage_RoleColumns_SplitAttendingCharactersByRole()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("c-tank", "Tankington", classId: 1, className: "Warrior", role: "TANK", spec: "Protection"),
+                MakeCharacter("c-heal", "Healsworth", classId: 2, className: "Paladin", role: "HEALER", spec: "Holy"),
+                MakeCharacter("c-dps", "Dpsalot", classId: 8, className: "Mage", role: "DPS", spec: "Frost"),
+            }));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal(3, cut.FindAll(".character-row").Count));
+
+        var attendingTitle = cut.Find("[data-testid='roster-attending-title']");
+        Assert.Contains("(3)", attendingTitle.TextContent);
+
+        var roleColumns = cut.FindAll(".roster-role-column");
+        Assert.Equal(3, roleColumns.Count);
+
+        var markup = cut.Markup;
+        Assert.Contains("Tankington", markup);
+        Assert.Contains("Healsworth", markup);
+        Assert.Contains("Dpsalot", markup);
+    }
+
+    [Fact]
+    public void RunsPage_NotAttendingSection_RendersOutAndAwayCharacters()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("c-in", "Present", attendance: "IN"),
+                MakeCharacter("c-out", "Skipper", attendance: "OUT"),
+                MakeCharacter("c-away", "Traveler", attendance: "AWAY"),
+            }));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.NotNull(cut.Find("[data-testid='roster-not-attending-title']")));
+
+        var notAttendingTitle = cut.Find("[data-testid='roster-not-attending-title']");
+        Assert.Contains("(2)", notAttendingTitle.TextContent);
+
+        Assert.Contains("Skipper", cut.Markup);
+        Assert.Contains("Traveler", cut.Markup);
+        Assert.Contains("attendance-pill--out", cut.Markup);
+        Assert.Contains("attendance-pill--away", cut.Markup);
+    }
+
+    [Fact]
+    public void RunsPage_CharacterRow_UsesClassColorBorder()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("c-mage", "Frostmage", classId: 8, className: "Mage"),
+            }));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.NotNull(cut.Find(".character-row")));
+
+        var row = cut.Find(".character-row");
+        var style = row.GetAttribute("style") ?? "";
+        // Mage class color is #3FC7EB (see Lfm.Contracts/WoW/WowClasses.cs)
+        Assert.Contains("#3FC7EB", style);
+    }
+
+    [Fact]
+    public void RunsPage_RunListItem_RendersDifficultyPillAndAttendingFooter()
+    {
+        var client = new Mock<IRunsClient>();
+        var summary = MakeSummary() with { ModeKey = "MYTHIC:25" };
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto>
+            {
+                summary with
+                {
+                    RunCharacters = new List<RunCharacterDto>
+                    {
+                        MakeCharacter("c1", "A", attendance: "IN"),
+                        MakeCharacter("c2", "B", attendance: "IN"),
+                        MakeCharacter("c3", "C", attendance: "OUT"),
+                    },
+                },
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.NotNull(cut.Find(".difficulty-pill--mythic")));
+
+        Assert.Contains("Mythic", cut.Find(".difficulty-pill--mythic").TextContent);
+        // Footer format: "{attending} attending · {total} signed up" — seeded IN count is 2, total 3.
+        Assert.Contains("2 attending", cut.Markup);
+        Assert.Contains("3 signed up", cut.Markup);
+    }
+
     // ── CreateRunPage ────────────────────────────────────────────────────────
 
     [Fact]
