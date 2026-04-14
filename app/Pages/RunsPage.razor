@@ -41,25 +41,23 @@
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
             <div class="runs-layout">
                 <!-- Run list panel -->
-                <FluentCard class="runs-sidebar" Style="padding:0;overflow:hidden">
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
-                        @foreach (var run in s.Value)
-                        {
-                            var isSelected = run.Id == selectedRunId;
-                            <div @key="run.Id"
-                                 data-testid="run-item-@run.Id"
-                                 @onclick="@(() => SelectRun(run.Id))"
-                                 style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--neutral-stroke-rest);@(isSelected ? "background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest)" : "")">
-                                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                                    <strong>@run.InstanceName</strong>
-                                    <span style="font-size:0.85em">@run.ModeKey</span>
-                                    <span style="font-size:0.8em">@FormatDate(run.StartTime)</span>
-                                    <span style="font-size:0.8em">@Loc["runs.signedUp", run.RunCharacters.Count]</span>
-                                </FluentStack>
-                            </div>
-                        }
-                    </FluentStack>
-                </FluentCard>
+                <div class="runs-sidebar">
+                    @foreach (var run in s.Value)
+                    {
+                        var isSelected = run.Id == selectedRunId;
+                        <div @key="run.Id"
+                             data-testid="run-item-@run.Id"
+                             @onclick="@(() => SelectRun(run.Id))"
+                             style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--neutral-stroke-rest);@(isSelected ? "background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest)" : "")">
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                                <strong>@run.InstanceName</strong>
+                                <span style="font-size:0.85em">@run.ModeKey</span>
+                                <span style="font-size:0.8em">@FormatDate(run.StartTime)</span>
+                                <span style="font-size:0.8em">@Loc["runs.signedUp", run.RunCharacters.Count]</span>
+                            </FluentStack>
+                        </div>
+                    }
+                </div>
 
                 <!-- Detail panel -->
                 <div style="flex:1;min-width:0">
