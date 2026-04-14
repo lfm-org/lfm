@@ -114,12 +114,12 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         // Re-scan after surfacing the detail panel — this is the dynamic content
         // surface that load-time scans miss (`E-HC-A2`). Selecting a run swaps in
-        // the roster grid, the Edit button, and the attendance-grouped sections.
+        // the role-column roster, the Edit button, and the attendance sections.
         await AccessibilityHelper.ScanAfterAsync(page, Output, "/runs (run selected)", async () =>
         {
             var runsPage = new RunsPage(page);
             await runsPage.SelectRunAsync(DefaultSeed.TestRunId);
-            await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Assertions.Expect(runsPage.AttendingHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
         });
     }
 

@@ -40,67 +40,98 @@
 
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
             <div class="runs-layout">
-                <!-- Run list panel -->
                 <div class="runs-sidebar">
                     @foreach (var run in s.Value)
                     {
                         var isSelected = run.Id == selectedRunId;
+                        var attending = CountAttending(run.RunCharacters);
                         <div @key="run.Id"
                              data-testid="run-item-@run.Id"
-                             @onclick="@(() => SelectRun(run.Id))"
-                             style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--neutral-stroke-rest);@(isSelected ? "background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest)" : "")">
-                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                                <strong>@run.InstanceName</strong>
-                                <span style="font-size:0.85em">@run.ModeKey</span>
-                                <span style="font-size:0.8em">@FormatDate(run.StartTime)</span>
-                                <span style="font-size:0.8em">@Loc["runs.signedUp", run.RunCharacters.Count]</span>
-                            </FluentStack>
+                             class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
+                             @onclick="@(() => SelectRun(run.Id))">
+                            <div class="run-list-item__header">
+                                <span class="run-list-item__title">@run.InstanceName</span>
+                                <DifficultyPill ModeKey="@run.ModeKey" />
+                            </div>
+                            <span class="run-list-item__date">@FormatDate(run.StartTime)</span>
+                            <span class="run-list-item__footer">
+                                @Loc["runs.attendingSignedUp", attending, run.RunCharacters.Count]
+                            </span>
                         </div>
                     }
                 </div>
 
-                <!-- Detail panel -->
                 <div style="flex:1;min-width:0">
                     @if (selectedRun != null)
                     {
                         <FluentCard>
                             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center">
-                                    <FluentLabel Typo="Typography.H4" Style="flex:1">@selectedRun.InstanceName</FluentLabel>
+                                <div class="run-detail-header">
+                                    <div style="flex:1;min-width:0">
+                                        <h2 class="run-detail-title">@selectedRun.InstanceName</h2>
+                                        @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
+                                        {
+                                            <p class="run-detail-description">@selectedRun.Description</p>
+                                        }
+                                    </div>
+                                    <DifficultyPill ModeKey="@selectedRun.ModeKey" />
                                     <FluentButton Appearance="Appearance.Outline"
                                                   OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
                                                   Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
                                         @Loc["runs.edit"]
                                     </FluentButton>
-                                </FluentStack>
+                                </div>
 
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
-                                    <span><strong>@Loc["runs.mode"]</strong> @selectedRun.ModeKey</span>
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
+                                    <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
+                                    <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
                                     <span><strong>@Loc["runs.visibility"]</strong> @selectedRun.Visibility</span>
                                     <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
-                                    <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
-                                    <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
-                                </FluentStack>
-
-                                @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
-                                {
-                                    <FluentLabel>@selectedRun.Description</FluentLabel>
+                                @{
+                                    var attending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance == "IN" || c.ReviewedAttendance == "LATE" || c.ReviewedAttendance == "BENCH").ToList();
+                                    var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance == "OUT" || c.ReviewedAttendance == "AWAY").ToList();
                                 }
 
-                                @if (selectedRun.RunCharacters.Count > 0)
+                                @if (selectedRun.RunCharacters.Count == 0)
                                 {
-                                    <FluentLabel Typo="Typography.H5">@Loc["runs.roster", selectedRun.RunCharacters.Count]</FluentLabel>
-                                    @foreach (var group in GroupByAttendance(selectedRun.RunCharacters))
-                                    {
-                                        <AttendanceRosterSection GroupLabel="@group.Key" Characters="@group.Value" />
-                                    }
+                                    <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
                                 }
                                 else
                                 {
-                                    <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
+                                    @if (attending.Count > 0)
+                                    {
+                                        <h3 class="roster-section-title" data-testid="roster-attending-title">
+                                            @Loc["runs.attendingSection"] (@attending.Count)
+                                        </h3>
+                                        <div class="roster-role-grid">
+                                            @foreach (var (roleKey, roleLabel) in RoleColumns)
+                                            {
+                                                var roleChars = attending.Where(c => NormalizeRole(c.Role) == roleKey).ToList();
+                                                <div class="roster-role-column">
+                                                    <h4 class="roster-role-column-title">@roleLabel (@roleChars.Count)</h4>
+                                                    @foreach (var character in roleChars)
+                                                    {
+                                                        <CharacterRow @key="character.Id" Character="character" />
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (notAttending.Count > 0)
+                                    {
+                                        <h3 class="roster-section-title" data-testid="roster-not-attending-title">
+                                            @Loc["runs.notAttendingSection"] (@notAttending.Count)
+                                        </h3>
+                                        <div class="roster-rows">
+                                            @foreach (var character in notAttending)
+                                            {
+                                                <CharacterRow @key="character.Id" Character="character" />
+                                            }
+                                        </div>
+                                    }
                                 }
                             </FluentStack>
                         </FluentCard>
@@ -122,6 +153,16 @@
     private bool loading;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
+
+    private static readonly (string Key, string LocKey)[] RoleColumnKeys =
+    [
+        ("TANK", "runs.role.tank"),
+        ("HEALER", "runs.role.healer"),
+        ("DPS", "runs.role.dps"),
+    ];
+
+    private IEnumerable<(string Key, string Label)> RoleColumns =>
+        RoleColumnKeys.Select(x => (x.Key, Loc[x.LocKey].Value));
 
     protected override async Task OnInitializedAsync()
     {
@@ -202,16 +243,15 @@
         return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
     }
 
-    private static IReadOnlyList<KeyValuePair<string, IReadOnlyList<RunCharacterDto>>> GroupByAttendance(
-        IReadOnlyList<RunCharacterDto> characters) =>
-        characters
-            .GroupBy(c => c.ReviewedAttendance)
-            .OrderBy(g => AttendanceOrder(g.Key))
-            .Select(g => KeyValuePair.Create(g.Key, (IReadOnlyList<RunCharacterDto>)g.ToList()))
-            .ToList();
+    private static int CountAttending(IReadOnlyList<RunCharacterDto> characters) =>
+        characters.Count(c => c.ReviewedAttendance == "IN" || c.ReviewedAttendance == "LATE");
 
-    private static int AttendanceOrder(string att) => att switch
+    private static string NormalizeRole(string? role) => (role ?? "").ToUpperInvariant() switch
     {
-        "IN" => 0, "BENCH" => 1, "LATE" => 2, "OUT" => 3, "AWAY" => 4, _ => 5
+        "TANK" => "TANK",
+        "HEALER" => "HEALER",
+        "HEAL" => "HEALER",
+        "DPS" or "MELEE" or "RANGED" => "DPS",
+        _ => "DPS"
     };
 }

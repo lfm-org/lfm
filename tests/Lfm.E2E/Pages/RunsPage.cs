@@ -33,21 +33,21 @@ public class RunsPage(IPage page)
 
     // ---- Run detail panel (visible after selecting a run) ----
 
-    /// <summary>The "Roster (N)" heading in the run detail panel.</summary>
-    public ILocator RosterHeading =>
-        _page.GetByText("Roster (", new() { Exact = false });
+    /// <summary>The "Attending (N)" section heading in the run detail panel.</summary>
+    public ILocator AttendingHeading =>
+        _page.Locator("[data-testid='roster-attending-title']");
+
+    /// <summary>The "Not attending (N)" section heading in the run detail panel.</summary>
+    public ILocator NotAttendingHeading =>
+        _page.Locator("[data-testid='roster-not-attending-title']");
 
     /// <summary>
-    /// Roster data grid on the run detail panel. The roster is grouped by
-    /// reviewed attendance (IN / BENCH / LATE / OUT / AWAY), so one grid is
-    /// rendered per group present on the run. FluentDataGrid compiles to a
-    /// <c>&lt;table class="fluent-data-grid"&gt;</c> element — not a custom
-    /// <c>&lt;fluent-data-grid&gt;</c> HTML element. Resolves to the first
-    /// grid so that assertions like <c>ToBeVisibleAsync</c> are not ambiguous
-    /// when multiple attendance groups are rendered.
+    /// Any character row rendered in the roster sections. Character rows are
+    /// class-colored <c>.character-row</c> elements, rendered inside either a
+    /// role column (attending) or a full-width list (not attending).
     /// </summary>
-    public ILocator RosterGrid =>
-        _page.Locator("table.fluent-data-grid").First;
+    public ILocator RosterCharacterRows =>
+        _page.Locator(".character-row");
 
     /// <summary>"Edit" button in the run detail panel (links to /runs/{id}/edit).</summary>
     public ILocator EditButton =>

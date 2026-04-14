@@ -114,10 +114,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task RunDetail_Navigate_ShowsRosterWithSignupCount()
     {
-        // The previous name promised "Roster and Coverage" but the run-detail
-        // panel has no coverage UI — only an attendance-grouped roster (see
-        // RunsPage.razor, which uses AttendanceRosterSection per group).
-        // Rename + assert the seeded signup count to make the contract explicit.
+        // The run-detail panel has no coverage UI — only an attendance-grouped
+        // roster split into Attending (IN/LATE/BENCH) and Not attending (OUT/AWAY)
+        // sections, rendered as CharacterRow components.
         var runsPage = new RunsPage(Page!);
 
         await runsPage.GotoAsync(fixture.Stack.AppBaseUrl);
@@ -125,12 +124,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
         await runsPage.SelectRunAsync(DefaultSeed.TestRunId);
 
-        // The seeded run has exactly 1 signup ("Aelrin").
-        await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
-        var rosterText = await runsPage.RosterHeading.InnerTextAsync();
-        Assert.Contains("Roster (1)", rosterText);
+        // The seeded run has exactly 1 signup ("Aelrin") with reviewedAttendance = IN.
+        await Assertions.Expect(runsPage.AttendingHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        var attendingText = await runsPage.AttendingHeading.InnerTextAsync();
+        Assert.Contains("(1)", attendingText);
 
-        await Assertions.Expect(runsPage.RosterGrid).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RosterCharacterRows).ToHaveCountAsync(1, new() { Timeout = 10000 });
         await Assertions.Expect(Page!.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
@@ -150,11 +149,11 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         var runsPage = new RunsPage(Page);
-        await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
-        await Assertions.Expect(runsPage.RosterGrid).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.AttendingHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.RosterCharacterRows).ToHaveCountAsync(1, new() { Timeout = 10000 });
 
-        var rosterText = await runsPage.RosterHeading.InnerTextAsync();
-        Assert.Contains("Roster (1)", rosterText);
+        var attendingText = await runsPage.AttendingHeading.InnerTextAsync();
+        Assert.Contains("(1)", attendingText);
 
         await Assertions.Expect(Page.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
@@ -220,7 +219,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Page.GotoAsync(
             $"{fixture.Stack.AppBaseUrl}/runs/{encodedId}",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        await Assertions.Expect(runsPage.RosterHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.AttendingHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(Page.GetByText(updatedDescription)).ToBeVisibleAsync(
             new() { Timeout = 10000 });
     }
