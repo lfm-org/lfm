@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using FluentAssertions;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
 using Moq;
@@ -42,11 +41,11 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Should().HaveCount(2);
-        result[0].Name.Should().Be("Char-A");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/battlenet/characters");
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("Char-A", result[0].Name);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/battlenet/characters", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -62,10 +61,10 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Should().ContainSingle();
-        result[0].Name.Should().Be("Lower");
-        result[0].Region.Should().Be("eu");
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("Lower", result![0].Name);
+        Assert.Equal("eu", result[0].Region);
     }
 
     [Fact]
@@ -75,8 +74,8 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must issue the request even when the server fails");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -86,8 +85,8 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -97,8 +96,8 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -108,9 +107,7 @@ public class BattleNetClientTests
         // the client must NOT swallow critical exceptions like OutOfMemoryException.
         var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new OutOfMemoryException("oom")));
 
-        var act = () => client.GetCharactersAsync(CancellationToken.None);
-
-        await act.Should().ThrowAsync<OutOfMemoryException>();
+        await Assert.ThrowsAsync<OutOfMemoryException>(() => client.GetCharactersAsync(CancellationToken.None));
     }
 
     // ── RefreshCharactersAsync ───────────────────────────────────────────────
@@ -124,10 +121,11 @@ public class BattleNetClientTests
 
         var result = await client.RefreshCharactersAsync(CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Should().ContainSingle().Which.Name.Should().Be("Refreshed");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Post);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/battlenet/characters/refresh");
+        Assert.NotNull(result);
+        var single = Assert.Single(result!);
+        Assert.Equal("Refreshed", single.Name);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal("/api/battlenet/characters/refresh", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -137,8 +135,8 @@ public class BattleNetClientTests
 
         var result = await client.RefreshCharactersAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1);
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -148,8 +146,8 @@ public class BattleNetClientTests
 
         var result = await client.RefreshCharactersAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -157,9 +155,7 @@ public class BattleNetClientTests
     {
         var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new StackOverflowException()));
 
-        var act = () => client.RefreshCharactersAsync(CancellationToken.None);
-
-        await act.Should().ThrowAsync<StackOverflowException>();
+        await Assert.ThrowsAsync<StackOverflowException>(() => client.RefreshCharactersAsync(CancellationToken.None));
     }
 
     // ── GetPortraitsAsync ────────────────────────────────────────────────────
@@ -181,13 +177,13 @@ public class BattleNetClientTests
 
         var result = await client.GetPortraitsAsync(requests, CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Should().HaveCount(2);
-        result["eu-silvermoon-sourgeezer"].Should().Be("https://render.example/p1.jpg");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Post);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/battlenet/character-portraits");
-        handler.LastRequest.Content.Should().NotBeNull();
-        handler.LastRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("https://render.example/p1.jpg", result["eu-silvermoon-sourgeezer"]);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal("/api/battlenet/character-portraits", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.NotNull(handler.LastRequest.Content);
+        Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 
     [Fact]
@@ -199,8 +195,8 @@ public class BattleNetClientTests
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1);
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -212,8 +208,8 @@ public class BattleNetClientTests
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -225,8 +221,8 @@ public class BattleNetClientTests
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -238,8 +234,8 @@ public class BattleNetClientTests
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
             CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -247,10 +243,8 @@ public class BattleNetClientTests
     {
         var (client, _) = MakeClient(StubHttpMessageHandler.Throws(new OutOfMemoryException("oom")));
 
-        var act = () => client.GetPortraitsAsync(
+        await Assert.ThrowsAsync<OutOfMemoryException>(() => client.GetPortraitsAsync(
             new[] { new CharacterPortraitRequest("eu", "silvermoon", "x") },
-            CancellationToken.None);
-
-        await act.Should().ThrowAsync<OutOfMemoryException>();
+            CancellationToken.None));
     }
 }

@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Lfm.App.Services;
 using Lfm.Contracts.Me;
 using Moq;
@@ -34,12 +33,12 @@ public class MeClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.BattleNetId.Should().Be("player#1234");
-        result.GuildName.Should().Be("Stormchasers");
-        result.Locale.Should().Be("en");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/me");
+        Assert.NotNull(result);
+        Assert.Equal("player#1234", result!.BattleNetId);
+        Assert.Equal("Stormchasers", result.GuildName);
+        Assert.Equal("en", result.Locale);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/me", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -49,8 +48,8 @@ public class MeClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -60,8 +59,8 @@ public class MeClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -71,8 +70,8 @@ public class MeClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must issue the request even when the server fails");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     // ── UpdateAsync ──────────────────────────────────────────────────────────
@@ -86,11 +85,11 @@ public class MeClientTests
 
         var result = await client.UpdateAsync(new UpdateMeRequest("fi"), CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Locale.Should().Be("fi");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Patch);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/me");
-        handler.LastRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+        Assert.NotNull(result);
+        Assert.Equal("fi", result!.Locale);
+        Assert.Equal(HttpMethod.Patch, handler.LastRequest!.Method);
+        Assert.Equal("/api/me", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 
     [Fact]
@@ -100,8 +99,8 @@ public class MeClientTests
 
         var result = await client.UpdateAsync(new UpdateMeRequest("xx"), CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1);
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -111,8 +110,8 @@ public class MeClientTests
 
         var result = await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     // ── DeleteAsync ──────────────────────────────────────────────────────────
@@ -124,9 +123,9 @@ public class MeClientTests
 
         var result = await client.DeleteAsync(CancellationToken.None);
 
-        result.Should().BeTrue();
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Delete);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/me");
+        Assert.True(result);
+        Assert.Equal(HttpMethod.Delete, handler.LastRequest!.Method);
+        Assert.Equal("/api/me", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -136,8 +135,8 @@ public class MeClientTests
 
         var result = await client.DeleteAsync(CancellationToken.None);
 
-        result.Should().BeFalse();
-        handler.CallCount.Should().Be(1);
+        Assert.False(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -147,7 +146,7 @@ public class MeClientTests
 
         var result = await client.DeleteAsync(CancellationToken.None);
 
-        result.Should().BeFalse();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.False(result);
+        Assert.Equal(1, handler.CallCount);
     }
 }

@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Lfm.App.Services;
 using Lfm.Contracts.Instances;
 using Moq;
@@ -29,11 +28,11 @@ public class InstancesClientTests
 
         var result = await client.ListAsync(CancellationToken.None);
 
-        result.Should().HaveCount(2);
-        result[0].Id.Should().Be("liberation-of-undermine");
-        result[1].Name.Should().Be("Operation: Mechagon");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/instances");
+        Assert.Equal(2, result.Count);
+        Assert.Equal("liberation-of-undermine", result[0].Id);
+        Assert.Equal("Operation: Mechagon", result[1].Name);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/instances", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -49,7 +48,8 @@ public class InstancesClientTests
 
         var result = await client.ListAsync(CancellationToken.None);
 
-        result.Should().NotBeNull().And.BeEmpty();
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class InstancesClientTests
 
         var result = await client.ListAsync(CancellationToken.None);
 
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -68,8 +68,6 @@ public class InstancesClientTests
         // InstancesClient doesn't catch — pinning current contract.
         var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
 
-        var act = () => client.ListAsync(CancellationToken.None);
-
-        await act.Should().ThrowAsync<HttpRequestException>();
+        await Assert.ThrowsAsync<HttpRequestException>(() => client.ListAsync(CancellationToken.None));
     }
 }

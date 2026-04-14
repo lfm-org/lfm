@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using FluentAssertions;
 using Lfm.App.Auth;
 using Lfm.App.i18n;
 using Lfm.App.Services;
@@ -33,8 +32,8 @@ public class AppAuthenticationStateProviderTests
 
         var state = await sut.GetAuthenticationStateAsync();
 
-        state.User.Identity!.IsAuthenticated.Should().BeFalse();
-        state.User.Claims.Should().BeEmpty();
+        Assert.False(state.User.Identity!.IsAuthenticated);
+        Assert.Empty(state.User.Claims);
         localeService.Verify(s => s.SetLocale(It.IsAny<string>()), Times.Never);
     }
 
@@ -48,10 +47,10 @@ public class AppAuthenticationStateProviderTests
 
         var state = await sut.GetAuthenticationStateAsync();
 
-        state.User.Identity!.IsAuthenticated.Should().BeTrue();
-        state.User.Identity.AuthenticationType.Should().Be("BattleNet");
-        state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value.Should().Be("player#1234");
-        state.User.FindFirst(ClaimTypes.Name)!.Value.Should().Be("player#1234");
+        Assert.True(state.User.Identity!.IsAuthenticated);
+        Assert.Equal("BattleNet", state.User.Identity.AuthenticationType);
+        Assert.Equal("player#1234", state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        Assert.Equal("player#1234", state.User.FindFirst(ClaimTypes.Name)!.Value);
     }
 
     [Fact]
@@ -64,7 +63,7 @@ public class AppAuthenticationStateProviderTests
 
         var state = await sut.GetAuthenticationStateAsync();
 
-        state.User.FindFirst("guild_name")!.Value.Should().Be("Stormchasers");
+        Assert.Equal("Stormchasers", state.User.FindFirst("guild_name")!.Value);
     }
 
     [Fact]
@@ -77,7 +76,7 @@ public class AppAuthenticationStateProviderTests
 
         var state = await sut.GetAuthenticationStateAsync();
 
-        state.User.FindFirst("guild_name").Should().BeNull();
+        Assert.Null(state.User.FindFirst("guild_name"));
     }
 
     [Fact]
@@ -95,8 +94,8 @@ public class AppAuthenticationStateProviderTests
         var memberState = await new AppAuthenticationStateProvider(memberClient.Object, Mock.Of<ILocaleService>())
             .GetAuthenticationStateAsync();
 
-        adminState.User.IsInRole("SiteAdmin").Should().BeTrue();
-        memberState.User.IsInRole("SiteAdmin").Should().BeFalse();
+        Assert.True(adminState.User.IsInRole("SiteAdmin"));
+        Assert.False(memberState.User.IsInRole("SiteAdmin"));
     }
 
     [Fact]
@@ -110,7 +109,7 @@ public class AppAuthenticationStateProviderTests
 
         await sut.GetAuthenticationStateAsync();
 
-        localeService.CurrentLocale.Should().Be("fi");
+        Assert.Equal("fi", localeService.CurrentLocale);
     }
 
     [Fact]
@@ -124,7 +123,7 @@ public class AppAuthenticationStateProviderTests
 
         await sut.GetAuthenticationStateAsync();
 
-        localeService.CurrentLocale.Should().Be("en");
+        Assert.Equal("en", localeService.CurrentLocale);
     }
 
     [Fact]
@@ -167,6 +166,6 @@ public class AppAuthenticationStateProviderTests
 
         sut.NotifyStateChanged();
 
-        eventFired.Should().BeTrue("NotifyStateChanged must fire AuthenticationStateChanged for Blazor subscribers");
+        Assert.True(eventFired);
     }
 }

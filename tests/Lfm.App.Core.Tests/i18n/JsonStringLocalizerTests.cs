@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Lfm.App.i18n;
 using Xunit;
 
@@ -27,8 +26,8 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut["nav.runs"];
 
-        result.Value.Should().Be("Runs");
-        result.ResourceNotFound.Should().BeFalse();
+        Assert.Equal("Runs", result.Value);
+        Assert.False(result.ResourceNotFound);
     }
 
     [Fact]
@@ -39,8 +38,8 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut["nav.runs"];
 
-        result.Value.Should().Be("Juoksut");
-        result.ResourceNotFound.Should().BeFalse();
+        Assert.Equal("Juoksut", result.Value);
+        Assert.False(result.ResourceNotFound);
     }
 
     [Fact]
@@ -50,8 +49,8 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut["nonexistent.key"];
 
-        result.Value.Should().Be("nonexistent.key");
-        result.ResourceNotFound.Should().BeTrue();
+        Assert.Equal("nonexistent.key", result.Value);
+        Assert.True(result.ResourceNotFound);
     }
 
     [Fact]
@@ -64,8 +63,8 @@ public class JsonStringLocalizerTests : IDisposable
         // "only.in.en" exists only in the English fixture
         var result = _sut["only.in.en"];
 
-        result.Value.Should().Be("English only");
-        result.ResourceNotFound.Should().BeFalse();
+        Assert.Equal("English only", result.Value);
+        Assert.False(result.ResourceNotFound);
     }
 
     [Fact]
@@ -75,8 +74,8 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut["greeting", "World"];
 
-        result.Value.Should().Be("Hello, World!");
-        result.ResourceNotFound.Should().BeFalse();
+        Assert.Equal("Hello, World!", result.Value);
+        Assert.False(result.ResourceNotFound);
     }
 
     [Fact]
@@ -98,8 +97,7 @@ public class JsonStringLocalizerTests : IDisposable
         while (counting.Loaded.GetValueOrDefault("fi") == beforeFi && DateTime.UtcNow < deadline)
             await Task.Delay(20);
 
-        counting.Loaded["fi"].Should().BeGreaterThan(beforeFi,
-            "switching the active locale must trigger a fetch of the new locale's JSON");
+        Assert.True(counting.Loaded["fi"] > beforeFi);
     }
 
     [Fact]
@@ -111,11 +109,11 @@ public class JsonStringLocalizerTests : IDisposable
         using var http = new HttpClient(new FakeLocaleHandler()) { BaseAddress = new Uri("http://localhost/") };
         var localeService = new FakeLocaleService();
         var sut = new JsonStringLocalizer(http, localeService);
-        localeService.SubscriberCount.Should().Be(1, "constructor subscribes to OnLocaleChanged");
+        Assert.Equal(1, localeService.SubscriberCount);
 
         sut.Dispose();
 
-        localeService.SubscriberCount.Should().Be(0, "Dispose must unsubscribe HandleLocaleChanged");
+        Assert.Equal(0, localeService.SubscriberCount);
     }
 
     [Fact]
@@ -125,8 +123,8 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut["nonexistent.key", "arg1"];
 
-        result.Value.Should().Be("nonexistent.key");
-        result.ResourceNotFound.Should().BeTrue();
+        Assert.Equal("nonexistent.key", result.Value);
+        Assert.True(result.ResourceNotFound);
     }
 
     [Fact]
@@ -139,7 +137,7 @@ public class JsonStringLocalizerTests : IDisposable
         await sut.LoadLocaleAsync("en");
         await sut.LoadLocaleAsync("en");
 
-        counting.Loaded["en"].Should().Be(1, "second load must skip the fetch for an already-cached locale");
+        Assert.Equal(1, counting.Loaded["en"]);
     }
 
     [Fact]
@@ -150,9 +148,8 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut["only.in.en"];
 
-        result.Value.Should().Be("only.in.en",
-            "without English loaded as fallback, the key itself must be returned");
-        result.ResourceNotFound.Should().BeTrue();
+        Assert.Equal("only.in.en", result.Value);
+        Assert.True(result.ResourceNotFound);
     }
 
     [Fact]
@@ -162,9 +159,9 @@ public class JsonStringLocalizerTests : IDisposable
 
         var result = _sut.GetAllStrings(includeParentCultures: false).ToList();
 
-        result.Should().HaveCount(4);
-        result.Should().Contain(ls => ls.Name == "nav.runs" && ls.Value == "Runs");
-        result.Should().Contain(ls => ls.Name == "greeting" && ls.Value == "Hello, {0}!");
+        Assert.Equal(4, result.Count);
+        Assert.Contains(result, ls => ls.Name == "nav.runs" && ls.Value == "Runs");
+        Assert.Contains(result, ls => ls.Name == "greeting" && ls.Value == "Hello, {0}!");
     }
 
     [Fact]
@@ -174,7 +171,7 @@ public class JsonStringLocalizerTests : IDisposable
         // is empty until LoadLocaleAsync is called, so GetAllStrings must yield an empty sequence.
         var result = _sut.GetAllStrings(includeParentCultures: false).ToList();
 
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     public void Dispose()

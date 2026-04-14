@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.App.i18n;
 using Xunit;
 
@@ -11,7 +10,7 @@ public class LocaleServiceTests
     {
         var sut = new LocaleService();
 
-        sut.CurrentLocale.Should().Be("en");
+        Assert.Equal("en", sut.CurrentLocale);
     }
 
     [Fact]
@@ -21,7 +20,7 @@ public class LocaleServiceTests
 
         sut.SetLocale("fi");
 
-        sut.CurrentLocale.Should().Be("fi");
+        Assert.Equal("fi", sut.CurrentLocale);
     }
 
     [Fact]
@@ -33,7 +32,7 @@ public class LocaleServiceTests
 
         sut.SetLocale("fi");
 
-        fired.Should().BeTrue();
+        Assert.True(fired);
     }
 
     [Fact]
@@ -45,7 +44,7 @@ public class LocaleServiceTests
 
         sut.SetLocale("en"); // already "en"
 
-        count.Should().Be(0);
+        Assert.Equal(0, count);
     }
 
     [Fact]
@@ -57,8 +56,8 @@ public class LocaleServiceTests
 
         sut.SetLocale("de");
 
-        sut.CurrentLocale.Should().Be("en");
-        fired.Should().BeFalse();
+        Assert.Equal("en", sut.CurrentLocale);
+        Assert.False(fired);
     }
 
     [Fact]
@@ -68,7 +67,7 @@ public class LocaleServiceTests
 
         sut.SetLocale("FI");
 
-        sut.CurrentLocale.Should().Be("fi");
+        Assert.Equal("fi", sut.CurrentLocale);
     }
 
     [Theory]
@@ -86,8 +85,8 @@ public class LocaleServiceTests
         sut.SetLocale(locale);
 
         if (shouldBeAccepted)
-            sut.CurrentLocale.Should().Be(locale.ToLowerInvariant());
+            Assert.Equal(locale.ToLowerInvariant(), sut.CurrentLocale);
         else
-            sut.CurrentLocale.Should().Be(defaultLocale, "unsupported locales must not change the active locale");
+            Assert.Equal(defaultLocale, sut.CurrentLocale);
     }
 }

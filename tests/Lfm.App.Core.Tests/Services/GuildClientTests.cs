@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Lfm.App.Services;
 using Lfm.Contracts.Guild;
 using Moq;
@@ -57,10 +56,10 @@ public class GuildClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Guild!.Name.Should().Be("Stormchasers");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/guild");
+        Assert.NotNull(result);
+        Assert.Equal("Stormchasers", result!.Guild!.Name);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/guild", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -70,8 +69,8 @@ public class GuildClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must attempt the HTTP call before catching the exception");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -81,8 +80,8 @@ public class GuildClientTests
 
         var result = await client.GetAsync(CancellationToken.None);
 
-        result.Should().BeNull();
-        handler.CallCount.Should().Be(1, "the client must issue the request even when the server fails");
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
     }
 
     // ── UpdateAsync ──────────────────────────────────────────────────────────
@@ -99,11 +98,11 @@ public class GuildClientTests
 
         var result = await client.UpdateAsync(request, CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Guild!.Name.Should().Be("Stormchasers Reborn");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Patch);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/guild");
-        handler.LastRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+        Assert.NotNull(result);
+        Assert.Equal("Stormchasers Reborn", result!.Guild!.Name);
+        Assert.Equal(HttpMethod.Patch, handler.LastRequest!.Method);
+        Assert.Equal("/api/guild", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 
     [Fact]
@@ -114,6 +113,6 @@ public class GuildClientTests
 
         var result = await client.UpdateAsync(request, CancellationToken.None);
 
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 }

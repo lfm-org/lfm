@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Lfm.App.Services;
 using Lfm.Contracts.Runs;
 using Moq;
@@ -72,10 +71,10 @@ public class RunsClientTests
 
         var result = await client.ListAsync(CancellationToken.None);
 
-        result.Should().HaveCount(2);
-        result[0].Id.Should().Be("run-a");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs");
+        Assert.Equal(2, result.Count);
+        Assert.Equal("run-a", result[0].Id);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/runs", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -85,7 +84,7 @@ public class RunsClientTests
 
         var result = await client.ListAsync(CancellationToken.None);
 
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -101,7 +100,8 @@ public class RunsClientTests
 
         var result = await client.ListAsync(CancellationToken.None);
 
-        result.Should().NotBeNull().And.BeEmpty();
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -111,11 +111,11 @@ public class RunsClientTests
 
         await client.GetAsync("run with spaces/and?weird", CancellationToken.None);
 
-        handler.LastRequest!.RequestUri!.PathAndQuery.Should()
-            .StartWith("/api/runs/")
-            .And.Contain("%2F")
-            .And.NotContain(" ")
-            .And.NotContain("?weird");
+        var path = handler.LastRequest!.RequestUri!.PathAndQuery;
+        Assert.StartsWith("/api/runs/", path);
+        Assert.Contains("%2F", path);
+        Assert.DoesNotContain(" ", path);
+        Assert.DoesNotContain("?weird", path);
     }
 
     [Fact]
@@ -126,9 +126,7 @@ public class RunsClientTests
         // null, this test must be updated deliberately.
         var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
 
-        var act = () => client.GetAsync("missing-run", CancellationToken.None);
-
-        await act.Should().ThrowAsync<HttpRequestException>();
+        await Assert.ThrowsAsync<HttpRequestException>(() => client.GetAsync("missing-run", CancellationToken.None));
     }
 
     [Fact]
@@ -139,11 +137,11 @@ public class RunsClientTests
 
         var result = await client.CreateAsync(request, CancellationToken.None);
 
-        result.Should().NotBeNull();
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Post);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs");
-        handler.LastRequest.Content.Should().NotBeNull();
-        handler.LastRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+        Assert.NotNull(result);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal("/api/runs", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.NotNull(handler.LastRequest.Content);
+        Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 
     [Fact]
@@ -154,7 +152,7 @@ public class RunsClientTests
 
         var result = await client.CreateAsync(request, CancellationToken.None);
 
-        result.Should().BeNull("non-2xx responses must surface as a null result, not an exception");
+        Assert.Null(result);
     }
 
     [Fact]
@@ -164,8 +162,8 @@ public class RunsClientTests
 
         var result = await client.DeleteAsync("run-1", CancellationToken.None);
 
-        result.Should().BeTrue();
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Delete);
+        Assert.True(result);
+        Assert.Equal(HttpMethod.Delete, handler.LastRequest!.Method);
     }
 
     [Fact]
@@ -175,7 +173,7 @@ public class RunsClientTests
 
         var result = await client.DeleteAsync("run-1", CancellationToken.None);
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -186,9 +184,9 @@ public class RunsClientTests
 
         var result = await client.SignupAsync("run-1", request, CancellationToken.None);
 
-        result.Should().NotBeNull("a 2xx response must surface as a non-null detail, not be swallowed");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Post);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs/run-1/signup");
+        Assert.NotNull(result);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal("/api/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -206,10 +204,10 @@ public class RunsClientTests
 
         var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
 
-        result.Should().NotBeNull();
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Put);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs/run-1");
-        handler.LastRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+        Assert.NotNull(result);
+        Assert.Equal(HttpMethod.Put, handler.LastRequest!.Method);
+        Assert.Equal("/api/runs/run-1", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 
     [Fact]
@@ -220,7 +218,7 @@ public class RunsClientTests
 
         var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
 
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -230,10 +228,10 @@ public class RunsClientTests
 
         var result = await client.CancelSignupAsync("run-1", CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result!.Id.Should().Be("run-1");
-        handler.LastRequest!.Method.Should().Be(HttpMethod.Delete);
-        handler.LastRequest.RequestUri!.PathAndQuery.Should().Be("/api/runs/run-1/signup");
+        Assert.NotNull(result);
+        Assert.Equal("run-1", result!.Id);
+        Assert.Equal(HttpMethod.Delete, handler.LastRequest!.Method);
+        Assert.Equal("/api/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -243,7 +241,7 @@ public class RunsClientTests
 
         var result = await client.CancelSignupAsync("run-1", CancellationToken.None);
 
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -253,11 +251,11 @@ public class RunsClientTests
 
         await client.CancelSignupAsync("run with spaces/and?weird", CancellationToken.None);
 
-        handler.LastRequest!.RequestUri!.PathAndQuery.Should()
-            .StartWith("/api/runs/")
-            .And.EndWith("/signup")
-            .And.Contain("%2F")
-            .And.NotContain(" ")
-            .And.NotContain("?weird");
+        var path = handler.LastRequest!.RequestUri!.PathAndQuery;
+        Assert.StartsWith("/api/runs/", path);
+        Assert.EndsWith("/signup", path);
+        Assert.Contains("%2F", path);
+        Assert.DoesNotContain(" ", path);
+        Assert.DoesNotContain("?weird", path);
     }
 }
