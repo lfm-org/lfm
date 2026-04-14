@@ -5,6 +5,7 @@ using Moq;
 using Lfm.App.Pages;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Me;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -12,6 +13,14 @@ namespace Lfm.App.Tests;
 public class CharactersPagesTests : ComponentTestBase
 {
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private static MeResponse MakeMeResponse(string? selectedCharacterId = null) =>
+        new(
+            BattleNetId: "player#1234",
+            GuildName: null,
+            SelectedCharacterId: selectedCharacterId,
+            IsSiteAdmin: false,
+            Locale: "en");
 
     private static CharacterDto MakeChar(string name = "Arthas", string realm = "silvermoon") =>
         new(
@@ -152,5 +161,140 @@ public class CharactersPagesTests : ComponentTestBase
         var cut = Render<CharactersPage>();
 
         cut.WaitForAssertion(() => Assert.Contains(Loc("characters.deleteAccount.title"), cut.Markup));
+    }
+
+    // ── Active character selection ────────────────────────────────────────────
+
+    [Fact]
+    public void CharactersPage_Selected_Card_Shows_Active_Badge_And_Outline()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("[data-char-id='eu-silvermoon-arthas']");
+            Assert.Contains("outline", card.GetAttribute("style") ?? "");
+            Assert.Contains(Loc("characters.active"), cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void CharactersPage_Non_Selected_Card_Has_No_Outline()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var sylvanasWrapper = cut.Find("[data-char-id='eu-silvermoon-sylvanas']");
+            Assert.DoesNotContain("outline", sylvanasWrapper.GetAttribute("style") ?? "");
+        });
+    }
+
+    [Fact]
+    public void CharactersPage_Clicking_Non_Selected_Card_Calls_SelectCharacterAsync()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+        me.Setup(m => m.SelectCharacterAsync("eu-silvermoon-sylvanas", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-char-id='eu-silvermoon-sylvanas']"));
+
+        cut.Find("[data-char-id='eu-silvermoon-sylvanas']").Click();
+
+        cut.WaitForAssertion(() =>
+            me.Verify(m => m.SelectCharacterAsync("eu-silvermoon-sylvanas", It.IsAny<CancellationToken>()), Times.Once));
+    }
+
+    [Fact]
+    public void CharactersPage_Clicking_Selected_Card_Does_Not_Call_SelectCharacterAsync()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-char-id='eu-silvermoon-arthas']"));
+
+        cut.Find("[data-char-id='eu-silvermoon-arthas']").Click();
+
+        me.Verify(m => m.SelectCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void CharactersPage_Select_Failure_Reverts_And_Shows_Error()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+        me.Setup(m => m.SelectCharacterAsync("eu-silvermoon-sylvanas", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-char-id='eu-silvermoon-sylvanas']"));
+
+        cut.Find("[data-char-id='eu-silvermoon-sylvanas']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            // Arthas is still selected (reverted)
+            var arthasWrapper = cut.Find("[data-char-id='eu-silvermoon-arthas']");
+            Assert.Contains("outline", arthasWrapper.GetAttribute("style") ?? "");
+            // Sylvanas has no outline
+            var sylvanasWrapper = cut.Find("[data-char-id='eu-silvermoon-sylvanas']");
+            Assert.DoesNotContain("outline", sylvanasWrapper.GetAttribute("style") ?? "");
+            // Error message shown
+            Assert.Contains(Loc("characters.error.selectFailed"), cut.Markup);
+        });
     }
 }

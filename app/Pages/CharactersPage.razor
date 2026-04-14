@@ -35,35 +35,52 @@
             break;
 
         case LoadingState<IReadOnlyList<CharacterDto>>.Success s:
+            @if (!string.IsNullOrEmpty(selectError))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@selectError</FluentMessageBar>
+            }
             <div style="display:grid;gap:12px;width:100%;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
                 @foreach (var c in s.Value)
                 {
                     var portraitSrc = c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null);
-                    <FluentCard @key="@CharKey(c)" Style="padding:12px">
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
-                            @if (!string.IsNullOrEmpty(portraitSrc))
-                            {
-                                <img src="@portraitSrc" alt="@c.Name" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
-                            }
-                            else
-                            {
-                                <div style="width:48px;height:48px;border-radius:50%;background:var(--neutral-fill-rest);display:flex;align-items:center;justify-content:center;font-weight:600">
-                                    @c.Name.Substring(0, 1).ToUpperInvariant()
-                                </div>
-                            }
-                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="2" Style="min-width:0;flex:1">
-                                <FluentLabel Style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@c.Name</FluentLabel>
-                                <FluentLabel Style="font-size:0.85em;color:var(--neutral-foreground-hint-rest)">@c.RealmName</FluentLabel>
-                                <FluentLabel Style="font-size:0.8em">
-                                    @(c.ClassName ?? Loc["characters.unknown"]) · @Loc["characters.level"] @c.Level
-                                    @if (!string.IsNullOrEmpty(c.SpecName))
-                                    {
-                                        <span> · @c.SpecName</span>
-                                    }
-                                </FluentLabel>
+                    var isSelected = CharKey(c) == selectedCharacterId;
+                    var wrapperStyle = isSelected
+                        ? "position:relative;cursor:default;outline:2px solid var(--accent-fill-rest);outline-offset:-1px;border-radius:4px"
+                        : "position:relative;cursor:pointer";
+                    <div @key="@CharKey(c)"
+                         data-char-id="@CharKey(c)"
+                         style="@wrapperStyle"
+                         @onclick="@(() => HandleSelectCharacter(c))">
+                        @if (isSelected)
+                        {
+                            <div style="position:absolute;top:8px;right:8px;background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest);font-size:0.7em;padding:2px 8px;border-radius:10px;z-index:1;pointer-events:none">@Loc["characters.active"]</div>
+                        }
+                        <FluentCard Style="padding:12px">
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+                                @if (!string.IsNullOrEmpty(portraitSrc))
+                                {
+                                    <img src="@portraitSrc" alt="@c.Name" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <div style="width:48px;height:48px;border-radius:50%;background:var(--neutral-fill-rest);display:flex;align-items:center;justify-content:center;font-weight:600">
+                                        @c.Name.Substring(0, 1).ToUpperInvariant()
+                                    </div>
+                                }
+                                <FluentStack Orientation="Orientation.Vertical" VerticalGap="2" Style="min-width:0;flex:1">
+                                    <FluentLabel Style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@c.Name</FluentLabel>
+                                    <FluentLabel Style="font-size:0.85em;color:var(--neutral-foreground-hint-rest)">@c.RealmName</FluentLabel>
+                                    <FluentLabel Style="font-size:0.8em">
+                                        @(c.ClassName ?? Loc["characters.unknown"]) · @Loc["characters.level"] @c.Level
+                                        @if (!string.IsNullOrEmpty(c.SpecName))
+                                        {
+                                            <span> · @c.SpecName</span>
+                                        }
+                                    </FluentLabel>
+                                </FluentStack>
                             </FluentStack>
-                        </FluentStack>
-                    </FluentCard>
+                        </FluentCard>
+                    </div>
                 }
             </div>
             break;
@@ -102,6 +119,9 @@
     private LoadingState<IReadOnlyList<CharacterDto>> state = new LoadingState<IReadOnlyList<CharacterDto>>.Idle();
     private bool loading;
     private Dictionary<string, string> portraits = [];
+    private string? selectedCharacterId;
+    private bool selecting;
+    private string? selectError;
     private string deleteConfirmation = "";
     private string? deleteError;
     private bool deleting;
@@ -110,7 +130,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var meTask = MeClient.GetAsync(CancellationToken.None);
         await LoadCharacters();
+        var me = await meTask;
+        selectedCharacterId = me?.SelectedCharacterId;
     }
 
     private async Task LoadCharacters()
@@ -180,6 +203,28 @@
             portraits = result.ToDictionary(kv => kv.Key, kv => kv.Value);
             StateHasChanged();
         }
+    }
+
+    private async Task HandleSelectCharacter(CharacterDto c)
+    {
+        var key = CharKey(c);
+        if (key == selectedCharacterId || selecting)
+            return;
+
+        selectError = null;
+        var prev = selectedCharacterId;
+        selectedCharacterId = key;
+        selecting = true;
+        StateHasChanged();
+
+        var ok = await MeClient.SelectCharacterAsync(key, CancellationToken.None);
+        selecting = false;
+        if (!ok)
+        {
+            selectedCharacterId = prev;
+            selectError = Loc["characters.error.selectFailed"];
+        }
+        StateHasChanged();
     }
 
     private async Task HandleDeleteAccount()
