@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Middleware;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
@@ -37,12 +36,12 @@ public class SecurityHeadersMiddlewareTests
 
         await middleware.Invoke(mockContext.Object, next);
 
-        nextCalled.Should().BeTrue();
-        httpContext.Response.Headers["X-Content-Type-Options"].ToString().Should().Be("nosniff");
-        httpContext.Response.Headers["X-Frame-Options"].ToString().Should().Be("DENY");
-        httpContext.Response.Headers["Referrer-Policy"].ToString().Should().Be("strict-origin-when-cross-origin");
-        httpContext.Response.Headers["Strict-Transport-Security"].ToString().Should().Be("max-age=31536000; includeSubDomains");
-        httpContext.Response.Headers["Content-Security-Policy"].ToString().Should().Be("default-src 'none'; frame-ancestors 'none'");
+        Assert.True(nextCalled);
+        Assert.Equal("nosniff", httpContext.Response.Headers["X-Content-Type-Options"].ToString());
+        Assert.Equal("DENY", httpContext.Response.Headers["X-Frame-Options"].ToString());
+        Assert.Equal("strict-origin-when-cross-origin", httpContext.Response.Headers["Referrer-Policy"].ToString());
+        Assert.Equal("max-age=31536000; includeSubDomains", httpContext.Response.Headers["Strict-Transport-Security"].ToString());
+        Assert.Equal("default-src 'none'; frame-ancestors 'none'", httpContext.Response.Headers["Content-Security-Policy"].ToString());
     }
 
     [Fact]
@@ -53,12 +52,12 @@ public class SecurityHeadersMiddlewareTests
 
         var act = () => middleware.Invoke(mockContext.Object, next);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
-        httpContext.Response.Headers["X-Content-Type-Options"].ToString().Should().Be("nosniff");
-        httpContext.Response.Headers["X-Frame-Options"].ToString().Should().Be("DENY");
-        httpContext.Response.Headers["Referrer-Policy"].ToString().Should().Be("strict-origin-when-cross-origin");
-        httpContext.Response.Headers["Strict-Transport-Security"].ToString().Should().Be("max-age=31536000; includeSubDomains");
-        httpContext.Response.Headers["Content-Security-Policy"].ToString().Should().Be("default-src 'none'; frame-ancestors 'none'");
+        await Assert.ThrowsAsync<InvalidOperationException>(act);
+        Assert.Equal("nosniff", httpContext.Response.Headers["X-Content-Type-Options"].ToString());
+        Assert.Equal("DENY", httpContext.Response.Headers["X-Frame-Options"].ToString());
+        Assert.Equal("strict-origin-when-cross-origin", httpContext.Response.Headers["Referrer-Policy"].ToString());
+        Assert.Equal("max-age=31536000; includeSubDomains", httpContext.Response.Headers["Strict-Transport-Security"].ToString());
+        Assert.Equal("default-src 'none'; frame-ancestors 'none'", httpContext.Response.Headers["Content-Security-Policy"].ToString());
     }
 
     [Fact]
@@ -74,6 +73,6 @@ public class SecurityHeadersMiddlewareTests
 
         await middleware.Invoke(mockContext.Object, next);
 
-        nextCalled.Should().BeTrue();
+        Assert.True(nextCalled);
     }
 }

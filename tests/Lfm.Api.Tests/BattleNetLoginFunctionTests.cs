@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -56,10 +55,9 @@ public class BattleNetLoginFunctionTests
 
         var result = fn.Run(req, CancellationToken.None);
 
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().StartWith("https://eu.battle.net/oauth/authorize",
-            "the redirect target must be the Battle.net authorization endpoint");
-        redirect.Permanent.Should().BeFalse("OAuth login redirects must be 302, not 301");
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.StartsWith("https://eu.battle.net/oauth/authorize", redirect.Url);
+        Assert.False(redirect.Permanent);
     }
 
     [Fact]
@@ -70,11 +68,10 @@ public class BattleNetLoginFunctionTests
 
         var result = fn.Run(req, CancellationToken.None);
 
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
+        var redirect = Assert.IsType<RedirectResult>(result);
         var uri = new Uri(redirect.Url);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        query["state"].Should().NotBeNullOrEmpty(
-            "state is required to prevent CSRF attacks on the callback");
+        Assert.False(string.IsNullOrEmpty(query["state"]));
     }
 
     [Fact]
@@ -87,15 +84,13 @@ public class BattleNetLoginFunctionTests
 
         var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
         var loginStateCookie = setCookieHeaders.SingleOrDefault(h => h.Contains("login_state"));
-        loginStateCookie.Should().NotBeNull("login_state must be set on login redirect");
-        loginStateCookie!.ToLowerInvariant().Should().Contain("secure");
-        loginStateCookie.ToLowerInvariant().Should().Contain("httponly");
-        loginStateCookie.ToLowerInvariant().Should().Contain("samesite=lax");
-        loginStateCookie.ToLowerInvariant().Should().Contain("path=/");
-        loginStateCookie.ToLowerInvariant().Should().Contain("max-age=300",
-            "login_state TTL must be 5 minutes (300 seconds)");
-        loginStateCookie.Should().StartWith("login_state=",
-            "the cookie name is the literal 'login_state' string");
+        Assert.NotNull(loginStateCookie);
+        Assert.Contains("secure", loginStateCookie!.ToLowerInvariant());
+        Assert.Contains("httponly", loginStateCookie.ToLowerInvariant());
+        Assert.Contains("samesite=lax", loginStateCookie.ToLowerInvariant());
+        Assert.Contains("path=/", loginStateCookie.ToLowerInvariant());
+        Assert.Contains("max-age=300", loginStateCookie.ToLowerInvariant());
+        Assert.StartsWith("login_state=", loginStateCookie);
     }
 
     [Fact]
@@ -106,13 +101,11 @@ public class BattleNetLoginFunctionTests
 
         var result = fn.Run(req, CancellationToken.None);
 
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
+        var redirect = Assert.IsType<RedirectResult>(result);
         var uri = new Uri(redirect.Url);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        query["code_challenge"].Should().NotBeNullOrEmpty(
-            "PKCE code_challenge must be included in the authorize URL");
-        query["code_challenge_method"].Should().Be("S256",
-            "PKCE S256 method is required per RFC 7636");
+        Assert.False(string.IsNullOrEmpty(query["code_challenge"]));
+        Assert.Equal("S256", query["code_challenge_method"]);
     }
 
     [Fact]
@@ -171,6 +164,6 @@ public class BattleNetLoginFunctionTests
     public void IsValidRedirect_accepts_only_relative_paths_that_are_not_protocol_relative(
         string? input, bool expected)
     {
-        BattleNetLoginFunction.IsValidRedirect(input).Should().Be(expected);
+        Assert.Equal(expected, BattleNetLoginFunction.IsValidRedirect(input));
     }
 }

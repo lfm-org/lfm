@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Middleware;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -31,9 +30,10 @@ public class AuditMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Level.Should().Be(LogLevel.Information);
-        entry.Message.Should().Contain("runs-create").And.Contain("completed");
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Information, entry.Level);
+        Assert.Contains("runs-create", entry.Message);
+        Assert.Contains("completed", entry.Message);
     }
 
     [Fact]
@@ -44,11 +44,10 @@ public class AuditMiddlewareTests
 
         await sut.Invoke(ctx.Object, async _ => { await Task.Delay(20); });
 
-        var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Properties.Should().ContainKey("ElapsedMs");
+        var entry = Assert.Single(logger.Entries);
+        Assert.True(entry.Properties.ContainsKey("ElapsedMs"));
         var elapsed = Convert.ToDouble(entry.Properties["ElapsedMs"]);
-        elapsed.Should().BeGreaterThanOrEqualTo(0,
-            "the elapsed measurement must be a non-negative number");
+        Assert.True(elapsed >= 0);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public class AuditMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCallCount++; return Task.CompletedTask; });
 
-        nextCallCount.Should().Be(1);
+        Assert.Equal(1, nextCallCount);
     }
 
     [Fact]
@@ -70,16 +69,15 @@ public class AuditMiddlewareTests
         var sut = new AuditMiddleware(logger);
         var thrown = new InvalidOperationException("boom");
 
-        var act = () => sut.Invoke(ctx.Object, _ => throw thrown);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sut.Invoke(ctx.Object, _ => throw thrown));
+        Assert.Same(thrown, ex);
 
-        var ex = await act.Should().ThrowAsync<InvalidOperationException>();
-        ex.Which.Should().BeSameAs(thrown,
-            "audit middleware must propagate the original exception so the function host can record the failure");
-
-        var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Level.Should().Be(LogLevel.Error);
-        entry.Exception.Should().BeSameAs(thrown);
-        entry.Message.Should().Contain("runs-create").And.Contain("failed");
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Error, entry.Level);
+        Assert.Same(thrown, entry.Exception);
+        Assert.Contains("runs-create", entry.Message);
+        Assert.Contains("failed", entry.Message);
     }
 
     [Fact]
@@ -90,6 +88,6 @@ public class AuditMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        logger.Entries.Should().NotContain(e => e.Level == LogLevel.Error);
+        Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
     }
 }

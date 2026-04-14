@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FluentAssertions;
 using Lfm.Api.Functions;
 using Lfm.Api.Options;
 using Lfm.Contracts.Health;
@@ -22,9 +21,10 @@ public class HealthFunctionTests
         var result = HealthFunction.Build();
         var after = DateTimeOffset.UtcNow;
 
-        result.Should().BeOfType<HealthResponse>();
-        result.Status.Should().Be("ok");
-        result.Timestamp.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        Assert.IsType<HealthResponse>(result);
+        Assert.Equal("ok", result.Status);
+        Assert.True(result.Timestamp >= before);
+        Assert.True(result.Timestamp <= after);
     }
 
     [Fact]
@@ -36,11 +36,12 @@ public class HealthFunctionTests
         var result = fn.Live(new DefaultHttpContext().Request);
         var after = DateTimeOffset.UtcNow;
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.StatusCode.Should().Be(200);
-        var body = ok.Value.Should().BeOfType<HealthResponse>().Subject;
-        body.Status.Should().Be("ok");
-        body.Timestamp.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var body = Assert.IsType<HealthResponse>(ok.Value);
+        Assert.Equal("ok", body.Status);
+        Assert.True(body.Timestamp >= before);
+        Assert.True(body.Timestamp <= after);
     }
 
     private static (HealthFunction fn, Mock<Database> mockDb) CreateReadyFunction()
@@ -69,11 +70,12 @@ public class HealthFunctionTests
         var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
         var after = DateTimeOffset.UtcNow;
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.StatusCode.Should().Be(200);
-        var body = ok.Value.Should().BeOfType<HealthResponse>().Subject;
-        body.Status.Should().Be("ready");
-        body.Timestamp.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var body = Assert.IsType<HealthResponse>(ok.Value);
+        Assert.Equal("ready", body.Status);
+        Assert.True(body.Timestamp >= before);
+        Assert.True(body.Timestamp <= after);
 
         mockDb.Verify(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -90,10 +92,10 @@ public class HealthFunctionTests
 
         var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var obj = result.Should().BeOfType<ObjectResult>().Subject;
-        obj.StatusCode.Should().Be(503);
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, obj.StatusCode);
         var statusProp = obj.Value!.GetType().GetProperty("status")!.GetValue(obj.Value);
-        statusProp.Should().Be("unready");
+        Assert.Equal("unready", statusProp);
     }
 
     [Fact]
@@ -105,10 +107,10 @@ public class HealthFunctionTests
 
         var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var obj = result.Should().BeOfType<ObjectResult>().Subject;
-        obj.StatusCode.Should().Be(503);
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, obj.StatusCode);
         var statusProp = obj.Value!.GetType().GetProperty("status")!.GetValue(obj.Value);
-        statusProp.Should().Be("unready");
+        Assert.Equal("unready", statusProp);
     }
 
     // ------------------------------------------------------------------
@@ -136,8 +138,7 @@ public class HealthFunctionTests
     {
         foreach (var marker in SensitiveSubstrings)
         {
-            body.Should().NotContain(marker,
-                $"{context} response body must not leak '{marker}' to clients");
+            Assert.DoesNotContain(marker, body);
         }
     }
 
@@ -148,7 +149,7 @@ public class HealthFunctionTests
 
         var result = fn.Live(new DefaultHttpContext().Request);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value);
         AssertNoSensitiveSubstrings(json, "/api/health");
     }
@@ -162,7 +163,7 @@ public class HealthFunctionTests
 
         var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value);
         AssertNoSensitiveSubstrings(json, "/api/health/ready (success)");
     }
@@ -183,7 +184,7 @@ public class HealthFunctionTests
 
         var result = await fn.Ready(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var obj = result.Should().BeOfType<ObjectResult>().Subject;
+        var obj = Assert.IsType<ObjectResult>(result);
         var json = JsonSerializer.Serialize(obj.Value);
         AssertNoSensitiveSubstrings(json, "/api/health/ready (failure)");
     }

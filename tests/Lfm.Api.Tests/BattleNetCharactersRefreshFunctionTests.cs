@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -111,17 +110,17 @@ public class BattleNetCharactersRefreshFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         // Assert: 200 with character list
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var characters = ok.Value.Should().BeAssignableTo<List<CharacterDto>>().Subject;
-        characters.Should().HaveCount(1);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var characters = Assert.IsAssignableFrom<List<CharacterDto>>(ok.Value);
+        Assert.Single(characters);
 
         var character = characters[0];
-        character.Name.Should().Be("Thrall");
-        character.Realm.Should().Be("draenor");
-        character.RealmName.Should().Be("Draenor");
-        character.Level.Should().Be(80);
-        character.Region.Should().Be(Region);
-        character.ClassId.Should().Be(1);
+        Assert.Equal("Thrall", character.Name);
+        Assert.Equal("draenor", character.Realm);
+        Assert.Equal("Draenor", character.RealmName);
+        Assert.Equal(80, character.Level);
+        Assert.Equal(Region, character.Region);
+        Assert.Equal(1, character.ClassId);
 
         // Assert: repo upserted with updated profile + refreshed timestamps
         repo.Verify(r => r.UpsertAsync(
@@ -162,11 +161,10 @@ public class BattleNetCharactersRefreshFunctionTests
         var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
 
         // Assert: 429 with a Retry-After header
-        var statusResult = result.Should().BeOfType<ObjectResult>().Subject;
-        statusResult.StatusCode.Should().Be(429);
+        var statusResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(429, statusResult.StatusCode);
 
-        httpContext.Response.Headers["Retry-After"].ToString()
-            .Should().NotBeNullOrEmpty("Retry-After header must be set on 429 response");
+        Assert.False(string.IsNullOrEmpty(httpContext.Response.Headers["Retry-After"].ToString()));
 
         // Assert: Blizzard was NOT called
         profileClient.Verify(

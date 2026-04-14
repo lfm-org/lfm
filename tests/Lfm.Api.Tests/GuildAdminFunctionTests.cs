@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -74,8 +73,8 @@ public class GuildAdminFunctionTests
 
         var result = await fn.Run(MakeRequest("99"), ctx, CancellationToken.None);
 
-        var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
-        forbidden.StatusCode.Should().Be(403);
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, forbidden.StatusCode);
 
         guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -100,7 +99,7 @@ public class GuildAdminFunctionTests
 
         var result = await fn.Run(MakeRequest(null), ctx, CancellationToken.None);
 
-        result.Should().BeOfType<BadRequestObjectResult>();
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     // ---------------------------------------------------------------------------
@@ -126,10 +125,10 @@ public class GuildAdminFunctionTests
 
         var result = await fn.Run(MakeRequest("99"), ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = ok.Value.Should().BeOfType<GuildDto>().Subject;
-        dto.Setup.Locale.Should().Be("fi");
-        dto.Setup.Timezone.Should().Be("Europe/Helsinki");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.Equal("fi", dto.Setup.Locale);
+        Assert.Equal("Europe/Helsinki", dto.Setup.Timezone);
     }
 
     // ---------------------------------------------------------------------------
@@ -154,7 +153,7 @@ public class GuildAdminFunctionTests
 
         var result = await fn.Run(MakeRequest("nonexistent"), ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundResult>();
+        Assert.IsType<NotFoundResult>(result);
     }
 
 }

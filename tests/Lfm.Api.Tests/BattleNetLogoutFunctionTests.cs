@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -66,9 +65,9 @@ public class BattleNetLogoutFunctionTests
 
         var result = fn.Run(req, ctx);
 
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().Be(AppBaseUrl, "logout should redirect to AppBaseUrl");
-        redirect.Permanent.Should().BeFalse("logout redirect must be 302");
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal(AppBaseUrl, redirect.Url);
+        Assert.False(redirect.Permanent);
     }
 
     [Fact]
@@ -85,15 +84,11 @@ public class BattleNetLogoutFunctionTests
 
         var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
         var authCookie = setCookieHeaders.SingleOrDefault(h => h.Contains(FakeCookieName));
-        authCookie.Should().NotBeNull("the auth cookie must appear in Set-Cookie");
-        authCookie!.ToLowerInvariant().Should().Contain("expires=thu, 01 jan 1970",
-            "logout must clear the auth cookie via an expires date in the past");
-        authCookie.ToLowerInvariant().Should().Contain("path=/",
-            "the delete cookie must scope to the same path as the original (/)");
-        authCookie.ToLowerInvariant().Should().Contain("httponly",
-            "the delete cookie must remain HttpOnly");
-        authCookie.Should().StartWith(FakeCookieName + "=",
-            "the cookie name must come from AuthOptions.CookieName, not a hardcoded string");
+        Assert.NotNull(authCookie);
+        Assert.Contains("expires=thu, 01 jan 1970", authCookie!.ToLowerInvariant());
+        Assert.Contains("path=/", authCookie.ToLowerInvariant());
+        Assert.Contains("httponly", authCookie.ToLowerInvariant());
+        Assert.StartsWith(FakeCookieName + "=", authCookie);
     }
 
     // -----------------------------------------------------------------------
@@ -115,10 +110,9 @@ public class BattleNetLogoutFunctionTests
         fn.Run(req, ctx);
 
         // Assert: logger called with "logout" and "success"
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "logout",
             actorId: "bnet-42",
-            result: "success"),
-            "logout must emit a logout audit event with result=success");
+            result: "success"));
     }
 }

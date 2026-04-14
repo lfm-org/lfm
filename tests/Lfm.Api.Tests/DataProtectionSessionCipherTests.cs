@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Auth;
 using Microsoft.AspNetCore.DataProtection;
 using Xunit;
@@ -28,13 +27,13 @@ public class DataProtectionSessionCipherTests
         var encrypted = sut.Protect(original);
         var decrypted = sut.Unprotect(encrypted);
 
-        decrypted.Should().NotBeNull();
-        decrypted!.BattleNetId.Should().Be(original.BattleNetId);
-        decrypted.BattleTag.Should().Be(original.BattleTag);
-        decrypted.GuildId.Should().Be(original.GuildId);
-        decrypted.GuildName.Should().Be(original.GuildName);
-        decrypted.IssuedAt.Should().Be(original.IssuedAt);
-        decrypted.ExpiresAt.Should().Be(original.ExpiresAt);
+        Assert.NotNull(decrypted);
+        Assert.Equal(original.BattleNetId, decrypted!.BattleNetId);
+        Assert.Equal(original.BattleTag, decrypted.BattleTag);
+        Assert.Equal(original.GuildId, decrypted.GuildId);
+        Assert.Equal(original.GuildName, decrypted.GuildName);
+        Assert.Equal(original.IssuedAt, decrypted.IssuedAt);
+        Assert.Equal(original.ExpiresAt, decrypted.ExpiresAt);
     }
 
     [Fact]
@@ -45,9 +44,8 @@ public class DataProtectionSessionCipherTests
 
         var encrypted = sut.Protect(principal);
 
-        encrypted.Should().NotContain("bnet-secret",
-            "the protected payload must not leak plaintext fields");
-        encrypted.Should().NotContain("Player#1234");
+        Assert.DoesNotContain("bnet-secret", encrypted);
+        Assert.DoesNotContain("Player#1234", encrypted);
     }
 
     [Fact]
@@ -59,8 +57,7 @@ public class DataProtectionSessionCipherTests
         var first = sut.Protect(principal);
         var second = sut.Protect(principal);
 
-        first.Should().NotBe(second,
-            "Data Protection outputs must not be byte-identical for repeated protect calls");
+        Assert.NotEqual(second, first);
     }
 
     [Fact]
@@ -70,7 +67,7 @@ public class DataProtectionSessionCipherTests
 
         var result = sut.Unprotect("not-a-real-token");
 
-        result.Should().BeNull("malformed payloads must not throw and must return null");
+        Assert.Null(result);
     }
 
     [Fact]
@@ -80,7 +77,7 @@ public class DataProtectionSessionCipherTests
 
         var result = sut.Unprotect(string.Empty);
 
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -96,7 +93,7 @@ public class DataProtectionSessionCipherTests
 
         var result = sut.Unprotect(tampered);
 
-        result.Should().BeNull("tampered tokens must fail authenticated decryption");
+        Assert.Null(result);
     }
 
     [Fact]
@@ -110,7 +107,7 @@ public class DataProtectionSessionCipherTests
 
         var result = cipherB.Unprotect(encrypted);
 
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Theory]
@@ -137,7 +134,6 @@ public class DataProtectionSessionCipherTests
 
         var result = cipher.Unprotect(rivalToken);
 
-        result.Should().BeNull(
-            $"the cipher's Purpose must isolate it from a rival protector created with purpose '{rivalPurpose}'");
+        Assert.Null(result);
     }
 }

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -140,22 +139,18 @@ public class BattleNetCallbackFunctionTests
         var result = await fn.Run(req, CancellationToken.None);
 
         // Assert: redirects to AppBaseUrl (not failure URL)
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().Be(AppBaseUrl,
-            "successful callback without a stored redirect must redirect to AppBaseUrl");
-        redirect.Permanent.Should().BeFalse("OAuth callback redirects must be 302");
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal(AppBaseUrl, redirect.Url);
+        Assert.False(redirect.Permanent);
 
         // Assert: auth cookie set in response
         var responseHeaders = httpContext.Response.Headers;
         var setCookieHeaders = responseHeaders["Set-Cookie"].ToArray();
-        setCookieHeaders.Should().Contain(h => h.Contains(FakeCookieName),
-            "the auth cookie must be set in the response");
-        setCookieHeaders.Should().Contain(h => h.Contains(FakeEncrypted),
-            "the auth cookie must contain the encrypted session token");
+        Assert.Contains(setCookieHeaders, h => h!.Contains(FakeCookieName));
+        Assert.Contains(setCookieHeaders, h => h!.Contains(FakeEncrypted));
 
         // Assert: login_state cookie cleared (MaxAge=0)
-        setCookieHeaders.Should().Contain(h => h.Contains("login_state") && h.Contains("max-age=0"),
-            "the login_state cookie must be cleared after successful callback");
+        Assert.Contains(setCookieHeaders, h => h!.Contains("login_state") && h.Contains("max-age=0"));
 
         // Assert: repository upserted with correct battleNetId
         repoMock.Verify(r => r.UpsertAsync(
@@ -203,10 +198,9 @@ public class BattleNetCallbackFunctionTests
         var result = await fn.Run(req, CancellationToken.None);
 
         // Assert: redirects to AppBaseUrl + redirect path
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().Be($"{AppBaseUrl}{postLoginPath}",
-            "successful callback must redirect to AppBaseUrl + the stored redirect path");
-        redirect.Permanent.Should().BeFalse("OAuth callback redirects must be 302");
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal($"{AppBaseUrl}{postLoginPath}", redirect.Url);
+        Assert.False(redirect.Permanent);
     }
 
     // -----------------------------------------------------------------------
@@ -230,10 +224,9 @@ public class BattleNetCallbackFunctionTests
         var result = await fn.Run(req, CancellationToken.None);
 
         // Assert: redirects to failure URL
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().Be(FailureUrl,
-            "missing login_state cookie must redirect to failure, not crash");
-        redirect.Permanent.Should().BeFalse();
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal(FailureUrl, redirect.Url);
+        Assert.False(redirect.Permanent);
 
         // Assert: ExchangeCodeAsync was NOT called
         oauthMock.Verify(o => o.ExchangeCodeAsync(
@@ -262,9 +255,8 @@ public class BattleNetCallbackFunctionTests
         var result = await fn.Run(req, CancellationToken.None);
 
         // Assert
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().Be(FailureUrl,
-            "state mismatch (possible CSRF) must redirect to failure");
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal(FailureUrl, redirect.Url);
 
         oauthMock.Verify(o => o.ExchangeCodeAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
@@ -299,14 +291,12 @@ public class BattleNetCallbackFunctionTests
         var result = await fn.Run(req, CancellationToken.None);
 
         // Assert: redirects to failure, no auth cookie set
-        var redirect = result.Should().BeOfType<RedirectResult>().Subject;
-        redirect.Url.Should().Be(FailureUrl,
-            "failed token exchange must redirect to failure URL");
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal(FailureUrl, redirect.Url);
 
         // Assert: no auth cookie set in response
         var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].ToArray();
-        setCookieHeaders.Should().NotContain(h => h.Contains(FakeCookieName),
-            "auth cookie must NOT be set when token exchange fails");
+        Assert.DoesNotContain(setCookieHeaders, h => h!.Contains(FakeCookieName));
 
         cipherMock.Verify(c => c.Protect(It.IsAny<SessionPrincipal>()), Times.Never);
     }
@@ -354,11 +344,10 @@ public class BattleNetCallbackFunctionTests
         await fn.Run(req, CancellationToken.None);
 
         // Assert: logger called with "login.success" and the battleNetId "999"
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "login.success",
             actorId: "999",
-            result: "success"),
-            "happy path must emit a login.success audit event with the battleNetId");
+            result: "success"));
     }
 
     // -----------------------------------------------------------------------
@@ -404,13 +393,12 @@ public class BattleNetCallbackFunctionTests
         // Locks down a real attack surface — Stryker found mutations on these flags surviving.
         var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
         var authCookie = setCookieHeaders.SingleOrDefault(h => h.Contains(FakeCookieName));
-        authCookie.Should().NotBeNull("the auth cookie must appear in Set-Cookie");
-        authCookie!.ToLowerInvariant().Should().Contain("secure", "auth cookie must be Secure");
-        authCookie.ToLowerInvariant().Should().Contain("httponly", "auth cookie must be HttpOnly");
-        authCookie.ToLowerInvariant().Should().Contain("samesite=lax", "auth cookie must be SameSite=Lax");
-        authCookie.ToLowerInvariant().Should().Contain("path=/", "auth cookie must be path-scoped to /");
-        authCookie.Should().StartWith(FakeCookieName + "=",
-            "the cookie name must come from AuthOptions.CookieName, not a hardcoded string");
+        Assert.NotNull(authCookie);
+        Assert.Contains("secure", authCookie!.ToLowerInvariant());
+        Assert.Contains("httponly", authCookie.ToLowerInvariant());
+        Assert.Contains("samesite=lax", authCookie.ToLowerInvariant());
+        Assert.Contains("path=/", authCookie.ToLowerInvariant());
+        Assert.StartsWith(FakeCookieName + "=", authCookie);
     }
 
     [Fact]
@@ -428,12 +416,11 @@ public class BattleNetCallbackFunctionTests
 
         var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
         var loginStateCookie = setCookieHeaders.SingleOrDefault(h => h.Contains("login_state"));
-        loginStateCookie.Should().NotBeNull();
-        loginStateCookie!.ToLowerInvariant().Should().Contain("secure");
-        loginStateCookie.ToLowerInvariant().Should().Contain("httponly");
-        loginStateCookie.ToLowerInvariant().Should().Contain("samesite=lax");
-        loginStateCookie.ToLowerInvariant().Should().Contain("max-age=0",
-            "clearing the cookie requires Max-Age=0");
+        Assert.NotNull(loginStateCookie);
+        Assert.Contains("secure", loginStateCookie!.ToLowerInvariant());
+        Assert.Contains("httponly", loginStateCookie.ToLowerInvariant());
+        Assert.Contains("samesite=lax", loginStateCookie.ToLowerInvariant());
+        Assert.Contains("max-age=0", loginStateCookie.ToLowerInvariant());
     }
 
     [Fact]
@@ -453,8 +440,8 @@ public class BattleNetCallbackFunctionTests
         await fn.Run(req, CancellationToken.None);
 
         // Assert: logger called with "login.failure" and the missing-cookie detail
-        logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("login.failure", "failure", "missing login_state or state"),
-            "missing cookie must emit a login.failure audit event");
+        Assert.Single(
+            logger.Entries,
+            e => e.IsAudit("login.failure", "failure", "missing login_state or state"));
     }
 }

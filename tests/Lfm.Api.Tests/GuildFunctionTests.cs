@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -113,11 +112,11 @@ public class GuildFunctionTests
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = ok.Value.Should().BeOfType<GuildDto>().Subject;
-        dto.Setup.Locale.Should().Be("fi");
-        dto.Setup.Timezone.Should().Be("Europe/Helsinki");
-        dto.Setup.IsInitialized.Should().BeTrue();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.Equal("fi", dto.Setup.Locale);
+        Assert.Equal("Europe/Helsinki", dto.Setup.Timezone);
+        Assert.True(dto.Setup.IsInitialized);
     }
 
     // ------------------------------------------------------------------
@@ -138,8 +137,11 @@ public class GuildFunctionTests
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
 
-        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var value = Assert.IsAssignableFrom<object>(notFound.Value);
+        var errorProp = value.GetType().GetProperty("error");
+        Assert.NotNull(errorProp);
+        Assert.Equal("Raider not found", errorProp!.GetValue(value));
     }
 
     // ------------------------------------------------------------------
@@ -174,11 +176,11 @@ public class GuildFunctionTests
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = ok.Value.Should().BeOfType<GuildDto>().Subject;
-        dto.Guild.Should().BeNull();
-        dto.Setup.IsInitialized.Should().BeFalse();
-        dto.Setup.RequiresSetup.Should().BeTrue();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.Null(dto.Guild);
+        Assert.False(dto.Setup.IsInitialized);
+        Assert.True(dto.Setup.RequiresSetup);
     }
 
     // ------------------------------------------------------------------
@@ -218,8 +220,8 @@ public class GuildFunctionTests
 
         var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().BeOfType<GuildDto>();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<GuildDto>(ok.Value);
 
         guildRepo.Verify(r => r.UpsertAsync(
             It.Is<GuildDocument>(d => d.Setup!.Timezone == "Europe/London" && d.Setup.Locale == "en-gb"),
@@ -253,16 +255,16 @@ public class GuildFunctionTests
 
         var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
-        var statusResult = result.Should().BeOfType<ObjectResult>().Subject;
-        statusResult.StatusCode.Should().Be(403);
+        var statusResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, statusResult.StatusCode);
 
         // Guild document should never be read when caller is not admin.
         guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 
         // Denied admin attempt must emit a failure audit event.
-        logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("guild.update", "failure", "forbidden"),
-            "denied admin guild update must emit a failure audit event");
+        Assert.Single(
+            logger.Entries,
+            e => e.IsAudit("guild.update", "failure", "forbidden"));
     }
 
     // -----------------------------------------------------------------------
@@ -305,11 +307,10 @@ public class GuildFunctionTests
         await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
         // Assert: logger called with "guild.update" and "success"
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "guild.update",
             actorId: "bnet-1",
-            result: "success"),
-            "guild update must emit an audit event with action=guild.update and result=success");
+            result: "success"));
     }
 
     // ------------------------------------------------------------------
@@ -357,10 +358,8 @@ public class GuildFunctionTests
 
         var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<OkObjectResult>(
-            "an XSS payload in a free-text field must not produce a server error; sanitisation belongs at the render layer");
-        captured.Should().NotBeNull();
-        captured!.Slogan.Should().Be(XssSlogan,
-            "the API stores user free-text verbatim; the render layer is responsible for HTML-encoding on output");
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(captured);
+        Assert.Equal(XssSlogan, captured!.Slogan);
     }
 }

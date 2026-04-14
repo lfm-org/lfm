@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
@@ -56,17 +55,17 @@ public class BlizzardOAuthClientTests
         var uri = new Uri(url);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
-        uri.Scheme.Should().Be("https");
-        uri.Host.Should().Be("eu.battle.net");
-        uri.AbsolutePath.Should().Be("/oauth/authorize");
+        Assert.Equal("https", uri.Scheme);
+        Assert.Equal("eu.battle.net", uri.Host);
+        Assert.Equal("/oauth/authorize", uri.AbsolutePath);
 
-        query["response_type"].Should().Be("code", "OAuth code grant requires response_type=code");
-        query["client_id"].Should().Be("test-client", "client_id must match BlizzardOptions.ClientId");
-        query["redirect_uri"].Should().Be("https://example.com/api/battlenet/callback");
-        query["scope"].Should().Be("wow.profile", "WoW profile scope is required");
-        query["state"].Should().Be(state, "state must round-trip intact");
-        query["code_challenge"].Should().Be(codeChallenge, "PKCE code_challenge must be present");
-        query["code_challenge_method"].Should().Be("S256", "PKCE S256 method is required");
+        Assert.Equal("code", query["response_type"]);
+        Assert.Equal("test-client", query["client_id"]);
+        Assert.Equal("https://example.com/api/battlenet/callback", query["redirect_uri"]);
+        Assert.Equal("wow.profile", query["scope"]);
+        Assert.Equal(state, query["state"]);
+        Assert.Equal(codeChallenge, query["code_challenge"]);
+        Assert.Equal("S256", query["code_challenge_method"]);
     }
 
     [Fact]
@@ -76,10 +75,10 @@ public class BlizzardOAuthClientTests
 
         var state = client.GenerateState();
 
-        state.Should().NotBeNullOrEmpty("an empty state is equivalent to no CSRF protection");
+        Assert.False(string.IsNullOrEmpty(state));
         // 32 hex chars = GUID without hyphens ("N" format)
-        state.Length.Should().Be(32);
-        state.Should().MatchRegex("^[0-9a-f]{32}$", "state should be lowercase hex");
+        Assert.Equal(32, state.Length);
+        Assert.Matches("^[0-9a-f]{32}$", state);
     }
 
     [Fact]
@@ -89,12 +88,10 @@ public class BlizzardOAuthClientTests
 
         var verifier = client.GenerateCodeVerifier();
 
-        verifier.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(verifier));
         // Base64url: only A-Z, a-z, 0-9, '-', '_' (no '+', '/', '=')
-        verifier.Should().MatchRegex(@"^[A-Za-z0-9\-_]+$",
-            "code verifier must be Base64url-encoded (no padding, no +/)");
-        verifier.Length.Should().BeGreaterThanOrEqualTo(43,
-            "RFC 7636 requires at least 43 characters for 256-bit entropy");
+        Assert.Matches(@"^[A-Za-z0-9\-_]+$", verifier);
+        Assert.True(verifier.Length >= 43);
     }
 
     [Theory]
@@ -107,7 +104,7 @@ public class BlizzardOAuthClientTests
         var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
         var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
 
-        new Uri(url).Host.Should().Be(expectedHost);
+        Assert.Equal(expectedHost, new Uri(url).Host);
     }
 
     [Fact]
@@ -124,10 +121,9 @@ public class BlizzardOAuthClientTests
         var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
 
         var uri = new Uri(url);
-        uri.Host.Should().Be("localhost", "the override must replace the regional Battle.net host");
-        uri.Port.Should().Be(9999, "the override port must be honoured");
-        uri.AbsolutePath.Should().Be("/oauth/authorize",
-            "the override must preserve the OAuth path layout");
+        Assert.Equal("localhost", uri.Host);
+        Assert.Equal(9999, uri.Port);
+        Assert.Equal("/oauth/authorize", uri.AbsolutePath);
     }
 
     [Fact]
@@ -141,8 +137,8 @@ public class BlizzardOAuthClientTests
 
         var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
 
-        url.Should().NotContain("//oauth/", "trailing slash in the override must be trimmed");
-        url.Should().Contain("/oauth/authorize");
+        Assert.DoesNotContain("//oauth/", url);
+        Assert.Contains("/oauth/authorize", url);
     }
 
     [Fact]
@@ -155,10 +151,10 @@ public class BlizzardOAuthClientTests
         var payload = client.ProtectLoginState(state, verifier, redirect: null);
         var result = client.UnprotectLoginState(payload);
 
-        result.Should().NotBeNull("valid protected payload must round-trip");
-        result!.Value.state.Should().Be(state);
-        result.Value.codeVerifier.Should().Be(verifier);
-        result.Value.redirect.Should().BeNull("no redirect was stored");
+        Assert.NotNull(result);
+        Assert.Equal(state, result!.Value.state);
+        Assert.Equal(verifier, result.Value.codeVerifier);
+        Assert.Null(result.Value.redirect);
     }
 
     [Fact]
@@ -172,10 +168,10 @@ public class BlizzardOAuthClientTests
         var payload = client.ProtectLoginState(state, verifier, redirect);
         var result = client.UnprotectLoginState(payload);
 
-        result.Should().NotBeNull("valid protected payload must round-trip");
-        result!.Value.state.Should().Be(state);
-        result.Value.codeVerifier.Should().Be(verifier);
-        result.Value.redirect.Should().Be(redirect, "redirect path must survive the round-trip");
+        Assert.NotNull(result);
+        Assert.Equal(state, result!.Value.state);
+        Assert.Equal(verifier, result.Value.codeVerifier);
+        Assert.Equal(redirect, result.Value.redirect);
     }
 
     [Fact]
@@ -185,7 +181,7 @@ public class BlizzardOAuthClientTests
 
         var result = client.UnprotectLoginState("tampered.garbage.payload");
 
-        result.Should().BeNull("tampered payloads must be rejected");
+        Assert.Null(result);
     }
 
     [Fact]
@@ -197,6 +193,6 @@ public class BlizzardOAuthClientTests
         const string verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
         const string expected = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 
-        BlizzardOAuthClient.ComputeCodeChallenge(verifier).Should().Be(expected);
+        Assert.Equal(expected, BlizzardOAuthClient.ComputeCodeChallenge(verifier));
     }
 }

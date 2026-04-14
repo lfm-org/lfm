@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Microsoft.AspNetCore.Http;
@@ -50,10 +49,10 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.Headers["Access-Control-Allow-Origin"].ToString().Should().Be(AllowedOrigin);
-        httpCtx.Response.Headers["Access-Control-Allow-Credentials"].ToString().Should().Be("true");
-        httpCtx.Response.Headers.Vary.ToString().Should().Be("Origin");
+        Assert.True(nextCalled);
+        Assert.Equal(AllowedOrigin, httpCtx.Response.Headers["Access-Control-Allow-Origin"].ToString());
+        Assert.Equal("true", httpCtx.Response.Headers["Access-Control-Allow-Credentials"].ToString());
+        Assert.Equal("Origin", httpCtx.Response.Headers.Vary.ToString());
     }
 
     [Fact]
@@ -68,9 +67,9 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.Headers.Should().NotContainKey("Access-Control-Allow-Origin");
-        httpCtx.Response.Headers.Should().NotContainKey("Access-Control-Allow-Credentials");
+        Assert.True(nextCalled);
+        Assert.False(httpCtx.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
+        Assert.False(httpCtx.Response.Headers.ContainsKey("Access-Control-Allow-Credentials"));
     }
 
     [Fact]
@@ -81,9 +80,9 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        httpCtx.Response.Headers["Access-Control-Allow-Origin"].ToString()
-            .Should().Be(AllowedOrigin.ToUpperInvariant(),
-                "the response echoes the request's Origin header verbatim once it matches the allow list");
+        Assert.Equal(
+            AllowedOrigin.ToUpperInvariant(),
+            httpCtx.Response.Headers["Access-Control-Allow-Origin"].ToString());
     }
 
     [Fact]
@@ -95,8 +94,8 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.Headers.Should().NotContainKey("Access-Control-Allow-Origin");
+        Assert.True(nextCalled);
+        Assert.False(httpCtx.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
     }
 
     [Fact]
@@ -112,12 +111,12 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeFalse("preflight must short-circuit and never invoke the function");
-        httpCtx.Response.StatusCode.Should().Be(StatusCodes.Status204NoContent);
-        httpCtx.Response.Headers["Access-Control-Allow-Methods"].ToString().Should().Be("POST");
-        httpCtx.Response.Headers["Access-Control-Allow-Headers"].ToString().Should().Be("Content-Type, Authorization");
-        httpCtx.Response.Headers["Access-Control-Max-Age"].ToString().Should().Be("3600");
-        httpCtx.Response.Headers["Access-Control-Allow-Origin"].ToString().Should().Be(AllowedOrigin);
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status204NoContent, httpCtx.Response.StatusCode);
+        Assert.Equal("POST", httpCtx.Response.Headers["Access-Control-Allow-Methods"].ToString());
+        Assert.Equal("Content-Type, Authorization", httpCtx.Response.Headers["Access-Control-Allow-Headers"].ToString());
+        Assert.Equal("3600", httpCtx.Response.Headers["Access-Control-Max-Age"].ToString());
+        Assert.Equal(AllowedOrigin, httpCtx.Response.Headers["Access-Control-Allow-Origin"].ToString());
     }
 
     [Fact]
@@ -132,7 +131,7 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        httpCtx.Response.Headers.Should().NotContainKey("Access-Control-Allow-Headers");
+        Assert.False(httpCtx.Response.Headers.ContainsKey("Access-Control-Allow-Headers"));
     }
 
     [Fact]
@@ -149,9 +148,9 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeFalse();
-        httpCtx.Response.StatusCode.Should().Be(StatusCodes.Status204NoContent);
-        httpCtx.Response.Headers.Should().NotContainKey("Access-Control-Allow-Origin");
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status204NoContent, httpCtx.Response.StatusCode);
+        Assert.False(httpCtx.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
     }
 
     [Fact]
@@ -164,6 +163,6 @@ public class CorsMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
+        Assert.True(nextCalled);
     }
 }

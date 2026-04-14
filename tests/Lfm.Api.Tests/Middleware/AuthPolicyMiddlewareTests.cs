@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Microsoft.AspNetCore.Http;
@@ -54,8 +53,8 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(401);
+        Assert.True(nextCalled);
+        Assert.NotEqual(401, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -67,8 +66,8 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeFalse("the pipeline must be short-circuited when auth fails");
-        httpCtx.Response.StatusCode.Should().Be(401);
+        Assert.False(nextCalled);
+        Assert.Equal(401, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -80,8 +79,8 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(401);
+        Assert.True(nextCalled);
+        Assert.NotEqual(401, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -94,8 +93,8 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(401);
+        Assert.True(nextCalled);
+        Assert.NotEqual(401, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -110,8 +109,8 @@ public class AuthPolicyMiddlewareTests
         await sut.Invoke(ctx1.Object, _ => Task.CompletedTask);
         await sut.Invoke(ctx2.Object, _ => Task.CompletedTask);
 
-        http1.Response.StatusCode.Should().Be(401);
-        http2.Response.StatusCode.Should().Be(401);
+        Assert.Equal(401, http1.Response.StatusCode);
+        Assert.Equal(401, http2.Response.StatusCode);
     }
 
     [Fact]
@@ -125,8 +124,8 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(401);
+        Assert.True(nextCalled);
+        Assert.NotEqual(401, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -138,8 +137,8 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(401);
+        Assert.True(nextCalled);
+        Assert.NotEqual(401, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -151,7 +150,7 @@ public class AuthPolicyMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(401);
+        Assert.True(nextCalled);
+        Assert.NotEqual(401, httpCtx.Response.StatusCode);
     }
 }

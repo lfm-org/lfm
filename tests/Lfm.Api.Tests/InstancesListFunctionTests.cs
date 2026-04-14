@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -27,9 +26,9 @@ public class InstancesListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().BeEquivalentTo(fixture,
-            "the function is a pass-through; the response body must equal exactly what the repository returned");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsAssignableFrom<IReadOnlyList<InstanceDto>>(ok.Value);
+        Assert.Equal(fixture, list);
     }
 
     [Fact]
@@ -41,7 +40,8 @@ public class InstancesListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().BeAssignableTo<IReadOnlyList<InstanceDto>>().Subject.Should().BeEmpty();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsAssignableFrom<IReadOnlyList<InstanceDto>>(ok.Value);
+        Assert.Empty(list);
     }
 }

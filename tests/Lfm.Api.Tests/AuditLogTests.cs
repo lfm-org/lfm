@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Audit;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -20,14 +19,14 @@ public class AuditLogTests
 
         AuditLog.Emit(logger, evt);
 
-        logger.Entries.Should().ContainSingle();
+        Assert.Single(logger.Entries);
         var entry = logger.Entries[0];
-        entry.Level.Should().Be(LogLevel.Information);
-        entry.Properties[AuditProperties.Action].Should().Be("run.create");
-        entry.Properties[AuditProperties.ActorId].Should().Be("123456789");
-        entry.Properties[AuditProperties.TargetId].Should().Be("run-abc");
-        entry.Properties[AuditProperties.Result].Should().Be("success");
-        entry.Properties[AuditProperties.Detail].Should().Be("-");
+        Assert.Equal(LogLevel.Information, entry.Level);
+        Assert.Equal("run.create", entry.Properties[AuditProperties.Action]);
+        Assert.Equal("123456789", entry.Properties[AuditProperties.ActorId]);
+        Assert.Equal("run-abc", entry.Properties[AuditProperties.TargetId]);
+        Assert.Equal("success", entry.Properties[AuditProperties.Result]);
+        Assert.Equal("-", entry.Properties[AuditProperties.Detail]);
     }
 
     [Fact]
@@ -43,9 +42,9 @@ public class AuditLogTests
 
         AuditLog.Emit(logger, evt);
 
-        var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Properties[AuditProperties.TargetId].Should().Be("-");
-        entry.Properties[AuditProperties.Detail].Should().Be("-");
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal("-", entry.Properties[AuditProperties.TargetId]);
+        Assert.Equal("-", entry.Properties[AuditProperties.Detail]);
     }
 
     [Fact]
@@ -61,9 +60,9 @@ public class AuditLogTests
 
         AuditLog.Emit(logger, evt);
 
-        var entry = logger.Entries.Should().ContainSingle().Subject;
-        entry.Properties[AuditProperties.Action].Should().Be("login.callback");
-        entry.Properties[AuditProperties.Result].Should().Be("failure");
-        entry.Properties[AuditProperties.Detail].Should().Be("missing login_state cookie");
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal("login.callback", entry.Properties[AuditProperties.Action]);
+        Assert.Equal("failure", entry.Properties[AuditProperties.Result]);
+        Assert.Equal("missing login_state cookie", entry.Properties[AuditProperties.Detail]);
     }
 }

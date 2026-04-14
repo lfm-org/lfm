@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -98,17 +97,17 @@ public class BattleNetCharactersFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         // Assert
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var characters = ok.Value.Should().BeAssignableTo<List<CharacterDto>>().Subject;
-        characters.Should().HaveCount(1);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var characters = Assert.IsAssignableFrom<List<CharacterDto>>(ok.Value);
+        Assert.Single(characters);
 
         var character = characters[0];
-        character.Name.Should().Be("Legolas");
-        character.Realm.Should().Be("silvermoon");
-        character.RealmName.Should().Be("Silvermoon");
-        character.Level.Should().Be(80);
-        character.Region.Should().Be(Region);
-        character.ClassId.Should().Be(3);
+        Assert.Equal("Legolas", character.Name);
+        Assert.Equal("silvermoon", character.Realm);
+        Assert.Equal("Silvermoon", character.RealmName);
+        Assert.Equal(80, character.Level);
+        Assert.Equal(Region, character.Region);
+        Assert.Equal(3, character.ClassId);
     }
 
     // -------------------------------------------------------------------------
@@ -136,7 +135,7 @@ public class BattleNetCharactersFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         // Assert: caller must POST /battlenet/characters/refresh to populate the cache.
-        result.Should().BeOfType<NoContentResult>();
+        Assert.IsType<NoContentResult>(result);
     }
 
 }

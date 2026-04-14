@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Microsoft.AspNetCore.Http;
@@ -65,8 +64,8 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx.Response.StatusCode.Should().NotBe(429);
+        Assert.True(nextCalled);
+        Assert.NotEqual(429, httpCtx.Response.StatusCode);
     }
 
     [Fact]
@@ -91,9 +90,9 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(blockedCtx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeFalse();
-        blockedHttpCtx.Response.StatusCode.Should().Be(429);
-        blockedHttpCtx.Response.Headers["Retry-After"].ToString().Should().Be("60");
+        Assert.False(nextCalled);
+        Assert.Equal(429, blockedHttpCtx.Response.StatusCode);
+        Assert.Equal("60", blockedHttpCtx.Response.Headers["Retry-After"].ToString());
     }
 
     [Fact]
@@ -114,8 +113,8 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        httpCtx2.Response.StatusCode.Should().NotBe(429);
+        Assert.True(nextCalled);
+        Assert.NotEqual(429, httpCtx2.Response.StatusCode);
     }
 
     [Fact]
@@ -138,8 +137,8 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(authCtx2.Object, _ => { authNextCalled = true; return Task.CompletedTask; });
 
-        authNextCalled.Should().BeFalse();
-        authHttp2.Response.StatusCode.Should().Be(429);
+        Assert.False(authNextCalled);
+        Assert.Equal(429, authHttp2.Response.StatusCode);
 
         // Write endpoint should still work (separate bucket with 100 limit)
         var (writeCtx, writeHttp) = CreateContext("runs-create", "POST");
@@ -147,8 +146,8 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(writeCtx.Object, _ => { writeNextCalled = true; return Task.CompletedTask; });
 
-        writeNextCalled.Should().BeTrue();
-        writeHttp.Response.StatusCode.Should().NotBe(429);
+        Assert.True(writeNextCalled);
+        Assert.NotEqual(429, writeHttp.Response.StatusCode);
     }
 
     [Fact]
@@ -170,8 +169,8 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeFalse();
-        httpCtx2.Response.StatusCode.Should().Be(429);
+        Assert.False(nextCalled);
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
     }
 
     [Fact]
@@ -191,8 +190,8 @@ public class RateLimitMiddlewareTests
 
             await middleware.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-            nextCalled.Should().BeTrue();
-            httpCtx.Response.StatusCode.Should().NotBe(429);
+            Assert.True(nextCalled);
+            Assert.NotEqual(429, httpCtx.Response.StatusCode);
         }
     }
 
@@ -221,8 +220,8 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue("client B must not share client A's rate-limit bucket");
-        httpCtx2.Response.StatusCode.Should().NotBe(429);
+        Assert.True(nextCalled);
+        Assert.NotEqual(429, httpCtx2.Response.StatusCode);
     }
 
     [Fact]
@@ -248,8 +247,7 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
 
-        httpCtx2.Response.StatusCode.Should().Be(429,
-            "the bucket key must be 203.0.113.10 (forwarded), not 10.0.0.1 (proxy)");
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
     }
 
     [Fact]
@@ -275,8 +273,7 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
 
-        httpCtx2.Response.StatusCode.Should().Be(429,
-            "whitespace variants of the same forwarded IP must hit the same bucket");
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
     }
 
     [Fact]
@@ -299,8 +296,7 @@ public class RateLimitMiddlewareTests
 
         await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
 
-        httpCtx2.Response.StatusCode.Should().Be(429,
-            "absent or empty X-Forwarded-For must fall back to RemoteIpAddress for bucketing");
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
     }
 
     [Fact]
@@ -319,8 +315,8 @@ public class RateLimitMiddlewareTests
 
             await middleware.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-            nextCalled.Should().BeTrue();
-            httpCtx.Response.StatusCode.Should().NotBe(429);
+            Assert.True(nextCalled);
+            Assert.NotEqual(429, httpCtx.Response.StatusCode);
         }
     }
 }

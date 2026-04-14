@@ -1,5 +1,4 @@
 using System.Reflection;
-using FluentAssertions;
 using Lfm.Api.Auth;
 using Microsoft.Azure.Functions.Worker;
 using Xunit;
@@ -78,16 +77,16 @@ public class FunctionAuthorizationContractTests
     {
         var assembly = typeof(RequireAuthAttribute).Assembly;
         var type = assembly.GetType(typeName);
-        type.Should().NotBeNull($"function type {typeName} must exist in the assembly");
+        Assert.NotNull(type);
         var method = type!.GetMethod(methodName);
-        method.Should().NotBeNull($"function method {typeName}.{methodName} must exist");
+        Assert.NotNull(method);
 
         var hasMethodAttr = method!.GetCustomAttribute<RequireAuthAttribute>() is not null;
         var hasTypeAttr = type.GetCustomAttribute<RequireAuthAttribute>() is not null;
         var allowed = AnonymousAllowList.Contains(functionName);
 
         var protectedByAuth = hasMethodAttr || hasTypeAttr;
-        (protectedByAuth || allowed).Should().BeTrue(
+        Assert.True(protectedByAuth || allowed,
             $"function '{functionName}' ({typeName}.{methodName}) must either carry [RequireAuth] or appear in AnonymousAllowList. " +
             "If this is a new authorized endpoint, add [RequireAuth]. If it is intentionally anonymous, add it to the allow list.");
     }
@@ -103,8 +102,6 @@ public class FunctionAuthorizationContractTests
 
         var stale = AnonymousAllowList.Except(declared).ToList();
 
-        stale.Should().BeEmpty(
-            "the AnonymousAllowList must not reference deleted/renamed functions: {0}",
-            string.Join(", ", stale));
+        Assert.Empty(stale);
     }
 }

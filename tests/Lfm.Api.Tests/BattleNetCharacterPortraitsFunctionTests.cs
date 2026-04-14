@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -100,10 +99,10 @@ public class BattleNetCharacterPortraitsFunctionTests
         var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
 
         // Assert: 200 with the cached portrait URL
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = ok.Value.Should().BeAssignableTo<PortraitResponse>().Subject;
-        response.Portraits.Should().ContainKey(CharacterId)
-            .WhoseValue.Should().Be(CachedPortraitUrl);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsAssignableFrom<PortraitResponse>(ok.Value);
+        Assert.True(response.Portraits.ContainsKey(CharacterId));
+        Assert.Equal(CachedPortraitUrl, response.Portraits[CharacterId]);
     }
 
     // -------------------------------------------------------------------------
@@ -155,10 +154,10 @@ public class BattleNetCharacterPortraitsFunctionTests
         var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
 
         // Assert: 200 with Blizzard-fetched portrait URL
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = ok.Value.Should().BeAssignableTo<PortraitResponse>().Subject;
-        response.Portraits.Should().ContainKey(CharacterId)
-            .WhoseValue.Should().Be(BlizzardPortraitUrl);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsAssignableFrom<PortraitResponse>(ok.Value);
+        Assert.True(response.Portraits.ContainsKey(CharacterId));
+        Assert.Equal(BlizzardPortraitUrl, response.Portraits[CharacterId]);
 
         // Verify service was called with the access token
         portraitService.Verify(
@@ -199,7 +198,7 @@ public class BattleNetCharacterPortraitsFunctionTests
         var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
 
         // Assert: 404
-        result.Should().BeOfType<NotFoundResult>();
+        Assert.IsType<NotFoundResult>(result);
 
         // Service should not be called when raider doesn't exist.
         portraitService.Verify(

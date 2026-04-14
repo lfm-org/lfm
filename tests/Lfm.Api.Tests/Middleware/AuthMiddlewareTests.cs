@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Options;
@@ -55,8 +54,8 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        items.Should().NotContainKey(SessionKeys.Principal);
+        Assert.True(nextCalled);
+        Assert.False(items.ContainsKey(SessionKeys.Principal));
         cipher.Verify(c => c.Unprotect(It.IsAny<string>()), Times.Never);
     }
 
@@ -69,7 +68,7 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        items.Should().NotContainKey(SessionKeys.Principal);
+        Assert.False(items.ContainsKey(SessionKeys.Principal));
         cipher.Verify(c => c.Unprotect(It.IsAny<string>()), Times.Never);
     }
 
@@ -84,8 +83,8 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        items.Should().NotContainKey(SessionKeys.Principal);
+        Assert.True(nextCalled);
+        Assert.False(items.ContainsKey(SessionKeys.Principal));
     }
 
     [Fact]
@@ -99,7 +98,7 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        items.Should().NotContainKey(SessionKeys.Principal);
+        Assert.False(items.ContainsKey(SessionKeys.Principal));
     }
 
     // Round-trip identity: the SessionPrincipal returned by ISessionCipher.Unprotect must land in
@@ -115,7 +114,7 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        items[SessionKeys.Principal].Should().Be(principal);
+        Assert.Equal(principal, items[SessionKeys.Principal]);
     }
 
     [Fact]
@@ -134,7 +133,7 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
 
-        items[SessionKeys.Principal].Should().Be(principal);
+        Assert.Equal(principal, items[SessionKeys.Principal]);
     }
 
     [Fact]
@@ -150,7 +149,7 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
+        Assert.True(nextCalled);
     }
 
     [Fact]
@@ -165,7 +164,7 @@ public class AuthMiddlewareTests
 
         await sut.Invoke(ctx.Object, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        nextCalled.Should().BeTrue();
-        items.Should().NotContainKey(SessionKeys.Principal);
+        Assert.True(nextCalled);
+        Assert.False(items.ContainsKey(SessionKeys.Principal));
     }
 }
