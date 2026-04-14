@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -64,9 +63,9 @@ public class MeUpdateFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = ok.Value.Should().BeOfType<UpdateMeResponse>().Subject;
-        response.Locale.Should().Be("fi");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UpdateMeResponse>(ok.Value);
+        Assert.Equal("fi", response.Locale);
 
         repo.Verify(r => r.UpsertAsync(
             It.Is<RaiderDocument>(d => d.Locale == "fi" && d.BattleNetId == "bnet-1" && d.Ttl == 180 * 86400),
@@ -86,7 +85,7 @@ public class MeUpdateFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<BadRequestObjectResult>();
+        Assert.IsType<BadRequestObjectResult>(result);
         repo.Verify(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

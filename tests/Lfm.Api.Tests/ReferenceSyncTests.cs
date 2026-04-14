@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Microsoft.Extensions.Logging;
@@ -99,11 +98,11 @@ public class ReferenceSyncTests
 
         var response = await sut.SyncAllAsync(CancellationToken.None);
 
-        response.Results.Should().HaveCount(2);
-        response.Results[0].Name.Should().Be("instances");
-        response.Results[0].Status.Should().StartWith("synced");
-        response.Results[1].Name.Should().Be("specializations");
-        response.Results[1].Status.Should().StartWith("synced");
+        Assert.Equal(2, response.Results.Count);
+        Assert.Equal("instances", response.Results[0].Name);
+        Assert.StartsWith("synced", response.Results[0].Status);
+        Assert.Equal("specializations", response.Results[1].Name);
+        Assert.StartsWith("synced", response.Results[1].Status);
 
         instances.Verify(r => r.UpsertBatchAsync(
             It.Is<IEnumerable<InstanceDocument>>(docs => docs.Count() == 1),
@@ -170,15 +169,15 @@ public class ReferenceSyncTests
 
         var response = await sut.SyncAllAsync(CancellationToken.None);
 
-        response.Results.Should().HaveCount(2);
-        response.Results[0].Name.Should().Be("instances");
-        response.Results[0].Status.Should().StartWith("failed:");
-        response.Results[1].Name.Should().Be("specializations");
-        response.Results[1].Status.Should().StartWith("synced");
+        Assert.Equal(2, response.Results.Count);
+        Assert.Equal("instances", response.Results[0].Name);
+        Assert.StartsWith("failed:", response.Results[0].Status);
+        Assert.Equal("specializations", response.Results[1].Name);
+        Assert.StartsWith("synced", response.Results[1].Status);
 
         instances.Verify(r => r.UpsertBatchAsync(It.IsAny<IEnumerable<InstanceDocument>>(), It.IsAny<CancellationToken>()), Times.Never);
         specs.Verify(r => r.UpsertBatchAsync(It.IsAny<IEnumerable<SpecializationDocument>>(), It.IsAny<CancellationToken>()), Times.Once);
-        logger.Entries.Should().Contain(e => e.Level == LogLevel.Error && (e.Message ?? "").Contains("instances"));
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error && (e.Message ?? "").Contains("instances"));
     }
 
     [Fact]
@@ -194,11 +193,11 @@ public class ReferenceSyncTests
 
         var response = await sut.SyncAllAsync(CancellationToken.None);
 
-        response.Results[0].Status.Should().StartWith("synced");
+        Assert.StartsWith("synced", response.Results[0].Status);
         instances.Verify(r => r.UpsertBatchAsync(
             It.Is<IEnumerable<InstanceDocument>>(docs => docs.Count() == 1 && docs.Single().Name == "Worked"),
             It.IsAny<CancellationToken>()), Times.Once);
-        logger.Entries.Should().Contain(e => e.Level == LogLevel.Warning && (e.Message ?? "").Contains("Skipping"));
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Warning && (e.Message ?? "").Contains("Skipping"));
     }
 
     [Fact]
@@ -214,13 +213,13 @@ public class ReferenceSyncTests
 
         var response = await sut.SyncAllAsync(CancellationToken.None);
 
-        response.Results[1].Status.Should().StartWith("synced");
+        Assert.StartsWith("synced", response.Results[1].Status);
         specs.Verify(r => r.UpsertBatchAsync(
             It.Is<IEnumerable<SpecializationDocument>>(docs =>
                 docs.Single().IconUrl == null
                 && docs.Single().Role == "HEALER"),
             It.IsAny<CancellationToken>()), Times.Once);
-        logger.Entries.Should().Contain(e => e.Level == LogLevel.Warning);
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Warning);
     }
 
     // ── Role mapping ────────────────────────────────────────────────────────

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -62,8 +61,8 @@ public class WowUpdateFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().Be(expectedResponse);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(expectedResponse, ok.Value);
 
         referenceSync.Verify(r => r.SyncAllAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -88,8 +87,8 @@ public class WowUpdateFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
-        forbidden.StatusCode.Should().Be(403);
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, forbidden.StatusCode);
 
         // SyncAllAsync must NOT be called for non-admin callers.
         referenceSync.Verify(r => r.SyncAllAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -126,9 +125,8 @@ public class WowUpdateFunctionTests
 
         // Even with partial failure the HTTP response is 200 — failures are in the body.
         // Assert against the same WowUpdateResponse instance the stub returned, not pasted literals.
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().Be(partialResponse,
-            "the function is a thin pass-through for the sync result; the response body must equal the stub output");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(partialResponse, ok.Value);
     }
 
 }

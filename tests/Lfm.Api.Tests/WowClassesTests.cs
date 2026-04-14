@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Lfm.Contracts.WoW;
 using Xunit;
 
@@ -47,14 +46,14 @@ public class WowClassesTests
     [MemberData(nameof(AllClassNames))]
     public void GetName_returns_correct_name_for_all_classes(int classId, string expected)
     {
-        WowClasses.GetName(classId).Should().Be(expected);
+        Assert.Equal(expected, WowClasses.GetName(classId));
     }
 
     [Theory]
     [MemberData(nameof(AllClassColors))]
     public void GetColor_returns_correct_color_for_all_classes(int classId, string expected)
     {
-        WowClasses.GetColor(classId).Should().Be(expected);
+        Assert.Equal(expected, WowClasses.GetColor(classId));
     }
 
     [Theory]
@@ -64,7 +63,7 @@ public class WowClassesTests
     [InlineData(14)]
     public void GetName_returns_Unknown_for_invalid_classId(int classId)
     {
-        WowClasses.GetName(classId).Should().Be("Unknown");
+        Assert.Equal("Unknown", WowClasses.GetName(classId));
     }
 
     [Theory]
@@ -74,7 +73,7 @@ public class WowClassesTests
     [InlineData(14)]
     public void GetColor_returns_white_for_invalid_classId(int classId)
     {
-        WowClasses.GetColor(classId).Should().Be("#FFFFFF");
+        Assert.Equal("#FFFFFF", WowClasses.GetColor(classId));
     }
 
     [Theory]
@@ -82,7 +81,7 @@ public class WowClassesTests
     [InlineData(13)]
     public void GetName_returns_non_unknown_for_valid_ids(int classId)
     {
-        WowClasses.GetName(classId).Should().NotBe("Unknown");
+        Assert.NotEqual("Unknown", WowClasses.GetName(classId));
     }
 
     [Theory]
@@ -90,6 +89,6 @@ public class WowClassesTests
     [InlineData(13)]
     public void GetColor_returns_non_default_for_valid_ids(int classId)
     {
-        WowClasses.GetColor(classId).Should().NotBe("#FFFFFF");
+        Assert.NotEqual("#FFFFFF", WowClasses.GetColor(classId));
     }
 }

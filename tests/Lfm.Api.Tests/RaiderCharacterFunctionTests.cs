@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -77,9 +76,9 @@ public class RaiderCharacterFunctionTests
         var fn = new RaiderCharacterFunction(repo.Object);
         var result = await fn.Run(MakePutRequest(), "eu-silvermoon-aelrin", MakeFunctionContext(principal), CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = ok.Value.Should().BeOfType<UpdateCharacterResponse>().Subject;
-        response.SelectedCharacterId.Should().Be("eu-silvermoon-aelrin");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UpdateCharacterResponse>(ok.Value);
+        Assert.Equal("eu-silvermoon-aelrin", response.SelectedCharacterId);
 
         repo.Verify(r => r.UpsertAsync(
             It.Is<RaiderDocument>(d => d.SelectedCharacterId == "eu-silvermoon-aelrin"),
@@ -103,8 +102,8 @@ public class RaiderCharacterFunctionTests
         var fn = new RaiderCharacterFunction(repo.Object);
         var result = await fn.Run(MakePutRequest(), "eu-silvermoon-unknownchar", MakeFunctionContext(principal), CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(403);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
 
         repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }

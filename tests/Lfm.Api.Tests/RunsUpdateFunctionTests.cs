@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -155,8 +154,8 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        okResult.Value.Should().BeOfType<RunDetailDto>();
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<RunDetailDto>(okResult.Value);
 
         // Cosmos UpdateAsync was called once
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -188,8 +187,11 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(new { description = "Updated" }), "run-1", ctx, CancellationToken.None);
 
-        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.NotNull(notFound.Value);
+        var errorProp = notFound.Value!.GetType().GetProperty("error");
+        Assert.NotNull(errorProp);
+        Assert.Equal("Raider not found", errorProp!.GetValue(notFound.Value));
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -215,7 +217,7 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(new { }), "missing-run", ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
 
         // Cosmos UpdateAsync must never be called
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -248,14 +250,14 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(new { description = "Hacked" }), "run-1", ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(403);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("run.update", "failure", "not creator"),
-            "denied run update must emit a failure audit event");
+        Assert.Single(
+            logger.Entries,
+            e => e.IsAudit("run.update", "failure", "not creator"));
     }
 
     // ------------------------------------------------------------------
@@ -297,8 +299,8 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(new { description = "Too late" }), "run-1", ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(409);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(409, objectResult.StatusCode);
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -335,10 +337,9 @@ public class RunsUpdateFunctionTests
 
         await fn.Run(MakePutRequest(requestBody), "run-1", ctx, CancellationToken.None);
 
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "run.update",
             actorId: "bnet-creator",
-            result: "success"),
-            "success path must emit a run.update audit event with the battleNetId and result");
+            result: "success"));
     }
 }

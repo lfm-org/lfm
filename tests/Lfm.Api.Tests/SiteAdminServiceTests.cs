@@ -1,5 +1,4 @@
 using Azure;
-using FluentAssertions;
 using Lfm.Api.Options;
 using Lfm.Api.Services;
 using Moq;
@@ -30,7 +29,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync(string.Empty, CancellationToken.None);
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -42,7 +41,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("", CancellationToken.None);
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -52,7 +51,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeFalse("KeyVaultUrl is not configured, so the admin set is empty");
+        Assert.False(result);
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeFalse("KeyVaultUrl is trimmed before the empty check");
+        Assert.False(result);
     }
 
     [Fact]
@@ -86,9 +85,9 @@ public class SiteAdminServiceTests
         var second = await sut.IsAdminAsync("admin#9999", CancellationToken.None);
         var third = await sut.IsAdminAsync("any-id", CancellationToken.None);
 
-        first.Should().BeFalse();
-        second.Should().BeFalse();
-        third.Should().BeFalse();
+        Assert.False(first);
+        Assert.False(second);
+        Assert.False(third);
     }
 
     // ── Key Vault fetch path ────────────────────────────────────────────────
@@ -109,7 +108,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeTrue();
+        Assert.True(result);
         resolver.Verify(
             r => r.GetSecretAsync(TestVaultUrl, SecretName, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -123,7 +122,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -147,9 +146,9 @@ public class SiteAdminServiceTests
         var resolver = ResolverReturning("a, b, c");
         var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
 
-        (await sut.IsAdminAsync("a", CancellationToken.None)).Should().BeTrue();
-        (await sut.IsAdminAsync("b", CancellationToken.None)).Should().BeTrue();
-        (await sut.IsAdminAsync("c", CancellationToken.None)).Should().BeTrue();
+        Assert.True(await sut.IsAdminAsync("a", CancellationToken.None));
+        Assert.True(await sut.IsAdminAsync("b", CancellationToken.None));
+        Assert.True(await sut.IsAdminAsync("c", CancellationToken.None));
     }
 
     [Fact]
@@ -158,9 +157,9 @@ public class SiteAdminServiceTests
         var resolver = ResolverReturning("a\nb\nc");
         var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
 
-        (await sut.IsAdminAsync("a", CancellationToken.None)).Should().BeTrue();
-        (await sut.IsAdminAsync("b", CancellationToken.None)).Should().BeTrue();
-        (await sut.IsAdminAsync("c", CancellationToken.None)).Should().BeTrue();
+        Assert.True(await sut.IsAdminAsync("a", CancellationToken.None));
+        Assert.True(await sut.IsAdminAsync("b", CancellationToken.None));
+        Assert.True(await sut.IsAdminAsync("c", CancellationToken.None));
     }
 
     [Fact]
@@ -169,8 +168,8 @@ public class SiteAdminServiceTests
         var resolver = ResolverReturning("  player#1234  \n  admin#9999  ");
         var sut = MakeSut(keyVaultUrl: TestVaultUrl, secretResolver: resolver.Object);
 
-        (await sut.IsAdminAsync("player#1234", CancellationToken.None)).Should().BeTrue();
-        (await sut.IsAdminAsync("admin#9999", CancellationToken.None)).Should().BeTrue();
+        Assert.True(await sut.IsAdminAsync("player#1234", CancellationToken.None));
+        Assert.True(await sut.IsAdminAsync("admin#9999", CancellationToken.None));
     }
 
     [Fact]
@@ -181,7 +180,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeFalse("a null secret value parses to an empty admin set");
+        Assert.False(result);
     }
 
     [Fact]
@@ -194,7 +193,7 @@ public class SiteAdminServiceTests
 
         var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     // Not tested: the catch-branch "extend stale cache and return cached.Ids" path in

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -65,7 +64,7 @@ public class MeDeleteFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<OkObjectResult>("TS handler returns status 200 with { deleted: true }");
+        Assert.IsType<OkObjectResult>(result);
 
         runsRepo.Verify(r => r.ScrubRaiderAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
         raidersRepo.Verify(r => r.DeleteAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
@@ -96,11 +95,10 @@ public class MeDeleteFunctionTests
         await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         // Assert: logger called with "account.delete" and "success"
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "account.delete",
             actorId: "bnet-42",
-            result: "success"),
-            "account delete must emit an audit event with action=account.delete and result=success");
+            result: "success"));
     }
 
 }

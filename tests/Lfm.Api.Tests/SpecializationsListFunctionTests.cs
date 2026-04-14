@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -28,9 +27,8 @@ public class SpecializationsListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().BeEquivalentTo(fixture,
-            "the function is a pass-through; the response body must equal exactly what the repository returned");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(fixture, Assert.IsType<List<SpecializationDto>>(ok.Value));
     }
 
     [Fact]
@@ -41,6 +39,6 @@ public class SpecializationsListFunctionTests
             .Cast<FunctionAttribute>()
             .Single();
 
-        attr.Name.Should().Be("specializations-list");
+        Assert.Equal("specializations-list", attr.Name);
     }
 }

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -136,9 +135,9 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = okResult.Value.Should().BeOfType<RunDetailDto>().Subject;
-        dto.RunCharacters.Should().HaveCount(0);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<RunDetailDto>(okResult.Value);
+        Assert.Empty(dto.RunCharacters);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -163,7 +162,7 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -195,7 +194,7 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -230,9 +229,9 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = okResult.Value.Should().BeOfType<RunDetailDto>().Subject;
-        dto.RunCharacters.Should().HaveCount(0);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<RunDetailDto>(okResult.Value);
+        Assert.Empty(dto.RunCharacters);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -264,7 +263,7 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -293,10 +292,9 @@ public class RunsCancelSignupFunctionTests
 
         await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "signup.cancel",
             actorId: "bnet-user",
-            result: "success"),
-            "success path must emit a signup.cancel audit event with the battleNetId and result");
+            result: "success"));
     }
 }

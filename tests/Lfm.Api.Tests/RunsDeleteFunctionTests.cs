@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -111,8 +110,11 @@ public class RunsDeleteFunctionTests
 
         var result = await fn.Run(req, "run-1", ctx, CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        okResult.Value.Should().BeEquivalentTo(new { deleted = true });
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+        var deletedProp = okResult.Value!.GetType().GetProperty("deleted");
+        Assert.NotNull(deletedProp);
+        Assert.Equal(true, deletedProp!.GetValue(okResult.Value));
 
         repo.Verify(r => r.DeleteAsync("run-1", It.IsAny<CancellationToken>()), Times.Once);
         permissions.Verify(p => p.CanDeleteGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -152,14 +154,14 @@ public class RunsDeleteFunctionTests
 
         var result = await fn.Run(req, "run-1", ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(403);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("run.delete", "failure", "guild rank denied"),
-            "denied guild run deletion must emit a failure audit event");
+        Assert.Single(
+            logger.Entries,
+            e => e.IsAudit("run.delete", "failure", "guild rank denied"));
     }
 
     // ------------------------------------------------------------------
@@ -183,7 +185,7 @@ public class RunsDeleteFunctionTests
 
         var result = await fn.Run(req, "missing-run", ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -213,10 +215,9 @@ public class RunsDeleteFunctionTests
 
         await fn.Run(req, "run-1", ctx, CancellationToken.None);
 
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "run.delete",
             actorId: "bnet-creator",
-            result: "success"),
-            "success path must emit a run.delete audit event with the battleNetId and result");
+            result: "success"));
     }
 }

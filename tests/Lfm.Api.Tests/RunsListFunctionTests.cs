@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -121,21 +120,21 @@ public class RunsListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var runs = ok.Value.Should().BeAssignableTo<IReadOnlyList<RunSummaryDto>>().Subject;
-        runs.Should().HaveCount(1);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var runs = Assert.IsAssignableFrom<IReadOnlyList<RunSummaryDto>>(ok.Value);
+        Assert.Single(runs);
 
         var run = runs[0];
-        run.Id.Should().Be(doc.Id);
-        run.RunCharacters.Should().HaveCount(2);
+        Assert.Equal(doc.Id, run.Id);
+        Assert.Equal(2, run.RunCharacters.Count);
 
         // Own character: IsCurrentUser = true, raiderBattleNetId stripped
         var ownDto = run.RunCharacters.First(c => c.CharacterName == "Testadin" && c.IsCurrentUser);
-        ownDto.IsCurrentUser.Should().BeTrue();
+        Assert.True(ownDto.IsCurrentUser);
 
         // Other character: IsCurrentUser = false
         var otherDto = run.RunCharacters.First(c => !c.IsCurrentUser);
-        otherDto.IsCurrentUser.Should().BeFalse();
+        Assert.False(otherDto.IsCurrentUser);
     }
 
     // ------------------------------------------------------------------
@@ -158,8 +157,11 @@ public class RunsListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-        notFound.Value.Should().BeEquivalentTo(new { error = "Raider not found" });
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.NotNull(notFound.Value);
+        var errorProp = notFound.Value!.GetType().GetProperty("error");
+        Assert.NotNull(errorProp);
+        Assert.Equal("Raider not found", errorProp!.GetValue(notFound.Value));
     }
 
     // ------------------------------------------------------------------
@@ -184,9 +186,9 @@ public class RunsListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var runs = ok.Value.Should().BeAssignableTo<IReadOnlyList<RunSummaryDto>>().Subject;
-        runs.Should().BeEmpty();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var runs = Assert.IsAssignableFrom<IReadOnlyList<RunSummaryDto>>(ok.Value);
+        Assert.Empty(runs);
     }
 
     // ------------------------------------------------------------------
@@ -215,9 +217,9 @@ public class RunsListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var runs = ok.Value.Should().BeAssignableTo<IReadOnlyList<RunSummaryDto>>().Subject;
-        runs.Should().HaveCount(1);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var runs = Assert.IsAssignableFrom<IReadOnlyList<RunSummaryDto>>(ok.Value);
+        Assert.Single(runs);
 
         // The guild query must not be called when the raider has no guild.
         repo.Verify(r => r.ListForGuildAsync(

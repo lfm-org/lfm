@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -128,18 +127,18 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = ok.Value.Should().BeOfType<RunDetailDto>().Subject;
-        dto.Id.Should().Be("run-1");
-        dto.RunCharacters.Should().HaveCount(2);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<RunDetailDto>(ok.Value);
+        Assert.Equal("run-1", dto.Id);
+        Assert.Equal(2, dto.RunCharacters.Count);
 
         // Own character: IsCurrentUser = true, raiderBattleNetId stripped from DTO
         var ownDto = dto.RunCharacters.First(c => c.IsCurrentUser);
-        ownDto.IsCurrentUser.Should().BeTrue();
+        Assert.True(ownDto.IsCurrentUser);
 
         // Other character: IsCurrentUser = false
         var otherDto = dto.RunCharacters.First(c => !c.IsCurrentUser);
-        otherDto.IsCurrentUser.Should().BeFalse();
+        Assert.False(otherDto.IsCurrentUser);
     }
 
     // ------------------------------------------------------------------
@@ -166,7 +165,7 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
 
         // Ordering contract: the run must be looked up before the raider.
         // If a future refactor reverses the order, this short-circuit test
@@ -209,7 +208,7 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
     // ------------------------------------------------------------------
@@ -245,7 +244,7 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
 }

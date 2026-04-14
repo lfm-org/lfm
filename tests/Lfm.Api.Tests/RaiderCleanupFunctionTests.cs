@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -76,10 +75,8 @@ public class RaiderCleanupFunctionTests
         raidersRepo.Verify(r => r.DeleteAsync("bnet-2", It.IsAny<CancellationToken>()), Times.Once);
 
         // scrub before delete for each raider
-        callLog.IndexOf("scrub:bnet-1").Should().BeLessThan(callLog.IndexOf("delete:bnet-1"),
-            "runs must be scrubbed before the raider document is deleted");
-        callLog.IndexOf("scrub:bnet-2").Should().BeLessThan(callLog.IndexOf("delete:bnet-2"),
-            "runs must be scrubbed before the raider document is deleted");
+        Assert.True(callLog.IndexOf("scrub:bnet-1") < callLog.IndexOf("delete:bnet-1"));
+        Assert.True(callLog.IndexOf("scrub:bnet-2") < callLog.IndexOf("delete:bnet-2"));
     }
 
     // ------------------------------------------------------------------
@@ -112,8 +109,7 @@ public class RaiderCleanupFunctionTests
         var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, NullLogger<RaiderCleanupFunction>.Instance);
 
         // Should not throw — errors are caught per-raider and logged
-        await fn.Invoking(f => f.Run(MakeTimerInfo(), CancellationToken.None))
-            .Should().NotThrowAsync("errors for individual raiders must not abort the whole cleanup run");
+        await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
         // The successful raider was still processed
         runsRepo.Verify(r => r.ScrubRaiderAsync("bnet-ok", It.IsAny<CancellationToken>()), Times.Once);
@@ -167,10 +163,10 @@ public class RaiderCleanupFunctionTests
         var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, NullLogger<RaiderCleanupFunction>.Instance);
         await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
-        capturedCutoff.Should().NotBeNull();
+        Assert.NotNull(capturedCutoff);
         var parsedCutoff = DateTimeOffset.Parse(capturedCutoff!);
-        parsedCutoff.Should().BeOnOrAfter(before, "cutoff should be at most 90 days before now");
-        parsedCutoff.Should().BeOnOrBefore(after.Add(TimeSpan.FromSeconds(5)), "cutoff should be approximately 90 days before now");
+        Assert.True(parsedCutoff >= before);
+        Assert.True(parsedCutoff <= after.Add(TimeSpan.FromSeconds(5)));
     }
 
     // ------------------------------------------------------------------
@@ -200,12 +196,11 @@ public class RaiderCleanupFunctionTests
         var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
         await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
-        var summary = logger.Entries
-            .Should().ContainSingle(e => (e.Message ?? "").Contains("Raider cleanup: removed"))
-            .Subject;
-        summary.Properties["Removed"].Should().Be(2);
-        summary.Properties["ErrorSuffix"].Should().Be(string.Empty,
-            "the conditional ErrorSuffix must be empty when no errors occurred");
+        var summary = Assert.Single(
+            logger.Entries,
+            e => (e.Message ?? "").Contains("Raider cleanup: removed"));
+        Assert.Equal(2, summary.Properties["Removed"]);
+        Assert.Equal(string.Empty, summary.Properties["ErrorSuffix"]);
     }
 
     [Fact]
@@ -228,12 +223,11 @@ public class RaiderCleanupFunctionTests
         var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
         await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
-        var summary = logger.Entries
-            .Should().ContainSingle(e => (e.Message ?? "").Contains("Raider cleanup: removed"))
-            .Subject;
-        summary.Properties["Removed"].Should().Be(1, "only the second raider succeeded");
-        summary.Properties["ErrorSuffix"].Should().Be(", 1 error(s)",
-            "the conditional ErrorSuffix must contain the error count when errors > 0");
+        var summary = Assert.Single(
+            logger.Entries,
+            e => (e.Message ?? "").Contains("Raider cleanup: removed"));
+        Assert.Equal(1, summary.Properties["Removed"]);
+        Assert.Equal(", 1 error(s)", summary.Properties["ErrorSuffix"]);
     }
 
     [Fact]
@@ -248,11 +242,11 @@ public class RaiderCleanupFunctionTests
         var fn = new RaiderCleanupFunction(raidersRepo.Object, runsRepo.Object, logger);
         await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
-        var summary = logger.Entries
-            .Should().ContainSingle(e => (e.Message ?? "").Contains("Raider cleanup: removed"))
-            .Subject;
-        summary.Properties["Removed"].Should().Be(0);
-        summary.Properties["ErrorSuffix"].Should().Be(string.Empty);
+        var summary = Assert.Single(
+            logger.Entries,
+            e => (e.Message ?? "").Contains("Raider cleanup: removed"));
+        Assert.Equal(0, summary.Properties["Removed"]);
+        Assert.Equal(string.Empty, summary.Properties["ErrorSuffix"]);
     }
 
     [Fact]
@@ -280,10 +274,9 @@ public class RaiderCleanupFunctionTests
         await fn.Run(MakeTimerInfo(), CancellationToken.None);
 
         // Assert: logger called with "account.expired" and "success"
-        logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "account.expired",
             actorId: "system",
-            result: "success"),
-            "cleanup of expired raiders must emit account.expired audit event with result=success");
+            result: "success"));
     }
 }

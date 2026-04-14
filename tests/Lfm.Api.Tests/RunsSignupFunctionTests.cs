@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -184,10 +183,10 @@ public class RunsSignupFunctionTests
         var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
         var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var dto = okResult.Value.Should().BeOfType<RunDetailDto>().Subject;
-        dto.RunCharacters.Should().HaveCount(1);
-        dto.RunCharacters[0].IsCurrentUser.Should().BeTrue();
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<RunDetailDto>(okResult.Value);
+        Assert.Single(dto.RunCharacters);
+        Assert.True(dto.RunCharacters[0].IsCurrentUser);
 
         fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -218,7 +217,7 @@ public class RunsSignupFunctionTests
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
         var result = await fn.Run(MakePostRequest(requestBody), "missing-run", ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -254,14 +253,12 @@ public class RunsSignupFunctionTests
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
         var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(403);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        logger.Entries.Should().ContainSingle(
-            e => e.IsAudit("signup.create", "failure", "guild rank denied"),
-            "denied guild signup must emit a failure audit event");
+        Assert.Single(logger.Entries, e => e.IsAudit("signup.create", "failure", "guild rank denied"));
     }
 
     // ------------------------------------------------------------------
@@ -276,11 +273,10 @@ public class RunsSignupFunctionTests
         var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
         await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
-        fx.Logger.Entries.Should().ContainSingle(e => e.IsAudit(
+        Assert.Single(fx.Logger.Entries, e => e.IsAudit(
             action: "signup.create",
             actorId: "bnet-user",
-            result: "success"),
-            "success path must emit a signup.create audit event");
+            result: "success"));
     }
 
     // ------------------------------------------------------------------
@@ -325,8 +321,8 @@ public class RunsSignupFunctionTests
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
         var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(409);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(409, objectResult.StatusCode);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -357,10 +353,9 @@ public class RunsSignupFunctionTests
         var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
         var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var detail = ok.Value.Should().BeOfType<RunDetailDto>().Subject;
-        detail.Id.Should().Be("run-1",
-            "the retried success path must surface the persisted run, not a stale or empty payload");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var detail = Assert.IsType<RunDetailDto>(ok.Value);
+        Assert.Equal("run-1", detail.Id);
     }
 
     // ------------------------------------------------------------------
@@ -381,7 +376,7 @@ public class RunsSignupFunctionTests
         // The visible 409 is sufficient evidence that the retry loop exhausted —
         // pinning Times.Exactly(3) couples the test to the loop count, which is a
         // structural detail that may legitimately change (e.g. policy library swap).
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(409);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(409, objectResult.StatusCode);
     }
 }

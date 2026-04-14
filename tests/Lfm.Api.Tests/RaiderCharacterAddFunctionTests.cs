@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -155,17 +154,17 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = ok.Value.Should().BeOfType<AddCharacterResponse>().Subject;
-        response.SelectedCharacterId.Should().Be("eu-silvermoon-aelrin");
-        response.Character.Name.Should().Be("Aelrin");
-        response.Character.Realm.Should().Be("silvermoon");
-        response.Character.ClassId.Should().Be(2);
-        response.Character.ClassName.Should().Be("Paladin");
-        response.Character.Level.Should().Be(80);
-        response.Character.ActiveSpecId.Should().Be(65);
-        response.Character.SpecName.Should().Be("Holy");
-        response.Character.PortraitUrl.Should().Be("https://render.worldofwarcraft.com/avatar.jpg");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<AddCharacterResponse>(ok.Value);
+        Assert.Equal("eu-silvermoon-aelrin", response.SelectedCharacterId);
+        Assert.Equal("Aelrin", response.Character.Name);
+        Assert.Equal("silvermoon", response.Character.Realm);
+        Assert.Equal(2, response.Character.ClassId);
+        Assert.Equal("Paladin", response.Character.ClassName);
+        Assert.Equal(80, response.Character.Level);
+        Assert.Equal(65, response.Character.ActiveSpecId);
+        Assert.Equal("Holy", response.Character.SpecName);
+        Assert.Equal("https://render.worldofwarcraft.com/avatar.jpg", response.Character.PortraitUrl);
 
         // Upsert called once with selected character updated, the stored character present,
         // and the portrait cache populated.
@@ -225,10 +224,10 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = ok.Value.Should().BeOfType<AddCharacterResponse>().Subject;
-        response.SelectedCharacterId.Should().Be("eu-silvermoon-aelrin");
-        response.Character.PortraitUrl.Should().Be("https://render.worldofwarcraft.com/cached.jpg");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<AddCharacterResponse>(ok.Value);
+        Assert.Equal("eu-silvermoon-aelrin", response.SelectedCharacterId);
+        Assert.Equal("https://render.worldofwarcraft.com/cached.jpg", response.Character.PortraitUrl);
 
         // Blizzard calls were skipped.
         profileClient.Verify(p => p.GetCharacterProfileAsync(
@@ -289,7 +288,7 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<OkObjectResult>();
+        Assert.IsType<OkObjectResult>(result);
         profileClient.Verify(p => p.GetCharacterProfileAsync(
             "silvermoon", "aelrin", FakeAccessToken, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -321,8 +320,8 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(403);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
 
         repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
         profileClient.Verify(p => p.GetCharacterProfileAsync(
@@ -365,7 +364,7 @@ public class RaiderCharacterAddFunctionTests
             region: "eu",
             accountProfileSummary: profile);
 
-        result.Should().BeFalse("a character on realm 'mg' must not satisfy ownership for realm 'xx-mg'");
+        Assert.False(result);
     }
 
     [Fact]
@@ -391,7 +390,7 @@ public class RaiderCharacterAddFunctionTests
             region: "eu",
             accountProfileSummary: profile);
 
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     // -------------------------------------------------------------------------
@@ -431,7 +430,7 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<OkObjectResult>();
+        Assert.IsType<OkObjectResult>(result);
         profileClient.Verify(p => p.GetCharacterProfileAsync(
             "silvermoon", "aelrin", FakeAccessToken, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -462,8 +461,8 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(401);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(401, objectResult.StatusCode);
     }
 
     // -------------------------------------------------------------------------
@@ -495,8 +494,8 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(502);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(502, objectResult.StatusCode);
 
         repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -517,7 +516,7 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<BadRequestObjectResult>();
+        Assert.IsType<BadRequestObjectResult>(result);
 
         repo.Verify(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -541,6 +540,6 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundObjectResult>();
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 }

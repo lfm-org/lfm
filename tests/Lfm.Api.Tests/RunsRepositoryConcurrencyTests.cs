@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -57,7 +56,7 @@ public class RunsRepositoryConcurrencyTests
 
         var act = () => repo.UpdateAsync(run, CancellationToken.None);
 
-        await act.Should().ThrowAsync<ConcurrencyConflictException>();
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(act);
     }
 
     [Fact]
@@ -87,7 +86,7 @@ public class RunsRepositoryConcurrencyTests
 
         var result = await repo.UpdateAsync(run, CancellationToken.None);
 
-        result.ETag.Should().Be("\"new-etag\"");
+        Assert.Equal("\"new-etag\"", result.ETag);
 
         container.Verify(
             c => c.ReplaceItemAsync(

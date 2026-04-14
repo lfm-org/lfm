@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -40,14 +39,14 @@ public class PrivacyContactFunctionTests
 
         var result = await fn.Run(req, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.StatusCode.Should().Be(200);
-        ok.Value.Should().NotBeNull();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        Assert.NotNull(ok.Value);
 
         // Verify the request was logged (without PII — only type)
-        log.Entries.Should().ContainSingle(
-            e => e.Properties.ContainsKey("Type") && Equals(e.Properties["Type"], "data_request"),
-            "contact request should be logged with only the type (no PII)");
+        Assert.Single(
+            log.Entries,
+            e => e.Properties.ContainsKey("Type") && Equals(e.Properties["Type"], "data_request"));
     }
 
     [Fact]
@@ -65,8 +64,8 @@ public class PrivacyContactFunctionTests
 
         var result = await fn.Run(req, CancellationToken.None);
 
-        var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badReq.StatusCode.Should().Be(400);
+        var badReq = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badReq.StatusCode);
     }
 
     [Fact]
@@ -85,8 +84,8 @@ public class PrivacyContactFunctionTests
 
         var result = await fn.Run(req, CancellationToken.None);
 
-        var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badReq.StatusCode.Should().Be(400);
+        var badReq = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badReq.StatusCode);
     }
 
     [Fact]
@@ -104,8 +103,8 @@ public class PrivacyContactFunctionTests
 
         var result = await fn.Run(req, CancellationToken.None);
 
-        var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badReq.StatusCode.Should().Be(400);
+        var badReq = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badReq.StatusCode);
     }
 
     [Fact]
@@ -123,8 +122,8 @@ public class PrivacyContactFunctionTests
 
         var result = await fn.Run(req, CancellationToken.None);
 
-        var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badReq.StatusCode.Should().Be(400);
+        var badReq = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badReq.StatusCode);
     }
 
     [Fact]
@@ -142,7 +141,7 @@ public class PrivacyContactFunctionTests
 
         var result = await fn.Run(req, CancellationToken.None);
 
-        var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badReq.StatusCode.Should().Be(400);
+        var badReq = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badReq.StatusCode);
     }
 }

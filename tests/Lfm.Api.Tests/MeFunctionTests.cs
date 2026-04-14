@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -63,13 +62,13 @@ public class MeFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        var me = ok.Value.Should().BeOfType<MeResponse>().Subject;
-        me.BattleNetId.Should().Be("bnet-1");
-        me.GuildName.Should().Be("Test Guild");
-        me.SelectedCharacterId.Should().Be("char-1");
-        me.IsSiteAdmin.Should().BeFalse();
-        me.Locale.Should().Be("fi");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var me = Assert.IsType<MeResponse>(ok.Value);
+        Assert.Equal("bnet-1", me.BattleNetId);
+        Assert.Equal("Test Guild", me.GuildName);
+        Assert.Equal("char-1", me.SelectedCharacterId);
+        Assert.False(me.IsSiteAdmin);
+        Assert.Equal("fi", me.Locale);
     }
 
     [Fact]
@@ -94,7 +93,7 @@ public class MeFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        result.Should().BeOfType<NotFoundResult>();
+        Assert.IsType<NotFoundResult>(result);
         siteAdmin.Verify(s => s.IsAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
