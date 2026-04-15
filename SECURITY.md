@@ -81,6 +81,10 @@ Deferred until the project stabilizes. Dependabot *update* PRs still run weekly 
 
 TOTP MFA is active. Hardware-key MFA is accepted as out of scope for a solo hobby project.
 
+### `USER app` not set in `api/Dockerfile`
+
+The Azure Functions `dotnet-isolated` prebuilt base image runs as the base image's default user and manages Functions-host privileges internally. Adding the .NET 8+ `USER app` non-root pattern would require `chown -R app:app /home` plus port 80 rebinding because non-root cannot bind privileged ports, and cannot be verified against production runtime behaviour without live deploys. Accepted — `docker.HC-1` is `warn` severity and the MCR carve-out further softens it. Re-evaluate if the project moves off the prebuilt Functions image.
+
 ## Known Exceptions
 
 ### `SWA_DEPLOYMENT_TOKEN` long-lived static token
