@@ -71,10 +71,13 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
         await firstRealOption.ClickAsync();
 
-        // Fill in required form fields with a unique run name via description
+        // Fill in required form fields with a unique run name via description.
+        // Use a future date anchored to UtcNow so the test does not become a
+        // time bomb the way the seeded run did (see DefaultSeed.SeedRunAsync).
         var uniqueRunName = $"E2E-Create-{Guid.NewGuid():N}";
         await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
-        await runsPage.StartTimeInput.FillAsync("2026-06-01T20:00:00Z");
+        await runsPage.StartTimeInput.FillAsync(
+            DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ssZ"));
         await runsPage.DescriptionInput.FillAsync(uniqueRunName);
 
         // Submit
@@ -258,7 +261,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
             var uniqueDescription = $"E2E-Delete-{Guid.NewGuid():N}";
             await runsPage.ModeKeyInput.FillAsync("HEROIC:25");
-            await runsPage.StartTimeInput.FillAsync("2026-07-01T20:00:00Z");
+            await runsPage.StartTimeInput.FillAsync(
+                DateTimeOffset.UtcNow.AddDays(60).ToString("yyyy-MM-ddTHH:mm:ssZ"));
             await runsPage.DescriptionInput.FillAsync(uniqueDescription);
             await deletePage.Keyboard.PressAsync("Tab");
             await runsPage.CreateRunSubmitButton.ClickAsync();

@@ -323,11 +323,22 @@ public static class DefaultSeed
 
     private static async Task SeedRunAsync(Container container)
     {
+        // Anchored to UtcNow so the seeded run's signup window is always open
+        // relative to the moment the suite runs. Hardcoded timestamps here
+        // become time bombs — once `signupCloseTime` slides into the past,
+        // RunsUpdateFunction returns 409 ("Editing is closed"), breaking
+        // EditRun_ModifyFields_ChangesReflected and any other test that
+        // mutates the seeded run.
+        var now = DateTimeOffset.UtcNow;
+        var startTime = now.AddDays(7);
+        var signupCloseTime = startTime.AddMinutes(-30);
+        var createdAt = now.AddDays(-14);
+
         var run = new Dictionary<string, object?>
         {
             ["id"] = TestRunId,
-            ["startTime"] = "2026-04-15T20:00:00.0000000Z",
-            ["signupCloseTime"] = "2026-04-15T19:30:00.0000000Z",
+            ["startTime"] = startTime.ToString("o"),
+            ["signupCloseTime"] = signupCloseTime.ToString("o"),
             ["description"] = "E2E test run",
             ["modeKey"] = "NORMAL:25",
             ["visibility"] = "PUBLIC",
@@ -336,7 +347,7 @@ public static class DefaultSeed
             ["instanceId"] = 67,
             ["instanceName"] = "Liberation of Undermine",
             ["creatorBattleNetId"] = PrimaryBattleNetId,
-            ["createdAt"] = "2026-04-01T10:00:00.0000000Z",
+            ["createdAt"] = createdAt.ToString("o"),
             ["ttl"] = 2592000,
             ["runCharacters"] = new List<object>
             {
