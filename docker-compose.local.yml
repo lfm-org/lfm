@@ -1,6 +1,7 @@
 services:
   cosmosdb:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    # Tag: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview@sha256:ed28d92b38aff69ccb4dbf439c584449f06432619f3415f429c09e4097cbe577
     entrypoint:
       - /bin/bash
       - -lc
@@ -17,7 +18,8 @@ services:
       COSMOS_KEY_CONTENT: ${COSMOS_KEY_CONTENT}
 
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite
+    # Tag: mcr.microsoft.com/azure-storage/azurite:latest
+    image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
     ports:
       - "${AZURITE_BLOB_PORT:-10000}:10000"
