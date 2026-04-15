@@ -82,9 +82,11 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             new System.Text.RegularExpressions.Regex(@"/runs"),
             new() { Timeout = 15000 });
 
-        // Verify auth cookie was set — nav bar shows Sign Out
+        // Verify auth cookie was set — nav bar shows Sign Out. Explicit 15s
+        // timeout because Blazor WASM's <fluent-button> component upgrade can
+        // lag behind the /runs navigation on a cold CI runner (see #45).
         var navBar = new NavBar(Page);
-        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync();
+        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
     [Fact]
@@ -102,7 +104,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
                 new() { WaitUntil = WaitUntilState.NetworkIdle });
 
             var navBar = new NavBar(authPage);
-            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync();
+            // Explicit 15s timeout — <fluent-button> component upgrade can lag
+            // behind Blazor bootstrap on a cold CI runner (see #45).
+            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
             // Sign out navigates to /api/battlenet/logout (forceLoad)
             // which clears the cookie and redirects to app base URL

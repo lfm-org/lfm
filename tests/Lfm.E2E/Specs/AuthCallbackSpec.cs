@@ -58,7 +58,12 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         var loginPage = new LoginPage(Page!);
 
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+        // 30s timeout — this is typically the first test in the suite to hit
+        // the /login page on a cold CI runner, so the Blazor WASM bootstrap +
+        // FluentUI component registration + the <fluent-button> upgrade all
+        // happen inside this wait. Sibling AuthSpec.LoginPage_Renders hits a
+        // warm cache and can get by with 10s; this one cannot. See #45.
+        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
 
         // Click the real sign-in button. In production this hits /api/battlenet/login
         // which redirects through the Battle.net OAuth authorize / token / userinfo
