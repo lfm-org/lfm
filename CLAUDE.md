@@ -26,6 +26,7 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 9. Document guidance changes in the same task's guidance files.
 10. **Pre-commit hook** (`scripts/pre-commit`) blocks `.env`, `.pem`, `.key`, etc. Install via `scripts/pre-commit`. Opt-in — the authoritative secret-scanning layer is the CI gitleaks job in `.github/workflows/secrets-scan.yml`, which runs on every PR and is chained into `deploy.yml` via `needs:`.
 11. **Worktrees** live in `.worktrees/` at the repo root. Use `superpowers:using-git-worktrees` when available; otherwise `git worktree add .worktrees/<slug>`. Never create worktrees as sibling directories in `~/repos/`.
+12. **Pre-push hook** (`scripts/pre-push`) automates the commands from the Verification section below. Opt-in — install via `cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push`.
 
 ## Configuration & Secrets
 
@@ -48,6 +49,8 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 **JSON/YAML:** Use `jq` for JSON and `yq` for YAML. **No exceptions.** Never use Python (`python3 -c "import json/yaml"`), `sed`, `awk`, or any other tool to parse, validate, query, or transform structured data. This includes YAML validation — use `yq eval '.' file.yml`, not Python's `yaml.safe_load`. Subagents must follow the same rule.
 
 ## Verification
+
+If `scripts/pre-push` is installed as a git hook (see Mandatory Git Workflow item 12), the format / build / vulnerable-package commands below run automatically on `git push`. Otherwise run them manually before claiming work complete.
 
 - Run `dotnet build lfm.sln -c Release` before claiming work complete.
 - Per-project tests: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release`.
