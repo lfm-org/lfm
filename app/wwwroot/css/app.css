@@ -374,12 +374,18 @@ a, .btn-link {
     white-space: nowrap;
 }
 
+/*
+ * Backgrounds chosen to clear WCAG 2.2 AA contrast (≥ 4.5:1) against the
+ * white pill text. The previous sea-green / amber / dark-orange shades
+ * landed at 4.25 / 3.00 / 4.17 respectively — fail. Bench (4.69) and
+ * out (5.44) already passed and are left alone. See issue #44.
+ */
 .attendance-pill--in {
-    background: #2e8b57;
+    background: #1d8049;
 }
 
 .attendance-pill--late {
-    background: #e07b00;
+    background: #a05900;
 }
 
 .attendance-pill--bench {
@@ -391,7 +397,7 @@ a, .btn-link {
 }
 
 .attendance-pill--away {
-    background: #d35400;
+    background: #ad4400;
 }
 
 .attendance-pill--unknown {
