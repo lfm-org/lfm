@@ -1,0 +1,458 @@
+openapi: 3.0.3
+info:
+  title: LFM API route inventory
+  version: '2026-04-15'
+  description: |
+    Route-inventory OpenAPI for the LFM Azure Functions API. This is a
+    shadow-API detector maintained alongside code, not a full API specification.
+    Generated as part of the 2026-04-15 devsecops audit remediation plan
+    (Phase 4.2).
+
+servers:
+  - url: https://lfm-api.dinosauruskeksi.com
+    description: Production
+  - url: http://localhost:7071
+    description: Local
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: lfm-session
+      description: |
+        Session cookie issued by /api/battlenet/callback. Encrypted with
+        the Functions app's Data Protection key ring wrapped by a Key Vault key.
+
+security: []
+
+x-timer-triggers:
+  # Non-HTTP Azure Functions not reachable via HTTP but inventoried here for completeness.
+  - operationId: RaiderCleanup
+    schedule: '0 0 4 * * *'
+    description: >
+      Timer trigger firing daily at 04:00 UTC. Scrubs run references and deletes
+      raider documents that have been inactive for more than 90 days.
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Battle.net OAuth
+  # ---------------------------------------------------------------------------
+
+  /api/battlenet/login:
+    get:
+      operationId: BattleNetLogin
+      summary: Initiates the Battle.net OAuth PKCE authorization code flow; generates state, code verifier, and redirects the browser to Battle.net. Public by design.
+      responses:
+        '302':
+          description: Redirect to Battle.net authorization URL
+
+  /api/battlenet/callback:
+    get:
+      operationId: BattleNetCallback
+      summary: Completes the Battle.net OAuth PKCE flow, exchanges the authorization code for a token, upserts the raider document, and sets the encrypted session cookie. Public by design.
+      responses:
+        '302':
+          description: Redirect to app on success, or to /auth/failure on error
+
+  /api/battlenet/logout:
+    post:
+      operationId: BattleNetLogout
+      summary: Clears the session cookie and redirects to the app home page. Requires an active session.
+      security:
+        - cookieAuth: []
+      responses:
+        '302':
+          description: Redirect to app home page after clearing the session cookie
+
+  /api/battlenet/characters:
+    get:
+      operationId: BattleNetCharacters
+      summary: Returns the logged-in user's cached WoW character list; returns 204 when the cache is missing or older than 15 minutes, signalling the client to POST to /refresh.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Cached list of WoW characters
+        '204':
+          description: No cached data or cache expired; caller should trigger a refresh
+
+  /api/battlenet/characters/refresh:
+    post:
+      operationId: BattleNetCharactersRefresh
+      summary: Fetches a fresh WoW account profile summary from the Blizzard API, stores it on the raider document, and returns the mapped character list; rate-limited to one call per 15 minutes.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Updated list of WoW characters from Blizzard
+        '429':
+          description: Rate limit hit; Retry-After header indicates seconds remaining
+
+  /api/battlenet/character-portraits:
+    post:
+      operationId: BattleNetCharacterPortraits
+      summary: Accepts a JSON array of character identifiers and returns a map of character keys to portrait URLs, resolving from cached data or Blizzard CDN.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Map of character key to portrait URL for resolvable characters
+
+  # ---------------------------------------------------------------------------
+  # Health
+  # ---------------------------------------------------------------------------
+
+  /api/health:
+    get:
+      operationId: Health
+      summary: Liveness probe; returns a static status object without touching downstream dependencies. Public by design.
+      responses:
+        '200':
+          description: Service is live
+
+  /api/health/ready:
+    get:
+      operationId: HealthReady
+      summary: Readiness probe; validates that this instance can reach Cosmos DB and returns 503 on failure. Public by design.
+      responses:
+        '200':
+          description: Service is ready and Cosmos is reachable
+        '503':
+          description: Cosmos DB is unreachable
+
+  # ---------------------------------------------------------------------------
+  # Reference data
+  # ---------------------------------------------------------------------------
+
+  /api/instances:
+    get:
+      operationId: InstancesList
+      summary: Returns all WoW dungeon and raid instances from the reference data store. Public by design.
+      responses:
+        '200':
+          description: List of instance documents
+
+  /api/reference/specializations:
+    get:
+      operationId: SpecializationsList
+      summary: Returns all WoW class specializations from the reference data store. Public by design.
+      responses:
+        '200':
+          description: List of specialization documents
+
+  # ---------------------------------------------------------------------------
+  # Current user (me)
+  # ---------------------------------------------------------------------------
+
+  /api/me:
+    get:
+      operationId: Me
+      summary: Returns the current user's profile including BattleTag, selected character, guild name, locale, and site-admin flag.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current user profile
+        '404':
+          description: Raider document not found
+
+    patch:
+      operationId: MeUpdate
+      summary: Updates the current user's locale preference using a read-modify-write pattern.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Updated locale value
+        '400':
+          description: Invalid request body or validation failure
+
+    delete:
+      operationId: MeDelete
+      summary: Scrubs the current user from all run signups and then deletes their raider document (GDPR right-to-erasure).
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Account deleted
+
+  # ---------------------------------------------------------------------------
+  # Guild
+  # ---------------------------------------------------------------------------
+
+  /api/guild:
+    get:
+      operationId: Guild
+      summary: Returns the guild home view for the current user's guild derived from their selected character; returns a no-guild sentinel when the character has no guild.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Guild home view or no-guild sentinel
+        '404':
+          description: Raider or guild document not found
+
+    patch:
+      operationId: GuildPatch
+      summary: Updates guild settings (timezone, locale, slogan, rank permissions); restricted to guild administrators (rank 0 unless overridden).
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Updated guild view
+        '403':
+          description: Caller is not a guild administrator
+
+  /api/guild/admin:
+    get:
+      operationId: GuildAdmin
+      summary: Returns the full guild document for any guild by ID query parameter; restricted to site administrators.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: guildId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Cosmos document ID of the guild to retrieve
+      responses:
+        '200':
+          description: Guild document
+        '403':
+          description: Caller is not a site administrator
+
+  # ---------------------------------------------------------------------------
+  # Raider character management
+  # ---------------------------------------------------------------------------
+
+  /api/raider/character:
+    post:
+      operationId: RaiderCharacterAdd
+      summary: Fetches a character from the Blizzard Profile API, stores it on the raider document, and marks it as the selected character; respects a 15-minute cache window.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Updated selected character and character DTO
+        '403':
+          description: Character not found in the caller's Battle.net account
+        '502':
+          description: Blizzard API fetch failed
+
+  /api/raider/characters/{id}:
+    put:
+      operationId: RaiderCharacter
+      summary: Selects an already-cached character from the raider's stored character list as the active character.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Character ID in the form {region}-{realm}-{name}
+      responses:
+        '200':
+          description: Updated selected character ID
+        '403':
+          description: Character not found in the caller's stored character list
+
+  # ---------------------------------------------------------------------------
+  # WoW reference sync (admin)
+  # ---------------------------------------------------------------------------
+
+  /api/wow/update:
+    post:
+      operationId: WowUpdate
+      summary: Syncs WoW reference data (instances, specializations) from the Blizzard Game Data API into Cosmos; restricted to site administrators.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Sync results listing status per entity type
+        '403':
+          description: Caller is not a site administrator
+
+  # ---------------------------------------------------------------------------
+  # Runs (raid/dungeon sign-up groups)
+  # ---------------------------------------------------------------------------
+
+  /api/runs:
+    get:
+      operationId: RunsList
+      summary: Returns all runs visible to the authenticated user based on guild membership and visibility rules, ordered by start time ascending.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of sanitized run summaries
+
+    post:
+      operationId: RunsCreate
+      summary: Creates a new run document; for GUILD visibility the caller must hold the canCreateGuildRuns rank permission.
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Newly created run document
+        '403':
+          description: Caller lacks permission to create guild runs
+
+  /api/runs/{id}:
+    get:
+      operationId: RunsDetail
+      summary: Returns a single sanitized run by ID; GUILD runs are only visible to the creator or guild members; returns 404 for all other visibility failures to prevent information leakage.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Cosmos document ID of the run
+      responses:
+        '200':
+          description: Sanitized run detail
+        '404':
+          description: Run not found or not visible to caller
+
+    put:
+      operationId: RunsUpdate
+      summary: Updates an existing run using read-modify-write; startTime and instanceId are locked once signups exist; editing closes after signupCloseTime or startTime passes.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Cosmos document ID of the run
+      responses:
+        '200':
+          description: Updated run document
+        '403':
+          description: Caller is not the creator and does not hold guild edit permission
+        '409':
+          description: Editing is closed for this run
+
+    delete:
+      operationId: RunsDelete
+      summary: Deletes a run and all embedded signups; creator can always delete; non-creator requires canDeleteGuildRuns rank permission.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Cosmos document ID of the run
+      responses:
+        '200':
+          description: Run deleted
+        '403':
+          description: Caller lacks permission to delete this run
+
+  /api/runs/{id}/signup:
+    post:
+      operationId: RunsSignup
+      summary: Signs up or updates the caller's signup for a run with a specific character; uses an optimistic-concurrency retry loop with up to three attempts.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Cosmos document ID of the run
+      responses:
+        '200':
+          description: Sanitized run with updated signup list
+        '409':
+          description: Signups are closed or concurrent modification after retries
+
+    delete:
+      operationId: RunsCancelSignup
+      summary: Cancels the caller's existing signup for a run by removing their RunCharacterEntry from the embedded array.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Cosmos document ID of the run
+      responses:
+        '200':
+          description: Sanitized run after signup removal
+        '404':
+          description: Run not found or no existing signup found
+
+  # ---------------------------------------------------------------------------
+  # Privacy
+  # ---------------------------------------------------------------------------
+
+  /api/privacy-contact/email:
+    get:
+      operationId: PrivacyEmail
+      summary: Returns the configured privacy contact email address from app configuration. Public by design.
+      responses:
+        '200':
+          description: Privacy contact email object
+        '404':
+          description: PRIVACY_EMAIL not configured
+
+  /api/privacy/contact:
+    post:
+      operationId: PrivacyContact
+      summary: Receives a privacy contact request (e.g. data deletion request), validates it, and logs it to App Insights without persisting PII. Public by design.
+      responses:
+        '200':
+          description: Contact request acknowledged
+        '400':
+          description: Invalid request body or validation failure
+
+  # ---------------------------------------------------------------------------
+  # CORS preflight (catch-all OPTIONS)
+  # ---------------------------------------------------------------------------
+
+  /api/{path}:
+    options:
+      operationId: CorsPreflight
+      summary: Catch-all OPTIONS handler that routes CORS preflight requests into the worker pipeline so CorsMiddleware can apply response headers; returns 204.
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Wildcard path segment matching any API route
+      responses:
+        '204':
+          description: CORS preflight response with headers set by CorsMiddleware
+
+  # ---------------------------------------------------------------------------
+  # E2E test endpoint (compile-time gated, env-gated at runtime)
+  # ---------------------------------------------------------------------------
+
+  /api/e2e/login:
+    get:
+      operationId: E2ELogin
+      summary: >
+        Test-only endpoint compiled only under the E2E build symbol and additionally
+        gated by the E2E_TEST_MODE=true environment variable at runtime; creates a
+        synthetic session cookie without going through Battle.net OAuth for Playwright
+        E2E tests. Never present in production builds.
+      responses:
+        '302':
+          description: Redirect to the app with a synthetic session cookie set
+        '404':
+          description: E2E_TEST_MODE is not set to true (production guard)
