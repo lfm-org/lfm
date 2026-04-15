@@ -15,6 +15,15 @@ namespace Lfm.Api.Tests;
 
 public class RunsCreateFunctionTests
 {
+    // Anchored to UtcNow so these fixtures never become time bombs against a
+    // future-dated assertion. See issue #49.
+    private static readonly string FutureStartTime =
+        DateTimeOffset.UtcNow.AddDays(30).ToString("o");
+    private static readonly string FutureSignupCloseTime =
+        DateTimeOffset.UtcNow.AddDays(30).AddHours(-2).ToString("o");
+    private static readonly string PastCreatedAt =
+        DateTimeOffset.UtcNow.AddDays(-14).ToString("o");
+
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
@@ -80,8 +89,8 @@ public class RunsCreateFunctionTests
     private static RunDocument MakeRunDoc(string id = "run-new") =>
         new RunDocument(
             Id: id,
-            StartTime: "2026-06-01T20:00:00Z",
-            SignupCloseTime: "2026-06-01T18:00:00Z",
+            StartTime: FutureStartTime,
+            SignupCloseTime: FutureSignupCloseTime,
             Description: "Created run",
             ModeKey: "NORMAL:10",
             Visibility: "PUBLIC",
@@ -90,7 +99,7 @@ public class RunsCreateFunctionTests
             InstanceId: 631,
             InstanceName: "Icecrown Citadel",
             CreatorBattleNetId: "bnet-admin",
-            CreatedAt: "2026-05-01T00:00:00Z",
+            CreatedAt: PastCreatedAt,
             Ttl: 604800,
             RunCharacters: []);
 
@@ -107,8 +116,8 @@ public class RunsCreateFunctionTests
 
         var requestBody = new
         {
-            startTime = "2026-06-01T20:00:00Z",
-            signupCloseTime = "2026-06-01T18:00:00Z",
+            startTime = FutureStartTime,
+            signupCloseTime = FutureSignupCloseTime,
             description = "Created run",
             modeKey = "NORMAL:10",
             visibility = "GUILD",
@@ -153,7 +162,7 @@ public class RunsCreateFunctionTests
         // Missing required fields: modeKey, visibility, instanceId
         var requestBody = new
         {
-            startTime = "2026-06-01T20:00:00Z",
+            startTime = FutureStartTime,
         };
 
         var repo = new Mock<IRunsRepository>();
@@ -183,7 +192,7 @@ public class RunsCreateFunctionTests
 
         var requestBody = new
         {
-            startTime = "2026-06-01T20:00:00Z",
+            startTime = FutureStartTime,
             modeKey = "NORMAL:10",
             visibility = "GUILD",
             instanceId = 631,
@@ -229,8 +238,8 @@ public class RunsCreateFunctionTests
 
         var requestBody = new
         {
-            startTime = "2026-06-01T20:00:00Z",
-            signupCloseTime = "2026-06-01T18:00:00Z",
+            startTime = FutureStartTime,
+            signupCloseTime = FutureSignupCloseTime,
             description = "Created run",
             modeKey = "NORMAL:10",
             visibility = "GUILD",

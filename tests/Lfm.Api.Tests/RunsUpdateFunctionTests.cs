@@ -97,7 +97,7 @@ public class RunsUpdateFunctionTests
             InstanceId: 631,
             InstanceName: "Icecrown Citadel",
             CreatorBattleNetId: creatorBattleNetId,
-            CreatedAt: "2026-04-01T10:00:00Z",
+            CreatedAt: DateTimeOffset.UtcNow.AddDays(-14).ToString("o"),
             Ttl: 86400,
             RunCharacters: []);
 
@@ -282,7 +282,7 @@ public class RunsUpdateFunctionTests
             InstanceId: 631,
             InstanceName: "Icecrown Citadel",
             CreatorBattleNetId: "bnet-creator",
-            CreatedAt: "2026-04-01T10:00:00Z",
+            CreatedAt: DateTimeOffset.UtcNow.AddDays(-14).ToString("o"),
             Ttl: 86400,
             RunCharacters: []);
 

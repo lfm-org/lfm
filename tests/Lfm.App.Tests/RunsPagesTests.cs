@@ -13,11 +13,20 @@ public class RunsPagesTests : ComponentTestBase
 {
     // ── Shared helpers ───────────────────────────────────────────────────────
 
+    // Anchored to UtcNow so these fixtures never become time bombs against a
+    // future-dated assertion. See issue #49.
+    private static readonly string FutureStartTime =
+        DateTimeOffset.UtcNow.AddDays(30).ToString("o");
+    private static readonly string FutureSignupCloseTime =
+        DateTimeOffset.UtcNow.AddDays(30).AddHours(-2).ToString("o");
+    private static readonly string PastCreatedAt =
+        DateTimeOffset.UtcNow.AddDays(-14).ToString("o");
+
     private static RunSummaryDto MakeSummary(string id = "run-1") =>
         new(
             Id: id,
-            StartTime: "2026-05-01T20:00:00Z",
-            SignupCloseTime: "2026-05-01T18:00:00Z",
+            StartTime: FutureStartTime,
+            SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
             ModeKey: "heroic",
             Visibility: "PUBLIC",
@@ -26,15 +35,15 @@ public class RunsPagesTests : ComponentTestBase
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
             CreatorBattleNetId: "player#1234",
-            CreatedAt: "2026-04-01T10:00:00Z",
+            CreatedAt: PastCreatedAt,
             Ttl: 604800,
             RunCharacters: []);
 
     private static RunDetailDto MakeDetail(string id = "run-1") =>
         new(
             Id: id,
-            StartTime: "2026-05-01T20:00:00Z",
-            SignupCloseTime: "2026-05-01T18:00:00Z",
+            StartTime: FutureStartTime,
+            SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
             ModeKey: "heroic",
             Visibility: "PUBLIC",
@@ -43,7 +52,7 @@ public class RunsPagesTests : ComponentTestBase
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
             CreatorBattleNetId: "player#1234",
-            CreatedAt: "2026-04-01T10:00:00Z",
+            CreatedAt: PastCreatedAt,
             Ttl: 604800,
             RunCharacters: []);
 
