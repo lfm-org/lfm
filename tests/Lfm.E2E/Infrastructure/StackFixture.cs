@@ -23,14 +23,20 @@ public class StackFixture : IAsyncLifetime
 {
     public const string DatabaseName = "lfm-e2e";
 
-    private readonly CosmosDbContainer _cosmos = new CosmosDbBuilder()
+    // Testcontainers 4.x removed the parameterless builder constructors; the
+    // image must be passed explicitly. Bind container port 8081 to host port
+    // 8081 so the SDK's endpoint-rediscovery (which always returns
+    // http://127.0.0.1:8081/ from the gateway's writableLocations) reaches
+    // the same socket Testcontainers exposed.
+    private readonly CosmosDbContainer _cosmos = new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
+        .WithPortBinding(8081, 8081)
         .WithStartupCallback(async (_, ct) =>
         {
             await Task.Delay(TimeSpan.FromSeconds(10), ct);
         })
         .Build();
 
-    private readonly AzuriteContainer _azurite = new AzuriteBuilder()
+    private readonly AzuriteContainer _azurite = new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:3.28.0")
         .WithPortBinding(10000, 10000)
         .WithPortBinding(10001, 10001)
         .WithPortBinding(10002, 10002)
