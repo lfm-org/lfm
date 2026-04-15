@@ -33,3 +33,31 @@ jobs:
           path: reports/ps-rule-results.sarif
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: PSRule findings summary
+        if: always()
+        run: |
+          set -euo pipefail
+          SARIF=reports/ps-rule-results.sarif
+          {
+            echo "## PSRule findings"
+            echo
+            if [ ! -f "$SARIF" ]; then
+              echo "No SARIF file — PSRule did not produce results."
+            else
+              jq -r '
+                (.runs[0].results // []) as $results
+                | if ($results | length) == 0 then
+                    "No findings."
+                  else
+                    (
+                      ($results | group_by(.level // "none")
+                                 | map({level: (.[0].level // "none"), count: length}))
+                    ) as $byLevel
+                    | "| severity | count |",
+                      "|---|---|",
+                      ($byLevel[] | "| " + .level + " | " + (.count | tostring) + " |")
+                  end
+              ' "$SARIF"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
