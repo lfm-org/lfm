@@ -334,11 +334,15 @@ public static class DefaultSeed
         var signupCloseTime = startTime.AddMinutes(-30);
         var createdAt = now.AddDays(-14);
 
+        // Match the .fffffffZ shape of the values this seed produced before the
+        // time-bomb fix so any downstream string assertions stay stable.
+        const string Format = "yyyy-MM-ddTHH:mm:ss.fffffffZ";
+
         var run = new Dictionary<string, object?>
         {
             ["id"] = TestRunId,
-            ["startTime"] = startTime.ToString("o"),
-            ["signupCloseTime"] = signupCloseTime.ToString("o"),
+            ["startTime"] = startTime.ToString(Format),
+            ["signupCloseTime"] = signupCloseTime.ToString(Format),
             ["description"] = "E2E test run",
             ["modeKey"] = "NORMAL:25",
             ["visibility"] = "PUBLIC",
@@ -347,7 +351,7 @@ public static class DefaultSeed
             ["instanceId"] = 67,
             ["instanceName"] = "Liberation of Undermine",
             ["creatorBattleNetId"] = PrimaryBattleNetId,
-            ["createdAt"] = createdAt.ToString("o"),
+            ["createdAt"] = createdAt.ToString(Format),
             ["ttl"] = 2592000,
             ["runCharacters"] = new List<object>
             {
