@@ -142,15 +142,10 @@ jobs:
           path: ./publish/app
 
       - name: Generate CycloneDX SBOM
-        uses: CycloneDX/gh-dotnet-generate-sbom@c183e4ac30e5b99354cb9a98c38548e07c538346 # v1.0.1
-        with:
-          path: lfm.sln
-          json: true
-          out: ./
-          github-bearer-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Rename SBOM to canonical name
-        run: mv bom.json sbom-api.cdx.json
+        run: |
+          set -euo pipefail
+          dotnet tool install --global CycloneDX
+          dotnet-CycloneDX lfm.sln -fn sbom-api.cdx.json -o . -F Json
 
       - name: Install cosign
         uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
