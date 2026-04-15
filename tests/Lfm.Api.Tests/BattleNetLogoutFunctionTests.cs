@@ -24,6 +24,16 @@ public class BattleNetLogoutFunctionTests
         return ctx.Object;
     }
 
+    private static FunctionContext MakeAnonymousFunctionContext()
+    {
+        // No principal in Items — simulates an unauthenticated caller reaching
+        // the logout endpoint (which is intentionally anonymous-accessible so
+        // a stale nav / bookmark / double-click doesn't land on a 401 page).
+        var ctx = new Mock<FunctionContext>();
+        ctx.Setup(c => c.Items).Returns(new Dictionary<object, object>());
+        return ctx.Object;
+    }
+
     private static SessionPrincipal MakePrincipal(string battleNetId = "bnet-1") =>
         new SessionPrincipal(
             BattleNetId: battleNetId,
@@ -113,6 +123,56 @@ public class BattleNetLogoutFunctionTests
         Assert.Single(logger.Entries, e => e.IsAudit(
             action: "logout",
             actorId: "bnet-42",
+            result: "success"));
+    }
+
+    // -----------------------------------------------------------------------
+    // Anonymous-access behavior — logout is [AllowAnonymous] by design so a
+    // stale nav / bookmark / double-click does not land on a 401 error page.
+    // See BattleNetLogoutFunction XML doc and issue #53.
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void Run_anonymous_caller_still_returns_redirect()
+    {
+        var fn = MakeFunction();
+        var ctx = MakeAnonymousFunctionContext();
+        var req = new DefaultHttpContext().Request;
+
+        var result = fn.Run(req, ctx);
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal(AppBaseUrl, redirect.Url);
+    }
+
+    [Fact]
+    public void Run_anonymous_caller_still_clears_cookie()
+    {
+        // Even without a valid session, the function should emit the cookie-clear
+        // Set-Cookie header. This is defense in depth — if the cookie is stale or
+        // tampered, the browser still ends up without it after a logout nav.
+        var fn = MakeFunction();
+        var ctx = MakeAnonymousFunctionContext();
+        var httpContext = new DefaultHttpContext();
+
+        fn.Run(httpContext.Request, ctx);
+
+        var setCookieHeaders = httpContext.Response.Headers["Set-Cookie"].OfType<string>().ToArray();
+        Assert.Contains(setCookieHeaders, h => h.Contains(FakeCookieName) && h.ToLowerInvariant().Contains("expires=thu, 01 jan 1970"));
+    }
+
+    [Fact]
+    public void Run_anonymous_caller_emits_audit_event_with_anonymous_actor()
+    {
+        var logger = new TestLogger<BattleNetLogoutFunction>();
+        var fn = MakeFunction(logger);
+        var ctx = MakeAnonymousFunctionContext();
+
+        fn.Run(new DefaultHttpContext().Request, ctx);
+
+        Assert.Single(logger.Entries, e => e.IsAudit(
+            action: "logout",
+            actorId: "anonymous",
             result: "success"));
     }
 }

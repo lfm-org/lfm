@@ -1,12 +1,9 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
-@using Lfm.App.Auth
 @using Lfm.App.Services
-@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject IConfiguration Config
-@inject IHttpClientFactory HttpClientFactory
 @inject IThemeService ThemeService
 @inject IStringLocalizer Loc
 @inject ILocaleService LocaleService
@@ -159,16 +156,16 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task HandleLogout()
+    private void HandleLogout()
     {
-        var http = HttpClientFactory.CreateClient("api");
-        try { await http.PostAsync("api/battlenet/logout", null); }
-        catch { /* best effort */ }
-
-        if (AuthStateProvider is AppAuthenticationStateProvider asp)
-            asp.NotifyStateChanged();
-
-        Nav.NavigateTo("/", forceLoad: true);
+        // Mirror the login flow (see LoginPage.razor): top-level browser
+        // navigation to the API endpoint so the server's cookie-clear
+        // Set-Cookie header is processed by the browser as part of a real
+        // navigation response. An earlier HttpClient.PostAsync-based
+        // implementation was silently eaten by HttpClient timeouts on cold
+        // Functions starts and left the session alive (issue #53).
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/logout", forceLoad: true);
     }
 
     public void Dispose()
