@@ -6,12 +6,8 @@ public class NavBar(IPage page)
 {
     private readonly IPage _page = page;
 
-    // FluentUI's <fluent-button> custom element exposes role="button" via a JS
-    // interop upgrade that races the initial Blazor WASM bootstrap on cold CI
-    // runs. `GetByRole(Button)` misses it intermittently; matching by tag and
-    // visible text is upgrade-independent. See issue #45.
     public ILocator SignOutButton =>
-        _page.Locator("fluent-button:has-text('Sign Out')");
+        _page.GetByRole(AriaRole.Button, new() { Name = "Sign Out" });
 
     public ILocator SignInLink =>
         _page.Locator("fluent-anchor[href='/login']");

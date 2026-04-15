@@ -13,7 +13,12 @@ namespace Lfm.E2E.Specs;
 public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
+    // 401 + /api/me — expected for the anonymous context. MONO_WASM /
+    // .wasm / mono_download_assets — intermittent Blazor WASM bundle download
+    // flake that hits cold-start forceLoad redirects (e.g. /api/battlenet/login);
+    // unrelated to the assertions these tests make. See #45.
+    protected override string[] IgnoredConsolePatterns =>
+        ["401", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
 
     public override async Task InitializeAsync()
     {
