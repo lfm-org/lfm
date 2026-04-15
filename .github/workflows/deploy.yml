@@ -116,7 +116,10 @@ jobs:
 
   release:
     needs: [deploy-app]
-    if: needs.deploy-app.result == 'success' && github.event_name == 'push'
+    if: |
+      always() &&
+      needs.deploy-app.result == 'success' &&
+      github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
