@@ -27,6 +27,10 @@ public class FunctionAuthorizationContractTests
         // Login flow — caller has no session yet by definition.
         "battlenet-login",
         "battlenet-callback",
+        // Logout is idempotent and non-destructive: a stale nav / bookmark /
+        // double-click should land on the home page, not a 401 error page.
+        // See #53 and BattleNetLogoutFunction XML summary for rationale.
+        "battlenet-logout",
         // Health probes — App Service Health Check / external monitors.
         "health",
         "health-ready",
