@@ -70,6 +70,13 @@ jobs:
         run: dotnet publish api/Lfm.Api.csproj -c Release -o ./publish/api --no-build
 
       - name: Publish App
+        env:
+          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
+          EXPIRES_SECURITY_TXT: ${{ vars.EXPIRES_SECURITY_TXT }}
+          FRONTEND_HOSTNAME: ${{ vars.FRONTEND_HOSTNAME }}
+          SECURITY_POLICY_URL: ${{ vars.SECURITY_POLICY_URL }}
+          API_HOSTNAME: ${{ vars.API_HOSTNAME }}
+          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
         run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
 
       - name: Upload API publish artifact

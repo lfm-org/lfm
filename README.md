@@ -139,8 +139,20 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 
 | Variable | Purpose |
 |----------|---------|
-| `PRIVACY_EMAIL` | Privacy contact email |
+| `PRIVACY_EMAIL` | Privacy contact email; substituted into `/.well-known/security.txt` at build time |
 | `BATTLE_NET_REGION` | Battle.net region code |
+
+**Build-time template substitution** (used by the `GenerateStaticTemplates` MSBuild target):
+
+| Variable | Purpose |
+|----------|---------|
+| `EXPIRES_SECURITY_TXT` | ISO-8601 timestamp when the `security.txt` contact expires (RFC 9116 requires this field) |
+| `SECURITY_POLICY_URL` | URL to the deployer's `SECURITY.md` (e.g. `https://github.com/<you>/<repo>/blob/main/SECURITY.md`) |
+| `API_HOSTNAME` | API custom domain; injected into the CSP `connect-src` and `img-src` allowlist in `staticwebapp.config.json` |
+| `FRONTEND_HOSTNAME` | Frontend custom domain; injected into the `security.txt` `Canonical` field |
+| `STORAGE_ACCOUNT_NAME` | Storage account name; used to build the blob endpoint in the CSP allowlist |
+
+These five variables are set in the `dotnet publish` step of `deploy-app.yml`. `app/wwwroot/.well-known/security.txt` and `app/wwwroot/staticwebapp.config.json` are generated from their `.template` counterparts and gitignored.
 
 `frontendOrigin`, `battleNetRedirectUri`, and resource `tags` are derived from the above in the workflow.
 
