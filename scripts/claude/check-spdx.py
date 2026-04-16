@@ -32,7 +32,7 @@ Invocation requires `UV_CACHE_DIR` pointing at a sandbox-writable path:
 
     export UV_CACHE_DIR=/tmp/claude/uv-cache
     mkdir -p "$UV_CACHE_DIR"
-    ./scripts/claude/check-spdx.py /tmp/claude/phase-2b-files.txt --root /home/souroldgeezer/repos/lfm
+    ./scripts/claude/check-spdx.py /tmp/claude/phase-2b-files.txt --root /path/to/repo
 """
 
 from __future__ import annotations
