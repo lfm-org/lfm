@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
 # Claude Code Stop hook — nudge the test-quality-audit skill.
 #
 # When Claude is about to finish a turn, check whether any unit test files in

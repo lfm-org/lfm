@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
 set -euo pipefail
 
 PUBLISH_DIR="${1:-./publish/app/wwwroot}"
