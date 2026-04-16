@@ -20,7 +20,7 @@
     <PackageReference Include="Testcontainers.Azurite" Version="4.11.0" />
     <PackageReference Include="Deque.AxeCore.Playwright" Version="4.11.1" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
-    <PackageReference Include="WireMock.Net" Version="1.25.0" />
+    <PackageReference Include="WireMock.Net" Version="2.2.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">
