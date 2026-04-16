@@ -121,11 +121,13 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
                 new System.Text.RegularExpressions.Regex(@"^http://localhost:\d+/?$"),
                 new() { Timeout = 15000 });
 
-            // Verify session cleared — protected route redirects to login
+            // Verify session cleared — protected route redirects to login.
+            // NetworkIdle lets Blazor fetch /api/me (now 401) and fire RedirectToLogin before the assertion.
             await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-                new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                new() { WaitUntil = WaitUntilState.NetworkIdle });
             await Assertions.Expect(authPage).ToHaveURLAsync(
-                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"));
+                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+                new() { Timeout = 15000 });
         }
         finally
         {
