@@ -166,6 +166,28 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 
 Use standard C# conventions: 4-space indentation. Run `dotnet format` before committing. Keep commits short and imperative.
 
+## License
+
+This project is licensed under the **GNU Affero General Public License
+v3.0 or later** (AGPL-3.0-or-later).
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+
+- [`LICENSE`](LICENSE) — full license text
+- [`NOTICE`](NOTICE) — copyright notice and "how to apply" pointer
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — inbound=outbound policy for contributions
+- [`REUSE.toml`](REUSE.toml) — collective license coverage for files that cannot carry SPDX headers
+
+Every source file carries an `SPDX-License-Identifier: AGPL-3.0-or-later`
+header. The REUSE CI job
+(`.github/workflows/license-compliance.yml`) verifies compliance on
+every pull request.
+
+Dependency licenses are verified by
+`.github/workflows/dep-license-check.yml` against the allowlist at
+`.github/license-allowlist.txt`. The one-time baseline audit is in
+`docs/security-reviews/2026-04-16-dep-license-audit.md`.
+
 ## AI Assistance
 
 This project is developed with the assistance of [Claude Code](https://claude.ai/claude-code) and [Codex](https://openai.com/codex/). AI is used for coding, code review, and documentation tasks throughout the codebase.
