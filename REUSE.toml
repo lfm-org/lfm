@@ -1,0 +1,66 @@
+version = 1
+
+# Razor files cannot carry reliable SPDX headers:
+# - @* Razor comments *@ are not recognised by the reuse tool
+# - HTML comments <!-- --> render as visible HTML
+[[annotations]]
+path = ["**/*.razor"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LFM contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Data and resource files
+[[annotations]]
+path = [
+    "**/*.json",
+    "**/*.resx",
+    "**/*.csproj",
+    "**/*.sln",
+    "**/*.props",
+    "**/packages.lock.json",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LFM contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Binary assets
+[[annotations]]
+path = [
+    "**/*.png",
+    "**/*.svg",
+    "**/*.ico",
+    "**/*.jpg",
+    "**/*.jpeg",
+    "**/*.webp",
+    "**/*.woff",
+    "**/*.woff2",
+    "**/*.ttf",
+    "**/*.otf",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LFM contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Markdown and documentation
+[[annotations]]
+path = ["**/*.md", "**/*.txt", "example.env"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LFM contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Infrastructure-as-code that comes with its own comment syntax but is
+# better covered collectively (Dockerfiles already take # comments but
+# many contributors will not know that)
+[[annotations]]
+path = [
+    "**/Dockerfile",
+    "**/*.dockerignore",
+    "**/.gitignore",
+    "**/.gitattributes",
+    "**/.editorconfig",
+    "**/global.json",
+    "**/ps-rule.yaml",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LFM contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
