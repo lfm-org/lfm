@@ -1,0 +1,5 @@
+Contact: mailto:{{PRIVACY_EMAIL}}
+Expires: {{EXPIRES_SECURITY_TXT}}
+Preferred-Languages: en
+Canonical: https://{{FRONTEND_HOSTNAME}}/.well-known/security.txt
+Policy: {{SECURITY_POLICY_URL}}

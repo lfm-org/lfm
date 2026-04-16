@@ -43,7 +43,7 @@
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://lfm-api.dinosauruskeksi.com https://lfmstore.blob.core.windows.net; img-src 'self' https://lfm-api.dinosauruskeksi.com https://render.worldofwarcraft.com https://lfmstore.blob.core.windows.net",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://{{API_HOSTNAME}} https://{{STORAGE_ACCOUNT_NAME}}.blob.core.windows.net; img-src 'self' https://{{API_HOSTNAME}} https://render.worldofwarcraft.com https://{{STORAGE_ACCOUNT_NAME}}.blob.core.windows.net",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
   }
 }

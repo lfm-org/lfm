@@ -1,0 +1,3 @@
+# Generated at build time from staticwebapp.config.json.template by the
+# GenerateStaticTemplates MSBuild target in Lfm.App.csproj.
+staticwebapp.config.json

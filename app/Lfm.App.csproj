@@ -30,4 +30,58 @@
     <Content Remove="Lfm.App.Core\**" />
     <None Remove="Lfm.App.Core\**" />
   </ItemGroup>
+
+  <!--
+    GenerateStaticTemplates: substitute {{VAR}} placeholders in .template files
+    and write the final files before publish. Properties fall back to the
+    corresponding environment variables so the same names work in CI (GitHub
+    Actions vars) and local shells.
+  -->
+  <Target Name="GenerateStaticTemplates" AfterTargets="Build" BeforeTargets="Publish">
+    <PropertyGroup>
+      <PrivacyEmail Condition="'$(PrivacyEmail)' == ''">$(PRIVACY_EMAIL)</PrivacyEmail>
+      <ExpiresSecurityTxt Condition="'$(ExpiresSecurityTxt)' == ''">$(EXPIRES_SECURITY_TXT)</ExpiresSecurityTxt>
+      <FrontendHostname Condition="'$(FrontendHostname)' == ''">$(FRONTEND_HOSTNAME)</FrontendHostname>
+      <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">$(SECURITY_POLICY_URL)</SecurityPolicyUrl>
+      <ApiHostname Condition="'$(ApiHostname)' == ''">$(API_HOSTNAME)</ApiHostname>
+      <StorageAccountName Condition="'$(StorageAccountName)' == ''">$(STORAGE_ACCOUNT_NAME)</StorageAccountName>
+    </PropertyGroup>
+
+    <Error Text="PRIVACY_EMAIL must be set for security.txt generation."
+           Condition="'$(PrivacyEmail)' == ''" />
+    <Error Text="EXPIRES_SECURITY_TXT must be set for security.txt generation."
+           Condition="'$(ExpiresSecurityTxt)' == ''" />
+    <Error Text="FRONTEND_HOSTNAME must be set for security.txt generation."
+           Condition="'$(FrontendHostname)' == ''" />
+    <Error Text="SECURITY_POLICY_URL must be set for security.txt generation."
+           Condition="'$(SecurityPolicyUrl)' == ''" />
+    <Error Text="API_HOSTNAME must be set for staticwebapp.config.json generation."
+           Condition="'$(ApiHostname)' == ''" />
+    <Error Text="STORAGE_ACCOUNT_NAME must be set for staticwebapp.config.json generation."
+           Condition="'$(StorageAccountName)' == ''" />
+
+    <PropertyGroup>
+      <SecurityTxtSource>$(MSBuildProjectDirectory)/wwwroot/.well-known/security.txt.template</SecurityTxtSource>
+      <SecurityTxtDest>$(MSBuildProjectDirectory)/wwwroot/.well-known/security.txt</SecurityTxtDest>
+      <SwaConfigSource>$(MSBuildProjectDirectory)/wwwroot/staticwebapp.config.json.template</SwaConfigSource>
+      <SwaConfigDest>$(MSBuildProjectDirectory)/wwwroot/staticwebapp.config.json</SwaConfigDest>
+    </PropertyGroup>
+
+    <!-- Use bash sed for substitution: safe for plain-text template replacement
+         (not JSON/YAML parsing). sed -e chains are evaluated left-to-right. -->
+    <Exec Command="bash -c &quot;sed \
+        -e 's|{{PRIVACY_EMAIL}}|$(PrivacyEmail)|g' \
+        -e 's|{{EXPIRES_SECURITY_TXT}}|$(ExpiresSecurityTxt)|g' \
+        -e 's|{{FRONTEND_HOSTNAME}}|$(FrontendHostname)|g' \
+        -e 's|{{SECURITY_POLICY_URL}}|$(SecurityPolicyUrl)|g' \
+        '$(SecurityTxtSource)' &gt; '$(SecurityTxtDest)'&quot;"
+          Condition="Exists('$(SecurityTxtSource)')" />
+
+    <Exec Command="bash -c &quot;sed \
+        -e 's|{{API_HOSTNAME}}|$(ApiHostname)|g' \
+        -e 's|{{STORAGE_ACCOUNT_NAME}}|$(StorageAccountName)|g' \
+        '$(SwaConfigSource)' &gt; '$(SwaConfigDest)'&quot;"
+          Condition="Exists('$(SwaConfigSource)')" />
+  </Target>
+
 </Project>
