@@ -128,3 +128,8 @@ if [[ $status -ne 0 ]]; then
   echo "If this is truly intentional, bypass with: git commit --no-verify"
   exit 1
 fi
+
+# Optional REUSE lint — no-op if reuse is not installed locally.
+if command -v reuse >/dev/null 2>&1; then
+  reuse lint >/dev/null || { echo "reuse lint failed"; exit 1; }
+fi
