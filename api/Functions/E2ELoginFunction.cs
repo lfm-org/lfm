@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 LFM contributors
+
 #if E2E
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
