@@ -10,17 +10,17 @@
       },
       "Microsoft.AspNetCore.DataProtection": {
         "type": "Direct",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "DNl64QRCH9Yw1Qdc4Zk5hpKqxNGAryiKrUP1Po4ae6vkrbpeQ6oj4oCk2FMCqITOir/7AIdL64Ie4n/vgHEzCA==",
+        "requested": "[10.0.5, )",
+        "resolved": "10.0.5",
+        "contentHash": "QKKBmZIsZWc0BKyLStS3RuZ+sJvSMxqe2ZyCJgqU20EUnka1itkIQH4aEHLgpnrfRFD0hm9g2z1pIaKt+vjFjQ==",
         "dependencies": {
-          "Microsoft.AspNetCore.Cryptography.Internal": "10.0.6",
-          "Microsoft.AspNetCore.DataProtection.Abstractions": "10.0.6",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.6",
-          "Microsoft.Extensions.Hosting.Abstractions": "10.0.6",
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.6",
-          "Microsoft.Extensions.Options": "10.0.6",
-          "System.Security.Cryptography.Xml": "10.0.6"
+          "Microsoft.AspNetCore.Cryptography.Internal": "10.0.5",
+          "Microsoft.AspNetCore.DataProtection.Abstractions": "10.0.5",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Hosting.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Options": "10.0.5",
+          "System.Security.Cryptography.Xml": "10.0.5"
         }
       },
       "Microsoft.NET.Test.Sdk": {
@@ -263,13 +263,13 @@
       },
       "Microsoft.AspNetCore.Cryptography.Internal": {
         "type": "Transitive",
-        "resolved": "10.0.6",
-        "contentHash": "uilNcQcBAXgf/hJl5cVwXkYd2frzHatkcnXXNZ26d9geELozdQnbY6XkP2QAiJV2RL2B5wU7NWdnXkpb+mLLhg=="
+        "resolved": "10.0.5",
+        "contentHash": "kFUpNRYySfqNLuQKGMKZ2mK8b86R1zizlc9QB6R/Ess0rSkrA8pRNCMSFm+DqUnNfm5G3FWjsYIJOKYyhkHeig=="
       },
       "Microsoft.AspNetCore.DataProtection.Abstractions": {
         "type": "Transitive",
-        "resolved": "10.0.6",
-        "contentHash": "ZXQcOmiAeFcfu43YHVwVLIcFkYwvKawbtIoFoWCvKggRY+k/md1/eo/KNA/HIzel1rrhRRxFwhcH0i67HwB/tw=="
+        "resolved": "10.0.5",
+        "contentHash": "80ME2ynr3awQJHT28oC15nbyPedUL/tLhJUWSPrIhRaIqdswtvD+gVLnQf5+kSoBqBBiWqITzUEQUVuk+fUjfA=="
       },
       "Microsoft.Azure.Cosmos": {
         "type": "Transitive",

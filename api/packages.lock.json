@@ -73,6 +73,12 @@
           "Microsoft.Extensions.Logging.ApplicationInsights": "2.23.0"
         }
       },
+      "Microsoft.AspNetCore.DataProtection": {
+        "type": "Direct",
+        "requested": "[10.0.5, )",
+        "resolved": "10.0.5",
+        "contentHash": "QKKBmZIsZWc0BKyLStS3RuZ+sJvSMxqe2ZyCJgqU20EUnka1itkIQH4aEHLgpnrfRFD0hm9g2z1pIaKt+vjFjQ=="
+      },
       "Microsoft.Azure.Cosmos": {
         "type": "Direct",
         "requested": "[3.58.0, )",
