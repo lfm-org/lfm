@@ -11,7 +11,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.6" />
     <!-- Pinned to 10.0.6 to address CVE-2026-33116 (GHSA-37gx-xxp4-5rgx)
          and CVE-2026-26171 (GHSA-w3x6-4m5h-cxqf), both DoS advisories in
          EncryptedXml affecting System.Security.Cryptography.Xml <= 10.0.5.
