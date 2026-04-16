@@ -97,10 +97,28 @@ The Azure Functions `dotnet-isolated` prebuilt base image runs as the base image
 
 ## Supply-chain evidence (per release)
 
-After Phase 3 of this plan lands, every `push: main` that runs the deploy workflow produces a GitHub Release with:
+Every `push: main` that runs the deploy workflow produces a GitHub
+Release with:
 
 - CycloneDX SBOM (`sbom-api.cdx.json`)
 - cosign keyless OIDC signature bundle per published blob
 - SHA-256 manifest
 
-This is the evidence artifact for `SLSA Build L1`. SLSA L2 (provenance attestation) is out of scope on cost grounds — see remediation spec for rationale.
+Repository-level evidence always in place on `main`:
+
+- [`LICENSE`](LICENSE) — AGPL-3.0-or-later, project license
+- [`NOTICE`](NOTICE) — copyright and "how to apply" pointer
+- [`REUSE.toml`](REUSE.toml) — collective license coverage for files
+  that cannot carry SPDX headers
+- `.github/workflows/license-compliance.yml` — REUSE CI gate enforcing
+  per-file SPDX headers on every PR
+- `.github/workflows/dep-license-check.yml` — dependency license
+  enforcement against `.github/license-allowlist.txt`
+- [`docs/security-reviews/2026-04-16-dep-license-audit.md`](docs/security-reviews/2026-04-16-dep-license-audit.md)
+  — one-time baseline audit of all NuGet dependencies
+
+This is the evidence artifact for `SLSA Build L1`. SLSA L2 (provenance
+attestation) is out of scope on cost grounds.
+
+Per-file provenance is covered by SPDX headers and REUSE — supports the
+OWASP SCVS L1 declaration in § Declared Security Targets.
