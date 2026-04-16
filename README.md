@@ -178,8 +178,11 @@ v3.0 or later** (AGPL-3.0-or-later).
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — inbound=outbound policy for contributions
 - [`REUSE.toml`](REUSE.toml) — collective license coverage for files that cannot carry SPDX headers
 
+<!-- REUSE-IgnoreStart -->
 Every source file carries an `SPDX-License-Identifier: AGPL-3.0-or-later`
-header. The REUSE CI job
+header.
+<!-- REUSE-IgnoreEnd -->
+The REUSE CI job
 (`.github/workflows/license-compliance.yml`) verifies compliance on
 every pull request.
 

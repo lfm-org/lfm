@@ -49,11 +49,13 @@ EXT_PREFIX: dict[str, str] = {
 
 
 def build_header(prefix: str) -> str:
+    # REUSE-IgnoreStart
     return (
         f"{prefix} SPDX-License-Identifier: {LICENSE_ID}\n"
         f"{prefix} SPDX-FileCopyrightText: {COPYRIGHT}\n"
         f"\n"
     )
+    # REUSE-IgnoreEnd
 
 
 def transform(text: str, header: str) -> str:
