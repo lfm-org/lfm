@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 LFM contributors
+
 using System.Security.Claims;
 using Lfm.App.Auth;
 using Lfm.App.i18n;
