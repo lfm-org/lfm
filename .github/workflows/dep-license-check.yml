@@ -38,6 +38,9 @@ jobs:
       - name: Restore tools
         run: dotnet tool restore
 
+      - name: Restore NuGet packages
+        run: dotnet restore lfm.sln
+
       - name: Run nuget-license against allowlist
         run: |
           ALLOWED=$(grep -v '^#' .github/license-allowlist.txt | grep -v '^$' | paste -sd ';' -)
