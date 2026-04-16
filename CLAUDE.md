@@ -38,7 +38,7 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 **GitHub:** Use `mcp__github__*` MCP tools for **all** GitHub interactions — PRs, issues, reviews, branch creation, file contents, repo search, and **reading files/code from external repositories**. **Do not use the `gh` CLI.** **Do not use WebSearch/WebFetch to browse GitHub** — use `mcp__github__get_file_contents`, `mcp__github__search_code`, `mcp__github__get_repository_tree`, and other MCP read tools instead. They return structured data, avoid rate limits, and work reliably. Subagents must follow the same rule.
 
-**git:** **Always use `git -C /home/souroldgeezer/repos/lfm`** — never `cd` into the repo then run bare `git`. This applies to every git command: status, add, commit, push, switch, diff, log, rebase. Subagents must follow the same rule. Bare `git` in a wrong cwd silently operates on the wrong repo.
+**git:** **Always use `git -C <repo-root>` with an absolute path** — never `cd` into the repo then run bare `git`. This applies to every git command: status, add, commit, push, switch, diff, log, rebase. Subagents must follow the same rule. Bare `git` in a wrong cwd silently operates on the wrong repo.
 
 **Config preference:** config file > CLI argument > environment variable.
 
