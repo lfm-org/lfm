@@ -1,8 +1,0 @@
-{
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "project": ["src/**/*.{ts,tsx}"],
-  "playwright": {
-    "config": ["playwright.config.ts"],
-    "entry": ["e2e/**/*.spec.ts"]
-  }
-}

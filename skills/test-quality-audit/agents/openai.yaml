@@ -1,4 +1,0 @@
-interface:
-  display_name: "Test Quality Audit"
-  short_description: "Audit unit tests for intent-vs-echo, coupling, and smells"
-  default_prompt: "Use $test-quality-audit to audit this repository's unit tests — distinguish specification tests from characterization tests, surface coupling smells, and recommend remediations."
