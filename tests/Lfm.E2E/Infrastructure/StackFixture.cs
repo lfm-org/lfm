@@ -399,9 +399,12 @@ public class StackFixture : IAsyncLifetime
         // the in-memory header served by the local Kestrel host.
         if (swaHeaders.TryGetValue("Content-Security-Policy", out var csp))
         {
+            // API_HOSTNAME matches the env var used by MSBuild template substitution;
+            // the default mirrors the MSBuild default so the E2E stack works without env vars.
+            var apiOrigin = $"https://{Environment.GetEnvironmentVariable("API_HOSTNAME") ?? "api.localhost"}";
             swaHeaders["Content-Security-Policy"] = csp.Replace(
-                "https://lfm-api.dinosauruskeksi.com",
-                $"https://lfm-api.dinosauruskeksi.com http://localhost:{apiPort}");
+                apiOrigin,
+                $"{apiOrigin} http://localhost:{apiPort}");
         }
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions

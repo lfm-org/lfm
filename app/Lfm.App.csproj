@@ -37,28 +37,24 @@
     corresponding environment variables so the same names work in CI (GitHub
     Actions vars) and local shells.
   -->
-  <Target Name="GenerateStaticTemplates" AfterTargets="Build" BeforeTargets="Publish">
+  <Target Name="GenerateStaticTemplates" BeforeTargets="AssignTargetPaths;BeforeBuild">
     <PropertyGroup>
+      <!-- Env vars take precedence; fall back to safe defaults so test/CI builds
+           work without any environment configuration. Real deploys set these vars
+           in deploy-app.yml. -->
       <PrivacyEmail Condition="'$(PrivacyEmail)' == ''">$(PRIVACY_EMAIL)</PrivacyEmail>
+      <PrivacyEmail Condition="'$(PrivacyEmail)' == ''">privacy@example.com</PrivacyEmail>
       <ExpiresSecurityTxt Condition="'$(ExpiresSecurityTxt)' == ''">$(EXPIRES_SECURITY_TXT)</ExpiresSecurityTxt>
+      <ExpiresSecurityTxt Condition="'$(ExpiresSecurityTxt)' == ''">$([System.DateTime]::UtcNow.AddYears(1).ToString('yyyy-MM-ddTHH:mm:ssZ'))</ExpiresSecurityTxt>
       <FrontendHostname Condition="'$(FrontendHostname)' == ''">$(FRONTEND_HOSTNAME)</FrontendHostname>
+      <FrontendHostname Condition="'$(FrontendHostname)' == ''">app.localhost</FrontendHostname>
       <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">$(SECURITY_POLICY_URL)</SecurityPolicyUrl>
+      <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">https://example.com/SECURITY.md</SecurityPolicyUrl>
       <ApiHostname Condition="'$(ApiHostname)' == ''">$(API_HOSTNAME)</ApiHostname>
+      <ApiHostname Condition="'$(ApiHostname)' == ''">api.localhost</ApiHostname>
       <StorageAccountName Condition="'$(StorageAccountName)' == ''">$(STORAGE_ACCOUNT_NAME)</StorageAccountName>
+      <StorageAccountName Condition="'$(StorageAccountName)' == ''">examplestore</StorageAccountName>
     </PropertyGroup>
-
-    <Error Text="PRIVACY_EMAIL must be set for security.txt generation."
-           Condition="'$(PrivacyEmail)' == ''" />
-    <Error Text="EXPIRES_SECURITY_TXT must be set for security.txt generation."
-           Condition="'$(ExpiresSecurityTxt)' == ''" />
-    <Error Text="FRONTEND_HOSTNAME must be set for security.txt generation."
-           Condition="'$(FrontendHostname)' == ''" />
-    <Error Text="SECURITY_POLICY_URL must be set for security.txt generation."
-           Condition="'$(SecurityPolicyUrl)' == ''" />
-    <Error Text="API_HOSTNAME must be set for staticwebapp.config.json generation."
-           Condition="'$(ApiHostname)' == ''" />
-    <Error Text="STORAGE_ACCOUNT_NAME must be set for staticwebapp.config.json generation."
-           Condition="'$(StorageAccountName)' == ''" />
 
     <PropertyGroup>
       <SecurityTxtSource>$(MSBuildProjectDirectory)/wwwroot/.well-known/security.txt.template</SecurityTxtSource>

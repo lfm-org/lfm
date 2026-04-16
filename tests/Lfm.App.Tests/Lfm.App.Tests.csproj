@@ -29,6 +29,11 @@
       <Link>locales\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- staticwebapp.config.json is generated from staticwebapp.config.json.template
+         by the GenerateStaticTemplates MSBuild target in app/Lfm.App.csproj, which
+         runs BeforeTargets="AssignTargetPaths;BeforeBuild". The file is written to
+         app/wwwroot/ during the app project build (which this project references),
+         so it exists at this path before the None Include copy phase runs. -->
     <None Include="..\..\app\wwwroot\staticwebapp.config.json">
       <Link>staticwebapp.config.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

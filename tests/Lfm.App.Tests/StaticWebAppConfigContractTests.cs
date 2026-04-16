@@ -73,6 +73,9 @@ public class StaticWebAppConfigContractTests
         // production. Dropping the API host from connect-src would break every
         // authenticated request silently in the deployed app while leaving local
         // dev (which uses dotnet run on the same machine) green.
-        Assert.Contains("https://lfm-api.dinosauruskeksi.com", GetCsp());
+        // API_HOSTNAME matches the env var used by MSBuild template substitution;
+        // the default mirrors the MSBuild default so the test passes without env vars.
+        var expected = Environment.GetEnvironmentVariable("API_HOSTNAME") ?? "api.localhost";
+        Assert.Contains($"https://{expected}", GetCsp());
     }
 }
