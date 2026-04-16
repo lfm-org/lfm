@@ -2,14 +2,23 @@
 
 ## Reporting a Vulnerability
 
-Email: lfmprivacy.catwalk113@passmail.net
+Deployers of this project each maintain their own security-contact policy.
+For the security contact of a specific deployed instance, consult that
+instance's `/.well-known/security.txt` (or the deployment's maintainer).
 
-**SLAs:**
+Forkers: set the `PRIVACY_EMAIL` environment variable (see [`example.env`](example.env))
+and the build-time substitution in [`app/Lfm.App.csproj`](app/Lfm.App.csproj)
+will insert it into the deployed `/.well-known/security.txt`.
+
+For **vulnerabilities in the code of this repository itself** (not in a
+specific deployment), open a GitHub issue tagged `security` on the
+public repo, or — if the finding is sensitive — email the repository
+maintainer listed in the GitHub repo profile.
+
+**SLAs (for repository-level reports):**
 - Acknowledge within 72 hours
 - Triage within 7 days
 - Remediation timeline communicated after triage
-
-Please do not open public issues for security reports. Prefer an encrypted email if the finding is sensitive.
 
 ## Supported Versions
 
