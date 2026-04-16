@@ -28,7 +28,16 @@ public class StackFixture : IAsyncLifetime
     // 8081 so the SDK's endpoint-rediscovery (which always returns
     // http://127.0.0.1:8081/ from the gateway's writableLocations) reaches
     // the same socket Testcontainers exposed.
-    private readonly CosmosDbContainer _cosmos = new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
+    //
+    // Pinned by digest (not just the floating `:vnext-preview` tag) so CI
+    // pulls the same bytes every run and E2E behaviour doesn't shift when
+    // Microsoft repushes the preview tag. Must stay in sync with the image
+    // used by docker-compose.test.yml. See issue #46. Update path: bump both
+    // spots together when a newer vnext-preview is desired (or when a stable
+    // version tag finally ships and we can drop digest pinning).
+    private readonly CosmosDbContainer _cosmos = new CosmosDbBuilder(
+        "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview"
+        + "@sha256:ed28d92b38aff69ccb4dbf439c584449f06432619f3415f429c09e4097cbe577")
         .WithPortBinding(8081, 8081)
         .WithStartupCallback(async (_, ct) =>
         {
