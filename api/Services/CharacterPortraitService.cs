@@ -101,11 +101,16 @@ public sealed class CharacterPortraitService(
                 .Select(c => FetchPortraitAsync(c.Region, c.Realm, c.Name, c.Id, accessToken, ct))
                 .ToArray();
 
-            var outcomes = await Task.WhenAll(fetchTasks.Select(async t =>
+            var outcomes = new List<FetchResult?>();
+            foreach (var task in fetchTasks)
             {
-                try { return await t; }
-                catch { return null; }
-            }));
+                try { outcomes.Add(await task); }
+                catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
+                {
+                    throw; // bubble to caller; let the endpoint return 429 with Retry-After
+                }
+                catch { outcomes.Add(null); }
+            }
 
             foreach (var outcome in outcomes)
             {
@@ -229,6 +234,8 @@ public sealed class CharacterPortraitService(
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         using var response = await httpClient.SendAsync(request, ct);
+        if ((int)response.StatusCode == 429)
+            throw new HttpRequestException("Upstream 429", inner: null, statusCode: response.StatusCode);
         if (!response.IsSuccessStatusCode) return null;
 
         var json = await response.Content.ReadAsStringAsync(ct);
