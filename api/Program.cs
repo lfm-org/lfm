@@ -112,13 +112,19 @@ builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
 
+// Shared Blizzard rate limiter: gates all outbound Blizzard API traffic at ~80 req/s
+// sustained to stay well under the 100 req/s upstream limit, with 200-slot queue.
+builder.Services.AddSingleton<Lfm.Api.Services.IBlizzardRateLimiter>(_ => new Lfm.Api.Services.BlizzardRateLimiter());
+builder.Services.AddTransient<Lfm.Api.Services.BlizzardRateLimitHandler>();
+
 // WAF/Reliability: Typed HttpClient for portrait fetches.
 // CharacterPortraitService constructs the full Blizzard API URL itself (cross-region support),
 // so the base address is intentionally left at the root; resilience policy still applies.
 builder.Services.AddHttpClient<Lfm.Api.Services.ICharacterPortraitService, Lfm.Api.Services.CharacterPortraitService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(20);
-}).AddStandardResilienceHandler();
+}).AddHttpMessageHandler<Lfm.Api.Services.BlizzardRateLimitHandler>()
+  .AddStandardResilienceHandler();
 
 // WAF/Reliability: Typed HttpClient with standard resilience handler (retry + circuit breaker).
 // Replaces the old AddSingleton registration — typed clients are registered as transient with
@@ -128,7 +134,8 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardOAuthClient, Lfm.Api.Se
     var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Lfm.Api.Options.BlizzardOptions>>().Value;
     client.BaseAddress = new Uri($"https://{opts.Region.ToLowerInvariant()}.battle.net/");
     client.Timeout = TimeSpan.FromSeconds(20);
-}).AddStandardResilienceHandler();
+}).AddHttpMessageHandler<Lfm.Api.Services.BlizzardRateLimitHandler>()
+  .AddStandardResilienceHandler();
 
 // WAF/Reliability: Typed HttpClient for the Blizzard Profile/Game Data APIs.
 // Used by battlenet-characters-refresh (B2.5) and portrait refresh (B2.6).
@@ -137,7 +144,8 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardProfileClient, Lfm.Api.
     var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Lfm.Api.Options.BlizzardOptions>>().Value;
     client.BaseAddress = new Uri($"https://{opts.Region.ToLowerInvariant()}.api.blizzard.com/");
     client.Timeout = TimeSpan.FromSeconds(20);
-}).AddStandardResilienceHandler();
+}).AddHttpMessageHandler<Lfm.Api.Services.BlizzardRateLimitHandler>()
+  .AddStandardResilienceHandler();
 
 // WAF/Reliability: Typed HttpClient for the Blizzard Game Data API (client-credentials / static data).
 // Used by wow-update (B6.4) to fetch reference data (instances, specializations).
@@ -147,7 +155,8 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardGameDataClient, Lfm.Api
     var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Lfm.Api.Options.BlizzardOptions>>().Value;
     client.BaseAddress = new Uri($"https://{opts.Region.ToLowerInvariant()}.api.blizzard.com/");
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddStandardResilienceHandler();
+}).AddHttpMessageHandler<Lfm.Api.Services.BlizzardRateLimitHandler>()
+  .AddStandardResilienceHandler();
 
 builder.Services.AddScoped<Lfm.Api.Services.IReferenceSync, Lfm.Api.Services.ReferenceSync>();
 

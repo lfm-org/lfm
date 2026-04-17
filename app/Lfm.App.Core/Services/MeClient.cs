@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Net.Http.Json;
+using Lfm.Contracts.Characters;
 using Lfm.Contracts.Me;
 
 namespace Lfm.App.Services;
@@ -61,6 +62,21 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         catch (HttpRequestException)
         {
             return false;
+        }
+    }
+
+    public async Task<CharacterDto?> EnrichCharacterAsync(string id, CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.PostAsync($"api/raider/characters/{id}/enrich", content: null, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<CharacterDto>(cancellationToken: ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return null;
         }
     }
 }

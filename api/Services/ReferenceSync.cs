@@ -25,8 +25,6 @@ public sealed class ReferenceSync(
     ISpecializationsRepository specsRepo,
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
-    private static readonly TimeSpan RequestDelay = TimeSpan.FromMilliseconds(100);
-
     /// <inheritdoc/>
     public async Task<WowUpdateResponse> SyncAllAsync(CancellationToken ct)
     {
@@ -73,17 +71,26 @@ public sealed class ReferenceSync(
 
         foreach (var entry in index.Instances)
         {
-            await Task.Delay(RequestDelay, ct);
             BlizzardJournalInstanceDetail detail;
-            try
+            while (true)
             {
-                detail = await gameData.GetJournalInstanceAsync(entry.Id, token, ct);
+                try
+                {
+                    detail = await gameData.GetJournalInstanceAsync(entry.Id, token, ct);
+                    break;
+                }
+                catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Skipping instance {Id}: detail fetch failed", entry.Id);
+                    detail = null!;
+                    break;
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Skipping instance {Id}: detail fetch failed", entry.Id);
-                continue;
-            }
+            if (detail is null) continue;
 
             var expansion = detail.Expansion?.Name ?? "";
             var modes = detail.Modes ?? [];
@@ -130,23 +137,31 @@ public sealed class ReferenceSync(
 
         foreach (var entry in index.CharacterSpecializations)
         {
-            await Task.Delay(RequestDelay, ct);
             BlizzardPlayableSpecDetail detail;
-            try
+            while (true)
             {
-                detail = await gameData.GetPlayableSpecAsync(entry.Id, token, ct);
+                try
+                {
+                    detail = await gameData.GetPlayableSpecAsync(entry.Id, token, ct);
+                    break;
+                }
+                catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Skipping specialization {Id}: detail fetch failed", entry.Id);
+                    detail = null!;
+                    break;
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Skipping specialization {Id}: detail fetch failed", entry.Id);
-                continue;
-            }
+            if (detail is null) continue;
 
-            // Fetch media (icon URL) — failure is non-fatal; IconUrl will be null.
+            // Media (icon URL) — keep the existing best-effort try/catch; no retry on 429.
             string? iconUrl = null;
             try
             {
-                await Task.Delay(RequestDelay, ct);
                 var media = await gameData.GetPlayableSpecMediaAsync(entry.Id, token, ct);
                 iconUrl = media.Assets?.FirstOrDefault(a => a.Key == "icon")?.Value;
             }
