@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Lfm.Contracts.Characters;
 using Lfm.Contracts.Me;
 
 namespace Lfm.App.Services;
@@ -14,4 +15,6 @@ public interface IMeClient
     Task<bool> SelectCharacterAsync(string id, CancellationToken ct);
 
     Task<bool> DeleteAsync(CancellationToken ct);
+
+    Task<CharacterDto?> EnrichCharacterAsync(string id, CancellationToken ct);
 }

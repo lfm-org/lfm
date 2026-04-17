@@ -3,6 +3,7 @@
 
 using System.Net;
 using Lfm.App.Services;
+using Lfm.Contracts.Characters;
 using Lfm.Contracts.Me;
 using Moq;
 using Xunit;
@@ -186,6 +187,41 @@ public class MeClientTests
         var result = await client.SelectCharacterAsync("eu-silvermoon-arthas", CancellationToken.None);
 
         Assert.False(result);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    // ── EnrichCharacterAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task EnrichCharacterAsync_returns_dto_on_200()
+    {
+        var dto = new CharacterDto(
+            Name: "Sourgeezer",
+            Realm: "silvermoon",
+            RealmName: "Silvermoon",
+            Level: 80,
+            Region: "eu",
+            ClassId: 5,
+            ClassName: "Priest");
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, dto));
+
+        var result = await client.EnrichCharacterAsync("eu-silvermoon-sourgeezer", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("Sourgeezer", result!.Name);
+        Assert.Equal("silvermoon", result.Realm);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal("/api/raider/characters/eu-silvermoon-sourgeezer/enrich", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task EnrichCharacterAsync_returns_null_on_non_success()
+    {
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
+
+        var result = await client.EnrichCharacterAsync("eu-silvermoon-sourgeezer", CancellationToken.None);
+
+        Assert.Null(result);
         Assert.Equal(1, handler.CallCount);
     }
 }
