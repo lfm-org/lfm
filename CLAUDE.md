@@ -1,0 +1,163 @@
+# Repository Guidelines
+
+- `app/` — Blazor WASM SPA → Static Web Apps
+- `app/Lfm.App.Core/` — framework-neutral services, i18n, auth extracted from `app/` so Stryker can mutate them
+- `api/` — Azure Functions backend (.NET 10 isolated)
+- `shared/` — shared models and contracts (C#)
+- `tests/` — xUnit test projects (unit, bUnit, E2E)
+- `infra/` — Bicep IaC templates
+
+When working on Azure-related tasks, use the `microsoft-docs` skill to look up official documentation before making changes.
+
+## Cost Guidance
+
+Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumption (FC1, on-demand with free grants; Linux Consumption Y1 is being retired Sept 2028), Static Web Apps Free, workspace-based App Insights sharing Log Analytics 5 GB/month free ingestion. Small fixed costs (Key Vault ops, Storage LRS) are fine. Avoid significant recurring costs without discussing first.
+
+## Mandatory Git Workflow
+
+1. Start every task with a clean workspace; stop and alert if not clean.
+2. Work in `claude/<short-slug>` via `git switch -c`. Always use `git -C` with absolute paths.
+3. Keep changesets small: commits ≤ 5 files / ≤ 250 lines; branches ≤ 30 files / ≤ 900 lines vs `main`. Thresholds guide planning, not design. Commit partial finishes; split into subtasks if exceeding.
+4. Merge strategy: rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
+5. Before claiming complete: `superpowers:verification-before-completion`. Non-trivial tasks: `superpowers:requesting-code-review` before merging.
+6. Commit messages: short, imperative — e.g. `Fix docker`, `Add runs route`.
+7. PR descriptions: explain the change, list env/schema changes, include screenshots for UI work.
+8. No `Co-Authored-By` trailers. AI usage acknowledged in `README.md`.
+9. Document guidance changes in the same task's guidance files.
+10. **Pre-commit hook** (`scripts/pre-commit`) blocks `.env`, `.pem`, `.key`, etc. Install via `scripts/pre-commit`. Opt-in — the authoritative secret-scanning layer is the CI gitleaks job in `.github/workflows/secrets-scan.yml`, which runs on every PR and is chained into `deploy.yml` via `needs:`.
+11. **Worktrees** live in `.worktrees/` at the repo root. Use `superpowers:using-git-worktrees` when available; otherwise `git worktree add .worktrees/<slug>`. Never create worktrees as sibling directories in `~/repos/`.
+12. **Pre-push hook** (`scripts/pre-push`) automates the commands from the Verification section below. Opt-in — install via `cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push`.
+
+## Configuration & Secrets
+
+Do not commit populated `.env` files or real credentials. See `example.env` for required variables and templates; keep local overrides out of version control. App settings use .NET options sections (`Section__Property`). Key vars: `Blizzard__ClientId`/`Blizzard__ClientSecret` (Blizzard OAuth, Key Vault refs in prod), `Blizzard__Region`, `Blizzard__RedirectUri`, `Blizzard__AppBaseUrl` (no trailing slash), `Cosmos__Endpoint`/`Cosmos__DatabaseName`, `Cors__AllowedOrigins__0` (frontend origin).
+
+## Tool Configuration
+
+**dotnet:** Use `dotnet` CLI directly. The solution targets .NET 10.
+
+**GitHub:** Use `mcp__github__*` MCP tools for **all** GitHub interactions — PRs, issues, reviews, branch creation, file contents, repo search, and **reading files/code from external repositories**. **Do not use the `gh` CLI.** **Do not use WebSearch/WebFetch to browse GitHub** — use `mcp__github__get_file_contents`, `mcp__github__search_code`, `mcp__github__get_repository_tree`, and other MCP read tools instead. They return structured data, avoid rate limits, and work reliably. Subagents must follow the same rule.
+
+**git:** **Always use `git -C <repo-root>` with an absolute path** — never `cd` into the repo then run bare `git`. This applies to every git command: status, add, commit, push, switch, diff, log, rebase. Subagents must follow the same rule. Bare `git` in a wrong cwd silently operates on the wrong repo.
+
+**Config preference:** config file > CLI argument > environment variable.
+
+**Sandbox:** Use `.cache/` (project-local, gitignored) as cache root — sandbox blocks `~/` writes. NuGet packages cache: `~/.nuget/packages` (CI caches this).
+
+**Exit codes:** append `echo "EXIT:$?"` for consistent sandbox matching.
+
+**JSON/YAML:** Use `jq` for JSON and `yq` for YAML. **No exceptions.** Never use Python (`python3 -c "import json/yaml"`), `sed`, `awk`, or any other tool to parse, validate, query, or transform structured data. This includes YAML validation — use `yq eval '.' file.yml`, not Python's `yaml.safe_load`. Subagents must follow the same rule.
+
+## Verification
+
+If `scripts/pre-push` is installed as a git hook (see Mandatory Git Workflow item 12), the format / build / vulnerable-package commands below run automatically on `git push`. Otherwise run them manually before claiming work complete.
+
+- Run `dotnet build lfm.sln -c Release` before claiming work complete.
+- Per-project tests: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release`.
+- Format check: `dotnet format lfm.sln --verify-no-changes --no-restore --severity error`. **Run `dotnet format lfm.sln` before committing C# changes** — CI format check fails on whitespace.
+- Bundle size check: `./scripts/check-bundle-size.sh ./publish/app/wwwroot 5` (after publish).
+- Audit: `dotnet list lfm.sln package --vulnerable --include-transitive` after adding/upgrading packages.
+
+## Testing
+
+Three lanes with distinct purpose, environment, and file convention:
+
+| Lane | Runner | Environment | File pattern | Location | Docker? |
+|------|--------|-------------|--------------|----------|---------|
+| Unit | xUnit | .NET (no DOM) | `*Tests.cs` | `tests/Lfm.Api.Tests/`, `tests/Lfm.App.Tests/` | No |
+| Component | bUnit | DOM (bUnit) | `*Tests.cs` | `tests/Lfm.App.Tests/` | No |
+| E2E | Playwright .NET | Chromium | `*Tests.cs` | `tests/Lfm.E2E/` | Yes |
+
+### Choosing the right lane
+
+| What you're testing | Lane |
+|---------------------|------|
+| Pure functions, utilities, data transforms, validation, API handlers with mocked deps | Unit |
+| Blazor component rendering, state, events, interactions | Component (bUnit) |
+| Auth flows, multi-step journeys, protected routes, axe audits, perf budgets | E2E |
+
+### Unit tests
+
+xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers. Commands: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj` / `dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj`. Config: each project's `.csproj`. Mutation testing: Stryker.NET runs against `tests/Lfm.App.Core.Tests/` only — the Blazor WASM project cannot be mutated because Stryker's recompile step does not invoke Razor source generators (see `docs/quality-reviews/2026-04-10-test-quality-audit.md`).
+
+### Component tests
+
+`tests/Lfm.App.Tests/` with bUnit + `AngleSharp`. **Use for:** Blazor component lifecycle, user interactions, rendered markup. **Not for:** pure logic (unit) or full-stack journeys (E2E). Commands: `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj`.
+
+### E2E tests
+
+Playwright .NET against full Docker stack (Cosmos, Azurite, Functions, Blazor app). `docker-compose.test.yml` manages the stack.
+
+Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release`.
+
+**Rules:** Only claim "full e2e passed" after running the full E2E suite. Keep coverage deterministic and local-first — no routine real Battle.net deps. **Bug fixes must include tests** — add or update tests that cover the fixed behavior. No bugfix is complete without a test that would have caught the regression.
+
+## Infrastructure Development
+
+All Bicep changes must follow **Azure Well-Architected Framework** (WAF). Before adding/modifying resources, use `microsoft-docs` skill to look up the WAF service guide. Apply all five pillars.
+
+### WAF checklist for new resources
+
+| Pillar | Check |
+|--------|-------|
+| **Security** | Managed identity over shared keys. TLS 1.2 min. Disable local auth where supported. RBAC over access policies. Disable FTP/basic auth. Key Vault references for secrets — never app settings. |
+| **Reliability** | CanNotDelete lock on stateful resources (Cosmos, Storage, Key Vault). Soft delete / purge protection. Health check endpoints. |
+| **Operational Excellence** | Diagnostic settings → Log Analytics. Fully parameterized modules — no hardcoded names/domains/regions. `@description` on every param. `@minLength`/`@maxLength` where Azure enforces. |
+| **Cost Optimization** | Free-tier constraints (see above). Minimal Cosmos indexing — only queried paths; exclude `/*` on point-read containers. Log Analytics daily cap. |
+| **Performance** | `http20Enabled` on web apps. Disable client affinity on stateless APIs. Per-document TTL over container-level when expiry varies. |
+
+### WAF checklist for alerts
+
+Verify `timeAggregation` is valid for the chosen metric via `microsoft-docs`. Dimension-filtered metrics (e.g. Cosmos `TotalRequests` with `StatusCode`) often require `Count`, not `Total`. Always set `autoMitigate: true`.
+
+### Workflow parameterization
+
+Deploy workflows use GitHub repo variables for all project-specific values. Never hardcode in workflows.
+
+| Variable | Purpose |
+|----------|---------|
+| `AZURE_RESOURCE_GROUP` | Target resource group |
+| `AZURE_LOCATION` | Azure region |
+| `COSMOS_ACCOUNT_NAME` | Cosmos DB account name |
+| `STORAGE_ACCOUNT_NAME` | Storage account name |
+| `FUNCTION_APP_NAME` | Functions app name |
+| `SWA_NAME` | Static Web App name |
+| `KEY_VAULT_NAME` | Key Vault name |
+| `LOG_ANALYTICS_NAME` | Log Analytics workspace |
+| `COSMOS_DATABASE` | Cosmos DB database name |
+| `API_HOSTNAME` | API custom domain |
+| `FRONTEND_HOSTNAME` | Frontend custom domain |
+| `PRIVACY_EMAIL` | Privacy contact email |
+| `BATTLE_NET_REGION` | Battle.net region code |
+
+`frontendOrigin`, `battleNetRedirectUri`, and `tags` are derived from the above in the workflow.
+
+### `az` CLI usage
+
+Acceptable for cleanup or exploration or debugging. Any `az` CLI change is either **cleanup** or **temporary and must be reverted**. The fix must be captured in Bicep (`infra/`) or `deploy-infra.yml`. Production state is always defined by `deploy-infra.yml`.
+
+### Validation
+
+`analyze-infra.yml` runs PSRule on every push/PR touching `infra/` (config: `ps-rule.yaml`). Verify the `Analyze Infrastructure` check passes before merging. Suppress rules in `ps-rule.yaml` `rule.exclude` with a justifying comment.
+
+### Structure
+
+`infra/main.bicep` orchestrates `infra/modules/`. New params → add to both `main.bicep` and `infra/parameters.example.json`, and add a corresponding GitHub variable to `deploy-infra.yml` inline overrides. Module params are required with no defaults. `parameters.example.json` serves as a reference for local deployments.
+
+## Azure Functions
+
+New endpoint → add a new file under `api/Functions/` and register `app.MapXxx()` (or use attribute routing on the function class). The .NET isolated model auto-discovers functions in the assembly; no manual import list needed.
+
+## Database Migrations
+
+Migrations in `api/Migrations/` run via the migration runner before every functions deploy. The migrations container in Cosmos tracks execution; each runs at most once.
+
+**Migrations must be additive (expand-only)** — never remove/rename fields the deployed code reads. Migrations run before new code deploys; if deploy fails, old code runs against the migrated database.
+
+For breaking changes, use expand/contract: (1) **Expand** — add new field alongside old; deploy code handling both. (2) **Contract** — later deploy removes old field once no code references it.
+
+**Never hardcode the database name.** Read `Cosmos__DatabaseName` from configuration — migrations run against different databases per environment.
+
+## Documentation Separation
+
+`CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, architectural decisions. User-facing content belongs in `README.md` or `docs/user/`. Plans and specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`.

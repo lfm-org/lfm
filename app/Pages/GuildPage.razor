@@ -1,0 +1,111 @@
+@page "/guild"
+@using Lfm.App.Services
+@using Lfm.Contracts.Guild
+@attribute [Authorize]
+@inject IGuildClient GuildClient
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["guild.title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <FluentLabel Typo="Typography.H3">@Loc["guild.title"]</FluentLabel>
+
+    @switch (state)
+    {
+        case LoadingState<GuildDto>.Idle:
+        case LoadingState<GuildDto>.Loading:
+            <FluentProgressRing />
+            break;
+        case LoadingState<GuildDto>.Failure f:
+            <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+            break;
+        case LoadingState<GuildDto>.Success s:
+            @RenderGuild(s.Value)
+            break;
+    }
+</FluentStack>
+
+@code {
+    private LoadingState<GuildDto> state = new LoadingState<GuildDto>.Idle();
+
+    protected override async Task OnInitializedAsync()
+    {
+        state = new LoadingState<GuildDto>.Loading();
+        try
+        {
+            var dto = await GuildClient.GetAsync(CancellationToken.None);
+            if (dto is null)
+            {
+                state = new LoadingState<GuildDto>.Failure(Loc["guild.error.loadFailed"]);
+            }
+            else
+            {
+                state = new LoadingState<GuildDto>.Success(dto);
+            }
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<GuildDto>.Failure(ex.Message);
+        }
+    }
+
+    private RenderFragment RenderGuild(GuildDto dto) => __builder =>
+    {
+        if (dto.Guild is null)
+        {
+            <FluentCard>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentLabel Typo="Typography.H4">@Loc["guild.noGuild.title"]</FluentLabel>
+                    <FluentLabel>@Loc["guild.noGuild.body"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
+        }
+        else
+        {
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+                <FluentCard>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentLabel Typo="Typography.H4">@dto.Guild.Name</FluentLabel>
+                        @if (!string.IsNullOrEmpty(dto.Guild.Slogan))
+                        {
+                            <FluentLabel>@dto.Guild.Slogan</FluentLabel>
+                        }
+                        <FluentLabel>@dto.Guild.RealmName@(dto.Guild.FactionName != null ? $" \u00b7 {dto.Guild.FactionName}" : "")</FluentLabel>
+                        @if (dto.Guild.CrestEmblemUrl != null)
+                        {
+                            <img src="@dto.Guild.CrestEmblemUrl" alt="@Loc["guild.crestAlt"]" style="width:88px;height:88px;border-radius:8px;object-fit:cover;" />
+                        }
+                    </FluentStack>
+                </FluentCard>
+
+                <FluentCard>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentLabel Typo="Typography.H4">@Loc["guild.status"]</FluentLabel>
+                        <FluentLabel>@Loc["guild.settings"] @(dto.Setup.IsInitialized ? Loc["guild.settingsLive"] : Loc["guild.settingsPending"])</FluentLabel>
+                        <FluentLabel>@Loc["guild.timezone"] @dto.Setup.Timezone</FluentLabel>
+                        <FluentLabel>@Loc["guild.locale"] @dto.Setup.Locale</FluentLabel>
+                        @if (dto.Guild.MemberCount.HasValue)
+                        {
+                            <FluentLabel>@Loc["guild.members"] @dto.Guild.MemberCount</FluentLabel>
+                        }
+                        @if (dto.Guild.RankCount.HasValue)
+                        {
+                            <FluentLabel>@Loc["guild.ranksDetected"] @dto.Guild.RankCount</FluentLabel>
+                        }
+                    </FluentStack>
+                </FluentCard>
+
+                @if (!dto.Editor.CanEdit)
+                {
+                    <FluentCard>
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                            <FluentLabel Typo="Typography.H4">@Loc["guild.yourAccess"]</FluentLabel>
+                            <FluentLabel>@Loc["guild.canCreateRuns"] @(dto.MemberPermissions.CanCreateGuildRuns ? Loc["common.yes"] : Loc["common.no"])</FluentLabel>
+                            <FluentLabel>@Loc["guild.canSignUp"] @(dto.MemberPermissions.CanSignupGuildRuns ? Loc["common.yes"] : Loc["common.no"])</FluentLabel>
+                        </FluentStack>
+                    </FluentCard>
+                }
+            </FluentStack>
+        }
+    };
+}

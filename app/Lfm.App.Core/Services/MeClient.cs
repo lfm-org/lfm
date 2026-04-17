@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 LFM contributors
+
+using System.Net.Http.Json;
+using Lfm.Contracts.Me;
+
+namespace Lfm.App.Services;
+
+public sealed class MeClient(IHttpClientFactory factory) : IMeClient
+{
+    public async Task<MeResponse?> GetAsync(CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            return await http.GetFromJsonAsync<MeResponse>("api/me", ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<UpdateMeResponse?> UpdateAsync(UpdateMeRequest request, CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.PatchAsJsonAsync("api/me", request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<UpdateMeResponse>(cancellationToken: ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> SelectCharacterAsync(string id, CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.PutAsync($"api/raider/characters/{id}", content: null, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.DeleteAsync("api/me", ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
+    }
+}

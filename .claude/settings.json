@@ -1,0 +1,71 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.development)",
+      "Read(.env.development.local)",
+      "Read(.env.production)",
+      "Read(.env.production.local)",
+      "Read(.env.test)",
+      "Read(.env.test.local)",
+      "Read(api/local.settings.json)",
+      "Read(api/appsettings.Development.json)",
+      "Read(api/appsettings.Local.json)",
+      "Read(api/appsettings.Production.json)",
+      "Read(app/wwwroot/appsettings.Development.json)",
+      "Read(app/wwwroot/appsettings.Local.json)",
+      "Read(app/wwwroot/appsettings.Production.json)",
+      "Edit(.env)",
+      "Edit(.env.local)",
+      "Edit(.env.development)",
+      "Edit(.env.development.local)",
+      "Edit(.env.production)",
+      "Edit(.env.production.local)",
+      "Edit(.env.test)",
+      "Edit(.env.test.local)",
+      "Edit(api/local.settings.json)",
+      "Edit(api/appsettings.Development.json)",
+      "Edit(api/appsettings.Local.json)",
+      "Edit(api/appsettings.Production.json)",
+      "Edit(app/wwwroot/appsettings.Development.json)",
+      "Edit(app/wwwroot/appsettings.Local.json)",
+      "Edit(app/wwwroot/appsettings.Production.json)",
+      "Write(.env)",
+      "Write(.env.local)",
+      "Write(.env.development)",
+      "Write(.env.development.local)",
+      "Write(.env.production)",
+      "Write(.env.production.local)",
+      "Write(.env.test)",
+      "Write(.env.test.local)",
+      "Write(api/local.settings.json)",
+      "Write(api/appsettings.Development.json)",
+      "Write(api/appsettings.Local.json)",
+      "Write(api/appsettings.Production.json)",
+      "Write(app/wwwroot/appsettings.Development.json)",
+      "Write(app/wwwroot/appsettings.Local.json)",
+      "Write(app/wwwroot/appsettings.Production.json)",
+      "Read(.codex)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./scripts/claude/stop-test-audit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ./scripts/claude/stop-devsecops-audit.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "chrome-devtools-mcp@claude-plugins-official": true
+  }
+}

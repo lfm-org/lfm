@@ -1,0 +1,73 @@
+#
+# PSRule for Azure configuration
+#
+
+# See: https://aka.ms/ps-rule/options
+#      https://aka.ms/ps-rule-azure/options
+
+# Do not warn on resources with no matching rules.
+execution:
+  unprocessedObject: Ignore
+
+# Require minimum version of PSRule for Azure.
+requires:
+  PSRule.Rules.Azure: ">=1.34.2"
+
+include:
+  module:
+    - PSRule.Rules.Azure
+
+output:
+  culture:
+    - "en-US"
+
+input:
+  pathIgnore:
+    # Ignore everything by default.
+    - "**"
+    # Include infrastructure templates and parameter files.
+    - "!infra/**/*.bicep"
+    - "!infra/**/*.json"
+    # Exclude module files — they are expanded through main.bicep via
+    # the parameter file metadata link, not individually.
+    - "infra/modules/**/*.bicep"
+
+configuration:
+  # Expand via parameter files only — parameter files carry a metadata.template
+  # link to infra/main.bicep, which resolves all modules with real parameter
+  # values.  Direct Bicep expansion is disabled because module files have no
+  # default parameter values and would fail expansion individually.
+  AZURE_BICEP_FILE_EXPANSION: false
+  AZURE_BICEP_FILE_EXPANSION_TIMEOUT: 10
+  AZURE_PARAMETER_FILE_EXPANSION: true
+
+  # Placeholder resource group for analysis (match your parameter file).
+  AZURE_RESOURCE_GROUP:
+    name: myapp
+    location: westeurope
+
+# Suppress rules for known, documented trade-offs.
+suppression: {}
+
+# Exclude rules incompatible with hobby-project free/Consumption tiers.
+rule:
+  exclude:
+    # Consumption Functions require network access from all Azure services
+    # to Key Vault and Storage — private endpoints aren't supported on Y1.
+    - Azure.KeyVault.Firewall
+    - Azure.Storage.Firewall
+    # Free-tier Cosmos DB: no SLA, no availability zones, no continuous backup,
+    # and public access required (Consumption plan has no VNet integration).
+    - Azure.Cosmos.SLA
+    - Azure.Cosmos.AvailabilityZone
+    - Azure.Cosmos.PublicAccess
+    - Azure.Cosmos.ContinuousBackup
+    # Consumption plan (Y1): availability zones not supported.
+    - Azure.AppService.AvailabilityZone
+    # LRS is sufficient for hobby data; GRS/ZRS adds cost with no benefit here.
+    - Azure.Storage.UseReplication
+    # Workspace replication adds cost; single-region is fine for hobby use.
+    - Azure.Log.Replication
+    # Data Protection wrapping key is symmetric; auto-rotation would invalidate
+    # existing encrypted key rings without re-encryption support.
+    - Azure.KeyVault.AutoRotationPolicy

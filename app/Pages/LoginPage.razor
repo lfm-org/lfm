@@ -1,0 +1,24 @@
+@page "/login"
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["login.title"] — @Loc["nav.logo"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" HorizontalAlignment="HorizontalAlignment.Center">
+    <FluentLabel Typo="Typography.H2">@Loc["login.title"]</FluentLabel>
+    <FluentLabel>@Loc["login.subtitle"]</FluentLabel>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@NavigateToLogin">@Loc["login.button"]</FluentButton>
+</FluentStack>
+
+@code {
+    [SupplyParameterFromQuery(Name = "redirect")]
+    public string? Redirect { get; set; }
+
+    private void NavigateToLogin()
+    {
+        var redirect = string.IsNullOrEmpty(Redirect) ? "/runs" : Redirect;
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/login?redirect={Uri.EscapeDataString(redirect)}", forceLoad: true);
+    }
+}

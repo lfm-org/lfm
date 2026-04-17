@@ -1,0 +1,8 @@
+@using Lfm.Contracts.WoW
+
+<span style="color:@WowClasses.GetColor(ClassId);font-weight:600;background:var(--neutral-fill-rest);padding:1px 4px;border-radius:3px">@CharacterName</span>
+
+@code {
+    [Parameter] public int ClassId { get; set; }
+    [Parameter] public string CharacterName { get; set; } = "";
+}

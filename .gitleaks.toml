@@ -1,0 +1,11 @@
+[allowlist]
+  description = "Allow test-mode fixture tokens and placeholder secrets"
+  paths = [
+    '''example\.env''',
+    '''frontend/example\.env''',
+  ]
+  regexTarget = "line"
+  regexes = [
+    '''test_battlenet_token''',
+    '''0{64}''',
+  ]

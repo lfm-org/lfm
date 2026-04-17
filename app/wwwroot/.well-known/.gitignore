@@ -1,0 +1,3 @@
+# Generated at build time from security.txt.template by the
+# GenerateStaticTemplates MSBuild target in Lfm.App.csproj.
+security.txt

@@ -1,0 +1,152 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 LFM contributors
+
+using Lfm.E2E.Fixtures;
+using Lfm.E2E.Helpers;
+using Lfm.E2E.Infrastructure;
+using Lfm.E2E.Pages;
+using Microsoft.Playwright;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Lfm.E2E.Specs;
+
+[Collection("Auth")]
+[Trait("Category", "Functional")]
+public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
+    : E2ETestBase(output), IAsyncLifetime
+{
+    // 401 + /api/me — expected for the anonymous context. MONO_WASM /
+    // .wasm / mono_download_assets — intermittent Blazor WASM bundle download
+    // flake that hits cold-start forceLoad redirects (e.g. /api/battlenet/login);
+    // unrelated to the assertions these tests make. See #45.
+    protected override string[] IgnoredConsolePatterns =>
+        ["401", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
+
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync();
+        Context = await AuthHelper.AnonymousContextAsync(fixture.Stack.Browser);
+        Page = await Context.NewPageAsync();
+        AttachDiagnosticListeners();
+        await StartTracingAsync();
+    }
+
+    public override async Task DisposeAsync()
+    {
+        await base.DisposeAsync();
+        if (Context is not null)
+            await Context.CloseAsync();
+    }
+
+    [Fact]
+    public async Task LoginPage_Renders_ShowsSignInButton()
+    {
+        var loginPage = new LoginPage(Page!);
+
+        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
+
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        var visible = await loginPage.IsSignInButtonVisibleAsync();
+        Assert.True(visible);
+    }
+
+    [Fact]
+    public async Task SignIn_ClickButton_RedirectsToBattleNetOAuth()
+    {
+        var loginPage = new LoginPage(Page!);
+
+        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+
+        // forceLoad: true navigates to /api/battlenet/login, which immediately
+        // redirects to the external Battle.net OAuth URL (unavailable in test).
+        // Wait for the request to /api/battlenet/login to be initiated, which
+        // confirms the button wired up the correct navigation URL.
+        var loginRequestTask = Page!.WaitForRequestAsync(
+            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new() { Timeout = 10000 });
+
+        await loginPage.ClickSignInAsync();
+
+        await loginRequestTask;
+
+        // Park the page on about:blank so the disposal-time console-error
+        // assertion does not pick up the 404 cascade for the offline external
+        // Battle.net assets the browser tried to load after the redirect.
+        await Page.GotoAsync("about:blank");
+    }
+
+    [Fact]
+    public async Task TestModeLogin_ValidIdentity_SetsCookieAndRedirects()
+    {
+        var loginUrl = $"{fixture.Stack.ApiBaseUrl}/api/e2e/login"
+            + $"?battleNetId=test-bnet-id"
+            + $"&redirect={Uri.EscapeDataString("/runs")}";
+
+        await Page!.GotoAsync(loginUrl, new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        await Page.WaitForURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/runs"),
+            new() { Timeout = 15000 });
+
+        // Verify auth cookie was set — nav bar shows Sign Out. Explicit 15s
+        // timeout because Blazor WASM's <fluent-button> component upgrade can
+        // lag behind the /runs navigation on a cold CI runner (see #45).
+        var navBar = new NavBar(Page);
+        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+    }
+
+    [Fact]
+    public async Task Logout_ClickSignOut_ClearsSessionAndRedirects()
+    {
+        var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
+        var authPage = await authContext.NewPageAsync();
+
+        try
+        {
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+                new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+            var navBar = new NavBar(authPage);
+            // Explicit 15s timeout — <fluent-button> component upgrade can lag
+            // behind Blazor bootstrap on a cold CI runner (see #45).
+            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+
+            // Sign out navigates to /api/battlenet/logout (forceLoad)
+            // which clears the cookie and redirects to app base URL
+            await navBar.ClickSignOutAsync();
+
+            await authPage.WaitForURLAsync(
+                new System.Text.RegularExpressions.Regex(@"^http://localhost:\d+/?$"),
+                new() { Timeout = 15000 });
+
+            // Verify session cleared — protected route redirects to login.
+            // NetworkIdle lets Blazor fetch /api/me (now 401) and fire RedirectToLogin before the assertion.
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+                new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await Assertions.Expect(authPage).ToHaveURLAsync(
+                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+                new() { Timeout = 15000 });
+        }
+        finally
+        {
+            await authContext.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public async Task AuthFailure_NavigateToErrorPage_ShowsErrorMessage()
+    {
+        var errorPage = new LoginFailedPage(Page!);
+
+        await errorPage.GotoAsync(fixture.Stack.AppBaseUrl);
+
+        await Assertions.Expect(errorPage.ErrorHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(errorPage.ErrorMessage).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(errorPage.TryAgainButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+}

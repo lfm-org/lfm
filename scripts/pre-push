@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "[pre-push] Format check..."
+dotnet format lfm.sln --verify-no-changes --no-restore --severity error
+
+echo "[pre-push] Build..."
+dotnet build lfm.sln -c Release
+
+echo "[pre-push] Vulnerability audit..."
+dotnet list lfm.sln package --vulnerable --include-transitive --format json > /tmp/lfm-pre-push-audit.json
+if jq -e '[.. | objects | select(has("vulnerabilities")) | .vulnerabilities[]] | length > 0' /tmp/lfm-pre-push-audit.json > /dev/null; then
+  echo "[pre-push] FAIL: vulnerable packages present" >&2
+  jq '.' /tmp/lfm-pre-push-audit.json >&2
+  exit 1
+fi
+
+echo "[pre-push] OK"

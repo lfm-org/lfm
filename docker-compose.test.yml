@@ -1,0 +1,60 @@
+services:
+  cosmosdb:
+    # Tag: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview@sha256:ed28d92b38aff69ccb4dbf439c584449f06432619f3415f429c09e4097cbe577
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        printf '%s' "$COSMOS_KEY_CONTENT" > /tmp/cosmos.key
+        export KEY_FILE=/tmp/cosmos.key
+        exec /home/cosmosdev/docker_entrypoint.sh
+    ports:
+      - "${COSMOS_PORT:-8082}:8081"
+      - "${COSMOS_EXPLORER_PORT:-1235}:1234"
+    environment:
+      PROTOCOL: http
+      GATEWAY_PUBLIC_ENDPOINT: cosmosdb
+      COSMOS_KEY_CONTENT: ${COSMOS_KEY_CONTENT}
+
+  azurite:
+    # Tag: mcr.microsoft.com/azure-storage/azurite:latest
+    image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+    ports:
+      - "${AZURITE_BLOB_PORT:-10001}:10000"
+    volumes:
+      - azurite-data:/data
+
+  functions:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    depends_on:
+      - cosmosdb
+      - azurite
+    environment:
+      TEST_MODE: "true"
+      COSMOS_ENDPOINT: ${COSMOS_ENDPOINT}
+      COSMOS_KEY: ${COSMOS_KEY}
+      COSMOS_DATABASE: ${COSMOS_DATABASE}
+      AzureWebJobsStorage: ${AzureWebJobsStorage}
+      BLOB_STORAGE_URL: ${BLOB_STORAGE_URL}
+      PUBLIC_BLOB_STORAGE_URL: ${PUBLIC_BLOB_STORAGE_URL}
+      APP_BASE_URL: ${APP_BASE_URL}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      BATTLE_NET_COOKIE_SECURE: ${BATTLE_NET_COOKIE_SECURE}
+      BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI}
+      BATTLE_NET_REGION: ${BATTLE_NET_REGION}
+      LFM_CLIENT_ID: ${LFM_CLIENT_ID}
+      LFM_CLIENT_SECRET: ${LFM_CLIENT_SECRET}
+      SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY}
+      HMAC_SECRET: ${HMAC_SECRET}
+      KEY_VAULT_URL: ${KEY_VAULT_URL}
+      PRIVACY_EMAIL: ${PRIVACY_EMAIL:-privacy@example.com}
+      E2E_SCENARIO: ${E2E_SCENARIO}
+    ports:
+      - "${FUNCTIONS_PORT:-7072}:80"
+
+volumes:
+  azurite-data:

@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: Stryker Nightly (App.Core)
+
+on:
+  schedule:
+    - cron: '17 4 * * *'   # 04:17 UTC daily — off-hours slot
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stryker-nightly
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  mutate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore solution
+        run: dotnet restore lfm.sln
+
+      - name: Build (Release)
+        run: dotnet build lfm.sln -c Release --no-restore
+
+      - name: Run Stryker
+        working-directory: tests/Lfm.App.Core.Tests
+        run: dotnet stryker --reporter json --reporter html --reporter cleartext
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: stryker-report-app-core
+          path: tests/Lfm.App.Core.Tests/StrykerOutput/**/reports/
+          if-no-files-found: ignore
+          retention-days: 14

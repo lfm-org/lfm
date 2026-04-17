@@ -1,0 +1,49 @@
+{
+  "mimeTypes": {
+    ".wasm": "application/wasm"
+  },
+  "routes": [
+    {
+      "route": "/_framework/*",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "route": "/css/*",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "route": "/lib/*",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "route": "/*.{js,wasm,css,woff2,woff,ttf,eot,otf,png,jpg,jpeg,gif,ico,svg,webp}",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "route": "/index.html",
+      "headers": { "Cache-Control": "no-cache" }
+    },
+    {
+      "route": "/",
+      "headers": { "Cache-Control": "no-cache" }
+    },
+    {
+      "route": "/privacy",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      }
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/_framework/*", "/css/*", "/lib/*", "*.{wasm,js,css,png,jpg,gif,ico,svg}"]
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://{{API_HOSTNAME}} https://{{STORAGE_ACCOUNT_NAME}}.blob.core.windows.net; img-src 'self' https://{{API_HOSTNAME}} https://render.worldofwarcraft.com https://{{STORAGE_ACCOUNT_NAME}}.blob.core.windows.net",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+  }
+}

@@ -1,0 +1,156 @@
+@page "/guild/admin"
+@using Lfm.App.Services
+@using Lfm.App.Components.Guild
+@using Lfm.Contracts.Guild
+@attribute [Authorize]
+@inject IGuildClient GuildClient
+@inject ToastHelper Toast
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["guildAdmin.title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.H3">@Loc["guildAdmin.title"]</FluentLabel>
+
+    @if (loadError != null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
+    }
+
+    @if (loading)
+    {
+        <FluentProgressRing />
+    }
+
+    @if (guildData != null && guildData.Guild != null)
+    {
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <FluentLabel Typo="Typography.H4">@guildData.Guild.Name</FluentLabel>
+                @if (!string.IsNullOrEmpty(guildData.Guild.Slogan))
+                {
+                    <FluentLabel>@guildData.Guild.Slogan</FluentLabel>
+                }
+                <FluentLabel>@guildData.Guild.RealmName@(guildData.Guild.FactionName != null ? $" · {guildData.Guild.FactionName}" : "")</FluentLabel>
+                @if (guildData.Guild.MemberCount.HasValue)
+                {
+                    <FluentLabel>@Loc["guildAdmin.members"] @guildData.Guild.MemberCount</FluentLabel>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.overrideSettings"]</FluentLabel>
+
+                @if (!guildData.Setup.RankDataFresh)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Error">@Loc["guildAdmin.rankSyncStale"]</FluentMessageBar>
+                }
+
+                <GuildSettingsEditor
+                    Timezone="@draftTimezone"
+                    TimezoneChanged="@(v => draftTimezone = v)"
+                    Locale="@draftLocale"
+                    LocaleChanged="@(v => draftLocale = v)"
+                    Slogan="@draftSlogan"
+                    SloganChanged="@(v => draftSlogan = v)"
+                    RankPermissions="@draftPermissions"
+                    OnPermissionChange="@HandlePermissionChange"
+                    Saving="@saving"
+                    RankDataFresh="@guildData.Setup.RankDataFresh"
+                    OnSave="@HandleSave" />
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>
+
+@code {
+    private bool loading;
+    private bool saving;
+    private string? loadError;
+    private GuildDto? guildData;
+
+    private string draftTimezone = "Europe/Helsinki";
+    private string draftLocale = "fi";
+    private string draftSlogan = string.Empty;
+    private IReadOnlyList<UpdateGuildRankPermission> draftPermissions = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        loadError = null;
+        guildData = null;
+
+        try
+        {
+            var dto = await GuildClient.GetAsync(CancellationToken.None);
+            if (dto is null)
+            {
+                loadError = "Failed to load guild data.";
+            }
+            else
+            {
+                guildData = dto;
+                draftTimezone = dto.Setup.Timezone;
+                draftLocale = dto.Setup.Locale;
+                draftSlogan = dto.Guild?.Slogan ?? string.Empty;
+                draftPermissions = dto.Settings?.RankPermissions
+                    .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
+                    .ToList()
+                    ?? [];
+            }
+        }
+        catch
+        {
+            loadError = "Failed to load guild.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void HandlePermissionChange((int Rank, string Field, bool Checked) args)
+    {
+        draftPermissions = draftPermissions
+            .Select(p => p.Rank != args.Rank ? p : p with
+            {
+                CanCreateGuildRuns = args.Field == "canCreateGuildRuns" ? args.Checked : p.CanCreateGuildRuns,
+                CanSignupGuildRuns = args.Field == "canSignupGuildRuns" ? args.Checked : p.CanSignupGuildRuns,
+                CanDeleteGuildRuns = args.Field == "canDeleteGuildRuns" ? args.Checked : p.CanDeleteGuildRuns,
+            })
+            .ToList();
+    }
+
+    private async Task HandleSave()
+    {
+        saving = true;
+
+        try
+        {
+            var request = new UpdateGuildRequest(draftTimezone, draftLocale, draftSlogan, draftPermissions);
+            var updated = await GuildClient.UpdateAsync(request, CancellationToken.None);
+            if (updated is null)
+            {
+                Toast.ShowError(Loc["guildAdmin.saveFailed"]);
+            }
+            else
+            {
+                guildData = updated;
+                draftTimezone = updated.Setup.Timezone;
+                draftLocale = updated.Setup.Locale;
+                draftSlogan = updated.Guild?.Slogan ?? string.Empty;
+                Toast.ShowSuccess(Loc["guildAdmin.saveSuccess"]);
+            }
+        }
+        catch
+        {
+            Toast.ShowError(Loc["guildAdmin.saveError"]);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}

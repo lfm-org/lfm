@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Lfm.App</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <WasmApplicationEnvironmentName>Production</WasmApplicationEnvironmentName>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Blazor WebAssembly packages track the .NET version (net10.0 → 10.0.x) -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.5" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\shared\Lfm.Contracts\Lfm.Contracts.csproj" />
+    <ProjectReference Include="Lfm.App.Core\Lfm.App.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Lfm.App.Core lives in a nested folder. Keep its files out of the parent
+         project's default globs so they compile exactly once (in Core). -->
+    <Compile Remove="Lfm.App.Core\**" />
+    <Content Remove="Lfm.App.Core\**" />
+    <None Remove="Lfm.App.Core\**" />
+  </ItemGroup>
+
+  <!--
+    GenerateStaticTemplates: substitute {{VAR}} placeholders in .template files
+    and write the final files before publish. Properties fall back to the
+    corresponding environment variables so the same names work in CI (GitHub
+    Actions vars) and local shells.
+  -->
+  <Target Name="GenerateStaticTemplates" BeforeTargets="AssignTargetPaths;BeforeBuild">
+    <PropertyGroup>
+      <!-- Env vars take precedence; fall back to safe defaults so test/CI builds
+           work without any environment configuration. Real deploys set these vars
+           in deploy-app.yml. -->
+      <PrivacyEmail Condition="'$(PrivacyEmail)' == ''">$(PRIVACY_EMAIL)</PrivacyEmail>
+      <PrivacyEmail Condition="'$(PrivacyEmail)' == ''">privacy@example.com</PrivacyEmail>
+      <ExpiresSecurityTxt Condition="'$(ExpiresSecurityTxt)' == ''">$(EXPIRES_SECURITY_TXT)</ExpiresSecurityTxt>
+      <ExpiresSecurityTxt Condition="'$(ExpiresSecurityTxt)' == ''">$([System.DateTime]::UtcNow.AddYears(1).ToString('yyyy-MM-ddTHH:mm:ssZ'))</ExpiresSecurityTxt>
+      <FrontendHostname Condition="'$(FrontendHostname)' == ''">$(FRONTEND_HOSTNAME)</FrontendHostname>
+      <FrontendHostname Condition="'$(FrontendHostname)' == ''">app.localhost</FrontendHostname>
+      <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">$(SECURITY_POLICY_URL)</SecurityPolicyUrl>
+      <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">https://example.com/SECURITY.md</SecurityPolicyUrl>
+      <ApiHostname Condition="'$(ApiHostname)' == ''">$(API_HOSTNAME)</ApiHostname>
+      <ApiHostname Condition="'$(ApiHostname)' == ''">api.localhost</ApiHostname>
+      <StorageAccountName Condition="'$(StorageAccountName)' == ''">$(STORAGE_ACCOUNT_NAME)</StorageAccountName>
+      <StorageAccountName Condition="'$(StorageAccountName)' == ''">examplestore</StorageAccountName>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <SecurityTxtSource>$(MSBuildProjectDirectory)/wwwroot/.well-known/security.txt.template</SecurityTxtSource>
+      <SecurityTxtDest>$(MSBuildProjectDirectory)/wwwroot/.well-known/security.txt</SecurityTxtDest>
+      <SwaConfigSource>$(MSBuildProjectDirectory)/wwwroot/staticwebapp.config.json.template</SwaConfigSource>
+      <SwaConfigDest>$(MSBuildProjectDirectory)/wwwroot/staticwebapp.config.json</SwaConfigDest>
+    </PropertyGroup>
+
+    <!-- Use bash sed for substitution: safe for plain-text template replacement
+         (not JSON/YAML parsing). sed -e chains are evaluated left-to-right. -->
+    <Exec Command="bash -c &quot;sed \
+        -e 's|{{PRIVACY_EMAIL}}|$(PrivacyEmail)|g' \
+        -e 's|{{EXPIRES_SECURITY_TXT}}|$(ExpiresSecurityTxt)|g' \
+        -e 's|{{FRONTEND_HOSTNAME}}|$(FrontendHostname)|g' \
+        -e 's|{{SECURITY_POLICY_URL}}|$(SecurityPolicyUrl)|g' \
+        '$(SecurityTxtSource)' &gt; '$(SecurityTxtDest)'&quot;"
+          Condition="Exists('$(SecurityTxtSource)')" />
+
+    <Exec Command="bash -c &quot;sed \
+        -e 's|{{API_HOSTNAME}}|$(ApiHostname)|g' \
+        -e 's|{{STORAGE_ACCOUNT_NAME}}|$(StorageAccountName)|g' \
+        '$(SwaConfigSource)' &gt; '$(SwaConfigDest)'&quot;"
+          Condition="Exists('$(SwaConfigSource)')" />
+  </Target>
+
+</Project>

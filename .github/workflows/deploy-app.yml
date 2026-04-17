@@ -1,0 +1,146 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: Deploy App
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-app
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore lfm.sln
+
+      - name: Audit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet list lfm.sln package --vulnerable --include-transitive --format json > audit.json
+          count=$(jq '[.. | objects | select(has("vulnerabilities")) | .vulnerabilities[]] | length' audit.json)
+          if [ "$count" -gt 0 ]; then
+            echo "FAIL: vulnerable packages must be resolved before deploy" >&2
+            jq '.' audit.json >&2
+            exit 1
+          fi
+
+      - name: Build
+        run: dotnet build lfm.sln -c Release --no-restore -p:TreatWarningsAsErrors=true
+
+      - name: Test API
+        run: dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release --no-build
+
+      - name: Test App
+        run: dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release --no-build
+
+      - name: Test App.Core
+        run: dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release --no-build
+
+      - name: Publish API
+        run: dotnet publish api/Lfm.Api.csproj -c Release -o ./publish/api --no-build
+
+      - name: Publish App
+        env:
+          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
+          EXPIRES_SECURITY_TXT: ${{ vars.EXPIRES_SECURITY_TXT }}
+          FRONTEND_HOSTNAME: ${{ vars.FRONTEND_HOSTNAME }}
+          SECURITY_POLICY_URL: ${{ vars.SECURITY_POLICY_URL }}
+          API_HOSTNAME: ${{ vars.API_HOSTNAME }}
+          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
+        run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
+
+      - name: Upload API publish artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: publish-api
+          path: ./publish/api
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload App publish artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: publish-app
+          path: ./publish/app/wwwroot
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Install brotli
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends brotli
+
+      - name: Check bundle size budget
+        run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
+
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@bc63708cc6539760eea18d8a7de4ce8ef5fdf593 # v1
+        with:
+          app-name: ${{ vars.FUNCTION_APP_NAME }}
+          package: ./publish/api
+
+      - name: Verify API health
+        run: |
+          set -euo pipefail
+          url="https://${{ vars.API_HOSTNAME }}/api/health/ready"
+          for i in $(seq 1 12); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
+            if [ "$status" = "200" ]; then
+              echo "Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: got $status, retrying in 10s..."
+            sleep 10
+          done
+          echo "Health check failed after 2 minutes" >&2
+          exit 1
+
+      - name: Set production API base URL
+        run: |
+          jq --arg url "https://${{ vars.API_HOSTNAME }}" '.ApiBaseUrl = $url' \
+            ./publish/app/wwwroot/appsettings.json > tmp.json \
+            && mv tmp.json ./publish/app/wwwroot/appsettings.json
+          rm -f ./publish/app/wwwroot/appsettings.json.br \
+                ./publish/app/wwwroot/appsettings.json.gz
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
+          app_location: ./publish/app/wwwroot
+          skip_app_build: true
+          action: upload

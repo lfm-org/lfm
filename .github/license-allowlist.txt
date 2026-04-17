@@ -1,0 +1,33 @@
+# Allowed SPDX license identifiers for NuGet dependencies.
+# See docs/security-reviews/2026-04-16-dep-license-audit.md for the
+# per-package baseline and docs/superpowers/specs/2026-04-16-agpl-licensing-design.md
+# for the rationale behind each entry.
+#
+# Any dependency introduced with a license not on this list must either:
+#   a) be replaced with a compatible alternative, or
+#   b) be accepted via a deliberate entry added to this allowlist with
+#      a justifying comment.
+#
+# Enforcement: .github/workflows/dep-license-check.yml
+
+# Permissive
+MIT
+Apache-2.0
+BSD-2-Clause
+BSD-3-Clause
+MS-PL
+ISC
+0BSD
+Unlicense
+CC0-1.0
+
+# Weak copyleft (library code may link AGPL combined works)
+LGPL-2.1-or-later
+LGPL-3.0-or-later
+
+# Weak copyleft — file-level only, FSF-confirmed compatible with AGPL.
+# Present via Deque.AxeCore.Commons (E2E test dependency only).
+MPL-2.0
+
+# Project's own license (for any internally developed packages)
+AGPL-3.0-or-later
