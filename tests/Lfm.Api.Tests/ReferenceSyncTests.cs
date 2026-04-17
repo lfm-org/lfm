@@ -225,6 +225,62 @@ public class ReferenceSyncTests
         Assert.Contains(logger.Entries, e => e.Level == LogLevel.Warning);
     }
 
+    [Fact]
+    public async Task SyncAllAsync_retries_instance_after_429_and_still_writes_document()
+    {
+        var (sut, blizzard, instances, _, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalInstanceIndex((10, "Liberation of Undermine")));
+
+        var callCount = 0;
+        blizzard
+            .Setup(b => b.GetJournalInstanceAsync(10, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount == 1)
+                    throw new HttpRequestException("rate limited", null, System.Net.HttpStatusCode.TooManyRequests);
+                return MakeJournalInstanceDetail(10, "Liberation of Undermine", modes: ("HEROIC", 25));
+            });
+
+        var response = await sut.SyncAllAsync(CancellationToken.None);
+
+        Assert.StartsWith("synced", response.Results[0].Status);
+        Assert.Equal(2, callCount);
+        instances.Verify(r => r.UpsertBatchAsync(
+            It.Is<IEnumerable<InstanceDocument>>(docs => docs.Count() == 1),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncAllAsync_retries_specialization_after_429_and_still_writes_document()
+    {
+        var (sut, blizzard, _, specs, _) = MakeSut();
+        blizzard.Setup(b => b.GetPlayableSpecIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeSpecIndex((257, "Holy")));
+        blizzard.Setup(b => b.GetPlayableSpecMediaAsync(257, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardMediaAssets(null));
+
+        var callCount = 0;
+        blizzard
+            .Setup(b => b.GetPlayableSpecAsync(257, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount == 1)
+                    throw new HttpRequestException("rate limited", null, System.Net.HttpStatusCode.TooManyRequests);
+                return MakeSpecDetail(257, "Holy", classId: 5, roleType: "HEALER");
+            });
+
+        var response = await sut.SyncAllAsync(CancellationToken.None);
+
+        Assert.StartsWith("synced", response.Results[1].Status);
+        Assert.Equal(2, callCount);
+        specs.Verify(r => r.UpsertBatchAsync(
+            It.Is<IEnumerable<SpecializationDocument>>(docs => docs.Count() == 1),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // ── Role mapping ────────────────────────────────────────────────────────
 
     [Theory]

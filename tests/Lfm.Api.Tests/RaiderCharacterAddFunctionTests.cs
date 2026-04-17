@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -69,7 +70,7 @@ public class RaiderCharacterAddFunctionTests
     private static RaiderCharacterAddFunction MakeFunction(
         Mock<IRaidersRepository> repoMock,
         Mock<IBlizzardProfileClient> profileMock) =>
-        new(repoMock.Object, profileMock.Object);
+        new(repoMock.Object, profileMock.Object, NullLogger<RaiderCharacterAddFunction>.Instance);
 
     private static BlizzardAccountProfileSummary MakeAccountProfileWithCharacter(string name, string realmSlug) =>
         new BlizzardAccountProfileSummary(
@@ -251,7 +252,9 @@ public class RaiderCharacterAddFunctionTests
     [Fact]
     public async Task Fetches_fresh_data_when_cached_character_is_stale()
     {
-        var staleFetchedAt = DateTimeOffset.UtcNow.AddMinutes(-30).ToString("O");
+        // 2 hours old — exceeds all tier TTLs (profile 1 h, specs 15 min, media 24 h... except media).
+        // Use 25 hours to exceed even the 24-hour media TTL so all three tiers are stale.
+        var staleFetchedAt = DateTimeOffset.UtcNow.AddHours(-25).ToString("O");
         var stale = new StoredSelectedCharacter(
             Id: "eu-silvermoon-aelrin",
             Region: "eu",
@@ -544,5 +547,64 @@ public class RaiderCharacterAddFunctionTests
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
         Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // Tiered fetch — only stale tiers are fetched
+    // -------------------------------------------------------------------------
+
+    private static object ValidBody => new { region = "eu", realm = "silvermoon", name = "Aelrin" };
+
+    private static SessionPrincipal MakePrincipal(string? accessToken = FakeAccessToken) =>
+        FakePrincipal(accessToken);
+
+    private static BlizzardAccountProfileSummary OwningSummary() =>
+        MakeAccountProfileWithCharacter("Aelrin", "silvermoon");
+
+    private static RaiderDocument MakeRaider(
+        IReadOnlyList<StoredSelectedCharacter>? characters = null,
+        BlizzardAccountProfileSummary? accountProfile = null) =>
+        new RaiderDocument(
+            Id: FakeBattleNetId,
+            BattleNetId: FakeBattleNetId,
+            SelectedCharacterId: null,
+            Locale: null,
+            AccountProfileSummary: accountProfile ?? OwningSummary(),
+            Characters: characters);
+
+    private static Mock<IRaidersRepository> RepoReturning(RaiderDocument raider)
+    {
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync(FakeBattleNetId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return repo;
+    }
+
+    [Fact]
+    public async Task Run_skips_profile_and_media_fetches_when_tiers_are_fresh()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var existing = new StoredSelectedCharacter(
+            Id: "eu-silvermoon-aelrin", Region: "eu", Realm: "silvermoon", Name: "Aelrin",
+            Level: 80,
+            SpecializationsSummary: new StoredSpecializationsSummary(), // non-null sentinel
+            ProfileFetchedAt: now.AddMinutes(-30).ToString("O"),
+            SpecsFetchedAt: now.AddMinutes(-30).ToString("O"),
+            MediaFetchedAt: now.AddHours(-1).ToString("O"));
+
+        var raider = MakeRaider(characters: [existing], accountProfile: OwningSummary());
+        var repo = RepoReturning(raider);
+        var profileClient = new Mock<IBlizzardProfileClient>();
+        profileClient.Setup(p => p.GetCharacterSpecializationsAsync("silvermoon", "aelrin", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(new BlizzardCharacterSpecializationsResponse());
+
+        var fn = new RaiderCharacterAddFunction(repo.Object, profileClient.Object, NullLogger<RaiderCharacterAddFunction>.Instance);
+        await fn.Run(MakePostRequest(ValidBody), MakeFunctionContext(MakePrincipal()), CancellationToken.None);
+
+        profileClient.Verify(p => p.GetCharacterProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        profileClient.Verify(p => p.GetCharacterMediaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        profileClient.Verify(p => p.GetCharacterSpecializationsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

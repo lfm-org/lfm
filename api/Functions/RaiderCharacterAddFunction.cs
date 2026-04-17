@@ -11,6 +11,7 @@ using Lfm.Contracts.Raiders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 
 namespace Lfm.Api.Functions;
 
@@ -24,10 +25,11 @@ namespace Lfm.Api.Functions;
 ///   3. Load the raider document — 404 if missing.
 ///   4. Verify the character belongs to the raider's cached Battle.net account
 ///      profile — 403 if not. A null profile (new raider) is allowed through.
-///   5. If the character is already stored and its <c>FetchedAt</c> is within the
-///      15-minute cache window, reuse the cached record and skip Blizzard calls.
-///   6. Otherwise call Blizzard for profile, specializations and (best-effort) media.
-///      Any failure of the required calls returns 502.
+///   5. Call <see cref="EnrichmentPlanner.Plan"/> to determine which tiers are stale.
+///      If nothing is stale, reuse the cached record and skip Blizzard calls.
+///   6. Otherwise call Blizzard for each stale tier only (profile, specializations,
+///      media). Any failure returns 502. Results are merged with the existing record
+///      so fresh tiers are not overwritten.
 ///   7. Upsert the character into <c>raider.Characters</c>, set
 ///      <c>SelectedCharacterId</c>, refresh the TTL, and save.
 ///   8. Return <see cref="AddCharacterResponse"/> with the mapped
@@ -35,11 +37,9 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public class RaiderCharacterAddFunction(
     IRaidersRepository repo,
-    IBlizzardProfileClient profileClient)
+    IBlizzardProfileClient profileClient,
+    ILogger<RaiderCharacterAddFunction> logger)
 {
-    // 15 minutes in milliseconds — mirrors CHARACTER_PROFILE_TTL_MS in cache.ts.
-    internal const int CharacterProfileTtlMs = 15 * 60 * 1000;
-
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
 
@@ -86,34 +86,42 @@ public class RaiderCharacterAddFunction(
 
         // 4. Ownership check against the cached account profile summary.
         if (!IsCharacterOwnedByAccount(characterId, region, raider.AccountProfileSummary))
+        {
+            logger.LogWarning(
+                "Ownership check failed for {BattleNetId} on character {CharacterId}",
+                principal.BattleNetId, characterId);
             return new ObjectResult(new { error = "Character not found in your Battle.net account" })
             { StatusCode = 403 };
+        }
 
-        // 5. Cache lookup — reuse when fresh.
+        // 5. Plan which tiers are stale; reuse the cached record if everything is fresh.
         var existing = raider.Characters?.FirstOrDefault(c => c.Id == characterId);
+        var plan = EnrichmentPlanner.Plan(existing, DateTimeOffset.UtcNow);
         StoredSelectedCharacter stored;
 
-        if (CanReuseCachedCharacter(existing))
+        if (!plan.AnythingToFetch)
         {
             stored = existing!;
         }
         else
         {
-            // 6. Cache miss — fetch from Blizzard.  Access token must be present.
+            // 6. Fetch only stale tiers from Blizzard.  Access token must be present.
             var accessToken = principal.AccessToken;
             if (string.IsNullOrEmpty(accessToken))
                 return new ObjectResult(new { error = "Session does not contain an access token. Please log out and log in again." })
                 { StatusCode = 401 };
 
-            BlizzardCharacterProfileResponse profile;
-            BlizzardCharacterSpecializationsResponse specs;
-            BlizzardCharacterMediaSummary? media;
+            BlizzardCharacterProfileResponse? profile = null;
+            BlizzardCharacterSpecializationsResponse? specs = null;
+            BlizzardCharacterMediaSummary? media = null;
             try
             {
-                profile = await profileClient.GetCharacterProfileAsync(realm, lowerName, accessToken, ct);
-                specs = await profileClient.GetCharacterSpecializationsAsync(realm, lowerName, accessToken, ct);
-                // Media is best-effort: client returns null on any failure.
-                media = await profileClient.GetCharacterMediaAsync(realm, lowerName, accessToken, ct);
+                if (plan.FetchProfile)
+                    profile = await profileClient.GetCharacterProfileAsync(realm, lowerName, accessToken, ct);
+                if (plan.FetchSpecs)
+                    specs = await profileClient.GetCharacterSpecializationsAsync(realm, lowerName, accessToken, ct);
+                if (plan.FetchMedia)
+                    media = await profileClient.GetCharacterMediaAsync(realm, lowerName, accessToken, ct);
             }
             catch (HttpRequestException)
             {
@@ -121,20 +129,8 @@ public class RaiderCharacterAddFunction(
                 { StatusCode = 502 };
             }
 
-            stored = new StoredSelectedCharacter(
-                Id: characterId,
-                Region: region,
-                Realm: realm,
-                Name: body.Name!, // keep original casing for display
-                PortraitUrl: PickPortraitUrl(media),
-                SpecializationsSummary: MapSpecializationsSummary(specs),
-                MediaSummary: media,
-                ClassId: profile.CharacterClass?.Id,
-                ClassName: profile.CharacterClass?.Name,
-                Level: profile.Level,
-                GuildId: profile.Guild?.Id,
-                GuildName: profile.Guild?.Name,
-                FetchedAt: DateTimeOffset.UtcNow.ToString("O"));
+            var now = DateTimeOffset.UtcNow.ToString("O");
+            stored = Merge(existing, characterId, region, realm, body.Name!, profile, specs, media, now, plan);
         }
 
         // 7. Upsert the character into raider.Characters and persist.
@@ -171,20 +167,43 @@ public class RaiderCharacterAddFunction(
     // ---------------------------------------------------------------------------
 
     /// <summary>
-    /// Returns true when an existing stored character can be reused without calling Blizzard.
-    /// Mirrors <c>canReuseCachedCharacter</c> in <c>functions/src/functions/raider-character.ts</c>,
-    /// except: when a cached character exists but lacks specializations, we trigger a full
-    /// refetch rather than the TS optimization of fetching specs-only. The TS optimization is
-    /// safe to add if needed — for now we prefer simplicity over saving one API call per user.
+    /// Merges Blizzard API responses with an existing stored character, preserving tiers
+    /// that were not fetched (i.e. were still within their TTL window).
+    /// Only updates <c>ProfileFetchedAt</c>, <c>SpecsFetchedAt</c>, and <c>MediaFetchedAt</c>
+    /// for the tiers that were actually fetched; leaves legacy <c>FetchedAt</c> unchanged.
     /// </summary>
-    internal static bool CanReuseCachedCharacter(StoredSelectedCharacter? existing)
+    internal static StoredSelectedCharacter Merge(
+        StoredSelectedCharacter? existing,
+        string id, string region, string realm, string nameDisplay,
+        BlizzardCharacterProfileResponse? profile,
+        BlizzardCharacterSpecializationsResponse? specs,
+        BlizzardCharacterMediaSummary? media,
+        string now,
+        EnrichmentPlan plan)
     {
-        if (existing?.SpecializationsSummary is null) return false;
-        if (existing.FetchedAt is null) return false;
-        if (!DateTimeOffset.TryParse(existing.FetchedAt, out var fetchedAt)) return false;
+        var classId = profile?.CharacterClass?.Id ?? existing?.ClassId;
+        var className = profile?.CharacterClass?.Name ?? existing?.ClassName;
+        var level = profile?.Level ?? existing?.Level;
+        var guildId = profile?.Guild?.Id ?? existing?.GuildId;
+        var guildName = profile?.Guild?.Name ?? existing?.GuildName;
+        var specs2 = specs is not null ? MapSpecializationsSummary(specs) : existing?.SpecializationsSummary;
+        var media2 = media ?? existing?.MediaSummary;
+        var portrait = media is not null ? PickPortraitUrl(media) : existing?.PortraitUrl;
 
-        var elapsed = (DateTimeOffset.UtcNow - fetchedAt).TotalMilliseconds;
-        return elapsed < CharacterProfileTtlMs;
+        return new StoredSelectedCharacter(
+            Id: id, Region: region, Realm: realm, Name: nameDisplay,
+            PortraitUrl: portrait,
+            SpecializationsSummary: specs2,
+            MediaSummary: media2,
+            ClassId: classId,
+            ClassName: className,
+            Level: level,
+            GuildId: guildId,
+            GuildName: guildName,
+            FetchedAt: existing?.FetchedAt, // leave legacy alone
+            ProfileFetchedAt: plan.FetchProfile ? now : existing?.ProfileFetchedAt,
+            SpecsFetchedAt: plan.FetchSpecs ? now : existing?.SpecsFetchedAt,
+            MediaFetchedAt: plan.FetchMedia ? now : existing?.MediaFetchedAt);
     }
 
     /// <summary>

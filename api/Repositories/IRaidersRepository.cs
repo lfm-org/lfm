@@ -73,7 +73,10 @@ public sealed record StoredSelectedCharacter(
     int? Level = null,
     int? GuildId = null,
     string? GuildName = null,
-    string? FetchedAt = null);
+    string? FetchedAt = null,
+    string? ProfileFetchedAt = null,
+    string? SpecsFetchedAt = null,
+    string? MediaFetchedAt = null);
 
 /// <summary>
 /// Raider document as stored in the Cosmos "raiders" container.

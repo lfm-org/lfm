@@ -2,10 +2,12 @@
 @using Lfm.App.Services
 @using Lfm.Contracts.Characters
 @attribute [Authorize]
+@implements IAsyncDisposable
 @inject IBattleNetClient BattleNetClient
 @inject IMeClient MeClient
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
+@inject IJSRuntime JS
 
 <PageTitle>@Loc["characters.title"] — @Loc["nav.logo"]</PageTitle>
 
@@ -116,6 +118,18 @@
 </FluentStack>
 
 @code {
+    private enum EnrichState { Pending, Enriching, Enriched, Failed }
+    private readonly Dictionary<string, EnrichState> cardState = new();
+    private readonly Dictionary<string, TaskCompletionSource> inflightEnrich = new();
+
+    private IJSObjectReference? viewportModule;
+    private DotNetObjectReference<CharactersPage>? selfRef;
+
+    private readonly Queue<string> enrichQueue = new();
+    private Task? enrichWorkerTask;
+    private CancellationTokenSource? enrichCts;
+    private const int PacingDelayMs = 250;
+
     private LoadingState<IReadOnlyList<CharacterDto>> state = new LoadingState<IReadOnlyList<CharacterDto>>.Idle();
     private bool loading;
     private Dictionary<string, string> portraits = [];
@@ -134,6 +148,15 @@
         await LoadCharacters();
         var me = await meTask;
         selectedCharacterId = me?.SelectedCharacterId;
+
+        var pending = (state as LoadingState<IReadOnlyList<CharacterDto>>.Success)?.Value
+            .Where(c => cardState[CharKey(c)] == EnrichState.Pending)
+            .ToList() ?? [];
+        var eager = pending.Take(3).ToList();
+        var remaining = pending.Skip(3).ToList();
+
+        await Task.WhenAll(eager.Select(c => EnrichAsync(c)));
+        EnqueueRemaining(remaining);
     }
 
     private async Task LoadCharacters()
@@ -150,6 +173,10 @@
             else
             {
                 state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
+                foreach (var c in chars)
+                    cardState[CharKey(c)] = (c.ClassId is not null && c.ActiveSpecId is not null)
+                        ? EnrichState.Enriched
+                        : EnrichState.Pending;
                 _ = LoadPortraitsAsync(chars);
             }
         }
@@ -208,13 +235,42 @@
     private async Task HandleSelectCharacter(CharacterDto c)
     {
         var key = CharKey(c);
-        if (key == selectedCharacterId || selecting)
-            return;
+        if (key == selectedCharacterId || selecting) return;
 
         selectError = null;
+        selecting = true;
+        StateHasChanged();
+
+        // Ensure enrichment before PUT.
+        if (!cardState.TryGetValue(key, out var s)) s = EnrichState.Pending;
+        switch (s)
+        {
+            case EnrichState.Enriching:
+                if (inflightEnrich.TryGetValue(key, out var tcs)) await tcs.Task;
+                break;
+            case EnrichState.Pending:
+                EnqueueFront(key);
+                var wait = new TaskCompletionSource();
+                inflightEnrich[key] = wait;
+                await wait.Task;
+                break;
+            case EnrichState.Failed:
+                await EnrichAsync(c);
+                break;
+            case EnrichState.Enriched:
+                break;
+        }
+
+        if (cardState[key] != EnrichState.Enriched)
+        {
+            selecting = false;
+            selectError = Loc["characters.error.selectFailed"];
+            StateHasChanged();
+            return;
+        }
+
         var prev = selectedCharacterId;
         selectedCharacterId = key;
-        selecting = true;
         StateHasChanged();
 
         var ok = await MeClient.SelectCharacterAsync(key, CancellationToken.None);
@@ -253,6 +309,99 @@
         finally
         {
             deleting = false;
+        }
+    }
+
+    private void EnqueueRemaining(IEnumerable<CharacterDto> remaining)
+    {
+        foreach (var c in remaining)
+            enrichQueue.Enqueue(CharKey(c));
+        EnsureWorker();
+    }
+
+    private void EnqueueFront(string key)
+    {
+        // Promote: rebuild queue with key at front.
+        var buf = new List<string> { key };
+        while (enrichQueue.TryDequeue(out var k)) if (k != key) buf.Add(k);
+        foreach (var k in buf) enrichQueue.Enqueue(k);
+        EnsureWorker();
+    }
+
+    private void EnsureWorker()
+    {
+        if (enrichWorkerTask is { IsCompleted: false }) return;
+        enrichCts = new CancellationTokenSource();
+        enrichWorkerTask = RunEnrichWorkerAsync(enrichCts.Token);
+    }
+
+    private async Task RunEnrichWorkerAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested && enrichQueue.TryDequeue(out var key))
+        {
+            var success = (state as LoadingState<IReadOnlyList<CharacterDto>>.Success);
+            var character = success?.Value.FirstOrDefault(c => CharKey(c) == key);
+            if (character is null) continue;
+            if (cardState.TryGetValue(key, out var s) && s != EnrichState.Pending) continue;
+            await EnrichAsync(character);
+            await Task.Delay(PacingDelayMs, ct);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success && viewportModule is null)
+        {
+            viewportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport-observer.js");
+            selfRef = DotNetObjectReference.Create(this);
+            await viewportModule.InvokeVoidAsync("start", selfRef, "[data-char-id]");
+        }
+    }
+
+    [JSInvokable]
+    public void OnCardVisible(string id)
+    {
+        if (cardState.TryGetValue(id, out var s) && s == EnrichState.Pending)
+            EnqueueFront(id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        enrichCts?.Cancel();
+        if (viewportModule is not null && selfRef is not null)
+        {
+            try { await viewportModule.InvokeVoidAsync("stop", selfRef); } catch { }
+            await viewportModule.DisposeAsync();
+        }
+        selfRef?.Dispose();
+        enrichCts?.Dispose();
+    }
+
+    private async Task EnrichAsync(CharacterDto c)
+    {
+        var key = CharKey(c);
+        cardState[key] = EnrichState.Enriching;
+        StateHasChanged();
+
+        var dto = await MeClient.EnrichCharacterAsync(key, CancellationToken.None);
+        if (dto is not null)
+        {
+            if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success s)
+            {
+                var updated = s.Value.Select(x => CharKey(x) == key ? dto : x).ToList();
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(updated);
+            }
+            cardState[key] = EnrichState.Enriched;
+        }
+        else
+        {
+            cardState[key] = EnrichState.Failed;
+        }
+        StateHasChanged();
+        if (inflightEnrich.TryGetValue(key, out var tcs))
+        {
+            inflightEnrich.Remove(key);
+            tcs.TrySetResult();
         }
     }
 
