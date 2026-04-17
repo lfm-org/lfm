@@ -66,17 +66,22 @@ All other endpoints require a valid session cookie enforced by `AuthPolicyMiddle
 
 ## Known Limitations
 
-### Pre-merge branch protection is not enforced
+### Pre-merge branch protection
 
-GitHub Free does not enforce branch protection rulesets on private repos. `main` is writable directly. Compensating controls:
+The `protect-main` ruleset is active on `main` in the `lfm-org/lfm` public repo. Its current shape: pull request required for all changes, linear history required, rebase-only merge strategy, a set of required status checks that must pass, and organization admin bypass. For the authoritative current settings, see GitHub → Settings → Rules → `protect-main`.
 
-1. **Inline security gates in the deploy workflow.** `secrets-scan.yml` (gitleaks) and `analyze-infra.yml` (PSRule) run as `workflow_call` jobs inside `deploy.yml`, gating `deploy-infra` and `deploy-app` via `needs:`. A secret leak or IaC misconfiguration on `main` blocks the deploy even though the commit has already landed.
+Defense-in-depth layers on top of the ruleset:
+
+1. **Inline security gates in the deploy workflow.** `secrets-scan.yml` (gitleaks) and `analyze-infra.yml` (PSRule) run as `workflow_call` jobs inside `deploy.yml`, gating `deploy-infra` and `deploy-app` via `needs:`. A secret leak or IaC misconfiguration blocks the deploy even after a PR lands.
 2. **Signed commits.** Local `commit.gpgsign=true` with an SSH signing key. GitHub renders "Verified" badges for these commits.
 3. **Opt-in pre-push hook.** `scripts/pre-push` runs format + build + vulnerability audit locally before a push reaches GitHub.
 4. **Enforcing dependency audit.** `ci.yml` and `deploy-app.yml` both exit-1 on any vulnerable transitive NuGet package.
-5. **TOTP MFA on the GitHub personal account.**
+5. **Lockfile-enforced restore on CI.** `RestoreLockedMode` via `$(CI)` in `Directory.Build.props` fails CI on any drift between `packages.lock.json` and the resolved graph.
+6. **TOTP MFA on the GitHub personal account.**
 
-Upgrading the GitHub plan to enable enforced branch protection is not planned — the cost stance is `free`.
+### No CODEOWNERS file
+
+No `CODEOWNERS` file is committed. Sole maintainer, so auto-review assignment adds no value; the `protect-main` ruleset already requires explicit PR approval. Re-evaluate and add pathed ownership when a second committer joins.
 
 ### Code Scanning / CodeQL is not available
 
