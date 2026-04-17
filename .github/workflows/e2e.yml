@@ -4,17 +4,11 @@
 name: E2E
 
 on:
+  # Auto-trigger on PRs disabled: flaky WCAG checks against FluentUI shadow DOM
+  # produce intermittent failures, and the full stack (Cosmos + Azurite + Functions
+  # + Playwright) chews through runner minutes on every push. Run manually from
+  # the Actions tab when an E2E signal is actually needed.
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'api/**'
-      - 'app/**'
-      - 'shared/**'
-      - 'tests/**'
-      - 'lfm.sln'
-      - 'global.json'
-      - '.github/workflows/e2e.yml'
 
 permissions:
   contents: read
