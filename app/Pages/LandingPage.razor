@@ -1,0 +1,45 @@
+@page "/"
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["nav.logo"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="24">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H3">@Loc["landing.logo"]</FluentLabel>
+        <FluentLabel Typo="Typography.H1">@Loc["landing.title"]</FluentLabel>
+        <FluentLabel>@Loc["landing.subtitle"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                <FluentLabel Typo="Typography.H4">@Loc["landing.sharedSchedule.title"]</FluentLabel>
+                <FluentLabel>@Loc["landing.sharedSchedule.body"]</FluentLabel>
+            </FluentStack>
+        </FluentCard>
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                <FluentLabel Typo="Typography.H4">@Loc["landing.roleCoverage.title"]</FluentLabel>
+                <FluentLabel>@Loc["landing.roleCoverage.body"]</FluentLabel>
+            </FluentStack>
+        </FluentCard>
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                <FluentLabel Typo="Typography.H4">@Loc["landing.battleNetSignIn.title"]</FluentLabel>
+                <FluentLabel>@Loc["landing.battleNetSignIn.body"]</FluentLabel>
+            </FluentStack>
+        </FluentCard>
+    </FluentStack>
+
+    <FluentButton Appearance="Appearance.Accent" OnClick="@NavigateToLogin">@Loc["landing.signIn"]</FluentButton>
+</FluentStack>
+
+@code {
+    private void NavigateToLogin()
+    {
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/login", forceLoad: true);
+    }
+}

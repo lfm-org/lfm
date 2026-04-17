@@ -1,0 +1,208 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Deploy stage (all runs both, infra/app runs one)'
+        type: choice
+        options:
+          - all
+          - infra
+          - app
+        default: all
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - 'api/**'
+      - 'app/**'
+      - 'shared/**'
+      - 'lfm.sln'
+      - 'global.json'
+      - 'Directory.Packages.props'
+      - 'scripts/check-bundle-size.sh'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-infra.yml'
+      - '.github/workflows/deploy-app.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      infra: ${{ steps.resolve.outputs.infra }}
+      app: ${{ steps.resolve.outputs.app }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+        id: filter
+        if: github.event_name == 'push'
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+              - '.github/workflows/deploy-infra.yml'
+            app:
+              - 'api/**'
+              - 'app/**'
+              - 'shared/**'
+              - 'lfm.sln'
+              - 'global.json'
+              - 'Directory.Packages.props'
+              - 'scripts/check-bundle-size.sh'
+              - '.github/workflows/deploy-app.yml'
+
+      - name: Resolve change flags
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          STAGE: ${{ inputs.stage }}
+          FILTER_INFRA: ${{ steps.filter.outputs.infra }}
+          FILTER_APP: ${{ steps.filter.outputs.app }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$STAGE" = "all" ] || [ "$STAGE" = "infra" ]; then
+              echo "infra=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "infra=false" >> "$GITHUB_OUTPUT"
+            fi
+            if [ "$STAGE" = "all" ] || [ "$STAGE" = "app" ]; then
+              echo "app=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "app=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "infra=$FILTER_INFRA" >> "$GITHUB_OUTPUT"
+            echo "app=$FILTER_APP" >> "$GITHUB_OUTPUT"
+          fi
+
+  secrets-scan:
+    uses: ./.github/workflows/secrets-scan.yml
+    secrets: inherit
+
+  analyze-infra:
+    uses: ./.github/workflows/analyze-infra.yml
+    secrets: inherit
+
+  deploy-infra:
+    needs: [detect-changes, secrets-scan, analyze-infra]
+    if: |
+      needs.secrets-scan.result == 'success' &&
+      needs.analyze-infra.result == 'success' &&
+      needs.detect-changes.outputs.infra == 'true'
+    uses: ./.github/workflows/deploy-infra.yml
+    secrets: inherit
+
+  deploy-app:
+    needs: [detect-changes, secrets-scan, analyze-infra, deploy-infra]
+    if: |
+      always() &&
+      needs.secrets-scan.result == 'success' &&
+      needs.analyze-infra.result == 'success' &&
+      needs.detect-changes.outputs.app == 'true' &&
+      (needs.deploy-infra.result == 'success' || needs.deploy-infra.result == 'skipped')
+    uses: ./.github/workflows/deploy-app.yml
+    secrets: inherit
+
+  release:
+    needs: [deploy-app]
+    if: |
+      always() &&
+      needs.deploy-app.result == 'success' &&
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Download API publish artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: publish-api
+          path: ./publish/api
+
+      - name: Download App publish artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: publish-app
+          path: ./publish/app
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          set -euo pipefail
+          dotnet tool install --global CycloneDX
+          dotnet-CycloneDX lfm.sln -fn sbom-api.cdx.json -o . -F Json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
+
+      - name: Tar publish directories
+        run: |
+          set -euo pipefail
+          tar -czf publish-api.tar.gz -C ./publish/api .
+          tar -czf publish-app.tar.gz -C ./publish/app .
+
+      - name: Sign artifacts with cosign keyless OIDC
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes --bundle publish-api.cosign.bundle publish-api.tar.gz
+          cosign sign-blob --yes --bundle publish-app.cosign.bundle publish-app.tar.gz
+          cosign sign-blob --yes --bundle sbom-api.cosign.bundle sbom-api.cdx.json
+
+      - name: Compute SHA-256 manifest
+        run: |
+          set -euo pipefail
+          sha256sum \
+            publish-api.tar.gz \
+            publish-app.tar.gz \
+            sbom-api.cdx.json \
+            publish-api.cosign.bundle \
+            publish-app.cosign.bundle \
+            sbom-api.cosign.bundle \
+            > sha256-manifest.txt
+
+      - name: Compute release tag
+        id: tag
+        run: |
+          set -euo pipefail
+          TAG="release-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Automated release ${{ steps.tag.outputs.tag }}"
+          body: |
+            Automated release from deploy workflow. SLSA Build L1 (declared). See `SECURITY.md` for target levels and evidence policy.
+          target_commitish: ${{ github.sha }}
+          files: |
+            publish-api.tar.gz
+            publish-app.tar.gz
+            sbom-api.cdx.json
+            publish-api.cosign.bundle
+            publish-app.cosign.bundle
+            sbom-api.cosign.bundle
+            sha256-manifest.txt

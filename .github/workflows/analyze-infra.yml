@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: Analyze Infrastructure
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [infra/**, ps-rule.yaml, .github/workflows/analyze-infra.yml]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: PSRule for Azure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run PSRule analysis
+        uses: microsoft/ps-rule@46451b8f5258c41beb5ae69ed7190ccbba84112c # v2.9.0
+        with:
+          modules: PSRule.Rules.Azure
+          outputFormat: Sarif
+          outputPath: reports/ps-rule-results.sarif
+          summary: true
+
+      - name: Upload SARIF results
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: PSRule-Sarif
+          path: reports/ps-rule-results.sarif
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: PSRule findings summary
+        if: always()
+        run: |
+          set -euo pipefail
+          SARIF=reports/ps-rule-results.sarif
+          {
+            echo "## PSRule findings"
+            echo
+            if [ ! -f "$SARIF" ]; then
+              echo "No SARIF file — PSRule did not produce results."
+            else
+              jq -r '
+                (.runs[0].results // []) as $results
+                | if ($results | length) == 0 then
+                    "No findings."
+                  else
+                    (
+                      ($results | group_by(.level // "none")
+                                 | map({level: (.[0].level // "none"), count: length}))
+                    ) as $byLevel
+                    | "| severity | count |",
+                      "|---|---|",
+                      ($byLevel[] | "| " + .level + " | " + (.count | tostring) + " |")
+                  end
+              ' "$SARIF"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,312 @@
+@page "/runs/{RunId}/edit"
+@using Lfm.App.Services
+@using Lfm.Contracts.Instances
+@using Lfm.Contracts.Runs
+@attribute [Authorize]
+@inject IInstancesClient InstancesClient
+@inject IRunsClient RunsClient
+@inject NavigationManager Nav
+@inject ToastHelper Toast
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["editRun.title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:800px">
+    <FluentLabel Typo="Typography.H3">@Loc["editRun.title"]</FluentLabel>
+
+    @switch (state)
+    {
+        case LoadingState<RunDetailDto>.Idle:
+        case LoadingState<RunDetailDto>.Loading:
+            <FluentProgressRing />
+            break;
+
+        case LoadingState<RunDetailDto>.Failure f:
+            <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+            <FluentButton Appearance="Appearance.Outline" OnClick="@(() => Nav.NavigateTo("/runs"))">
+                @Loc["editRun.backToRuns"]
+            </FluentButton>
+            break;
+
+        case LoadingState<RunDetailDto>.Success s:
+            <!-- Edit form -->
+            <FluentCard>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <FluentLabel Typo="Typography.H4">@Loc["editRun.runDetails"]</FluentLabel>
+
+                    <FluentSelect
+                        Id="instance-select"
+                        Label="@Loc["createRun.instance"]"
+                        TOption="string"
+                        Value="@instanceId"
+                        ValueChanged="@(v => instanceId = v)"
+                        Disabled="@(saving || hasSignups)">
+                        <FluentOption Value="">@Loc["createRun.selectInstance"]</FluentOption>
+                        @foreach (var inst in instances)
+                        {
+                            <FluentOption Value="@inst.Id">@inst.Name (@inst.ModeKey)</FluentOption>
+                        }
+                    </FluentSelect>
+
+                    <FluentTextField
+                        Id="modekey-input"
+                        Label="@Loc["createRun.modeKey"]"
+                        Value="@modeKey"
+                        ValueChanged="@(v => modeKey = v)"
+                        Disabled="@saving" />
+
+                    <FluentTextField
+                        Id="starttime-input"
+                        Label="@Loc["createRun.startTime"]"
+                        Value="@startTime"
+                        ValueChanged="@(v => startTime = v)"
+                        Disabled="@(saving || hasSignups)" />
+
+                    <FluentTextField
+                        Id="signupclose-input"
+                        Label="@Loc["createRun.signupCloseTime"]"
+                        Value="@signupCloseTime"
+                        ValueChanged="@(v => signupCloseTime = v)"
+                        Disabled="@saving" />
+
+                    <FluentSelect
+                        Id="visibility-select"
+                        Label="@Loc["createRun.visibility"]"
+                        TOption="string"
+                        Value="@visibility"
+                        ValueChanged="@(v => visibility = v)"
+                        Disabled="@saving">
+                        <FluentOption Value="PUBLIC">@Loc["createRun.public"]</FluentOption>
+                        <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
+                    </FluentSelect>
+
+                    <FluentTextField
+                        Id="description-input"
+                        Label="@Loc["createRun.description"]"
+                        Value="@description"
+                        ValueChanged="@(v => description = v)"
+                        Disabled="@saving" />
+
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton
+                            Appearance="Appearance.Accent"
+                            OnClick="@HandleSave"
+                            Disabled="@(saving || deleting)">
+                            @(saving ? Loc["common.loading"] : Loc["editRun.saveChanges"])
+                        </FluentButton>
+                        <FluentButton
+                            Appearance="Appearance.Outline"
+                            OnClick="@HandleCancel"
+                            Disabled="@(saving || deleting)">
+                            @Loc["editRun.cancel"]
+                        </FluentButton>
+                        <FluentSpacer />
+                        <FluentButton
+                            Appearance="Appearance.Outline"
+                            OnClick="@ShowDeleteConfirm"
+                            Disabled="@(saving || deleting)"
+                            Style="color:var(--error)">
+                            @(deleting ? Loc["editRun.deleting"] : Loc["editRun.deleteRun"])
+                        </FluentButton>
+                    </FluentStack>
+                </FluentStack>
+            </FluentCard>
+
+            <!-- Delete confirmation -->
+            @if (showDeleteConfirm)
+            {
+                <FluentCard>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentLabel Typo="Typography.H5">@Loc["editRun.confirmDelete"]</FluentLabel>
+                        <FluentLabel>@Loc["editRun.confirmDeleteBody"]</FluentLabel>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <FluentButton
+                                Appearance="Appearance.Accent"
+                                OnClick="@HandleDelete"
+                                Disabled="@(saving || deleting)"
+                                Style="background:var(--error)">
+                                @(deleting ? Loc["editRun.deleting"] : Loc["editRun.yesDelete"])
+                            </FluentButton>
+                            <FluentButton
+                                Appearance="Appearance.Outline"
+                                OnClick="@(() => showDeleteConfirm = false)"
+                                Disabled="@(saving || deleting)">
+                                @Loc["common.cancel"]
+                            </FluentButton>
+                        </FluentStack>
+                    </FluentStack>
+                </FluentCard>
+            }
+
+            <!-- Roster grid -->
+            <FluentCard>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentLabel Typo="Typography.H4">@Loc["editRun.rosterSignedUp", s.Value.RunCharacters.Count]</FluentLabel>
+                    @if (s.Value.RunCharacters.Count > 0)
+                    {
+                        @foreach (var group in GroupByAttendance(s.Value.RunCharacters))
+                        {
+                            <AttendanceRosterSection GroupLabel="@group.Key"
+                                                     Characters="@group.Value"
+                                                     ShowDesiredAttendance="true" />
+                        }
+                    }
+                    else
+                    {
+                        <FluentLabel>@Loc["editRun.noSignups"]</FluentLabel>
+                    }
+                </FluentStack>
+            </FluentCard>
+            break;
+    }
+</FluentStack>
+
+@code {
+    [Parameter] public string? RunId { get; set; }
+
+    private LoadingState<RunDetailDto> state = new LoadingState<RunDetailDto>.Idle();
+    private IReadOnlyList<InstanceDto> instances = [];
+    private bool saving;
+    private bool deleting;
+    private bool showDeleteConfirm;
+    private bool hasSignups;
+
+    // Form fields (initialised from loaded run)
+    private string instanceId = string.Empty;
+    private string modeKey = string.Empty;
+    private string startTime = string.Empty;
+    private string signupCloseTime = string.Empty;
+    private string visibility = "PUBLIC";
+    private string description = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(RunId))
+        {
+            state = new LoadingState<RunDetailDto>.Failure("No run ID provided.");
+            return;
+        }
+
+        state = new LoadingState<RunDetailDto>.Loading();
+        try
+        {
+            var (run, insts) = await LoadBothAsync();
+            if (run is null)
+            {
+                state = new LoadingState<RunDetailDto>.Failure(Loc["editRun.error.notFound"]);
+                return;
+            }
+
+            instances = insts;
+            hasSignups = run.RunCharacters.Count > 0;
+            PopulateForm(run);
+            state = new LoadingState<RunDetailDto>.Success(run);
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<RunDetailDto>.Failure($"Failed to load run: {ex.Message}");
+        }
+    }
+
+    private async Task<(RunDetailDto? Run, IReadOnlyList<InstanceDto> Instances)> LoadBothAsync()
+    {
+        var runTask = RunsClient.GetAsync(RunId!, CancellationToken.None);
+        var instsTask = InstancesClient.ListAsync(CancellationToken.None);
+        await Task.WhenAll(runTask, instsTask);
+        return (await runTask, await instsTask);
+    }
+
+    private void PopulateForm(RunDetailDto run)
+    {
+        instanceId = run.InstanceId.ToString();
+        modeKey = run.ModeKey;
+        startTime = run.StartTime;
+        signupCloseTime = run.SignupCloseTime;
+        visibility = run.Visibility;
+        description = run.Description;
+    }
+
+    private async Task HandleSave()
+    {
+        saving = true;
+        var selectedInstance = instances.FirstOrDefault(i => i.Id == instanceId);
+        try
+        {
+            var request = new UpdateRunRequest(
+                StartTime: startTime,
+                SignupCloseTime: string.IsNullOrWhiteSpace(signupCloseTime) ? null : signupCloseTime,
+                Description: description,
+                ModeKey: modeKey,
+                Visibility: visibility,
+                InstanceId: selectedInstance != null ? (int?)Convert.ToInt32(selectedInstance.Id) : null,
+                InstanceName: selectedInstance?.Name);
+
+            var updated = await RunsClient.UpdateAsync(RunId!, request, CancellationToken.None);
+            if (updated is null)
+            {
+                Toast.ShowError(Loc["editRun.saveFailed"]);
+            }
+            else
+            {
+                Toast.ShowSuccess(Loc["editRun.saveSuccess"]);
+                state = new LoadingState<RunDetailDto>.Success(updated);
+            }
+        }
+        catch
+        {
+            Toast.ShowError(Loc["editRun.saveFailed"]);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void HandleCancel()
+    {
+        Nav.NavigateTo($"/runs/{Uri.EscapeDataString(RunId!)}");
+    }
+
+    private void ShowDeleteConfirm()
+    {
+        showDeleteConfirm = true;
+    }
+
+    private async Task HandleDelete()
+    {
+        deleting = true;
+        try
+        {
+            var ok = await RunsClient.DeleteAsync(RunId!, CancellationToken.None);
+            if (ok)
+            {
+                Nav.NavigateTo("/runs");
+            }
+            else
+            {
+                Toast.ShowError(Loc["editRun.deleteFailed"]);
+                deleting = false;
+                showDeleteConfirm = false;
+            }
+        }
+        catch
+        {
+            Toast.ShowError("Failed to delete run. Please try again.");
+            deleting = false;
+            showDeleteConfirm = false;
+        }
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, IReadOnlyList<RunCharacterDto>>> GroupByAttendance(
+        IReadOnlyList<RunCharacterDto> characters) =>
+        characters
+            .GroupBy(c => c.ReviewedAttendance)
+            .OrderBy(g => AttendanceOrder(g.Key))
+            .Select(g => KeyValuePair.Create(g.Key, (IReadOnlyList<RunCharacterDto>)g.ToList()))
+            .ToList();
+
+    private static int AttendanceOrder(string att) => att switch
+    {
+        "IN" => 0, "BENCH" => 1, "LATE" => 2, "OUT" => 3, "AWAY" => 4, _ => 5
+    };
+}

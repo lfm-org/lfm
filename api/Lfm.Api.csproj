@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Lfm.Api</RootNamespace>
+    <!-- Cosmos SDK 3.x checks for an explicit Newtonsoft.Json reference; bypass
+         because we use System.Text.Json serialization, not Newtonsoft. -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(E2ETest)' == 'true'">
+    <DefineConstants>$(DefineConstants);E2E</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.10.0" />
+    <!-- Worker core packages: .NET 10 REQUIRES v2.50.0+ of Worker and v2.0.5+ of
+         Worker.Sdk per MS docs. v2.x of Worker also brings IHostApplicationBuilder
+         support (FunctionsApplication.CreateBuilder). -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <!-- Timer trigger extension for the raider-cleanup scheduled function. -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+    <!-- Extensions.Http.AspNetCore must be 2.0.0+ to use ASP.NET Core integration
+         with IHostApplicationBuilder. -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.50.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
+    <!-- Cosmos SDK 3.x loads Newtonsoft.Json at runtime via DocumentClient even
+         when AzureCosmosDisableNewtonsoftJsonCheck bypasses the build-time check.
+         Without this the isolated worker crashes with FileNotFoundException. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <!-- Min 12.24.1 required by Azure.Extensions.AspNetCore.DataProtection.Blobs 1.5.1 -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <!-- Microsoft.AspNetCore.DataProtection is normally supplied by the
+         FrameworkReference above, but 10.0.6 has a MAC-validation regression
+         that breaks Protect/Unprotect round-trips on the Linux managed path
+         (https://github.com/dotnet/aspnetcore/issues/66335). Pinning to 10.0.5
+         overrides the shared-framework version so app-local 10.0.5 is loaded.
+         Accepts GHSA-37gx-xxp4-5rgx DoS exposure until 10.0.7 ships a fix. -->
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.5" NoWarn="NU1510" />
+    <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
+         package is deprecated. MS guidance is to use the Azure.Extensions.*
+         packages below, which address key security and stability issues. -->
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.1" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.1" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
+    <!-- Microsoft.Extensions.Options.ConfigurationExtensions is provided transitively
+         via FrameworkReference; explicit pin causes NU1510 warning-as-error. -->
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\shared\Lfm.Contracts\Lfm.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Lfm.Api.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

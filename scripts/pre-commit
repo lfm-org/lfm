@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+# Pre-commit hook: block files that should never be committed.
+# Install: cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+[[ -z "$STAGED" ]] && exit 0
+
+# --- Basename matches (exact filename) ---
+BLOCKED_BASENAMES=(
+  # Environment files — catch all .env variants
+  # (project uses example.env which does NOT start with .env, so no allowlist needed)
+  '.env'
+
+  # SSH private keys
+  'id_rsa' 'id_dsa' 'id_ecdsa' 'id_ed25519'
+
+  # Application secrets
+  'local.settings.json'
+  'master.key'
+
+  # Docker local overrides (often contain passwords)
+  'docker-compose.override.yml'
+  'docker-compose.override.yaml'
+
+  # OS artifacts (safety net behind .gitignore)
+  '.DS_Store'
+  'Thumbs.db'
+)
+
+# --- Extension matches ---
+BLOCKED_EXTENSIONS=(
+  # Certificates and keys
+  '*.pem' '*.key' '*.p12' '*.pfx'
+  '*.der' '*.cer' '*.pkcs12'
+  '*.jks' '*.keystore'
+
+  # Crypto / password manager
+  '*.gpg' '*.pgp'
+  '*.kdbx'
+  '*.secret'
+
+  # Terraform state (contains plaintext secrets)
+  '*.tfstate'
+
+  # Database files and backups
+  '*.sqlite' '*.sqlite3'
+  '*.dump' '*.bak'
+)
+
+# --- Path pattern matches (checked against full staged path) ---
+BLOCKED_PATHS=(
+  '.azure/accessTokens.json'
+  '.azure/azureProfile.json'
+  '.idea/dataSources.local.xml'
+  '.idea/webServers.xml'
+)
+
+# --- Content patterns (regex checked against staged file contents) ---
+# Content patterns are constructed to avoid matching this file itself.
+_PEM="-----BEGIN .* PRIVATE KEY"
+CONTENT_PATTERNS=(
+  "${_PEM}-----"                        # PEM-encoded private keys
+  '//registry[^:]*:_authToken='         # npm registry auth tokens
+  '//registry[^:]*:_auth='             # npm registry auth (base64)
+)
+
+status=0
+
+for file in $STAGED; do
+  basename=$(basename "$file")
+
+  # --- Basename: exact match ---
+  for pattern in "${BLOCKED_BASENAMES[@]}"; do
+    if [[ "$basename" == "$pattern" ]]; then
+      echo "BLOCKED: $file — matches forbidden basename '$pattern'"
+      status=1
+    fi
+  done
+
+  # --- Basename: .env* glob (catches .env.local, .env.production, .env.development, etc.) ---
+  if [[ "$basename" == .env.* ]]; then
+    echo "BLOCKED: $file — matches forbidden pattern '.env.*'"
+    status=1
+  fi
+
+  # --- Extension match ---
+  for pattern in "${BLOCKED_EXTENSIONS[@]}"; do
+    ext="${pattern#\*}"
+    if [[ "$basename" == *"$ext" ]]; then
+      echo "BLOCKED: $file — matches forbidden extension '$pattern'"
+      status=1
+    fi
+  done
+
+  # --- Path match ---
+  for pattern in "${BLOCKED_PATHS[@]}"; do
+    if [[ "$file" == *"$pattern" ]]; then
+      echo "BLOCKED: $file — matches forbidden path pattern '$pattern'"
+      status=1
+    fi
+  done
+
+  # --- Content match (only for text files, skip binaries) ---
+  if git diff --cached --diff-filter=ACM -z -- "$file" | head -c 1 | grep -q ''; then
+    staged_content=$(git show ":$file" 2>/dev/null || true)
+    if [[ -n "$staged_content" ]]; then
+      for pattern in "${CONTENT_PATTERNS[@]}"; do
+        if echo "$staged_content" | grep -qE -- "$pattern"; then
+          echo "BLOCKED: $file — content matches forbidden pattern '$pattern'"
+          status=1
+          break
+        fi
+      done
+    fi
+  fi
+done
+
+if [[ $status -ne 0 ]]; then
+  echo ""
+  echo "Commit aborted. Remove the blocked files from staging:"
+  echo "  git reset HEAD <file>"
+  echo ""
+  echo "If this is truly intentional, bypass with: git commit --no-verify"
+  exit 1
+fi
+
+# Optional REUSE lint — no-op if reuse is not installed locally.
+if command -v reuse >/dev/null 2>&1; then
+  reuse lint >/dev/null || { echo "reuse lint failed"; exit 1; }
+fi

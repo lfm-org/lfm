@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "template": "infra/main.bicep",
+    "_comment": "Copy this file to parameters.prod.<project>.json and fill in your values. See docs/deployment.md for details."
+  },
+  "parameters": {
+    "location": { "value": "westeurope" },
+    "cosmosAccountName": { "value": "myapp-cosmos" },
+    "storageAccountName": { "value": "myappstore" },
+    "functionAppName": { "value": "myapp-functions" },
+    "swaName": { "value": "myapp-swa" },
+    "keyVaultName": { "value": "myapp-kv" },
+    "logAnalyticsWorkspaceName": { "value": "myapp-logs" },
+    "privacyEmail": { "value": "privacy@example.com" },
+    "cosmosDatabase": { "value": "myapp" },
+    "frontendOrigin": { "value": "https://myapp.example.com" },
+    "battleNetRedirectUri": { "value": "https://myapi.example.com/api/battlenet/callback" },
+    "battleNetRegion": { "value": "eu" },
+    "tags": {
+      "value": {
+        "project": "myapp",
+        "environment": "production"
+      }
+    }
+  }
+}

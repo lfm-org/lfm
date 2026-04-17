@@ -1,0 +1,177 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Authorization
+@using Lfm.App.Services
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject IThemeService ThemeService
+@inject IStringLocalizer Loc
+@inject ILocaleService LocaleService
+@inject IJSRuntime JS
+
+<FluentToastProvider />
+
+<div style="min-height:100vh;display:flex;flex-direction:column">
+    <!-- Skip-to-content link for keyboard users -->
+    <a href="#main-content" class="skip-link">@Loc["a11y.skipToContent"]</a>
+
+    <!-- Top navbar -->
+    <header style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:0 16px">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center;height:48px">
+            <FluentAnchor Href="/runs" Style="font-weight:700;font-size:1.1rem;text-decoration:none">@Loc["nav.logo"]</FluentAnchor>
+
+            <AuthorizeView>
+                <Authorized>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Style="margin-left:16px" Class="desktop-nav">
+                        <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
+                        <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
+                        <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
+                    </FluentStack>
+                    <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
+                        <FluentButton Appearance="Appearance.Stealth"
+                                      Class="mobile-nav-toggle"
+                                      Title="@Loc["nav.toggleMenu"]"
+                                      aria-label="@Loc["nav.toggleMenu"]"
+                                      OnClick="@ToggleMobileMenu">
+                            &#9776;
+                        </FluentButton>
+                        <FluentButton Appearance="Appearance.Stealth"
+                                      Title="@_themeTooltip"
+                                      aria-label="@_themeTooltip"
+                                      OnClick="@ToggleTheme">
+                            @_themeIcon
+                        </FluentButton>
+                        <FluentButton Appearance="Appearance.Outline" OnClick="@HandleLogout">
+                            @Loc["nav.signOut"]
+                        </FluentButton>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
+                        <FluentButton Appearance="Appearance.Stealth"
+                                      Title="@_themeTooltip"
+                                      aria-label="@_themeTooltip"
+                                      OnClick="@ToggleTheme">
+                            @_themeIcon
+                        </FluentButton>
+                        <FluentAnchor Href="/login">@Loc["nav.signIn"]</FluentAnchor>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </FluentStack>
+    </header>
+
+    <!-- Mobile navigation menu -->
+    <AuthorizeView>
+        <Authorized>
+            <nav class="mobile-menu @(_showMobileMenu ? "open" : "")"
+                 style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:8px 16px">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                    <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
+                    <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
+                    <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
+                </FluentStack>
+            </nav>
+        </Authorized>
+    </AuthorizeView>
+
+    <!-- Page content -->
+    <main id="main-content" tabindex="-1" style="flex:1;padding:24px 16px;outline:none">
+        @Body
+    </main>
+
+    <!-- Footer with privacy link and language toggle -->
+    <footer style="border-top:1px solid var(--neutral-stroke-rest);padding:8px 16px">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" Style="align-items:center;justify-content:center">
+            <FluentAnchor Href="/privacy">@Loc["footer.privacyPolicy"]</FluentAnchor>
+            <span>|</span>
+            <FluentButton Appearance="Appearance.Stealth"
+                          OnClick="@(() => LocaleService.SetLocale("en"))"
+                          Style="@(LocaleService.CurrentLocale == "en" ? "font-weight:700" : "")">
+                @Loc["locale.en"]
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Stealth"
+                          OnClick="@(() => LocaleService.SetLocale("fi"))"
+                          Style="@(LocaleService.CurrentLocale == "fi" ? "font-weight:700" : "")">
+                @Loc["locale.fi"]
+            </FluentButton>
+        </FluentStack>
+    </footer>
+</div>
+
+@code {
+    private bool _showMobileMenu;
+    private string _themeIcon = "\u2600\ufe0f";
+    private string _themeTooltip = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        ThemeService.OnChange += OnThemeChanged;
+        LocaleService.OnLocaleChanged += HandleLocaleChanged;
+        UpdateThemeDisplay();
+    }
+
+    private void UpdateThemeDisplay()
+    {
+        var isDark = ThemeService.Mode == DesignThemeModes.Dark;
+        _themeIcon = isDark ? "\u2600\ufe0f" : "\ud83c\udf19";
+        _themeTooltip = isDark ? Loc["theme.switchToLight"] : Loc["theme.switchToDark"];
+    }
+
+    private void ToggleTheme()
+    {
+        ThemeService.Toggle();
+        UpdateThemeDisplay();
+    }
+
+    private void OnThemeChanged()
+    {
+        UpdateThemeDisplay();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleMobileMenu()
+    {
+        _showMobileMenu = !_showMobileMenu;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _showMobileMenu = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
+        }
+    }
+
+    private async void HandleLocaleChanged()
+    {
+        await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLogout()
+    {
+        // Mirror the login flow (see LoginPage.razor): top-level browser
+        // navigation to the API endpoint so the server's cookie-clear
+        // Set-Cookie header is processed by the browser as part of a real
+        // navigation response. An earlier HttpClient.PostAsync-based
+        // implementation was silently eaten by HttpClient timeouts on cold
+        // Functions starts and left the session alive (issue #53).
+        var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        Nav.NavigateTo($"{apiBase}/api/battlenet/logout", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        ThemeService.OnChange -= OnThemeChanged;
+        LocaleService.OnLocaleChanged -= HandleLocaleChanged;
+    }
+}

@@ -1,0 +1,82 @@
+@page "/privacy"
+@inject IHttpClientFactory HttpFactory
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["privacy.title"] — @Loc["nav.logo"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="24">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+        <FluentLabel Typo="Typography.H2">@Loc["privacy.title"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.lastUpdated"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.controller.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.controller.body"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.data.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.data.body"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.cookies.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.cookies.body"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.thirdParty.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.thirdParty.body"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.retention.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.retention.body"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.rights.heading"]</FluentLabel>
+        <FluentLabel>@Loc["privacy.rights.body"]</FluentLabel>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentLabel Typo="Typography.H4">@Loc["privacy.contact.heading"]</FluentLabel>
+        @if (_email is not null)
+        {
+            <FluentLabel>@Loc["privacy.contact.body"] <a href="mailto:@_email">@_email</a></FluentLabel>
+        }
+        else
+        {
+            <FluentLabel>@Loc["privacy.contact.loading"]</FluentLabel>
+        }
+    </FluentStack>
+</FluentStack>
+
+<!-- Honeypot: invisible decoy to divert email scrapers -->
+<a href="mailto:contact@example.com"
+   aria-hidden="true"
+   tabindex="-1"
+   style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;">
+    contact@example.com
+</a>
+
+@code {
+    private string? _email;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var http = HttpFactory.CreateClient("api");
+            var result = await http.GetFromJsonAsync<PrivacyEmailResponse>("api/privacy-contact/email");
+            _email = result?.Email;
+        }
+        catch
+        {
+            // Silently fail — contact section will not render the email link.
+        }
+    }
+
+    private sealed record PrivacyEmailResponse(string Email);
+}

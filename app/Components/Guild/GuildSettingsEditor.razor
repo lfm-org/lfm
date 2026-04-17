@@ -1,0 +1,121 @@
+@using Lfm.Contracts.Guild
+@using Microsoft.AspNetCore.Components.Forms
+@inject IStringLocalizer Loc
+
+<EditForm Model="@this" OnValidSubmit="@OnSave">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+
+        <FluentSelect TOption="string"
+            Id="guild-timezone"
+            Label="@Loc["guildAdmin.settings.timezone"]"
+            Value="@Timezone"
+            ValueChanged="@TimezoneChanged"
+            Disabled="@(!RankDataFresh || Saving)"
+            Style="max-width:320px">
+            @foreach (var tz in TimezoneOptions)
+            {
+                <FluentOption TOption="string" Value="@tz">@tz</FluentOption>
+            }
+        </FluentSelect>
+
+        <FluentSelect TOption="string"
+            Id="guild-locale"
+            Label="@Loc["guildAdmin.settings.locale"]"
+            Value="@Locale"
+            ValueChanged="@LocaleChanged"
+            Disabled="@(!RankDataFresh || Saving)"
+            Style="max-width:320px">
+            @foreach (var loc in LocaleOptions)
+            {
+                <FluentOption TOption="string" Value="@loc.Value">@loc.Label</FluentOption>
+            }
+        </FluentSelect>
+
+        <FluentTextArea
+            Id="guild-slogan"
+            Label="@Loc["guildAdmin.settings.slogan"]"
+            Value="@Slogan"
+            ValueChanged="@SloganChanged"
+            Disabled="@(!RankDataFresh || Saving)"
+            Rows="2"
+            Style="max-width:480px" />
+
+        @if (RankPermissions.Count > 0)
+        {
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.settings.rankPermissions"]</FluentLabel>
+                @foreach (var perm in RankPermissions)
+                {
+                    <FluentCard>
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                            <FluentLabel Typo="Typography.Body">@Loc["guildAdmin.settings.rank", perm.Rank]</FluentLabel>
+                            <FluentCheckbox
+                                Label="@Loc["guildAdmin.settings.canCreateRuns"]"
+                                Value="@perm.CanCreateGuildRuns"
+                                ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canCreateGuildRuns", v)))"
+                                Disabled="@(!RankDataFresh || Saving)" />
+                            <FluentCheckbox
+                                Label="@Loc["guildAdmin.settings.canSignUp"]"
+                                Value="@perm.CanSignupGuildRuns"
+                                ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canSignupGuildRuns", v)))"
+                                Disabled="@(!RankDataFresh || Saving)" />
+                            <FluentCheckbox
+                                Label="@Loc["guildAdmin.settings.canDeleteRuns"]"
+                                Value="@perm.CanDeleteGuildRuns"
+                                ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canDeleteGuildRuns", v)))"
+                                Disabled="@(!RankDataFresh || Saving)" />
+                        </FluentStack>
+                    </FluentCard>
+                }
+            </FluentStack>
+        }
+
+        <div>
+            <FluentButton
+                Type="ButtonType.Submit"
+                Appearance="Appearance.Accent"
+                Disabled="@(Saving || !RankDataFresh)">
+                @(Saving ? Loc["guildAdmin.settings.saving"] : Loc["guildAdmin.settings.save"])
+            </FluentButton>
+        </div>
+
+    </FluentStack>
+</EditForm>
+
+@code {
+    private static readonly string[] TimezoneOptions =
+    [
+        "Europe/Helsinki",
+        "Europe/London",
+        "Europe/Berlin",
+        "UTC",
+        "America/New_York",
+        "America/Chicago",
+        "America/Denver",
+        "America/Los_Angeles",
+    ];
+
+    private static readonly (string Value, string Label)[] LocaleOptions =
+    [
+        ("fi", "Suomi"),
+        ("en-gb", "English (UK)"),
+        ("de", "Deutsch"),
+        ("fr", "Français"),
+        ("es", "Español"),
+        ("sv", "Svenska"),
+        ("da", "Dansk"),
+        ("nb", "Norsk"),
+    ];
+
+    [Parameter, EditorRequired] public string Timezone { get; set; } = "Europe/Helsinki";
+    [Parameter, EditorRequired] public string Locale { get; set; } = "fi";
+    [Parameter, EditorRequired] public string Slogan { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<UpdateGuildRankPermission> RankPermissions { get; set; } = [];
+    [Parameter, EditorRequired] public bool Saving { get; set; }
+    [Parameter, EditorRequired] public bool RankDataFresh { get; set; }
+    [Parameter, EditorRequired] public EventCallback<string> TimezoneChanged { get; set; }
+    [Parameter, EditorRequired] public EventCallback<string> LocaleChanged { get; set; }
+    [Parameter, EditorRequired] public EventCallback<string> SloganChanged { get; set; }
+    [Parameter, EditorRequired] public EventCallback<(int Rank, string Field, bool Checked)> OnPermissionChange { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnSave { get; set; }
+}

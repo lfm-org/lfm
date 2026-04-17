@@ -1,0 +1,311 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: Deploy Infrastructure
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure resource group exists
+        run: az group create --name "${{ vars.AZURE_RESOURCE_GROUP }}" --location "${{ vars.AZURE_LOCATION }}"
+
+      - name: Recover soft-deleted Key Vault if exists
+        run: |
+          KV="${{ vars.KEY_VAULT_NAME }}"
+          DELETED_KV=$(az keyvault list-deleted --query "[?name=='$KV'].name" -o tsv)
+          if [ -n "$DELETED_KV" ]; then
+            echo "Recovering soft-deleted Key Vault $KV..."
+            az keyvault recover --name "$KV"
+          else
+            echo "No soft-deleted Key Vault found, proceeding with fresh creation."
+          fi
+
+      - name: Migrate Flex Consumption back to Y1 Consumption (one-time)
+        run: |
+          APP="${{ vars.FUNCTION_APP_NAME }}"
+          PLAN="${APP}-plan"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
+          SKU_TIER=$(az appservice plan show \
+            --name "$PLAN" --resource-group "$RG" \
+            --query "sku.tier" -o tsv 2>/dev/null || echo "NotFound")
+
+          if [ "$SKU_TIER" = "FlexConsumption" ]; then
+            echo "Found FlexConsumption plan '$PLAN' — migrating to Y1 Consumption..."
+            echo "Deleting function app '$APP'..."
+            az functionapp delete --name "$APP" --resource-group "$RG"
+            echo "Deleting App Service plan '$PLAN'..."
+            az appservice plan delete --name "$PLAN" --resource-group "$RG" --yes
+            echo "Migration cleanup complete. Bicep will create fresh Y1 resources."
+          else
+            echo "Plan '$PLAN' is '$SKU_TIER' (not FlexConsumption) — no migration needed."
+          fi
+
+      - name: Clean up stale role assignments from previous managed identity
+        run: |
+          APP="${{ vars.FUNCTION_APP_NAME }}"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+          KV="${{ vars.KEY_VAULT_NAME }}"
+
+          CURRENT_PRINCIPAL=$(az functionapp identity show \
+            --name "$APP" --resource-group "$RG" \
+            --query "principalId" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$CURRENT_PRINCIPAL" ]; then
+            echo "Function app has no identity yet — skipping cleanup."
+            exit 0
+          fi
+
+          echo "Current function app principal: $CURRENT_PRINCIPAL"
+          SUB_ID=$(az account show --query "id" -o tsv)
+
+          # Resources where Bicep creates role assignments, with their ARM
+          # resource types (needed for lock management). App Insights has no lock.
+          declare -A LOCKED_SCOPES=(
+            ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/lfmstore"]="Microsoft.Storage/storageAccounts lfmstore"
+            ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/$KV"]="Microsoft.KeyVault/vaults $KV"
+          )
+          UNLOCKED_SCOPES=(
+            "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Insights/components/${APP}-insights"
+          )
+
+          # Helper: remove CanNotDelete lock on a resource, returning the lock name
+          remove_lock() {
+            local rg="$1" rtype="$2" rname="$3"
+            local lock_name
+            lock_name=$(az lock list --resource-group "$rg" \
+              --resource-name "$rname" --resource-type "$rtype" \
+              --query "[?level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
+            if [ -n "$lock_name" ]; then
+              echo "Temporarily removing lock '$lock_name' on $rname..."
+              az lock delete --name "$lock_name" --resource-group "$rg" \
+                --resource-name "$rname" --resource-type "$rtype"
+            fi
+          }
+
+          # Clean stale RBAC assignments on locked resources
+          for SCOPE in "${!LOCKED_SCOPES[@]}"; do
+            STALE=$(az role assignment list --scope "$SCOPE" \
+              --query "[?principalId!='$CURRENT_PRINCIPAL' && principalId!='' && principalType=='ServicePrincipal'].id" \
+              -o tsv 2>/dev/null || echo "")
+            if [ -n "$STALE" ]; then
+              IFS=' ' read -r RTYPE RNAME <<< "${LOCKED_SCOPES[$SCOPE]}"
+              remove_lock "$RG" "$RTYPE" "$RNAME"
+              for ID in $STALE; do
+                echo "Deleting stale RBAC assignment: $ID"
+                az role assignment delete --ids "$ID" 2>/dev/null || true
+              done
+            fi
+          done
+
+          # Clean stale RBAC assignments on unlocked resources
+          for SCOPE in "${UNLOCKED_SCOPES[@]}"; do
+            STALE=$(az role assignment list --scope "$SCOPE" \
+              --query "[?principalId!='$CURRENT_PRINCIPAL' && principalId!='' && principalType=='ServicePrincipal'].id" \
+              -o tsv 2>/dev/null || echo "")
+            for ID in $STALE; do
+              echo "Deleting stale RBAC assignment: $ID"
+              az role assignment delete --ids "$ID" 2>/dev/null || true
+            done
+          done
+
+          # Clean stale Cosmos SQL role assignments (separate API, also locked)
+          COSMOS_ACCOUNT=$(az cosmosdb list --resource-group "$RG" \
+            --query "[0].name" -o tsv 2>/dev/null || echo "")
+          if [ -n "$COSMOS_ACCOUNT" ]; then
+            STALE_COSMOS=$(az cosmosdb sql role assignment list \
+              --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
+              --query "[?principalId!='$CURRENT_PRINCIPAL'].id" -o tsv 2>/dev/null || echo "")
+            if [ -n "$STALE_COSMOS" ]; then
+              remove_lock "$RG" "Microsoft.DocumentDB/databaseAccounts" "$COSMOS_ACCOUNT"
+              for ID in $STALE_COSMOS; do
+                echo "Deleting stale Cosmos SQL role assignment: $ID"
+                az cosmosdb sql role assignment delete \
+                  --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
+                  --role-assignment-id "$ID" --yes 2>/dev/null || true
+              done
+            fi
+          fi
+
+          echo "Bicep will recreate any removed locks during deployment."
+
+      - name: Preview infrastructure changes (what-if)
+        run: |
+          az deployment group what-if \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/main.bicep \
+            --parameters \
+              location="${{ vars.AZURE_LOCATION }}" \
+              cosmosAccountName="${{ vars.COSMOS_ACCOUNT_NAME }}" \
+              storageAccountName="${{ vars.STORAGE_ACCOUNT_NAME }}" \
+              functionAppName="${{ vars.FUNCTION_APP_NAME }}" \
+              swaName="${{ vars.SWA_NAME }}" \
+              keyVaultName="${{ vars.KEY_VAULT_NAME }}" \
+              logAnalyticsWorkspaceName="${{ vars.LOG_ANALYTICS_NAME }}" \
+              privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
+              cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
+              frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
+              battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
+              battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
+              tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
+
+      - name: Deploy Bicep
+        run: |
+          az deployment group create \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/main.bicep \
+            --parameters \
+              location="${{ vars.AZURE_LOCATION }}" \
+              cosmosAccountName="${{ vars.COSMOS_ACCOUNT_NAME }}" \
+              storageAccountName="${{ vars.STORAGE_ACCOUNT_NAME }}" \
+              functionAppName="${{ vars.FUNCTION_APP_NAME }}" \
+              swaName="${{ vars.SWA_NAME }}" \
+              keyVaultName="${{ vars.KEY_VAULT_NAME }}" \
+              logAnalyticsWorkspaceName="${{ vars.LOG_ANALYTICS_NAME }}" \
+              privacyEmail="${{ vars.PRIVACY_EMAIL }}" \
+              cosmosDatabase="${{ vars.COSMOS_DATABASE }}" \
+              frontendOrigin="https://${{ vars.FRONTEND_HOSTNAME }}" \
+              battleNetRedirectUri="https://${{ vars.API_HOSTNAME }}/api/battlenet/callback" \
+              battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
+              tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
+
+      - name: Deploy metric alerts (tolerates first-run failure)
+        continue-on-error: true
+        run: |
+          az deployment group create \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/modules/alerts.bicep \
+            --parameters \
+              functionAppName="${{ vars.FUNCTION_APP_NAME }}" \
+              cosmosAccountName="${{ vars.COSMOS_ACCOUNT_NAME }}" \
+              alertEmail="${{ vars.PRIVACY_EMAIL }}" \
+              tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
+
+      - name: Configure Functions custom domain and managed certificate
+        run: |
+          HOSTNAME="${{ vars.API_HOSTNAME }}"
+          APP="${{ vars.FUNCTION_APP_NAME }}"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
+          # Add custom hostname (idempotent — no-op if already bound)
+          EXISTING=$(az webapp config hostname list \
+            --webapp-name "$APP" --resource-group "$RG" \
+            --query "[?name=='$HOSTNAME'].name" -o tsv)
+
+          if [ -z "$EXISTING" ]; then
+            echo "Adding custom hostname $HOSTNAME..."
+            az webapp config hostname add \
+              --webapp-name "$APP" --resource-group "$RG" --hostname "$HOSTNAME"
+          else
+            echo "Hostname $HOSTNAME already bound."
+          fi
+
+          # Check if a valid SSL binding already exists
+          SSL_STATE=$(az webapp config hostname list \
+            --webapp-name "$APP" --resource-group "$RG" \
+            --query "[?name=='$HOSTNAME'].sslState" -o tsv)
+
+          if [ "$SSL_STATE" = "SniEnabled" ]; then
+            echo "SSL binding already active for $HOSTNAME — skipping."
+            exit 0
+          fi
+
+          # Try to get existing cert thumbprint
+          THUMBPRINT=$(az webapp config ssl list -g "$RG" \
+            --query "[?name=='$HOSTNAME'].thumbprint | [0]" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$THUMBPRINT" ]; then
+            # No cert exists — create a managed certificate
+            echo "Creating managed certificate for $HOSTNAME..."
+            az webapp config ssl create \
+              --resource-group "$RG" --name "$APP" --hostname "$HOSTNAME" || true
+
+            # Poll until cert is provisioned (async operation)
+            echo "Waiting for certificate to be provisioned..."
+            for i in $(seq 1 30); do
+              THUMBPRINT=$(az webapp config ssl show \
+                -g "$RG" --certificate-name "$HOSTNAME" \
+                --query thumbprint -o tsv 2>/dev/null || echo "")
+              if [ -n "$THUMBPRINT" ]; then
+                echo "Certificate provisioned: $THUMBPRINT"
+                break
+              fi
+              echo "  Attempt $i/30 — certificate not ready yet..."
+              sleep 10
+            done
+
+            if [ -z "$THUMBPRINT" ]; then
+              echo "ERROR: Certificate was not provisioned within 5 minutes."
+              exit 1
+            fi
+          fi
+
+          echo "Binding certificate $THUMBPRINT to $HOSTNAME..."
+          az webapp config ssl bind \
+            --resource-group "$RG" --name "$APP" \
+            --certificate-thumbprint "$THUMBPRINT" --ssl-type SNI
+
+      - name: Configure SWA custom domain
+        run: |
+          HOSTNAME="${{ vars.FRONTEND_HOSTNAME }}"
+          SWA="${{ vars.SWA_NAME }}"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
+          # Set custom domain (idempotent — SWA auto-provisions managed certificate)
+          EXISTING=$(az staticwebapp hostname list \
+            --name "$SWA" --resource-group "$RG" \
+            --query "[?domainName=='$HOSTNAME'].domainName" -o tsv)
+
+          if [ -z "$EXISTING" ]; then
+            echo "Adding custom domain $HOSTNAME to SWA..."
+            az staticwebapp hostname set \
+              --name "$SWA" --resource-group "$RG" --hostname "$HOSTNAME"
+          else
+            echo "SWA custom domain $HOSTNAME already configured."
+          fi
+
+      - name: Clean up auto-created App Insights resources
+        run: |
+          # Azure auto-creates a managed RG + workspace when migrating classic App
+          # Insights. Now that App Insights is workspace-linked, the managed RG is
+          # orphaned. Also clean up any auto-created Smart Detection action groups.
+          APP_INSIGHTS_PREFIX="ai_${{ vars.FUNCTION_APP_NAME }}-insights_"
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+
+          MANAGED_RG=$(az group list \
+            --query "[?starts_with(name, '$APP_INSIGHTS_PREFIX')].name" -o tsv)
+
+          if [ -n "$MANAGED_RG" ]; then
+            echo "Deleting orphaned managed resource group: $MANAGED_RG"
+            az group delete --name "$MANAGED_RG" --yes --no-wait
+          else
+            echo "No orphaned managed resource group found."
+          fi
+
+          AUTO_AG=$(az monitor action-group list --resource-group "$RG" \
+            --query "[?starts_with(name, '$APP_INSIGHTS_PREFIX')].name" -o tsv)
+
+          if [ -n "$AUTO_AG" ]; then
+            echo "Deleting auto-created action group: $AUTO_AG"
+            az monitor action-group delete \
+              --name "$AUTO_AG" --resource-group "$RG"
+          else
+            echo "No auto-created action group found."
+          fi

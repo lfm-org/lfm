@@ -1,0 +1,257 @@
+@page "/runs"
+@page "/runs/{RunId}"
+@attribute [Authorize]
+@using Lfm.App.Services
+@using Lfm.Contracts.Runs
+@inject IRunsClient RunsClient
+@inject NavigationManager Nav
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["runs.title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+        <FluentLabel Typo="Typography.H3" Style="flex:1">@Loc["runs.title"]</FluentLabel>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@(() => Nav.NavigateTo("/runs/new"))">
+            @Loc["runs.create"]
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Outline" OnClick="@LoadRuns" Disabled="@loading">
+            @Loc["common.refresh"]
+        </FluentButton>
+    </FluentStack>
+
+    @switch (state)
+    {
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Idle:
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Loading:
+            <FluentProgressRing />
+            break;
+
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Failure f:
+            <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
+            break;
+
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s when s.Value.Count == 0:
+            <FluentMessageBar Intent="MessageIntent.Info">
+                @Loc["runs.empty"]
+                <FluentAnchor Href="/runs/new">@Loc["runs.emptyCta"]</FluentAnchor>
+            </FluentMessageBar>
+            break;
+
+        case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
+            <div class="runs-layout">
+                <div class="runs-sidebar">
+                    @foreach (var run in s.Value)
+                    {
+                        var isSelected = run.Id == selectedRunId;
+                        var attending = CountAttending(run.RunCharacters);
+                        <div @key="run.Id"
+                             data-testid="run-item-@run.Id"
+                             class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
+                             @onclick="@(() => SelectRun(run.Id))">
+                            <div class="run-list-item__header">
+                                <span class="run-list-item__title">@run.InstanceName</span>
+                                <DifficultyPill ModeKey="@run.ModeKey" />
+                            </div>
+                            <span class="run-list-item__date">@FormatDate(run.StartTime)</span>
+                            <span class="run-list-item__footer">
+                                @Loc["runs.attendingSignedUp", attending, run.RunCharacters.Count]
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                <div style="flex:1;min-width:0">
+                    @if (selectedRun != null)
+                    {
+                        <FluentCard>
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                                <div class="run-detail-header">
+                                    <div style="flex:1;min-width:0">
+                                        <h2 class="run-detail-title">@selectedRun.InstanceName</h2>
+                                        @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
+                                        {
+                                            <p class="run-detail-description">@selectedRun.Description</p>
+                                        }
+                                    </div>
+                                    <DifficultyPill ModeKey="@selectedRun.ModeKey" />
+                                    <FluentButton Appearance="Appearance.Outline"
+                                                  OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
+                                                  Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
+                                        @Loc["runs.edit"]
+                                    </FluentButton>
+                                </div>
+
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
+                                    <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
+                                    <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
+                                    <span><strong>@Loc["runs.visibility"]</strong> @selectedRun.Visibility</span>
+                                    <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
+                                </FluentStack>
+
+                                @{
+                                    var attending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance == "IN" || c.ReviewedAttendance == "LATE" || c.ReviewedAttendance == "BENCH").ToList();
+                                    var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance == "OUT" || c.ReviewedAttendance == "AWAY").ToList();
+                                }
+
+                                @if (selectedRun.RunCharacters.Count == 0)
+                                {
+                                    <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
+                                }
+                                else
+                                {
+                                    @if (attending.Count > 0)
+                                    {
+                                        <h3 class="roster-section-title" data-testid="roster-attending-title">
+                                            @Loc["runs.attendingSection"] (@attending.Count)
+                                        </h3>
+                                        <div class="roster-role-grid">
+                                            @foreach (var (roleKey, roleLabel) in RoleColumns)
+                                            {
+                                                var roleChars = attending.Where(c => NormalizeRole(c.Role) == roleKey).ToList();
+                                                <div class="roster-role-column">
+                                                    <h4 class="roster-role-column-title">@roleLabel (@roleChars.Count)</h4>
+                                                    @foreach (var character in roleChars)
+                                                    {
+                                                        <CharacterRow @key="character.Id" Character="character" />
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (notAttending.Count > 0)
+                                    {
+                                        <h3 class="roster-section-title" data-testid="roster-not-attending-title">
+                                            @Loc["runs.notAttendingSection"] (@notAttending.Count)
+                                        </h3>
+                                        <div class="roster-rows">
+                                            @foreach (var character in notAttending)
+                                            {
+                                                <CharacterRow @key="character.Id" Character="character" />
+                                            }
+                                        </div>
+                                    }
+                                }
+                            </FluentStack>
+                        </FluentCard>
+                    }
+                    else
+                    {
+                        <FluentLabel>@Loc["runs.selectPrompt"]</FluentLabel>
+                    }
+                </div>
+            </div>
+            break;
+    }
+</FluentStack>
+
+@code {
+    [Parameter] public string? RunId { get; set; }
+
+    private LoadingState<IReadOnlyList<RunSummaryDto>> state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Idle();
+    private bool loading;
+    private string? selectedRunId;
+    private RunDetailDto? selectedRun;
+
+    private static readonly (string Key, string LocKey)[] RoleColumnKeys =
+    [
+        ("TANK", "runs.role.tank"),
+        ("HEALER", "runs.role.healer"),
+        ("DPS", "runs.role.dps"),
+    ];
+
+    private IEnumerable<(string Key, string Label)> RoleColumns =>
+        RoleColumnKeys.Select(x => (x.Key, Loc[x.LocKey].Value));
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedRunId = RunId;
+        await LoadRuns();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (RunId != selectedRunId)
+        {
+            selectedRunId = RunId;
+            if (selectedRunId != null)
+            {
+                await LoadRunDetail(selectedRunId);
+            }
+            else
+            {
+                selectedRun = null;
+            }
+        }
+    }
+
+    private async Task LoadRuns()
+    {
+        loading = true;
+        state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Loading();
+        try
+        {
+            var items = await RunsClient.ListAsync(CancellationToken.None);
+            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(items);
+
+            if (selectedRunId != null)
+            {
+                await LoadRunDetail(selectedRunId);
+            }
+        }
+        catch (Exception ex)
+        {
+            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Failure(ex.Message);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SelectRun(string id)
+    {
+        selectedRunId = id;
+        Nav.NavigateTo($"/runs/{Uri.EscapeDataString(id)}", replace: true);
+        await LoadRunDetail(id);
+    }
+
+    private async Task LoadRunDetail(string id)
+    {
+        try
+        {
+            selectedRun = await RunsClient.GetAsync(id, CancellationToken.None);
+        }
+        catch
+        {
+            selectedRun = null;
+        }
+    }
+
+    private static string FormatDate(string? isoDate)
+    {
+        if (string.IsNullOrEmpty(isoDate)) return "—";
+        if (DateTimeOffset.TryParse(isoDate, out var dto))
+            return dto.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        return isoDate;
+    }
+
+    private static bool IsSignupClosed(string? signupCloseTime)
+    {
+        if (string.IsNullOrEmpty(signupCloseTime)) return false;
+        return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
+    }
+
+    private static int CountAttending(IReadOnlyList<RunCharacterDto> characters) =>
+        characters.Count(c => c.ReviewedAttendance == "IN" || c.ReviewedAttendance == "LATE");
+
+    private static string NormalizeRole(string? role) => (role ?? "").ToUpperInvariant() switch
+    {
+        "TANK" => "TANK",
+        "HEALER" => "HEALER",
+        "HEAL" => "HEALER",
+        "DPS" or "MELEE" or "RANGED" => "DPS",
+        _ => "DPS"
+    };
+}

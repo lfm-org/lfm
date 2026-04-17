@@ -1,0 +1,49 @@
+@implements IDisposable
+@using Lfm.App.Services
+@inject IThemeService ThemeService
+
+<FluentDesignTheme Mode="@_mode"
+                   ModeChanged="@OnModeChanged"
+                   StorageName="lfm-theme">
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        <RedirectToLogin />
+                    </NotAuthorized>
+                    <Authorizing>
+                        <FluentProgressRing />
+                    </Authorizing>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+        </Router>
+    </CascadingAuthenticationState>
+</FluentDesignTheme>
+
+@code {
+    private DesignThemeModes _mode = DesignThemeModes.Dark;
+
+    protected override void OnInitialized()
+    {
+        ThemeService.OnChange += OnThemeChanged;
+    }
+
+    private void OnModeChanged(DesignThemeModes mode)
+    {
+        _mode = mode;
+        ThemeService.SetMode(mode);
+    }
+
+    private void OnThemeChanged()
+    {
+        _mode = ThemeService.Mode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnChange -= OnThemeChanged;
+    }
+}

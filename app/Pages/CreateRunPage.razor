@@ -1,0 +1,165 @@
+@page "/runs/new"
+@attribute [Authorize]
+@using Lfm.App.Services
+@using Lfm.Contracts.Instances
+@using Lfm.Contracts.Runs
+@inject IInstancesClient InstancesClient
+@inject IRunsClient RunsClient
+@inject NavigationManager Nav
+@inject ToastHelper Toast
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["createRun.title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:600px">
+    <FluentLabel Typo="Typography.H3">@Loc["createRun.title"]</FluentLabel>
+
+    @if (loadError != null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
+    }
+
+    @if (loading)
+    {
+        <FluentProgressRing />
+    }
+    else
+    {
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <FluentSelect
+                    Id="instance-select"
+                    Label="@Loc["createRun.instance"]"
+                    TOption="string"
+                    Value="@instanceId"
+                    ValueChanged="@(v => { instanceId = v; modeKey = string.Empty; })"
+                    Disabled="@submitting">
+                    <FluentOption Value="">@Loc["createRun.selectInstance"]</FluentOption>
+                    @foreach (var inst in instances)
+                    {
+                        <FluentOption Value="@inst.Id">@inst.Name (@inst.ModeKey)</FluentOption>
+                    }
+                </FluentSelect>
+
+                <FluentTextField
+                    Id="modekey-input"
+                    Label="@Loc["createRun.modeKey"]"
+                    Value="@modeKey"
+                    ValueChanged="@(v => modeKey = v)"
+                    Disabled="@submitting"
+                    Placeholder="@Loc["createRun.modeKeyPlaceholder"]" />
+
+                <FluentTextField
+                    Id="starttime-input"
+                    Label="@Loc["createRun.startTime"]"
+                    Value="@startTime"
+                    ValueChanged="@(v => startTime = v)"
+                    Disabled="@submitting"
+                    Placeholder="@Loc["createRun.startTimePlaceholder"]" />
+
+                <FluentTextField
+                    Id="signupclose-input"
+                    Label="@Loc["createRun.signupCloseTime"]"
+                    Value="@signupCloseTime"
+                    ValueChanged="@(v => signupCloseTime = v)"
+                    Disabled="@submitting"
+                    Placeholder="@Loc["createRun.signupCloseTimePlaceholder"]" />
+
+                <FluentSelect
+                    Id="visibility-select"
+                    Label="@Loc["createRun.visibility"]"
+                    TOption="string"
+                    Value="@visibility"
+                    ValueChanged="@(v => visibility = v)"
+                    Disabled="@submitting">
+                    <FluentOption Value="PUBLIC">@Loc["createRun.public"]</FluentOption>
+                    <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
+                </FluentSelect>
+
+                <FluentTextField
+                    Id="description-input"
+                    Label="@Loc["createRun.description"]"
+                    Value="@description"
+                    ValueChanged="@(v => description = v)"
+                    Disabled="@submitting" />
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentButton
+                        Appearance="Appearance.Accent"
+                        OnClick="@HandleSubmit"
+                        Disabled="@(submitting || string.IsNullOrWhiteSpace(instanceId) || string.IsNullOrWhiteSpace(startTime) || string.IsNullOrWhiteSpace(modeKey))">
+                        @(submitting ? Loc["common.loading"] : Loc["createRun.submit"])
+                    </FluentButton>
+                    <FluentButton
+                        Appearance="Appearance.Outline"
+                        OnClick="@(() => Nav.NavigateTo("/runs"))"
+                        Disabled="@submitting">
+                        @Loc["createRun.cancel"]
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>
+
+@code {
+    private IReadOnlyList<InstanceDto> instances = [];
+    private bool loading = true;
+    private bool submitting;
+    private string? loadError;
+
+    private string instanceId = string.Empty;
+    private string modeKey = string.Empty;
+    private string startTime = string.Empty;
+    private string signupCloseTime = string.Empty;
+    private string visibility = "PUBLIC";
+    private string description = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            instances = await InstancesClient.ListAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Failed to load instances: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        submitting = true;
+        var selectedInstance = instances.FirstOrDefault(i => i.Id == instanceId);
+        try
+        {
+            var request = new CreateRunRequest(
+                StartTime: startTime,
+                SignupCloseTime: string.IsNullOrWhiteSpace(signupCloseTime) ? null : signupCloseTime,
+                Description: string.IsNullOrWhiteSpace(description) ? null : description,
+                ModeKey: modeKey,
+                Visibility: visibility,
+                InstanceId: selectedInstance != null ? (int?)Convert.ToInt32(selectedInstance.Id) : null,
+                InstanceName: selectedInstance?.Name);
+
+            var created = await RunsClient.CreateAsync(request, CancellationToken.None);
+            if (created is null)
+            {
+                Toast.ShowError(Loc["createRun.failed"]);
+                submitting = false;
+                return;
+            }
+
+            Nav.NavigateTo($"/runs/{Uri.EscapeDataString(created.Id)}");
+        }
+        catch
+        {
+            Toast.ShowError(Loc["createRun.failed"]);
+            submitting = false;
+        }
+    }
+}

@@ -1,0 +1,33 @@
+@using Lfm.Contracts.Runs
+@inject IStringLocalizer Loc
+
+<FluentLabel Typo="Typography.H5" Style="margin:12px 0 4px">
+    @GroupLabel (@Characters.Count)
+</FluentLabel>
+
+<div style="overflow-x:auto">
+<FluentDataGrid Items="@Characters.AsQueryable()" TGridItem="RunCharacterDto"
+                GridTemplateColumns="@GridColumns">
+    <TemplateColumn Title="@Loc["runs.columns.character"]">
+        <WowClassBadge ClassId="@context.CharacterClassId" CharacterName="@context.CharacterName" />
+    </TemplateColumn>
+    <PropertyColumn Property="@(c => c.CharacterRealm)" Title="@Loc["runs.columns.realm"]" />
+    <PropertyColumn Property="@(c => c.CharacterClassName)" Title="@Loc["editRun.columns.class"]" />
+    <PropertyColumn Property="@(c => c.Role ?? "\u2014")" Title="@Loc["runs.columns.role"]" />
+    <PropertyColumn Property="@(c => c.SpecName ?? "\u2014")" Title="@Loc["runs.columns.spec"]" />
+    @if (ShowDesiredAttendance)
+    {
+        <PropertyColumn Property="@(c => c.DesiredAttendance)" Title="@Loc["editRun.columns.desired"]" />
+    }
+</FluentDataGrid>
+</div>
+
+@code {
+    [Parameter] public string GroupLabel { get; set; } = "";
+    [Parameter] public IReadOnlyList<RunCharacterDto> Characters { get; set; } = [];
+    [Parameter] public bool ShowDesiredAttendance { get; set; }
+
+    private string GridColumns => ShowDesiredAttendance
+        ? "1fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr"
+        : "1fr 1fr 0.7fr 0.7fr 0.7fr";
+}

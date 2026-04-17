@@ -1,0 +1,11 @@
+@page "/login/failed"
+@page "/auth/failure"
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["loginFailed.title"] — @Loc["nav.logo"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" HorizontalAlignment="HorizontalAlignment.Center">
+    <FluentLabel Typo="Typography.H3">@Loc["loginFailed.title"]</FluentLabel>
+    <FluentLabel>@Loc["loginFailed.subtitle"]</FluentLabel>
+    <FluentAnchor Href="/login" Appearance="Appearance.Outline">@Loc["loginFailed.button"]</FluentAnchor>
+</FluentStack>
