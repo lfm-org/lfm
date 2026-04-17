@@ -28,7 +28,7 @@ public class CharacterPortraitServiceTests
     {
         var httpClient = new HttpClient(handler);
         var repo = new Mock<IRaidersRepository>().Object;
-        var opts = Options.Create(new BlizzardOptions
+        var opts = Microsoft.Extensions.Options.Options.Create(new BlizzardOptions
         {
             ClientId = "id",
             ClientSecret = "secret",
