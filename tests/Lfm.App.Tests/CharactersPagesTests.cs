@@ -305,7 +305,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         // Assert: EnrichCharacterAsync called for exactly the first 3 keys.
         var first3Keys = chars.Take(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
-        var last2Keys  = chars.Skip(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
+        var last2Keys = chars.Skip(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
 
         cut.WaitForAssertion(() =>
         {
