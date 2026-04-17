@@ -5,6 +5,11 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Lfm.App</RootNamespace>
+    <!-- Blazor WASM SDK ships implicit package refs (HotReload, WebAssembly.Pack) whose
+         versions drift independently of global.json's SDK pin, so locked-mode restore
+         fails on CI even with the SDK pinned. Lockfile generation stays on; enforcement
+         lives on the other 7 projects via Directory.Build.props. -->
+    <RestoreLockedMode>false</RestoreLockedMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <WasmApplicationEnvironmentName>Production</WasmApplicationEnvironmentName>
