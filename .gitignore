@@ -78,6 +78,7 @@ infra/parameters.prod.*.json
 
 # Superpowers
 .superpowers
+docs/superpowers/
 
 # E2E test artifacts (screenshots, traces, DOM snapshots, JSON reports)
 artifacts/
