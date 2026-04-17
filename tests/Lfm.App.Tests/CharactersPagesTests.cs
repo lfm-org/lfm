@@ -267,6 +267,57 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void Eager_enriches_first_three_pending_cards_on_init()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+
+        // Arrange: 5 chars with ClassId = null so all start Pending.
+        var chars = Enumerable.Range(1, 5)
+            .Select(i => new CharacterDto(
+                Name: $"Char{i}",
+                Realm: "silvermoon",
+                RealmName: "Silvermoon",
+                Level: 80,
+                Region: "eu",
+                ClassId: null,
+                ClassName: null,
+                PortraitUrl: null,
+                ActiveSpecId: null,
+                SpecName: null))
+            .ToList();
+
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chars);
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeResponse?)null);
+        me.Setup(m => m.EnrichCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeChar());
+
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        // Assert: EnrichCharacterAsync called for exactly the first 3 keys.
+        var first3Keys = chars.Take(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
+        var last2Keys  = chars.Skip(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
+
+        cut.WaitForAssertion(() =>
+        {
+            foreach (var key in first3Keys)
+                me.Verify(m => m.EnrichCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Once);
+
+            foreach (var key in last2Keys)
+                me.Verify(m => m.EnrichCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Never);
+        });
+    }
+
+    [Fact]
     public void CharactersPage_Select_Failure_Reverts_And_Shows_Error()
     {
         this.AddAuthorization().SetAuthorized("player#1234");

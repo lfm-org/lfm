@@ -116,6 +116,9 @@
 </FluentStack>
 
 @code {
+    private enum EnrichState { Pending, Enriching, Enriched, Failed }
+    private readonly Dictionary<string, EnrichState> cardState = new();
+
     private LoadingState<IReadOnlyList<CharacterDto>> state = new LoadingState<IReadOnlyList<CharacterDto>>.Idle();
     private bool loading;
     private Dictionary<string, string> portraits = [];
@@ -134,6 +137,17 @@
         await LoadCharacters();
         var me = await meTask;
         selectedCharacterId = me?.SelectedCharacterId;
+
+        var pending = (state as LoadingState<IReadOnlyList<CharacterDto>>.Success)?.Value
+            .Where(c => cardState[CharKey(c)] == EnrichState.Pending)
+            .ToList() ?? [];
+        var eager = pending.Take(3).ToList();
+        var remaining = pending.Skip(3).ToList();
+
+        await Task.WhenAll(eager.Select(c => EnrichAsync(c)));
+        // Remaining pending cards stay Pending here — Task 13 adds the queue worker
+        // that drains them at 250 ms cadence.
+        _ = remaining; // silence "unused variable" until Task 13 wires this up
     }
 
     private async Task LoadCharacters()
@@ -150,6 +164,10 @@
             else
             {
                 state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
+                foreach (var c in chars)
+                    cardState[CharKey(c)] = (c.ClassId is not null && c.ActiveSpecId is not null)
+                        ? EnrichState.Enriched
+                        : EnrichState.Pending;
                 _ = LoadPortraitsAsync(chars);
             }
         }
@@ -254,6 +272,30 @@
         {
             deleting = false;
         }
+    }
+
+    private async Task EnrichAsync(CharacterDto c)
+    {
+        var key = CharKey(c);
+        cardState[key] = EnrichState.Enriching;
+        StateHasChanged();
+
+        var dto = await MeClient.EnrichCharacterAsync(key, CancellationToken.None);
+        if (dto is not null)
+        {
+            // Merge enriched fields into the currently-rendered list.
+            if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success s)
+            {
+                var updated = s.Value.Select(x => CharKey(x) == key ? dto : x).ToList();
+                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(updated);
+            }
+            cardState[key] = EnrichState.Enriched;
+        }
+        else
+        {
+            cardState[key] = EnrichState.Failed;
+        }
+        StateHasChanged();
     }
 
     private static string CharKey(CharacterDto c) =>
