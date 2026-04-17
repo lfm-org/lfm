@@ -125,9 +125,9 @@ Release with:
 
 Repository-level evidence always in place on `main`:
 
-- Lockfile-enforced restore on CI (`RestoreLockedMode` gated on `$(CI)` in `Directory.Build.props`) — transitive package drift fails the CI build
+- Lockfile-enforced restore on CI (`RestoreLockedMode` gated on `$(CI)` in [`Directory.Build.props`](Directory.Build.props)) — transitive package drift fails the CI build
 - [`NuGet.config`](NuGet.config) — `<clear />` + `nuget.org` only, plus `<packageSourceMapping>` pinning every package ID to `nuget.org` (defense against dependency confusion)
-- `CycloneDX` SBOM tool pinned via [`.config/dotnet-tools.json`](.config/dotnet-tools.json) — release job restores from the lockfile rather than installing an unpinned global tool
+- `CycloneDX` SBOM tool pinned via [`.config/dotnet-tools.json`](.config/dotnet-tools.json) — release job restores from the tool manifest rather than installing an unpinned global tool
 - [`LICENSE`](LICENSE) — AGPL-3.0-or-later, project license
 - [`NOTICE`](NOTICE) — copyright and "how to apply" pointer
 - [`REUSE.toml`](REUSE.toml) — collective license coverage for files
