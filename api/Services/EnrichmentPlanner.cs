@@ -14,10 +14,10 @@ public sealed record EnrichmentPlan(bool FetchProfile, bool FetchSpecs, bool Fet
 
 public static class EnrichmentPlanner
 {
-    private static readonly TimeSpan SpecsTtl  = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan MediaTtl  = TimeSpan.FromHours(24);
-    private static readonly TimeSpan ProfileLowTtl  = TimeSpan.FromHours(1);
-    private static readonly TimeSpan ProfileMaxTtl  = TimeSpan.FromHours(4);
+    private static readonly TimeSpan SpecsTtl = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MediaTtl = TimeSpan.FromHours(24);
+    private static readonly TimeSpan ProfileLowTtl = TimeSpan.FromHours(1);
+    private static readonly TimeSpan ProfileMaxTtl = TimeSpan.FromHours(4);
 
     public static EnrichmentPlan Plan(StoredSelectedCharacter? existing, DateTimeOffset now)
     {
@@ -29,8 +29,8 @@ public static class EnrichmentPlanner
 
         return new EnrichmentPlan(
             FetchProfile: IsExpired(existing.ProfileFetchedAt ?? existing.FetchedAt, profileTtl, now),
-            FetchSpecs:   IsExpired(existing.SpecsFetchedAt   ?? existing.FetchedAt, SpecsTtl,   now),
-            FetchMedia:   IsExpired(existing.MediaFetchedAt   ?? existing.FetchedAt, MediaTtl,   now));
+            FetchSpecs: IsExpired(existing.SpecsFetchedAt ?? existing.FetchedAt, SpecsTtl, now),
+            FetchMedia: IsExpired(existing.MediaFetchedAt ?? existing.FetchedAt, MediaTtl, now));
     }
 
     private static bool IsExpired(string? isoTimestamp, TimeSpan ttl, DateTimeOffset now)

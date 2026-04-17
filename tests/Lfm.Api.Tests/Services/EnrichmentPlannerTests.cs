@@ -103,7 +103,8 @@ public class EnrichmentPlannerTests
     public void Legacy_FetchedAt_seeds_null_tier_timestamps_when_fresh()
     {
         var c = MakeChar(profile: null, specs: null, media: null, level: 30)
-            with { FetchedAt = Iso(Now.AddMinutes(-5)) };
+            with
+        { FetchedAt = Iso(Now.AddMinutes(-5)) };
         var plan = EnrichmentPlanner.Plan(c, Now);
         // 5 min ago: profile (1h) fresh, specs (15 min) fresh, media (24h) fresh.
         Assert.False(plan.FetchProfile);
