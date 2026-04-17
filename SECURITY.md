@@ -104,6 +104,16 @@ The Azure Functions `dotnet-isolated` prebuilt base image runs as the base image
 
 **Retire when:** Microsoft ships OIDC support for the SWA deploy action.
 
+### Dependabot auto-merge for low-risk bumps
+
+`.github/workflows/dependabot-auto-merge.yml` enables GitHub's native auto-merge on Dependabot PRs matching a fixed policy: patch for every ecosystem, and minor for every ecosystem except docker. Major bumps and docker minor bumps stay manual.
+
+**Trust boundary:** the `dependabot/fetch-metadata` action (SHA-pinned) and GitHub's Dependabot service for correct tag→SHA resolution. Compromise of either would allow a malicious low-risk-level version bump to land after passing CI.
+
+**Compensating controls:** the `protect-main` ruleset's required status checks (CI, secrets-scan, analyze-infra) run the full build + unit/component tests + vulnerable-package audit + bundle-size budget before any auto-merge can complete. A failure in any required check keeps the PR open for manual review.
+
+**Retire when:** never (permanent on a hobby-project cost stance).
+
 ## Supply-chain evidence (per release)
 
 Every `push: main` that runs the deploy workflow produces a GitHub
