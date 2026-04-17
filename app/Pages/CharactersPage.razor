@@ -2,11 +2,12 @@
 @using Lfm.App.Services
 @using Lfm.Contracts.Characters
 @attribute [Authorize]
-@implements IDisposable
+@implements IAsyncDisposable
 @inject IBattleNetClient BattleNetClient
 @inject IMeClient MeClient
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
+@inject IJSRuntime JS
 
 <PageTitle>@Loc["characters.title"] — @Loc["nav.logo"]</PageTitle>
 
@@ -119,6 +120,9 @@
 @code {
     private enum EnrichState { Pending, Enriching, Enriched, Failed }
     private readonly Dictionary<string, EnrichState> cardState = new();
+
+    private IJSObjectReference? viewportModule;
+    private DotNetObjectReference<CharactersPage>? selfRef;
 
     private readonly Queue<string> enrichQueue = new();
     private Task? enrichWorkerTask;
@@ -314,9 +318,32 @@
         }
     }
 
-    public void Dispose()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success && viewportModule is null)
+        {
+            viewportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport-observer.js");
+            selfRef = DotNetObjectReference.Create(this);
+            await viewportModule.InvokeVoidAsync("start", selfRef, "[data-char-id]");
+        }
+    }
+
+    [JSInvokable]
+    public void OnCardVisible(string id)
+    {
+        if (cardState.TryGetValue(id, out var s) && s == EnrichState.Pending)
+            EnqueueFront(id);
+    }
+
+    public async ValueTask DisposeAsync()
     {
         enrichCts?.Cancel();
+        if (viewportModule is not null && selfRef is not null)
+        {
+            try { await viewportModule.InvokeVoidAsync("stop", selfRef); } catch { }
+            await viewportModule.DisposeAsync();
+        }
+        selfRef?.Dispose();
         enrichCts?.Dispose();
     }
 
