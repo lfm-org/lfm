@@ -297,7 +297,17 @@ public class CharactersPagesTests : ComponentTestBase
         me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((MeResponse?)null);
         me.Setup(m => m.EnrichCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeChar());
+            .ReturnsAsync((string key, CancellationToken _) => new CharacterDto(
+                Name: key.Split('-')[2],
+                Realm: "silvermoon",
+                RealmName: "Silvermoon",
+                Level: 80,
+                Region: "eu",
+                ClassId: 1,
+                ClassName: "Warrior",
+                PortraitUrl: null,
+                ActiveSpecId: 71,
+                SpecName: "Arms"));
 
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
@@ -378,9 +388,11 @@ public class CharactersPagesTests : ComponentTestBase
         var ts = timestamps.ToArray();
         Assert.Equal(6, ts.Length);
 
-        // Gaps between queue-drained enrichments (entries 3→4, 4→5, 5→6 in 1-based).
-        // Use ≥ 200 ms lower bound to tolerate CI scheduler jitter.
-        for (int i = 3; i < ts.Length; i++)
+        // Gaps between queue-drained enrichments. The worker delays AFTER each enrich,
+        // so the gap ts[2]→ts[3] is effectively 0 (eager-3 just completed when the worker
+        // fires its first iteration). The 250 ms pacing applies to gaps ts[3]→ts[4] and
+        // ts[4]→ts[5]. Use ≥ 200 ms lower bound to tolerate CI scheduler jitter.
+        for (int i = 4; i < ts.Length; i++)
         {
             var gap = ts[i] - ts[i - 1];
             Assert.True(gap >= TimeSpan.FromMilliseconds(200),
