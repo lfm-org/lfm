@@ -15,15 +15,24 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      actions-minor:
+        update-types: [minor, patch]
 
   - package-ecosystem: docker
     directory: /api
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      docker-patch:
+        update-types: [patch]
 
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      docker-patch:
+        update-types: [patch]
