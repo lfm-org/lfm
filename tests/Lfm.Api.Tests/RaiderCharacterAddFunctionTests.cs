@@ -590,8 +590,8 @@ public class RaiderCharacterAddFunctionTests
             Level: 80,
             SpecializationsSummary: new StoredSpecializationsSummary(), // non-null sentinel
             ProfileFetchedAt: now.AddMinutes(-30).ToString("O"),
-            SpecsFetchedAt:   now.AddMinutes(-30).ToString("O"),
-            MediaFetchedAt:   now.AddHours(-1).ToString("O"));
+            SpecsFetchedAt: now.AddMinutes(-30).ToString("O"),
+            MediaFetchedAt: now.AddHours(-1).ToString("O"));
 
         var raider = MakeRaider(characters: [existing], accountProfile: OwningSummary());
         var repo = RepoReturning(raider);

@@ -174,14 +174,14 @@ public class RaiderCharacterAddFunction(
         string now,
         EnrichmentPlan plan)
     {
-        var classId   = profile?.CharacterClass?.Id ?? existing?.ClassId;
+        var classId = profile?.CharacterClass?.Id ?? existing?.ClassId;
         var className = profile?.CharacterClass?.Name ?? existing?.ClassName;
-        var level     = profile?.Level ?? existing?.Level;
-        var guildId   = profile?.Guild?.Id ?? existing?.GuildId;
+        var level = profile?.Level ?? existing?.Level;
+        var guildId = profile?.Guild?.Id ?? existing?.GuildId;
         var guildName = profile?.Guild?.Name ?? existing?.GuildName;
-        var specs2    = specs is not null ? MapSpecializationsSummary(specs) : existing?.SpecializationsSummary;
-        var media2    = media ?? existing?.MediaSummary;
-        var portrait  = media is not null ? PickPortraitUrl(media) : existing?.PortraitUrl;
+        var specs2 = specs is not null ? MapSpecializationsSummary(specs) : existing?.SpecializationsSummary;
+        var media2 = media ?? existing?.MediaSummary;
+        var portrait = media is not null ? PickPortraitUrl(media) : existing?.PortraitUrl;
 
         return new StoredSelectedCharacter(
             Id: id, Region: region, Realm: realm, Name: nameDisplay,
@@ -195,8 +195,8 @@ public class RaiderCharacterAddFunction(
             GuildName: guildName,
             FetchedAt: existing?.FetchedAt, // leave legacy alone
             ProfileFetchedAt: plan.FetchProfile ? now : existing?.ProfileFetchedAt,
-            SpecsFetchedAt:   plan.FetchSpecs   ? now : existing?.SpecsFetchedAt,
-            MediaFetchedAt:   plan.FetchMedia   ? now : existing?.MediaFetchedAt);
+            SpecsFetchedAt: plan.FetchSpecs ? now : existing?.SpecsFetchedAt,
+            MediaFetchedAt: plan.FetchMedia ? now : existing?.MediaFetchedAt);
     }
 
     /// <summary>
