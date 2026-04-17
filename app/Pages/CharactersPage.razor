@@ -120,6 +120,7 @@
 @code {
     private enum EnrichState { Pending, Enriching, Enriched, Failed }
     private readonly Dictionary<string, EnrichState> cardState = new();
+    private readonly Dictionary<string, TaskCompletionSource> inflightEnrich = new();
 
     private IJSObjectReference? viewportModule;
     private DotNetObjectReference<CharactersPage>? selfRef;
@@ -234,13 +235,42 @@
     private async Task HandleSelectCharacter(CharacterDto c)
     {
         var key = CharKey(c);
-        if (key == selectedCharacterId || selecting)
-            return;
+        if (key == selectedCharacterId || selecting) return;
 
         selectError = null;
+        selecting = true;
+        StateHasChanged();
+
+        // Ensure enrichment before PUT.
+        if (!cardState.TryGetValue(key, out var s)) s = EnrichState.Pending;
+        switch (s)
+        {
+            case EnrichState.Enriching:
+                if (inflightEnrich.TryGetValue(key, out var tcs)) await tcs.Task;
+                break;
+            case EnrichState.Pending:
+                EnqueueFront(key);
+                var wait = new TaskCompletionSource();
+                inflightEnrich[key] = wait;
+                await wait.Task;
+                break;
+            case EnrichState.Failed:
+                await EnrichAsync(c);
+                break;
+            case EnrichState.Enriched:
+                break;
+        }
+
+        if (cardState[key] != EnrichState.Enriched)
+        {
+            selecting = false;
+            selectError = Loc["characters.error.selectFailed"];
+            StateHasChanged();
+            return;
+        }
+
         var prev = selectedCharacterId;
         selectedCharacterId = key;
-        selecting = true;
         StateHasChanged();
 
         var ok = await MeClient.SelectCharacterAsync(key, CancellationToken.None);
@@ -356,7 +386,6 @@
         var dto = await MeClient.EnrichCharacterAsync(key, CancellationToken.None);
         if (dto is not null)
         {
-            // Merge enriched fields into the currently-rendered list.
             if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success s)
             {
                 var updated = s.Value.Select(x => CharKey(x) == key ? dto : x).ToList();
@@ -369,6 +398,11 @@
             cardState[key] = EnrichState.Failed;
         }
         StateHasChanged();
+        if (inflightEnrich.TryGetValue(key, out var tcs))
+        {
+            inflightEnrich.Remove(key);
+            tcs.TrySetResult();
+        }
     }
 
     private static string CharKey(CharacterDto c) =>
