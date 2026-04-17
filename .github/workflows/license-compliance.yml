@@ -23,4 +23,4 @@ jobs:
           persist-credentials: false
 
       - name: REUSE lint
-        uses: fsfe/reuse-action@v5
+        uses: fsfe/reuse-action@v6
