@@ -11,6 +11,7 @@ using Lfm.Contracts.Raiders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 
 namespace Lfm.Api.Functions;
 
@@ -36,7 +37,8 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public class RaiderCharacterAddFunction(
     IRaidersRepository repo,
-    IBlizzardProfileClient profileClient)
+    IBlizzardProfileClient profileClient,
+    ILogger<RaiderCharacterAddFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
@@ -84,8 +86,13 @@ public class RaiderCharacterAddFunction(
 
         // 4. Ownership check against the cached account profile summary.
         if (!IsCharacterOwnedByAccount(characterId, region, raider.AccountProfileSummary))
+        {
+            logger.LogWarning(
+                "Ownership check failed for {BattleNetId} on character {CharacterId}",
+                principal.BattleNetId, characterId);
             return new ObjectResult(new { error = "Character not found in your Battle.net account" })
             { StatusCode = 403 };
+        }
 
         // 5. Plan which tiers are stale; reuse the cached record if everything is fresh.
         var existing = raider.Characters?.FirstOrDefault(c => c.Id == characterId);

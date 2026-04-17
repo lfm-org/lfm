@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -69,7 +70,7 @@ public class RaiderCharacterAddFunctionTests
     private static RaiderCharacterAddFunction MakeFunction(
         Mock<IRaidersRepository> repoMock,
         Mock<IBlizzardProfileClient> profileMock) =>
-        new(repoMock.Object, profileMock.Object);
+        new(repoMock.Object, profileMock.Object, NullLogger<RaiderCharacterAddFunction>.Instance);
 
     private static BlizzardAccountProfileSummary MakeAccountProfileWithCharacter(string name, string realmSlug) =>
         new BlizzardAccountProfileSummary(
@@ -599,7 +600,7 @@ public class RaiderCharacterAddFunctionTests
         profileClient.Setup(p => p.GetCharacterSpecializationsAsync("silvermoon", "aelrin", It.IsAny<string>(), It.IsAny<CancellationToken>()))
                      .ReturnsAsync(new BlizzardCharacterSpecializationsResponse());
 
-        var fn = new RaiderCharacterAddFunction(repo.Object, profileClient.Object);
+        var fn = new RaiderCharacterAddFunction(repo.Object, profileClient.Object, NullLogger<RaiderCharacterAddFunction>.Instance);
         await fn.Run(MakePostRequest(ValidBody), MakeFunctionContext(MakePrincipal()), CancellationToken.None);
 
         profileClient.Verify(p => p.GetCharacterProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);

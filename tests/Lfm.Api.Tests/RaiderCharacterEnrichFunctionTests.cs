@@ -8,6 +8,7 @@ using Lfm.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -77,7 +78,7 @@ public class RaiderCharacterEnrichFunctionTests
     // ---- helpers ----
     private static RaiderCharacterEnrichFunction MakeFunction(
         IRaidersRepository repo, IBlizzardProfileClient profile)
-        => new(repo, profile);
+        => new(repo, profile, NullLogger<RaiderCharacterEnrichFunction>.Instance);
 
     private static HttpRequest MakeRequest() => new DefaultHttpContext().Request;
 

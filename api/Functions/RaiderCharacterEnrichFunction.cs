@@ -8,6 +8,7 @@ using Lfm.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 
 namespace Lfm.Api.Functions;
 
@@ -17,7 +18,8 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public sealed class RaiderCharacterEnrichFunction(
     IRaidersRepository repo,
-    IBlizzardProfileClient profileClient)
+    IBlizzardProfileClient profileClient,
+    ILogger<RaiderCharacterEnrichFunction> logger)
 {
     [Function("raider-character-enrich")]
     [RequireAuth]
@@ -42,8 +44,13 @@ public sealed class RaiderCharacterEnrichFunction(
             return new NotFoundObjectResult(new { error = "Raider not found" });
 
         if (!RaiderCharacterAddFunction.IsCharacterOwnedByAccount(id, region, raider.AccountProfileSummary))
+        {
+            logger.LogWarning(
+                "Ownership check failed for {BattleNetId} on character {CharacterId}",
+                principal.BattleNetId, id);
             return new ObjectResult(new { error = "Character not found in your Battle.net account" })
             { StatusCode = 403 };
+        }
 
         var existing = raider.Characters?.FirstOrDefault(c => c.Id == id);
         var plan = EnrichmentPlanner.Plan(existing, DateTimeOffset.UtcNow);
