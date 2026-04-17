@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Collections.Concurrent;
 using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
@@ -303,18 +304,88 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        // Assert: EnrichCharacterAsync called for exactly the first 3 keys.
-        var first3Keys = chars.Take(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
-        var last2Keys = chars.Skip(3).Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
+        // Assert: EnrichCharacterAsync eventually called for all 5 keys.
+        // The first 3 are enriched eagerly in parallel; the remaining 2 are drained
+        // by the paced queue worker. We just verify all were called at least once.
+        var allKeys = chars.Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
 
         cut.WaitForAssertion(() =>
         {
-            foreach (var key in first3Keys)
+            foreach (var key in allKeys)
                 me.Verify(m => m.EnrichCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Once);
+        }, timeout: TimeSpan.FromSeconds(5));
+    }
 
-            foreach (var key in last2Keys)
-                me.Verify(m => m.EnrichCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Never);
-        });
+    [Fact]
+    public async Task Paces_queue_enrichment_at_250ms_cadence()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+
+        // Arrange: 6 chars with ClassId = null so all start Pending.
+        var chars = Enumerable.Range(1, 6)
+            .Select(i => new CharacterDto(
+                Name: $"Char{i}",
+                Realm: "silvermoon",
+                RealmName: "Silvermoon",
+                Level: 80,
+                Region: "eu",
+                ClassId: null,
+                ClassName: null,
+                PortraitUrl: null,
+                ActiveSpecId: null,
+                SpecName: null))
+            .ToList();
+
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chars);
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+
+        var timestamps = new ConcurrentQueue<DateTimeOffset>();
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeResponse?)null);
+        me.Setup(m => m.EnrichCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string key, CancellationToken _) =>
+            {
+                timestamps.Enqueue(DateTimeOffset.UtcNow);
+                return new CharacterDto(
+                    Name: key.Split('-')[2],
+                    Realm: "silvermoon",
+                    RealmName: "Silvermoon",
+                    Level: 80,
+                    Region: "eu",
+                    ClassId: 1,
+                    ClassName: "Warrior",
+                    PortraitUrl: null,
+                    ActiveSpecId: 71,
+                    SpecName: "Arms");
+            });
+
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        // Wait for all 6 enrichments to complete (generous 3 s timeout).
+        cut.WaitForAssertion(
+            () => Assert.Equal(6, timestamps.Count),
+            timeout: TimeSpan.FromSeconds(3));
+
+        // Check pacing: the first 3 are the eager parallel burst — skip gap checks between them.
+        // Characters 4-6 (indices 3-5) are processed by the queue worker with 250 ms delays.
+        var ts = timestamps.ToArray();
+        Assert.Equal(6, ts.Length);
+
+        // Gaps between queue-drained enrichments (entries 3→4, 4→5, 5→6 in 1-based).
+        // Use ≥ 200 ms lower bound to tolerate CI scheduler jitter.
+        for (int i = 3; i < ts.Length; i++)
+        {
+            var gap = ts[i] - ts[i - 1];
+            Assert.True(gap >= TimeSpan.FromMilliseconds(200),
+                $"Gap between enrichment {i} and {i + 1} was {gap.TotalMilliseconds:F0} ms, expected ≥ 200 ms");
+        }
     }
 
     [Fact]

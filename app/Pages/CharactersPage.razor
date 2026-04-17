@@ -2,6 +2,7 @@
 @using Lfm.App.Services
 @using Lfm.Contracts.Characters
 @attribute [Authorize]
+@implements IDisposable
 @inject IBattleNetClient BattleNetClient
 @inject IMeClient MeClient
 @inject NavigationManager Nav
@@ -119,6 +120,11 @@
     private enum EnrichState { Pending, Enriching, Enriched, Failed }
     private readonly Dictionary<string, EnrichState> cardState = new();
 
+    private readonly Queue<string> enrichQueue = new();
+    private Task? enrichWorkerTask;
+    private CancellationTokenSource? enrichCts;
+    private const int PacingDelayMs = 250;
+
     private LoadingState<IReadOnlyList<CharacterDto>> state = new LoadingState<IReadOnlyList<CharacterDto>>.Idle();
     private bool loading;
     private Dictionary<string, string> portraits = [];
@@ -145,9 +151,7 @@
         var remaining = pending.Skip(3).ToList();
 
         await Task.WhenAll(eager.Select(c => EnrichAsync(c)));
-        // Remaining pending cards stay Pending here — Task 13 adds the queue worker
-        // that drains them at 250 ms cadence.
-        _ = remaining; // silence "unused variable" until Task 13 wires this up
+        EnqueueRemaining(remaining);
     }
 
     private async Task LoadCharacters()
@@ -272,6 +276,48 @@
         {
             deleting = false;
         }
+    }
+
+    private void EnqueueRemaining(IEnumerable<CharacterDto> remaining)
+    {
+        foreach (var c in remaining)
+            enrichQueue.Enqueue(CharKey(c));
+        EnsureWorker();
+    }
+
+    private void EnqueueFront(string key)
+    {
+        // Promote: rebuild queue with key at front.
+        var buf = new List<string> { key };
+        while (enrichQueue.TryDequeue(out var k)) if (k != key) buf.Add(k);
+        foreach (var k in buf) enrichQueue.Enqueue(k);
+        EnsureWorker();
+    }
+
+    private void EnsureWorker()
+    {
+        if (enrichWorkerTask is { IsCompleted: false }) return;
+        enrichCts = new CancellationTokenSource();
+        enrichWorkerTask = RunEnrichWorkerAsync(enrichCts.Token);
+    }
+
+    private async Task RunEnrichWorkerAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested && enrichQueue.TryDequeue(out var key))
+        {
+            var success = (state as LoadingState<IReadOnlyList<CharacterDto>>.Success);
+            var character = success?.Value.FirstOrDefault(c => CharKey(c) == key);
+            if (character is null) continue;
+            if (cardState.TryGetValue(key, out var s) && s != EnrichState.Pending) continue;
+            await EnrichAsync(character);
+            await Task.Delay(PacingDelayMs, ct);
+        }
+    }
+
+    public void Dispose()
+    {
+        enrichCts?.Cancel();
+        enrichCts?.Dispose();
     }
 
     private async Task EnrichAsync(CharacterDto c)
