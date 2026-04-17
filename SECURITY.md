@@ -125,7 +125,7 @@ Release with:
 
 Repository-level evidence always in place on `main`:
 
-- Lockfile-enforced restore on CI (`RestoreLockedMode` gated on `$(CI)` in [`Directory.Build.props`](Directory.Build.props)) — transitive package drift fails the CI build
+- Lockfile-enforced restore on CI (`RestoreLockedMode` gated on `$(CI)` in [`Directory.Build.props`](Directory.Build.props)) — transitive package drift fails the CI build. Enforced on 7 of 8 projects; the Blazor WASM project ([`app/Lfm.App.csproj`](app/Lfm.App.csproj)) opts out because its SDK-bundled implicit refs (`Microsoft.NET.Sdk.WebAssembly.Pack`, `Microsoft.DotNet.HotReload.WebAssembly.Browser`) drift independently of the pinned SDK version, making locked-mode impractical there. SDK version itself is pinned via `rollForward: disable` in [`global.json`](global.json).
 - [`NuGet.config`](NuGet.config) — `<clear />` + `nuget.org` only, plus `<packageSourceMapping>` pinning every package ID to `nuget.org` (defense against dependency confusion)
 - `CycloneDX` SBOM tool pinned via [`.config/dotnet-tools.json`](.config/dotnet-tools.json) — release job restores from the tool manifest rather than installing an unpinned global tool
 - [`LICENSE`](LICENSE) — AGPL-3.0-or-later, project license
