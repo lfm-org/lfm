@@ -77,10 +77,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Fill in required form fields with a unique run name via description.
         // Use a future date anchored to UtcNow so the test does not become a
         // time bomb the way the seeded run did (see DefaultSeed.SeedRunAsync).
+        // The native <input type="datetime-local"> accepts no timezone suffix;
+        // the browser interprets the value as wall-clock local time.
         var uniqueRunName = $"E2E-Create-{Guid.NewGuid():N}";
         await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
         await runsPage.StartTimeInput.FillAsync(
-            DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ssZ"));
+            DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
         await runsPage.DescriptionInput.FillAsync(uniqueRunName);
 
         // Submit
@@ -264,8 +266,10 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
             var uniqueDescription = $"E2E-Delete-{Guid.NewGuid():N}";
             await runsPage.ModeKeyInput.FillAsync("HEROIC:25");
+            // Native <input type="datetime-local"> rejects a Z suffix; the
+            // browser interprets the value as wall-clock local time.
             await runsPage.StartTimeInput.FillAsync(
-                DateTimeOffset.UtcNow.AddDays(60).ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                DateTimeOffset.UtcNow.AddDays(60).ToString("yyyy-MM-ddTHH:mm:ss"));
             await runsPage.DescriptionInput.FillAsync(uniqueDescription);
             await deletePage.Keyboard.PressAsync("Tab");
             await runsPage.CreateRunSubmitButton.ClickAsync();

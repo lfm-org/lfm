@@ -206,7 +206,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         // Wait for the Guild page heading (use typo attribute to disambiguate from nav)
         await Assertions.Expect(
-            page.Locator("[typo='h3']").Filter(new() { HasTextString = "Guild" }))
+            page.Locator("[typo='h1']").Filter(new() { HasTextString = "Guild" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
 
         await AccessibilityHelper.ScanAndAssert(page, Output, "/guild");
