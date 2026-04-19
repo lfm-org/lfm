@@ -47,23 +47,27 @@
                     Value="@modeKey"
                     ValueChanged="@(v => modeKey = v)"
                     Disabled="@submitting"
-                    Placeholder="@Loc["createRun.modeKeyPlaceholder"]" />
+                    Placeholder="@Loc["createRun.modeKeyPlaceholder"]"
+                    @attributes="ModeKeyAttrs" />
 
-                <FluentTextField
-                    Id="starttime-input"
-                    Label="@Loc["createRun.startTime"]"
-                    Value="@startTime"
-                    ValueChanged="@(v => startTime = v)"
-                    Disabled="@submitting"
-                    Placeholder="@Loc["createRun.startTimePlaceholder"]" />
+                <label class="field">
+                    <span class="field__label">@Loc["createRun.startTime"]</span>
+                    <input type="datetime-local"
+                           id="starttime-input"
+                           class="field__input"
+                           @bind="startTimeLocal"
+                           disabled="@submitting"
+                           required />
+                </label>
 
-                <FluentTextField
-                    Id="signupclose-input"
-                    Label="@Loc["createRun.signupCloseTime"]"
-                    Value="@signupCloseTime"
-                    ValueChanged="@(v => signupCloseTime = v)"
-                    Disabled="@submitting"
-                    Placeholder="@Loc["createRun.signupCloseTimePlaceholder"]" />
+                <label class="field">
+                    <span class="field__label">@Loc["createRun.signupCloseTime"]</span>
+                    <input type="datetime-local"
+                           id="signupclose-input"
+                           class="field__input"
+                           @bind="signupCloseLocal"
+                           disabled="@submitting" />
+                </label>
 
                 <FluentSelect
                     Id="visibility-select"
@@ -81,13 +85,14 @@
                     Label="@Loc["createRun.description"]"
                     Value="@description"
                     ValueChanged="@(v => description = v)"
-                    Disabled="@submitting" />
+                    Disabled="@submitting"
+                    @attributes="DescriptionAttrs" />
 
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                     <FluentButton
                         Appearance="Appearance.Accent"
                         OnClick="@HandleSubmit"
-                        Disabled="@(submitting || string.IsNullOrWhiteSpace(instanceId) || string.IsNullOrWhiteSpace(startTime) || string.IsNullOrWhiteSpace(modeKey))">
+                        Disabled="@(submitting || string.IsNullOrWhiteSpace(instanceId) || startTimeLocal is null || string.IsNullOrWhiteSpace(modeKey))">
                         @(submitting ? Loc["common.loading"] : Loc["createRun.submit"])
                     </FluentButton>
                     <FluentButton
@@ -110,10 +115,26 @@
 
     private string instanceId = string.Empty;
     private string modeKey = string.Empty;
-    private string startTime = string.Empty;
-    private string signupCloseTime = string.Empty;
+    private DateTime? startTimeLocal;
+    private DateTime? signupCloseLocal;
     private string visibility = "PUBLIC";
     private string description = string.Empty;
+
+    private static string? ToIsoOrNull(DateTime? dt) =>
+        dt is null ? null : dt.Value.ToString("yyyy-MM-ddTHH:mm:ss");
+
+    private static readonly Dictionary<string, object> ModeKeyAttrs = new()
+    {
+        ["autocomplete"] = "off",
+        ["autocapitalize"] = "characters",
+        ["spellcheck"] = (bool?)false,
+    };
+
+    private static readonly Dictionary<string, object> DescriptionAttrs = new()
+    {
+        ["enterkeyhint"] = "done",
+        ["maxlength"] = (int?)500,
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,8 +159,8 @@
         try
         {
             var request = new CreateRunRequest(
-                StartTime: startTime,
-                SignupCloseTime: string.IsNullOrWhiteSpace(signupCloseTime) ? null : signupCloseTime,
+                StartTime: ToIsoOrNull(startTimeLocal) ?? string.Empty,
+                SignupCloseTime: ToIsoOrNull(signupCloseLocal),
                 Description: string.IsNullOrWhiteSpace(description) ? null : description,
                 ModeKey: modeKey,
                 Visibility: visibility,

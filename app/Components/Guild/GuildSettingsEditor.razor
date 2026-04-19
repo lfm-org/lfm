@@ -38,7 +38,8 @@
             ValueChanged="@SloganChanged"
             Disabled="@(!RankDataFresh || Saving)"
             Rows="2"
-            Style="max-width:480px" />
+            Style="max-inline-size:480px"
+            @attributes="SloganAttrs" />
 
         @if (RankPermissions.Count > 0)
         {
@@ -106,6 +107,12 @@
         ("da", "Dansk"),
         ("nb", "Norsk"),
     ];
+
+    private static readonly Dictionary<string, object> SloganAttrs = new()
+    {
+        ["enterkeyhint"] = "done",
+        ["maxlength"] = (int?)200,
+    };
 
     [Parameter, EditorRequired] public string Timezone { get; set; } = "Europe/Helsinki";
     [Parameter, EditorRequired] public string Locale { get; set; } = "fi";
