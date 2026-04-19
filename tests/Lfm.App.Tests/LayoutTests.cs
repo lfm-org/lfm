@@ -114,4 +114,19 @@ public class LayoutTests : ComponentTestBase
         var toggle = cut.Find("fluent-button[aria-label='Switch to light mode']");
         Assert.NotNull(toggle);
     }
+
+    [Fact]
+    public void MainLayout_Main_Element_Has_Ref_For_Focus_Management()
+    {
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        // The <main> must exist and be focusable (tabindex=-1).
+        var main = cut.Find("main#main-content");
+        Assert.NotNull(main);
+        Assert.Equal("-1", main.GetAttribute("tabindex"));
+        // The FocusOnNavigate component with Selector="h1" must be gone — focus is now driven by MainLayout's LocationChanged handler.
+        Assert.DoesNotContain("FocusOnNavigate", cut.Markup);
+    }
 }
