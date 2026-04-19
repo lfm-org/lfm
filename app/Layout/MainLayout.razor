@@ -76,7 +76,7 @@
     </AuthorizeView>
 
     <!-- Page content -->
-    <main id="main-content" tabindex="-1" @ref="mainRef" style="flex:1;padding-block:24px;padding-inline:16px">
+    <main id="main-content" tabindex="-1" @ref="_mainRef" style="flex:1;padding-block:24px;padding-inline:16px">
         @Body
     </main>
 
@@ -102,7 +102,7 @@
 @code {
     private bool _showMobileMenu;
     private bool _navigated;
-    private ElementReference mainRef;
+    private ElementReference _mainRef;
     private string _themeIcon = "\u2600\ufe0f";
     private string _themeTooltip = string.Empty;
 
@@ -155,7 +155,12 @@
         if (_navigated)
         {
             _navigated = false;
-            try { await mainRef.FocusAsync(); } catch { /* element may be stale during teardown */ }
+            try
+            {
+                await _mainRef.FocusAsync();
+            }
+            catch (InvalidOperationException) { /* mainRef not bound yet — page is being torn down. */ }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { /* JS channel disposed during teardown. */ }
         }
     }
 
