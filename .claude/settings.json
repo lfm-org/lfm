@@ -60,6 +60,10 @@
           {
             "type": "command",
             "command": "bash ./scripts/claude/stop-devsecops-audit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ./scripts/claude/stop-responsive-audit.sh"
           }
         ]
       }
