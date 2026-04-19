@@ -101,7 +101,8 @@
                 @bind-Value="deleteConfirmation"
                 Placeholder="@Loc["characters.deleteAccount.placeholder"]"
                 Disabled="@deleting"
-                Style="max-width:320px" />
+                Style="max-inline-size:320px"
+                @attributes="DeleteConfirmAttrs" />
             @if (!string.IsNullOrEmpty(deleteError))
             {
                 <FluentMessageBar Intent="MessageIntent.Error">@deleteError</FluentMessageBar>
@@ -144,6 +145,13 @@
     private bool deleting;
 
     private bool deleteConfirmationValid => deleteConfirmation == "FORGET ME";
+
+    private static readonly Dictionary<string, object> DeleteConfirmAttrs = new()
+    {
+        ["autocomplete"] = "off",
+        ["autocapitalize"] = "characters",
+        ["spellcheck"] = (bool?)false,
+    };
 
     protected override async Task OnInitializedAsync()
     {
