@@ -75,6 +75,7 @@ public class HeadingStructureTests : ComponentTestBase
     [InlineData(typeof(GuildPage))]
     [InlineData(typeof(GuildAdminPage))]
     [InlineData(typeof(CreateRunPage))]
+    [InlineData(typeof(EditRunPage))]
     [InlineData(typeof(InstancesPage))]
     public void AuthenticatedPage_Renders_Exactly_One_H1(Type pageType)
     {
