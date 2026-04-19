@@ -49,7 +49,7 @@
                                 @key="run.Id"
                                 data-testid="run-item-@run.Id"
                                 class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
-                                aria-pressed="@isSelected"
+                                aria-pressed="@(isSelected ? "true" : "false")"
                                 @onclick="@(() => SelectRun(run.Id))">
                             <span class="run-list-item__header">
                                 <span class="run-list-item__title">@run.InstanceName</span>

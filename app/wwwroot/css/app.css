@@ -166,7 +166,8 @@ a, .btn-link {
     }
 }
 
-/* Run list items — rendered as <button> for keyboard activation. */
+/* Run list items — rendered as <button> for keyboard activation.
+   all: unset relies on .runs-sidebar setting color + font for text inheritance. */
 .run-list-item {
     all: unset;
     box-sizing: border-box;
