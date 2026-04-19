@@ -76,7 +76,7 @@
     </AuthorizeView>
 
     <!-- Page content -->
-    <main id="main-content" tabindex="-1" style="flex:1;padding:24px 16px;outline:none">
+    <main id="main-content" tabindex="-1" @ref="mainRef" style="flex:1;padding-block:24px;padding-inline:16px">
         @Body
     </main>
 
@@ -101,6 +101,8 @@
 
 @code {
     private bool _showMobileMenu;
+    private bool _navigated;
+    private ElementReference mainRef;
     private string _themeIcon = "\u2600\ufe0f";
     private string _themeTooltip = string.Empty;
 
@@ -139,6 +141,7 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         _showMobileMenu = false;
+        _navigated = true;
         InvokeAsync(StateHasChanged);
     }
 
@@ -147,6 +150,12 @@
         if (firstRender)
         {
             await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
+        }
+
+        if (_navigated)
+        {
+            _navigated = false;
+            try { await mainRef.FocusAsync(); } catch { /* element may be stale during teardown */ }
         }
     }
 
