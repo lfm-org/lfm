@@ -70,13 +70,13 @@ public class RunsPage(IPage page)
     public ILocator ModeKeyInput =>
         _page.Locator("#modekey-input input");
 
-    /// <summary>Start Time text field — inner input of FluentTextField.</summary>
+    /// <summary>Start Time native &lt;input type="datetime-local"&gt; element.</summary>
     public ILocator StartTimeInput =>
-        _page.Locator("#starttime-input input");
+        _page.Locator("#starttime-input");
 
-    /// <summary>Signup Close Time text field — inner input of FluentTextField.</summary>
+    /// <summary>Signup Close Time native &lt;input type="datetime-local"&gt; element.</summary>
     public ILocator SignupCloseTimeInput =>
-        _page.Locator("#signupclose-input input");
+        _page.Locator("#signupclose-input");
 
     /// <summary>Visibility dropdown on the create-run form.</summary>
     public ILocator VisibilitySelect =>
