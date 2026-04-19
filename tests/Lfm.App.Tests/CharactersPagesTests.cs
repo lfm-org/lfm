@@ -508,6 +508,30 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CharactersPage_Character_Card_Is_A_Button()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { MakeChar("Arthas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse());
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var cards = cut.FindAll("button.character-card");
+            Assert.NotEmpty(cards);
+        });
+    }
+
+    [Fact]
     public void Click_on_Failed_card_retries_enrich_then_PUTs()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
