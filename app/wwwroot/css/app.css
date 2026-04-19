@@ -210,8 +210,8 @@ a, .btn-link {
 
 .run-list-item--selected {
     background: var(--neutral-fill-secondary-rest);
-    border-left: 3px solid var(--accent-fill-rest);
-    padding-left: 13px;
+    border-inline-start: 3px solid var(--accent-fill-rest);
+    padding-inline-start: 13px;
 }
 
 .run-list-item__header {
@@ -353,7 +353,7 @@ a, .btn-link {
     padding: 10px 12px 10px 9px;
     background: var(--neutral-fill-rest);
     border-radius: calc(var(--control-corner-radius) * 1px);
-    border-left: 3px solid var(--class-color, var(--neutral-stroke-rest));
+    border-inline-start: 3px solid var(--class-color, var(--neutral-stroke-rest));
     min-height: 44px;
 }
 
