@@ -29,10 +29,6 @@ html, body {
     color: var(--foreground-on-accent-rest);
 }
 
-h1:focus {
-    outline: none;
-}
-
 a, .btn-link {
     color: var(--accent-fill-rest);
 }
