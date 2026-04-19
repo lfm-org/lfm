@@ -7,16 +7,6 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main]
-    paths:
-      - 'api/**'
-      - 'app/**'
-      - 'shared/**'
-      - 'tests/**'
-      - 'lfm.sln'
-      - 'global.json'
-      - 'Directory.Packages.props'
-      - 'scripts/check-bundle-size.sh'
-      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
