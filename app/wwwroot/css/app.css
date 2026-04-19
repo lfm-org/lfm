@@ -472,3 +472,27 @@ a, .btn-link {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Character portrait + placeholder — shared sizing. */
+.character-portrait {
+    inline-size: 48px;
+    block-size: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.character-portrait--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    background: var(--neutral-fill-rest);
+}
+
+/* Guild crest — fixed dimensions from Blizzard CDN. */
+.guild-crest {
+    inline-size: 88px;
+    block-size: 88px;
+    border-radius: 8px;
+    object-fit: cover;
+}
