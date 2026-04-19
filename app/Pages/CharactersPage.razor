@@ -64,11 +64,17 @@
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
                                 @if (!string.IsNullOrEmpty(portraitSrc))
                                 {
-                                    <img src="@portraitSrc" alt="@c.Name" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                                    <img src="@portraitSrc"
+                                         alt="@c.Name"
+                                         class="character-portrait"
+                                         width="48"
+                                         height="48"
+                                         loading="lazy"
+                                         decoding="async" />
                                 }
                                 else
                                 {
-                                    <div style="width:48px;height:48px;border-radius:50%;background:var(--neutral-fill-rest);display:flex;align-items:center;justify-content:center;font-weight:600">
+                                    <div class="character-portrait character-portrait--placeholder">
                                         @c.Name.Substring(0, 1).ToUpperInvariant()
                                     </div>
                                 }

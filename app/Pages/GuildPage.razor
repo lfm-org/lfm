@@ -73,7 +73,13 @@
                         <FluentLabel>@dto.Guild.RealmName@(dto.Guild.FactionName != null ? $" \u00b7 {dto.Guild.FactionName}" : "")</FluentLabel>
                         @if (dto.Guild.CrestEmblemUrl != null)
                         {
-                            <img src="@dto.Guild.CrestEmblemUrl" alt="@Loc["guild.crestAlt"]" style="width:88px;height:88px;border-radius:8px;object-fit:cover;" />
+                            <img src="@dto.Guild.CrestEmblemUrl"
+                                 alt="@Loc["guild.crestAlt"]"
+                                 class="guild-crest"
+                                 width="88"
+                                 height="88"
+                                 loading="lazy"
+                                 decoding="async" />
                         }
                     </FluentStack>
                 </FluentCard>
