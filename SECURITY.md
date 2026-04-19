@@ -30,9 +30,8 @@ This is a rolling-`main` hobby project. There are no tagged versions; the latest
 |---|---|
 | OWASP ASVS 4.0.3 | L1 |
 | OWASP SCVS | L1 |
-| SLSA Build | L1 (declared) |
 
-These targets reflect a hobby project with a `free` cost stance. `SECURITY.md` is the first evidence artifact for the SLSA Build L1 declaration.
+These targets reflect a hobby project with a `free` cost stance.
 
 ## Scope
 
@@ -119,20 +118,12 @@ The Azure Functions `dotnet-isolated` prebuilt base image runs as the base image
 
 **Retire when:** never (permanent on a hobby-project cost stance).
 
-## Supply-chain evidence (per release)
+## Supply-chain evidence
 
-Every `push: main` that runs the deploy workflow produces a GitHub
-Release with:
-
-- CycloneDX SBOM (`sbom-api.cdx.json`)
-- cosign keyless OIDC signature bundle per published blob
-- SHA-256 manifest
-
-Repository-level evidence always in place on `main`:
+This project does not publish release artifacts. It is intended to be cloned or forked and deployed via the consumer's own CI/CD. Supply-chain evidence is therefore repository-level, always in place on `main`:
 
 - Lockfile-enforced restore on CI (`RestoreLockedMode` gated on `$(CI)` in [`Directory.Build.props`](Directory.Build.props)) — transitive package drift fails the CI build. Enforced on 7 of 8 projects; the Blazor WASM project ([`app/Lfm.App.csproj`](app/Lfm.App.csproj)) opts out because its SDK-bundled implicit refs (`Microsoft.NET.Sdk.WebAssembly.Pack`, `Microsoft.DotNet.HotReload.WebAssembly.Browser`) drift independently of the pinned SDK version, making locked-mode impractical there. SDK version itself is pinned via `rollForward: disable` in [`global.json`](global.json).
 - [`NuGet.config`](NuGet.config) — `<clear />` + `nuget.org` only, plus `<packageSourceMapping>` pinning every package ID to `nuget.org` (defense against dependency confusion)
-- `CycloneDX` SBOM tool pinned via [`.config/dotnet-tools.json`](.config/dotnet-tools.json) — release job restores from the tool manifest rather than installing an unpinned global tool
 - `persist-credentials: false` on every `actions/checkout` step in every workflow — `GITHUB_TOKEN` is not left on disk for subsequent steps to reuse
 - Gitleaks release asset integrity verified via SHA-256 checksum file before extraction
 - [`LICENSE`](LICENSE) — AGPL-3.0-or-later, project license
@@ -145,9 +136,6 @@ Repository-level evidence always in place on `main`:
   enforcement against `.github/license-allowlist.txt`
 - [`docs/security-reviews/2026-04-16-dep-license-audit.md`](docs/security-reviews/2026-04-16-dep-license-audit.md)
   — one-time baseline audit of all NuGet dependencies
-
-This is the evidence artifact for `SLSA Build L1`. SLSA L2 (provenance
-attestation) is out of scope on cost grounds.
 
 Per-file provenance is covered by SPDX headers and REUSE — supports the
 OWASP SCVS L1 declaration in § Declared Security Targets.
