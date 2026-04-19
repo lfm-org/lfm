@@ -40,4 +40,27 @@ public class InstancesPageTests : ComponentTestBase
         var cut = Render<InstancesPage>();
         cut.WaitForAssertion(() => Assert.Contains("Liberation of Undermine", cut.Markup));
     }
+
+    // RD-OVERFLOW-1 (#30): the grid sits in an overflow-x wrapper so wide
+    // tables stay reachable on narrow screens. Expose it to assistive tech
+    // as a scrollable region (role=region, tabindex=0, aria-label).
+    [Fact]
+    public void Grid_Is_Wrapped_In_Labelled_Scroll_Region()
+    {
+        var client = new Mock<IInstancesClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto>
+            {
+                new("liberation", "Liberation of Undermine", "raid", "tww")
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<InstancesPage>();
+        cut.WaitForAssertion(() => Assert.Contains("Liberation of Undermine", cut.Markup));
+
+        var region = cut.Find("div.scroll-region");
+        Assert.Equal("region", region.GetAttribute("role"));
+        Assert.Equal("0", region.GetAttribute("tabindex"));
+        Assert.Equal(Loc("instances.tableAriaLabel"), region.GetAttribute("aria-label"));
+    }
 }

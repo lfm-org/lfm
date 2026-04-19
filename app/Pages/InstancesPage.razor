@@ -20,7 +20,7 @@
       <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
       break;
     case LoadingState<IReadOnlyList<InstanceDto>>.Success s:
-      <div style="overflow-x:auto">
+      <div class="scroll-region" role="region" tabindex="0" aria-label="@Loc["instances.tableAriaLabel"]">
       <FluentDataGrid Items="@s.Value.AsQueryable()" TGridItem="InstanceDto">
         <PropertyColumn Property="@(i => i.Name)" Title="@Loc["instances.columns.name"]" />
         <PropertyColumn Property="@(i => i.ModeKey)" Title="@Loc["instances.columns.mode"]" />

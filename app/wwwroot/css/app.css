@@ -496,3 +496,12 @@ a, .btn-link {
     border-radius: 8px;
     object-fit: cover;
 }
+
+/* Horizontally scrollable data grids. `role="region" tabindex="0"` wraps
+ * these so keyboard users can reach the overflow (SC 1.4.10 Reflow).
+ * `scrollbar-gutter: stable both-edges` prevents content jump when the
+ * scrollbar appears. */
+.scroll-region {
+    overflow-x: auto;
+    scrollbar-gutter: stable both-edges;
+}
