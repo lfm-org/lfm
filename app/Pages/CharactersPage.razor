@@ -58,7 +58,7 @@
                             @onclick="@(() => HandleSelectCharacter(c))">
                         @if (isSelected)
                         {
-                            <div style="position:absolute;top:8px;right:8px;background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest);font-size:0.7em;padding:2px 8px;border-radius:10px;z-index:1;pointer-events:none">@Loc["characters.active"]</div>
+                            <span style="display:inline-block;position:absolute;top:8px;right:8px;background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest);font-size:0.7em;padding:2px 8px;border-radius:10px;z-index:1;pointer-events:none">@Loc["characters.active"]</span>
                         }
                         <FluentCard Style="padding:12px">
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
