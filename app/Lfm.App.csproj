@@ -66,6 +66,8 @@
       <SecurityTxtDest>$(MSBuildProjectDirectory)/wwwroot/.well-known/security.txt</SecurityTxtDest>
       <SwaConfigSource>$(MSBuildProjectDirectory)/wwwroot/staticwebapp.config.json.template</SwaConfigSource>
       <SwaConfigDest>$(MSBuildProjectDirectory)/wwwroot/staticwebapp.config.json</SwaConfigDest>
+      <IndexHtmlSource>$(MSBuildProjectDirectory)/wwwroot/index.html.template</IndexHtmlSource>
+      <IndexHtmlDest>$(MSBuildProjectDirectory)/wwwroot/index.html</IndexHtmlDest>
     </PropertyGroup>
 
     <!-- Use bash sed for substitution: safe for plain-text template replacement
@@ -83,6 +85,11 @@
         -e 's|{{STORAGE_ACCOUNT_NAME}}|$(StorageAccountName)|g' \
         '$(SwaConfigSource)' &gt; '$(SwaConfigDest)'&quot;"
           Condition="Exists('$(SwaConfigSource)')" />
+
+    <Exec Command="bash -c &quot;sed \
+        -e 's|{{API_HOSTNAME}}|$(ApiHostname)|g' \
+        '$(IndexHtmlSource)' &gt; '$(IndexHtmlDest)'&quot;"
+          Condition="Exists('$(IndexHtmlSource)')" />
   </Target>
 
 </Project>

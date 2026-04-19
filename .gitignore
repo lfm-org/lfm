@@ -155,3 +155,6 @@ app/wwwroot/appsettings.Development.json
 
 # Chrome local installation
 .chrome/
+
+# Generated from index.html.template by GenerateStaticTemplates MSBuild target.
+app/wwwroot/index.html

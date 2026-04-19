@@ -12,3 +12,19 @@ window.lfmSetDocumentLang = function (lang) {
 window.lfmGetBrowserLanguage = function () {
     return navigator.language || navigator.userLanguage || 'en';
 };
+
+window.lfmGetPrefersColorScheme = function () {
+    try {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+        return 'light';
+    }
+};
+
+window.lfmGetStoredTheme = function () {
+    try {
+        return window.localStorage.getItem('lfm-theme') || null;
+    } catch {
+        return null;
+    }
+};
