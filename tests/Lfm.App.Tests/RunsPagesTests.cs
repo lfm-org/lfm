@@ -363,4 +363,44 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("editRun.error.notFound"), cut.Markup));
     }
+
+    // Regression: save without editing datetime fields must preserve the
+    // original UTC ISO string byte-for-byte. A prior migration to native
+    // <input type="datetime-local"> stripped the timezone on round-trip,
+    // causing the API's locked-field check to reject description-only edits
+    // on runs with signups (400 "Cannot change start time after signups").
+    [Fact]
+    public void EditRunPage_Save_Without_Edit_Preserves_Utc_Iso_Round_Trip()
+    {
+        const string OriginalStart = "2026-05-20T15:30:45.1234567Z";
+        const string OriginalSignup = "2026-05-20T15:00:45.1234567Z";
+
+        var instancesClient = new Mock<IInstancesClient>();
+        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto> { new("1", "Liberation of Undermine", "raid", "tww") });
+
+        UpdateRunRequest? captured = null;
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail() with { StartTime = OriginalStart, SignupCloseTime = OriginalSignup });
+        runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<string, UpdateRunRequest, CancellationToken>((_, req, _) => captured = req)
+            .ReturnsAsync((RunDetailDto?)null);
+
+        Services.AddSingleton(instancesClient.Object);
+        Services.AddSingleton(runsClient.Object);
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.saveChanges")));
+        saveButton.Click();
+
+        cut.WaitForAssertion(() => Assert.NotNull(captured));
+        Assert.Equal(OriginalStart, captured!.StartTime);
+        Assert.Equal(OriginalSignup, captured.SignupCloseTime);
+    }
 }
