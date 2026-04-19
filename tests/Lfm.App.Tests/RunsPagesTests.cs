@@ -403,4 +403,38 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Equal(OriginalStart, captured!.StartTime);
         Assert.Equal(OriginalSignup, captured.SignupCloseTime);
     }
+
+    // RD-DIALOG-1 (#26): the delete confirmation renders as a native <dialog>
+    // so focus trap, Esc dismissal, and focus restoration come from the browser
+    // for free. Clicking "Delete run" must open it via the dialog.js interop
+    // module rather than flipping a render flag.
+    [Fact]
+    public void EditRunPage_Delete_Button_Opens_Native_Dialog_Via_Interop()
+    {
+        var instancesClient = new Mock<IInstancesClient>();
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<InstanceDto>());
+        Services.AddSingleton(instancesClient.Object);
+        Services.AddSingleton(runsClient.Object);
+
+        var dialogModule = JSInterop.SetupModule("./js/dialog.js");
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.deleteRun"), cut.Markup));
+
+        var dialog = cut.Find("dialog");
+        Assert.Equal("delete-dialog-title", dialog.GetAttribute("aria-labelledby"));
+        Assert.Equal("delete-dialog-body", dialog.GetAttribute("aria-describedby"));
+
+        var deleteButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.deleteRun")));
+        deleteButton.Click();
+
+        cut.WaitForAssertion(() => dialogModule.VerifyInvoke("showModal"));
+    }
 }

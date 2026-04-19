@@ -3,11 +3,13 @@
 @using Lfm.Contracts.Instances
 @using Lfm.Contracts.Runs
 @attribute [Authorize]
+@implements IAsyncDisposable
 @inject IInstancesClient InstancesClient
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
 @inject ToastHelper Toast
 @inject IStringLocalizer Loc
+@inject IJSRuntime JS
 
 <PageTitle>@Loc["editRun.title"]</PageTitle>
 
@@ -119,31 +121,32 @@
                 </FluentStack>
             </FluentCard>
 
-            <!-- Delete confirmation -->
-            @if (showDeleteConfirm)
-            {
-                <FluentCard>
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                        <FluentLabel Typo="Typography.H5">@Loc["editRun.confirmDelete"]</FluentLabel>
-                        <FluentLabel>@Loc["editRun.confirmDeleteBody"]</FluentLabel>
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                            <FluentButton
-                                Appearance="Appearance.Accent"
-                                OnClick="@HandleDelete"
-                                Disabled="@(saving || deleting)"
-                                Style="background:var(--error)">
-                                @(deleting ? Loc["editRun.deleting"] : Loc["editRun.yesDelete"])
-                            </FluentButton>
-                            <FluentButton
-                                Appearance="Appearance.Outline"
-                                OnClick="@(() => showDeleteConfirm = false)"
-                                Disabled="@(saving || deleting)">
-                                @Loc["common.cancel"]
-                            </FluentButton>
-                        </FluentStack>
+            <!-- Delete confirmation (native <dialog>: focus trap, Esc, focus restore) -->
+            <dialog @ref="deleteDialogRef"
+                    class="confirm-dialog"
+                    aria-labelledby="delete-dialog-title"
+                    aria-describedby="delete-dialog-body">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentLabel Typo="Typography.H5" Id="delete-dialog-title">@Loc["editRun.confirmDelete"]</FluentLabel>
+                    <FluentLabel Id="delete-dialog-body">@Loc["editRun.confirmDeleteBody"]</FluentLabel>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton
+                            Appearance="Appearance.Accent"
+                            OnClick="@HandleDelete"
+                            Disabled="@(saving || deleting)"
+                            Style="background:var(--error)">
+                            @(deleting ? Loc["editRun.deleting"] : Loc["editRun.yesDelete"])
+                        </FluentButton>
+                        <FluentButton
+                            Appearance="Appearance.Outline"
+                            OnClick="@CloseDeleteConfirm"
+                            Disabled="@(saving || deleting)"
+                            autofocus="true">
+                            @Loc["common.cancel"]
+                        </FluentButton>
                     </FluentStack>
-                </FluentCard>
-            }
+                </FluentStack>
+            </dialog>
 
             <!-- Roster grid -->
             <FluentCard>
@@ -175,8 +178,9 @@
     private IReadOnlyList<InstanceDto> instances = [];
     private bool saving;
     private bool deleting;
-    private bool showDeleteConfirm;
     private bool hasSignups;
+    private ElementReference deleteDialogRef;
+    private IJSObjectReference? dialogModule;
 
     // Form fields (initialised from loaded run)
     private string instanceId = string.Empty;
@@ -301,9 +305,16 @@
         Nav.NavigateTo($"/runs/{Uri.EscapeDataString(RunId!)}");
     }
 
-    private void ShowDeleteConfirm()
+    private async Task ShowDeleteConfirm()
     {
-        showDeleteConfirm = true;
+        dialogModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/dialog.js");
+        await dialogModule.InvokeVoidAsync("showModal", deleteDialogRef);
+    }
+
+    private async Task CloseDeleteConfirm()
+    {
+        if (dialogModule is not null)
+            await dialogModule.InvokeVoidAsync("close", deleteDialogRef);
     }
 
     private async Task HandleDelete()
@@ -320,14 +331,22 @@
             {
                 Toast.ShowError(Loc["editRun.deleteFailed"]);
                 deleting = false;
-                showDeleteConfirm = false;
+                await CloseDeleteConfirm();
             }
         }
         catch
         {
             Toast.ShowError("Failed to delete run. Please try again.");
             deleting = false;
-            showDeleteConfirm = false;
+            await CloseDeleteConfirm();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (dialogModule is not null)
+        {
+            try { await dialogModule.DisposeAsync(); } catch { }
         }
     }
 
