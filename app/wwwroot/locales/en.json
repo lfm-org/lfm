@@ -179,9 +179,12 @@
     "guildAdmin.saveError": "An error occurred while saving.",
 
     "instances.title": "Instances",
+    "instances.tableAriaLabel": "Instances table",
     "instances.columns.name": "Name",
     "instances.columns.mode": "Mode",
     "instances.columns.expansion": "Expansion",
+
+    "roster.tableAriaLabel": "Roster for {0}",
 
     "notFound.title": "Not Found",
     "notFound.body": "Sorry, the content you are looking for does not exist.",
