@@ -45,19 +45,21 @@
                     {
                         var isSelected = run.Id == selectedRunId;
                         var attending = CountAttending(run.RunCharacters);
-                        <div @key="run.Id"
-                             data-testid="run-item-@run.Id"
-                             class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
-                             @onclick="@(() => SelectRun(run.Id))">
-                            <div class="run-list-item__header">
+                        <button type="button"
+                                @key="run.Id"
+                                data-testid="run-item-@run.Id"
+                                class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
+                                aria-pressed="@isSelected"
+                                @onclick="@(() => SelectRun(run.Id))">
+                            <span class="run-list-item__header">
                                 <span class="run-list-item__title">@run.InstanceName</span>
                                 <DifficultyPill ModeKey="@run.ModeKey" />
-                            </div>
+                            </span>
                             <span class="run-list-item__date">@FormatDate(run.StartTime)</span>
                             <span class="run-list-item__footer">
                                 @Loc["runs.attendingSignedUp", attending, run.RunCharacters.Count]
                             </span>
-                        </div>
+                        </button>
                     }
                 </div>
 
