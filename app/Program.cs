@@ -76,4 +76,22 @@ catch
     // JS interop may fail during prerendering; default to English.
 }
 
+try
+{
+    var storedTheme = await js.InvokeAsync<string?>("lfmGetStoredTheme");
+    if (string.IsNullOrEmpty(storedTheme))
+    {
+        var preferred = await js.InvokeAsync<string>("lfmGetPrefersColorScheme");
+        var themeService = host.Services.GetRequiredService<IThemeService>();
+        themeService.SetMode(preferred == "light"
+            ? Microsoft.FluentUI.AspNetCore.Components.DesignThemeModes.Light
+            : Microsoft.FluentUI.AspNetCore.Components.DesignThemeModes.Dark);
+    }
+}
+catch
+{
+    // JS interop may fail during prerendering or if localStorage is blocked.
+    // Keep the ThemeService default (Dark).
+}
+
 await host.RunAsync();
