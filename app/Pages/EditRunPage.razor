@@ -191,8 +191,14 @@
             : DateTimeOffset.TryParse(iso, out var dto) ? dto.LocalDateTime
             : null;
 
+    // The native <input type="datetime-local"> binds wall-clock time with no
+    // offset, so we must convert back to UTC before sending — otherwise the
+    // round-trip would shift the stored value by the browser's TZ offset and
+    // the API's locked-field check would reject unchanged values as changed.
+    // Use "o" to preserve full tick precision so the round-trip is byte-stable
+    // against stored values written with sub-second precision.
     private static string? ToIsoOrNull(DateTime? dt) =>
-        dt is null ? null : dt.Value.ToString("yyyy-MM-ddTHH:mm:ss");
+        dt is null ? null : dt.Value.ToUniversalTime().ToString("o");
 
     private static readonly Dictionary<string, object> ModeKeyAttrs = new()
     {
