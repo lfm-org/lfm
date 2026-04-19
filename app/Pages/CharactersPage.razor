@@ -49,10 +49,13 @@
                     var wrapperStyle = isSelected
                         ? "position:relative;cursor:default;outline:2px solid var(--accent-fill-rest);outline-offset:-1px;border-radius:4px"
                         : "position:relative;cursor:pointer";
-                    <div @key="@CharKey(c)"
-                         data-char-id="@CharKey(c)"
-                         style="@wrapperStyle"
-                         @onclick="@(() => HandleSelectCharacter(c))">
+                    <button type="button"
+                            class="character-card"
+                            @key="@CharKey(c)"
+                            data-char-id="@CharKey(c)"
+                            aria-pressed="@(isSelected ? "true" : "false")"
+                            style="@wrapperStyle"
+                            @onclick="@(() => HandleSelectCharacter(c))">
                         @if (isSelected)
                         {
                             <div style="position:absolute;top:8px;right:8px;background:var(--accent-fill-rest);color:var(--foreground-on-accent-rest);font-size:0.7em;padding:2px 8px;border-radius:10px;z-index:1;pointer-events:none">@Loc["characters.active"]</div>
@@ -82,7 +85,7 @@
                                 </FluentStack>
                             </FluentStack>
                         </FluentCard>
-                    </div>
+                    </button>
                 }
             </div>
             break;

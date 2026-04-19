@@ -404,3 +404,12 @@ a, .btn-link {
     background: var(--neutral-stroke-rest);
     color: var(--neutral-foreground-rest);
 }
+
+/* Character card — rendered as <button> for keyboard activation.
+   all: unset relies on ancestor layout setting color + font for text inheritance. */
+.character-card {
+    all: unset;
+    box-sizing: border-box;
+    display: block;
+    cursor: pointer;
+}
