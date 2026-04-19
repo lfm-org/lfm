@@ -5,7 +5,7 @@
     @GroupLabel (@Characters.Count)
 </FluentLabel>
 
-<div style="overflow-x:auto">
+<div class="scroll-region" role="region" tabindex="0" aria-label="@Loc["roster.tableAriaLabel", GroupLabel]">
 <FluentDataGrid Items="@Characters.AsQueryable()" TGridItem="RunCharacterDto"
                 GridTemplateColumns="@GridColumns">
     <TemplateColumn Title="@Loc["runs.columns.character"]">
