@@ -81,22 +81,6 @@ jobs:
           STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
         run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
 
-      - name: Upload API publish artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: publish-api
-          path: ./publish/api
-          retention-days: 1
-          if-no-files-found: error
-
-      - name: Upload App publish artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: publish-app
-          path: ./publish/app/wwwroot
-          retention-days: 1
-          if-no-files-found: error
-
       - name: Install brotli
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends brotli
 

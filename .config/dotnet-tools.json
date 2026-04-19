@@ -15,13 +15,6 @@
         "nuget-license"
       ],
       "rollForward": false
-    },
-    "CycloneDX": {
-      "version": "6.1.1",
-      "commands": [
-        "dotnet-CycloneDX"
-      ],
-      "rollForward": false
     }
   }
 }
