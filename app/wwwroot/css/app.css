@@ -166,8 +166,11 @@ a, .btn-link {
     }
 }
 
-/* Run list items */
+/* Run list items — rendered as <button> for keyboard activation. */
 .run-list-item {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 4px;
