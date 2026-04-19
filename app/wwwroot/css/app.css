@@ -252,14 +252,21 @@ a, .btn-link {
     white-space: nowrap;
 }
 
+/*
+ * Difficulty pills carry the canonical WoW hue per difficulty but swap shade
+ * per theme to clear WCAG 2.2 AA 1.4.3 (≥ 4.5:1) on FluentCard backgrounds.
+ * #ff8000 (mythic) on a light layer lands at 2.38:1, and #a335ee (heroic)
+ * on a dark layer lands at 3.40:1 — both fail. The light/dark pairs below
+ * preserve hue while clearing the bar. See issue #28.
+ */
 .difficulty-pill--mythic {
-    color: #ff8000;
-    border-color: #ff8000;
+    color: light-dark(#b35900, #ff8000);
+    border-color: light-dark(#b35900, #ff8000);
 }
 
 .difficulty-pill--heroic {
-    color: #a335ee;
-    border-color: #a335ee;
+    color: light-dark(#a335ee, #c77dff);
+    border-color: light-dark(#a335ee, #c77dff);
 }
 
 .difficulty-pill--normal {
