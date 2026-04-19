@@ -439,3 +439,36 @@ a, .btn-link {
     outline-offset: 2px;
     border-radius: 4px;
 }
+
+/* Native input harmoniser — used where FluentUI lacks an equivalent (e.g. datetime-local). */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.field__label {
+    font-size: 0.875rem;
+    color: var(--neutral-foreground-rest);
+}
+
+.field__input {
+    padding-block: 6px;
+    padding-inline: 10px;
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    background: var(--neutral-fill-input-rest);
+    color: var(--neutral-foreground-rest);
+    color-scheme: light dark;
+    font-size: 0.875rem;
+}
+
+.field__input:focus-visible {
+    outline: 2px solid var(--accent-fill-rest);
+    outline-offset: 1px;
+}
+
+.field__input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
