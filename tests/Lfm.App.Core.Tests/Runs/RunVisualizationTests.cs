@@ -132,26 +132,6 @@ public class RunVisualizationTests
         Assert.Equal(TimeHorizon.Unknown, RunVisualization.GetHorizon("not a date", now));
     }
 
-    [Fact]
-    public void GetInstanceHue_is_stable_and_in_range()
-    {
-        var a1 = RunVisualization.GetInstanceHue(1234);
-        var a2 = RunVisualization.GetInstanceHue(1234);
-        Assert.Equal(a1, a2);
-        Assert.InRange(a1, 0, 359);
-        Assert.NotEqual(
-            RunVisualization.GetInstanceHue(1),
-            RunVisualization.GetInstanceHue(2));
-    }
-
-    [Fact]
-    public void GetInstanceGradient_produces_css_gradient_string()
-    {
-        var gradient = RunVisualization.GetInstanceGradient(1234);
-        Assert.StartsWith("linear-gradient(", gradient);
-        Assert.Contains("oklch(", gradient);
-    }
-
     [Theory]
     [InlineData("MYTHIC:20", "mythic")]
     [InlineData("HEROIC:10", "heroic")]

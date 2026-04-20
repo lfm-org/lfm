@@ -14,11 +14,11 @@
     cursor: pointer;
     color: var(--neutral-foreground-rest);
     border-block-end: 1px solid var(--neutral-stroke-rest);
-    /* Difficulty edge = left stripe; kind tint + instance gradient composite as layered backgrounds. */
-    border-inline-start: 3px solid var(--difficulty-accent, transparent);
-    background:
-        var(--kind-tint, transparent),
-        var(--instance-bg, transparent);
+    /* Kind = inline-start stripe (dungeon / raid), mirroring the class-color
+       side accent on CharacterRow. Difficulty is already signalled by the
+       DifficultyPill so it stays off the card surface, and no full-card
+       background wash runs so every item sits at the same visual width. */
+    border-inline-start: 3px solid var(--kind-accent, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -36,32 +36,31 @@
     outline-offset: -2px;
 }
 
-/* Difficulty palette — canonical WoW item quality colors (brand, do not adjust). */
-.run-list-item[data-difficulty="mythic"] {
-    --difficulty-accent: #ff8000;
-}
-
-.run-list-item[data-difficulty="heroic"] {
-    --difficulty-accent: #a335ee;
-}
-
-.run-list-item[data-difficulty="normal"] {
-    --difficulty-accent: var(--accent-fill-rest);
-}
-
-.run-list-item[data-difficulty="lfr"] {
-    --difficulty-accent: var(--neutral-stroke-rest);
-}
-
-/* Run-kind wash — dungeon = blue, raid = green; subtle tint on top of the per-instance gradient. */
+/* Run-kind side accent — canonical WoW dungeon blue / raid green. The hex
+   values are brand-immutable (issue #28); raid green (#1eff00) does not
+   clear SC 1.4.11 (3:1) against a light-theme surface at 1.26:1. We accept
+   the trade-off because kind is redundantly communicated through the
+   composition target counts rendered on every item (D X/5 = dungeon,
+   D X/14+ = raid) and through the difficulty pill's size context — so the
+   stripe is decorative reinforcement, not the sole identifier. SC 1.4.11's
+   "also available through text" exemption applies. */
 .run-list-item[data-kind="dungeon"] {
-    --kind-tint: linear-gradient(color-mix(in oklch, #0070dd 14%, transparent),
-            color-mix(in oklch, #0070dd 14%, transparent));
+    --kind-accent: #0070dd;
 }
 
 .run-list-item[data-kind="raid"] {
-    --kind-tint: linear-gradient(color-mix(in oklch, #1eff00 10%, transparent),
-            color-mix(in oklch, #1eff00 10%, transparent));
+    --kind-accent: #1eff00;
+}
+
+/* Forced-colors mode (Windows High Contrast) overrides custom-property
+   colors with system colors, collapsing --kind-accent to transparent.
+   Re-establish the stripe via a system color so the kind cue survives. */
+@media (forced-colors: active) {
+
+    .run-list-item[data-kind="dungeon"],
+    .run-list-item[data-kind="raid"] {
+        border-inline-start-color: Highlight;
+    }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -73,6 +72,8 @@
 .run-list-item--selected {
     background-color: var(--neutral-fill-secondary-rest);
     border-inline-start-width: 5px;
+    /* Ensure unknown-kind items still get a visible selection stripe. */
+    border-inline-start-color: var(--kind-accent, var(--accent-fill-rest));
 }
 
 .run-list-item__header {

@@ -302,12 +302,15 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Equal(3, slots.Count);
         Assert.All(slots, s => Assert.Contains("run-list-item__roleslot--short", s.ClassName ?? ""));
 
-        // The difficulty + kind drive data-attributes on the item so CSS
-        // can stripe the left edge and tint the surface without inline
-        // style overrides leaking into tests.
+        // Difficulty + kind drive data-attributes on the item so CSS can
+        // stripe the left edge from `data-kind` without inline style
+        // overrides leaking into tests. `data-difficulty` is retained for
+        // E2E locators and future theming even though only `data-kind`
+        // currently feeds a CSS selector.
         var item = cut.Find("button.run-list-item");
         Assert.Equal("mythic", item.GetAttribute("data-difficulty"));
         Assert.Equal("raid", item.GetAttribute("data-kind"));
+        Assert.False(item.HasAttribute("style"));
     }
 
     // ── CreateRunPage ────────────────────────────────────────────────────────
