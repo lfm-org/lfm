@@ -19,7 +19,12 @@
     background:
         var(--kind-tint, transparent),
         var(--instance-bg, transparent);
-    transition: background-color 80ms linear;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .run-list-item {
+        transition: background-color 80ms linear;
+    }
 }
 
 .run-list-item:last-child {
