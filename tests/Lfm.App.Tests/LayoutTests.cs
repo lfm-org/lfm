@@ -116,6 +116,48 @@ public class LayoutTests : ComponentTestBase
     }
 
     [Fact]
+    public void MainLayout_Desktop_Nav_Is_A_Plain_Div_So_Display_None_Wins_On_Mobile()
+    {
+        // The desktop nav must be a plain <div class="desktop-nav"> — wrapping
+        // it in a FluentStack injects inline display:flex, which would outrank
+        // the `.desktop-nav { display: none }` rule at narrow viewports and
+        // cause both the desktop links and the hamburger to render at the same
+        // time on mobile (the bug the screenshot was pointing at).
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            var desktopNav = cut.Find("div.desktop-nav");
+            Assert.Equal("div", desktopNav.TagName, ignoreCase: true);
+        });
+    }
+
+    [Fact]
+    public void MainLayout_Shows_Mobile_Nav_Toggle_Button_When_Authenticated()
+    {
+        // The hamburger is what users tap on narrow viewports once the
+        // desktop nav hides. If the toggle disappears, navigation is stranded.
+        // Asserting `[aria-label]` presence guards against a regression where
+        // the glyph renders but the button is unlabelled to assistive tech.
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            var toggle = cut.Find(".mobile-nav-toggle");
+            Assert.NotNull(toggle);
+            Assert.False(string.IsNullOrWhiteSpace(toggle.GetAttribute("aria-label")));
+        });
+    }
+
+    [Fact]
     public void MainLayout_Main_Element_Has_Ref_For_Focus_Management()
     {
         this.AddAuthorization();
