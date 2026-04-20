@@ -1,0 +1,140 @@
+/*
+ * Run list item — isolated CSS for the runs-page sidebar row.
+ * `all: unset` relies on the ancestor (.runs-sidebar) to set color + font
+ * for text inheritance, matching the legacy rules that previously lived in
+ * wwwroot/css/app.css.
+ */
+.run-list-item {
+    all: unset;
+    box-sizing: border-box;
+    display: grid;
+    gap: 4px;
+    padding-block: 10px;
+    padding-inline: 14px;
+    cursor: pointer;
+    color: var(--neutral-foreground-rest);
+    border-block-end: 1px solid var(--neutral-stroke-rest);
+    /* Difficulty edge = left stripe; kind tint + instance gradient composite as layered backgrounds. */
+    border-inline-start: 3px solid var(--difficulty-accent, transparent);
+    background:
+        var(--kind-tint, transparent),
+        var(--instance-bg, transparent);
+    transition: background-color 80ms linear;
+}
+
+.run-list-item:last-child {
+    border-block-end: none;
+}
+
+.run-list-item:focus-visible {
+    outline: 2px solid var(--accent-fill-rest);
+    outline-offset: -2px;
+}
+
+/* Difficulty palette — canonical WoW item quality colors (brand, do not adjust). */
+.run-list-item[data-difficulty="mythic"] {
+    --difficulty-accent: #ff8000;
+}
+
+.run-list-item[data-difficulty="heroic"] {
+    --difficulty-accent: #a335ee;
+}
+
+.run-list-item[data-difficulty="normal"] {
+    --difficulty-accent: var(--accent-fill-rest);
+}
+
+.run-list-item[data-difficulty="lfr"] {
+    --difficulty-accent: var(--neutral-stroke-rest);
+}
+
+/* Run-kind wash — dungeon = blue, raid = green; subtle tint on top of the per-instance gradient. */
+.run-list-item[data-kind="dungeon"] {
+    --kind-tint: linear-gradient(color-mix(in oklch, #0070dd 14%, transparent),
+            color-mix(in oklch, #0070dd 14%, transparent));
+}
+
+.run-list-item[data-kind="raid"] {
+    --kind-tint: linear-gradient(color-mix(in oklch, #1eff00 10%, transparent),
+            color-mix(in oklch, #1eff00 10%, transparent));
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .run-list-item:hover:not(.run-list-item--selected) {
+        background-color: var(--neutral-fill-hover);
+    }
+}
+
+.run-list-item--selected {
+    background-color: var(--neutral-fill-secondary-rest);
+    border-inline-start-width: 5px;
+}
+
+.run-list-item__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.run-list-item__title {
+    font-weight: 600;
+    flex: 1;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+}
+
+.run-list-item__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    color: var(--neutral-foreground-hint-rest);
+}
+
+.run-list-item__date {
+    flex: 1;
+    min-inline-size: 0;
+}
+
+.run-list-item__badge {
+    color: #2ecc71;
+    font-size: 1.05em;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.run-list-item__composition {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.8em;
+    font-variant-numeric: tabular-nums;
+    color: var(--neutral-foreground-hint-rest);
+}
+
+.run-list-item__roleslot {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding-block: 1px;
+    padding-inline: 8px;
+    border-radius: 999px;
+    background: var(--neutral-fill-rest);
+}
+
+.run-list-item__roleslot--short {
+    /*
+     * #c0392b on white clears 5.44:1 (WCAG 2.2 AA); matches the existing
+     * attendance-pill--out shade so the "shortage" signal feels consistent.
+     */
+    color: #fff;
+    background: #c0392b;
+}
+
+.run-list-item__rolekey {
+    font-weight: 700;
+    font-size: 0.95em;
+    opacity: 0.75;
+}
