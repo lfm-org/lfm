@@ -40,9 +40,11 @@ public class LocalizedStringConverterTests
     [Fact]
     public void Reads_localized_object_prefers_en_US()
     {
-        var json = """{ "name": { "en_US": "Horde", "de_DE": "Horde", "fr_FR": "Horde" } }""";
+        // Distinct values across locales so the en_US preference is actually
+        // witnessed — identical values would pass even if another key won.
+        var json = """{ "name": { "en_US": "en-value", "de_DE": "de-value", "fr_FR": "fr-value" } }""";
         var result = JsonConvert.DeserializeObject<Holder>(json, CosmosLikeSettings);
-        Assert.Equal("Horde", result!.Name);
+        Assert.Equal("en-value", result!.Name);
     }
 
     [Fact]
@@ -96,6 +98,8 @@ public class LocalizedStringConverterTests
     {
         // Shape written by Blizzard's profile endpoint when called without
         // locale=en_US — this is the exact payload that triggers the prod bug.
+        // Distinct per-locale values so the en_US preference is witnessed in
+        // the end-to-end record wiring, not only in the converter unit test.
         var json = """
         {
           "id": "12345",
@@ -106,7 +110,7 @@ public class LocalizedStringConverterTests
             "realm": { "slug": "test-realm", "name": "Test Realm" },
             "faction": {
               "type": "HORDE",
-              "name": { "en_US": "Horde", "de_DE": "Horde", "fr_FR": "Horde" }
+              "name": { "en_US": "Horde", "de_DE": "Horde-DE", "fr_FR": "Horde-FR" }
             },
             "memberCount": 42,
             "achievementPoints": 1234
