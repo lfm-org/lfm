@@ -1,0 +1,200 @@
+/* RunsPage layout — page-scoped (isolated) styles. */
+
+.runs-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    inline-size: 100%;
+}
+
+.runs-sidebar {
+    inline-size: 100%;
+    flex-shrink: 0;
+    background: var(--fill-color);
+    color: var(--neutral-foreground-rest);
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    box-shadow: var(--elevation-shadow-card-rest);
+    overflow: hidden;
+}
+
+@media (min-width: 48em) {
+    .runs-layout {
+        flex-direction: row;
+    }
+
+    .runs-sidebar {
+        inline-size: clamp(18rem, 28vw, 22rem);
+    }
+}
+
+.runs-detail {
+    flex: 1;
+    min-inline-size: 0;
+}
+
+/* Group heading — compact divider between time-horizon buckets. */
+.runs-group__title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--neutral-foreground-hint-rest);
+    padding-block: 6px 4px;
+    padding-inline: 14px;
+    margin: 0;
+    background: var(--neutral-fill-rest);
+    border-block-end: 1px solid var(--neutral-stroke-rest);
+}
+
+.runs-past-toggle {
+    all: unset;
+    box-sizing: border-box;
+    display: block;
+    inline-size: 100%;
+    padding-block: 10px;
+    padding-inline: 14px;
+    text-align: center;
+    font-size: 0.85em;
+    color: var(--accent-fill-rest);
+    cursor: pointer;
+    border-block-start: 1px solid var(--neutral-stroke-rest);
+}
+
+.runs-past-toggle:focus-visible {
+    outline: 2px solid var(--accent-fill-rest);
+    outline-offset: -2px;
+}
+
+.runs-past-toggle:hover {
+    background: var(--neutral-fill-hover);
+}
+
+/* Skeleton loading — placeholder rows that match the list item shape. */
+.runs-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-block: 8px;
+}
+
+.runs-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    inline-size: 100%;
+    max-inline-size: 420px;
+}
+
+.run-skeleton {
+    block-size: 72px;
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    background: linear-gradient(90deg,
+            var(--neutral-fill-rest) 0%,
+            var(--neutral-fill-hover) 50%,
+            var(--neutral-fill-rest) 100%);
+    background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .run-skeleton {
+        animation: run-skeleton-shimmer 1.4s ease-in-out infinite;
+    }
+}
+
+@keyframes run-skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.runs-inline-spinner {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Run detail card */
+.run-detail-header {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.run-detail-heading {
+    flex: 1;
+    min-inline-size: 0;
+}
+
+.run-detail-title {
+    margin: 0;
+    font-size: 1.4em;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.run-detail-description {
+    font-style: italic;
+    color: var(--neutral-foreground-hint-rest);
+    margin: 4px 0 0 0;
+}
+
+::deep .run-detail-meta {
+    color: var(--neutral-foreground-hint-rest);
+    font-size: 0.9em;
+}
+
+::deep .run-detail-meta strong {
+    color: var(--neutral-foreground-rest);
+    font-weight: 600;
+}
+
+/* Roster sections */
+.roster-section-title {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--neutral-foreground-hint-rest);
+    margin: 20px 0 12px 0;
+}
+
+.roster-role-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 48em) {
+    .roster-role-grid {
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    }
+}
+
+.roster-role-column-title {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    color: var(--neutral-foreground-hint-rest);
+    font-size: 0.95em;
+    margin: 0 0 8px 0;
+}
+
+.roster-role-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.roster-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}

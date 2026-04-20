@@ -261,9 +261,13 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void RunsPage_RunListItem_RendersDifficultyPillAndAttendingFooter()
+    public void RunsPage_RunListItem_RendersDifficultyPillAndCompositionSummary()
     {
         var client = new Mock<IRunsClient>();
+        // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC:25 raid.
+        // Standard composition target for 25-man is 2T / 5H / 18D, so the
+        // rendered composition summary is "T 0/2 · H 0/5 · D 2/18" with the
+        // tank + healer slots carrying the shortage modifier class.
         var summary = MakeSummary() with { ModeKey = "MYTHIC:25" };
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunSummaryDto>
@@ -286,9 +290,24 @@ public class RunsPagesTests : ComponentTestBase
             Assert.NotNull(cut.Find(".difficulty-pill--mythic")));
 
         Assert.Contains("Mythic", cut.Find(".difficulty-pill--mythic").TextContent);
-        // Footer format: "{attending} attending · {total} signed up" — seeded IN count is 2, total 3.
-        Assert.Contains("2 attending", cut.Markup);
-        Assert.Contains("3 signed up", cut.Markup);
+
+        var composition = cut.Find(".run-list-item__composition");
+        Assert.Contains("0/2", composition.TextContent);
+        Assert.Contains("0/5", composition.TextContent);
+        Assert.Contains("2/18", composition.TextContent);
+
+        // All three role slots are under-target for this partially-filled
+        // 25-man so each carries the shortage modifier.
+        var slots = cut.FindAll(".run-list-item__roleslot");
+        Assert.Equal(3, slots.Count);
+        Assert.All(slots, s => Assert.Contains("run-list-item__roleslot--short", s.ClassName ?? ""));
+
+        // The difficulty + kind drive data-attributes on the item so CSS
+        // can stripe the left edge and tint the surface without inline
+        // style overrides leaking into tests.
+        var item = cut.Find("button.run-list-item");
+        Assert.Equal("mythic", item.GetAttribute("data-difficulty"));
+        Assert.Equal("raid", item.GetAttribute("data-kind"));
     }
 
     // ── CreateRunPage ────────────────────────────────────────────────────────
