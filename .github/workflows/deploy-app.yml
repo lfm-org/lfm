@@ -99,25 +99,11 @@ jobs:
           app-name: ${{ vars.FUNCTION_APP_NAME }}
           package: ./publish/api
 
-      - name: Verify API health
-        run: |
-          set -euo pipefail
-          url="https://${{ vars.API_HOSTNAME }}/api/health/ready"
-          for i in $(seq 1 12); do
-            status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
-            if [ "$status" = "200" ]; then
-              echo "Health check passed (attempt $i)"
-              exit 0
-            fi
-            echo "Attempt $i: got $status, retrying in 10s..."
-            sleep 10
-          done
-          echo "Health check failed after 2 minutes" >&2
-          exit 1
-
       - name: Set production API base URL
+        env:
+          API_HOSTNAME: ${{ vars.API_HOSTNAME }}
         run: |
-          jq --arg url "https://${{ vars.API_HOSTNAME }}" '.ApiBaseUrl = $url' \
+          jq --arg url "https://${API_HOSTNAME}" '.ApiBaseUrl = $url' \
             ./publish/app/wwwroot/appsettings.json > tmp.json \
             && mv tmp.json ./publish/app/wwwroot/appsettings.json
           rm -f ./publish/app/wwwroot/appsettings.json.br \
@@ -130,3 +116,8 @@ jobs:
           app_location: ./publish/app/wwwroot
           skip_app_build: true
           action: upload
+
+      - name: Verify API health
+        env:
+          API_HOSTNAME: ${{ vars.API_HOSTNAME }}
+        run: ./scripts/wait-api-ready.sh "https://${API_HOSTNAME}/api/health/ready"
