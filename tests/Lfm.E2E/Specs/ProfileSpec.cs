@@ -147,22 +147,36 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(guildAdminPage.SaveButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
+        // Snapshot the seeded slogan so the test can restore it — the guild
+        // document is shared across the whole suite and mutating its slogan
+        // permanently would leak across future runs.
+        var originalSlogan = await guildAdminPage.SloganField.InputValueAsync();
         var newSlogan = $"E2E updated slogan {Guid.NewGuid():N}";
-        await guildAdminPage.SloganField.FillAsync(newSlogan);
 
-        await guildAdminPage.SaveButton.ClickAsync();
+        try
+        {
+            await guildAdminPage.SloganField.FillAsync(newSlogan);
+            await guildAdminPage.SaveButton.ClickAsync();
 
-        // Success message should appear confirming the save.
-        await Assertions.Expect(guildAdminPage.SuccessMessage).ToBeVisibleAsync(new() { Timeout = 15000 });
+            // Success message should appear confirming the save.
+            await Assertions.Expect(guildAdminPage.SuccessMessage).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Re-read: reload the page and verify the persisted slogan round-tripped
-        // through Cosmos. The success banner alone proves the API returned 200 —
-        // it does not prove the value persisted, which a future regression that
-        // swallows the body would silently break.
-        await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 15000 });
-        var persistedSlogan = await guildAdminPage.SloganField.InputValueAsync();
-        Assert.Equal(newSlogan, persistedSlogan);
+            // Re-read: reload the page and verify the persisted slogan round-tripped
+            // through Cosmos. The success banner alone proves the API returned 200 —
+            // it does not prove the value persisted, which a future regression that
+            // swallows the body would silently break.
+            await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+            await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 15000 });
+            var persistedSlogan = await guildAdminPage.SloganField.InputValueAsync();
+            Assert.Equal(newSlogan, persistedSlogan);
+        }
+        finally
+        {
+            // Restore the seeded slogan so sibling tests see a clean fixture.
+            await guildAdminPage.SloganField.FillAsync(originalSlogan);
+            await guildAdminPage.SaveButton.ClickAsync();
+            await Assertions.Expect(guildAdminPage.SuccessMessage).ToBeVisibleAsync(new() { Timeout = 15000 });
+        }
     }
 
     // -------------------------------------------------------------------------
