@@ -359,6 +359,47 @@ public class LocalizedStringConverterTests
         Assert.Equal("Elemental", doc!.Name);
     }
 
+    [Fact]
+    public void SpecializationListRow_deserializes_with_localized_name()
+    {
+        // Shape of the row produced by SpecializationsRepository.ListAsync's
+        // projection: SELECT c.specId AS id, c.name, c.classId, c.role, c.iconUrl FROM c.
+        // Same root cause as InstanceListRow / /api/guild: legacy documents
+        // store c.name as Blizzard's no-locale object, and SpecializationDto
+        // (in Lfm.Contracts, no converter) cannot accept that shape.
+        var json = """
+        {
+          "id": 262,
+          "name": { "en_US": "Elemental", "de_DE": "Elementar" },
+          "classId": 7,
+          "role": "DAMAGE",
+          "iconUrl": null
+        }
+        """;
+
+        var row = JsonConvert.DeserializeObject<SpecializationListRow>(json, CosmosLikeSettings);
+
+        Assert.Equal("Elemental", row!.Name);
+    }
+
+    [Fact]
+    public void SpecializationListRow_deserializes_with_plain_string_name()
+    {
+        var json = """
+        {
+          "id": 262,
+          "name": "Elemental",
+          "classId": 7,
+          "role": "DAMAGE",
+          "iconUrl": null
+        }
+        """;
+
+        var row = JsonConvert.DeserializeObject<SpecializationListRow>(json, CosmosLikeSettings);
+
+        Assert.Equal("Elemental", row!.Name);
+    }
+
     // Record used only by the converter unit tests above.
     private sealed record Holder(
         [property: JsonConverter(typeof(LocalizedStringConverter))] string? Name = null);
