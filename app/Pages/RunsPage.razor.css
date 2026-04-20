@@ -67,8 +67,10 @@
     outline-offset: -2px;
 }
 
-.runs-past-toggle:hover {
-    background: var(--neutral-fill-hover);
+@media (hover: hover) and (pointer: fine) {
+    .runs-past-toggle:hover {
+        background: var(--neutral-fill-hover);
+    }
 }
 
 /* Skeleton loading — placeholder rows that match the list item shape. */
