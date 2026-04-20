@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Newtonsoft.Json;
+using Lfm.Api.Serialization;
+
 namespace Lfm.Api.Repositories;
 
 /// <summary>
@@ -16,14 +19,14 @@ public sealed record RunCharacterEntry(
     string CharacterRealm,
     int CharacterLevel,
     int CharacterClassId,
-    string CharacterClassName,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string CharacterClassName,
     int CharacterRaceId,
-    string CharacterRaceName,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string CharacterRaceName,
     string RaiderBattleNetId,
     string DesiredAttendance,
     string ReviewedAttendance,
     int? SpecId,
-    string? SpecName,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string? SpecName,
     string? Role);
 
 public sealed record RunDocument(
@@ -36,7 +39,7 @@ public sealed record RunDocument(
     string CreatorGuild,
     int? CreatorGuildId,
     int InstanceId,
-    string InstanceName,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string InstanceName,
     string? CreatorBattleNetId,
     string CreatedAt,
     int Ttl,

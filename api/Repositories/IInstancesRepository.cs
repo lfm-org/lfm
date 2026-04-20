@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Newtonsoft.Json;
+using Lfm.Api.Serialization;
 using Lfm.Contracts.Instances;
 
 namespace Lfm.Api.Repositories;
@@ -18,7 +20,7 @@ public sealed record InstanceDocument(
     string Id,
     /// <summary>Blizzard instance id as string (e.g. "67"). Projected as 'id' by ListAsync.</summary>
     string InstanceId,
-    string Name,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string Name,
     /// <summary>Mode key, e.g. "NORMAL:25" or "HEROIC:5".</summary>
     string ModeKey,
     string Expansion);

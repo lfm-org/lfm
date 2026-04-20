@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Newtonsoft.Json;
+using Lfm.Api.Serialization;
 using Lfm.Contracts.Specializations;
 
 namespace Lfm.Api.Repositories;
@@ -13,7 +15,7 @@ public sealed record SpecializationDocument(
     /// <summary>Cosmos document id and partition key: string form of the numeric spec id.</summary>
     string Id,
     int SpecId,
-    string Name,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string Name,
     int ClassId,
     string Role,
     string? IconUrl);
