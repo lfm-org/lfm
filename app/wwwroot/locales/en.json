@@ -80,6 +80,7 @@
     "runs.columns.spec": "Spec",
     "runs.noSignups": "No signups yet.",
     "runs.attendingSignedUp": "{0} attending \u00B7 {1} signed up",
+    "runs.listItemAriaLabel": "{0} on {1}",
     "runs.attendingSection": "Attending",
     "runs.notAttendingSection": "Not attending",
     "runs.role.tank": "Tank",

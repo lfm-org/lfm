@@ -92,12 +92,14 @@ public class RunsPagesTests : ComponentTestBase
     public void RunsPage_RunListItem_Has_Accessible_Name_Combining_Instance_And_Date()
     {
         // Screen-reader users navigating the run list hear a concise aria-label
-        // ("<Instance> on <Date>") instead of the implicit multi-line span
-        // concatenation. Pin the contract so a future refactor of the run-list
-        // template doesn't silently regress it.
+        // driven by the localized `runs.listItemAriaLabel` template instead of
+        // the implicit multi-line span concatenation. Pin the exact localized
+        // output so a template refactor or locale drift can't silently regress
+        // the name without the test noticing.
+        var summary = MakeSummary();
         var client = new Mock<IRunsClient>();
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
         Services.AddSingleton(client.Object);
 
         var cut = Render<RunsPage>();
@@ -106,8 +108,14 @@ public class RunsPagesTests : ComponentTestBase
         {
             var runButton = cut.Find("button.run-list-item");
             var ariaLabel = runButton.GetAttribute("aria-label") ?? string.Empty;
-            Assert.Contains("Liberation of Undermine", ariaLabel);
-            Assert.Contains(" on ", ariaLabel);
+            // FormatDate (private in RunsPage) parses the ISO string and
+            // formats as "yyyy-MM-dd HH:mm" with InvariantCulture; mirror that
+            // here so the test pins the exact localized output screen readers
+            // get, without reaching into the page object's private helpers.
+            var formattedDate = DateTimeOffset.Parse(summary.StartTime, System.Globalization.CultureInfo.InvariantCulture)
+                .ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            var expected = Loc("runs.listItemAriaLabel", summary.InstanceName, formattedDate);
+            Assert.Equal(expected, ariaLabel);
         });
     }
 

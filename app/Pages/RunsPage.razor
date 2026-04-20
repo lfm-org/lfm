@@ -49,13 +49,16 @@
                         // content into a single concise screen-reader name
                         // (otherwise the implicit name concatenates every nested
                         // span — date + mode + footer — without separators).
+                        // The connector between instance and date lives in the
+                        // resx so non-English locales don't leak a stray English
+                        // word into the name.
                         // data-testid is retained so E2E tests can look up a
                         // specific run by id without having to derive its
                         // instance + date from external state.
                         <button type="button"
                                 @key="run.Id"
                                 data-testid="run-item-@run.Id"
-                                aria-label="@($"{run.InstanceName} on {FormatDate(run.StartTime)}")"
+                                aria-label="@Loc["runs.listItemAriaLabel", run.InstanceName, FormatDate(run.StartTime)]"
                                 class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
                                 aria-pressed="@(isSelected ? "true" : "false")"
                                 @onclick="@(() => SelectRun(run.Id))">
