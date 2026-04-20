@@ -7,6 +7,14 @@
 .run-list-item {
     all: unset;
     box-sizing: border-box;
+    /* Explicit inline-size: <button> + `all: unset` + `display: grid` doesn't
+       inherit block-level stretch behaviour across browsers, so the element
+       would otherwise size to its content. With the full-card background
+       washes gone (PR #69) that variance became visible — short rows
+       (e.g. LFR with no shortages) rendered narrower than busier rows in
+       the same group. Force every item to fill the sidebar so the
+       border-inline-end divider and kind stripe align on every row. */
+    inline-size: 100%;
     display: grid;
     gap: 4px;
     padding-block: 10px;
@@ -16,8 +24,7 @@
     border-block-end: 1px solid var(--neutral-stroke-rest);
     /* Kind = inline-start stripe (dungeon / raid), mirroring the class-color
        side accent on CharacterRow. Difficulty is already signalled by the
-       DifficultyPill so it stays off the card surface, and no full-card
-       background wash runs so every item sits at the same visual width. */
+       DifficultyPill so it stays off the card surface. */
     border-inline-start: 3px solid var(--kind-accent, transparent);
 }
 
