@@ -71,10 +71,18 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
 
         await loginRequestTask;
 
-        // Park the page on about:blank so the disposal-time console-error
-        // assertion does not pick up the 404 cascade for the offline external
-        // Battle.net assets the browser tried to load after the redirect.
-        await Page.GotoAsync("about:blank");
+        // Close the page instead of parking on about:blank:
+        //   1. Cancels the pending navigation to the unreachable Battle.net
+        //      OAuth URL so the 404 cascade for its offline assets never
+        //      reaches the console.
+        //   2. Keeps the origin on localhost; Chrome 147's Private Network
+        //      Access enforcement would otherwise retroactively flag the
+        //      prior loopback favicon load once the origin switched to
+        //      `null` via about:blank (#58).
+        // Nulling Page lets the E2ETestBase DisposeAsync skip its post-test
+        // screenshot/trace capture on the now-closed page.
+        await Page.CloseAsync();
+        Page = null;
     }
 
     [Fact]
