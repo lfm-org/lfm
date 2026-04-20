@@ -48,9 +48,11 @@ public class LocalizedStringConverterTests
     [Fact]
     public void Reads_localized_object_without_en_US_picks_first_non_empty_value()
     {
-        var json = """{ "name": { "de_DE": "Horde", "fr_FR": "Horde" } }""";
+        // Distinct values so the "first" claim is actually witnessed — identical
+        // values would pass even if the converter walked the object in reverse.
+        var json = """{ "name": { "de_DE": "de-value", "fr_FR": "fr-value" } }""";
         var result = JsonConvert.DeserializeObject<Holder>(json, CosmosLikeSettings);
-        Assert.Equal("Horde", result!.Name);
+        Assert.Equal("de-value", result!.Name);
     }
 
     [Fact]
@@ -82,7 +84,7 @@ public class LocalizedStringConverterTests
     {
         var holder = new Holder("Horde");
         var json = JsonConvert.SerializeObject(holder, CosmosLikeSettings);
-        Assert.Contains("\"name\":\"Horde\"", json);
+        Assert.Equal("""{"name":"Horde"}""", json);
     }
 
     // ------------------------------------------------------------------
