@@ -89,6 +89,29 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_RunListItem_Has_Accessible_Name_Combining_Instance_And_Date()
+    {
+        // Screen-reader users navigating the run list hear a concise aria-label
+        // ("<Instance> on <Date>") instead of the implicit multi-line span
+        // concatenation. Pin the contract so a future refactor of the run-list
+        // template doesn't silently regress it.
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var runButton = cut.Find("button.run-list-item");
+            var ariaLabel = runButton.GetAttribute("aria-label") ?? string.Empty;
+            Assert.Contains("Liberation of Undermine", ariaLabel);
+            Assert.Contains(" on ", ariaLabel);
+        });
+    }
+
+    [Fact]
     public void RunsPage_Renders_Empty_State_When_No_Runs()
     {
         var client = new Mock<IRunsClient>();
