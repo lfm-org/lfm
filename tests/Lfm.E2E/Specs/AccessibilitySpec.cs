@@ -61,7 +61,16 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         var loginPage = new LoginPage(Page);
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        await AccessibilityHelper.ScanAndAssert(Page, Output, "/login");
+        await AccessibilityHelper.ScanAndAssert(Page, Output, "/login (load)");
+
+        // Re-scan after keyboard-focusing the sign-in button. The focus
+        // indicator styles, any aria-describedby tooltips, and the focused
+        // element's contrast against its focus ring only surface after
+        // interaction — a load-time scan alone misses those (`E-HC-A2`).
+        await AccessibilityHelper.ScanAfterAsync(Page, Output, "/login (sign-in focused)", async () =>
+        {
+            await loginPage.SignInButton.FocusAsync();
+        });
     }
 
     [Fact]
@@ -325,30 +334,47 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     }
 
     [Fact]
-    public async Task FocusIndicator_VisibleOnFocusedElements()
+    public async Task FocusIndicator_VisibleOnAllTabbableElements()
     {
+        // WCAG 2.4.7 (Focus Visible): every keyboard-reachable element must
+        // show a visible focus indicator, not just the first. The previous
+        // version only pressed Tab once and inspected a single stop, which
+        // passed even if the skip link had an outline but every subsequent
+        // tabstop lost its focus style in a later regression (`E-HC-F4`).
+        // Iterate the full tab sequence and assert each stop has a visible
+        // outline or box-shadow.
         var loginPage = new LoginPage(Page!);
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Tab to focus the first interactive element
-        await Page!.Keyboard.PressAsync("Tab");
+        var checkedStops = 0;
+        for (var i = 0; i < 20; i++)
+        {
+            await Page!.Keyboard.PressAsync("Tab");
 
-        // Check that the focused element has a visible outline or box-shadow
-        var hasFocusStyle = await Page.EvaluateAsync<bool>(@"() => {
-            const el = document.activeElement;
-            if (!el) return false;
-            const style = window.getComputedStyle(el);
-            const outline = style.outline;
-            const boxShadow = style.boxShadow;
-            const outlineWidth = style.outlineWidth;
-            // Consider visible if outline has non-zero width or box-shadow is set
-            const hasOutline = outline !== 'none' && outlineWidth !== '0px';
-            const hasShadow = boxShadow && boxShadow !== 'none';
-            return hasOutline || hasShadow;
-        }");
+            var tag = await Page.EvaluateAsync<string>(
+                "() => document.activeElement?.tagName?.toUpperCase() ?? ''");
+            if (string.IsNullOrEmpty(tag) || tag == "BODY") break;
 
-        Assert.True(hasFocusStyle);
+            var text = await Page.EvaluateAsync<string>(
+                "() => (document.activeElement?.textContent ?? '').trim().substring(0, 60)");
+            var hasFocusStyle = await Page.EvaluateAsync<bool>(@"() => {
+                const el = document.activeElement;
+                if (!el) return false;
+                const style = window.getComputedStyle(el);
+                const hasOutline = style.outline !== 'none' && style.outlineWidth !== '0px';
+                const hasShadow = style.boxShadow && style.boxShadow !== 'none';
+                return hasOutline || hasShadow;
+            }");
+
+            Assert.True(hasFocusStyle,
+                $"Tab stop {i + 1} (<{tag}> \"{text}\") has no visible focus indicator");
+            checkedStops++;
+        }
+
+        // Must have reached at least the skip link + sign-in button.
+        Assert.True(checkedStops >= 2,
+            $"Expected at least 2 focus-checkable tab stops, walked {checkedStops}");
     }
 
     // -------------------------------------------------------------------------
