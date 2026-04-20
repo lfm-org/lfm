@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Newtonsoft.Json;
+using Lfm.Api.Serialization;
+
 namespace Lfm.Api.Repositories;
 
 // ---------------------------------------------------------------------------
@@ -71,17 +74,20 @@ public sealed record BlizzardGuildRosterRaw(
     IReadOnlyList<BlizzardGuildRosterMember>? Members = null);
 
 /// <summary>Faction reference in a Blizzard guild profile response.</summary>
-public sealed record BlizzardGuildProfileFaction(string? Name = null);
+public sealed record BlizzardGuildProfileFaction(
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string? Name = null);
 
 /// <summary>Realm reference in a Blizzard guild profile response.</summary>
-public sealed record BlizzardGuildProfileRealm(string Slug, string? Name = null);
+public sealed record BlizzardGuildProfileRealm(
+    string Slug,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string? Name = null);
 
 /// <summary>
 /// Blizzard guild profile as stored inside the guild document.
 /// Only the fields used for building the GuildDto are modelled here.
 /// </summary>
 public sealed record BlizzardGuildProfileRaw(
-    string Name,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string Name,
     BlizzardGuildProfileRealm Realm,
     BlizzardGuildProfileFaction? Faction = null,
     int? MemberCount = null,
