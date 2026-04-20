@@ -187,6 +187,28 @@ public class StackFixture : IAsyncLifetime
             }
             """);
 
+        // Normalize env-specific appsettings the publish step may have copied.
+        // Blazor's WebAssemblyHostConfiguration fetches appsettings.{Environment}.json
+        // at startup and fails with System.Text.Json ExpectedJsonTokens when the
+        // body is empty — which happens when the source files are sandbox-masked to
+        // /dev/null and publish copies them as zero-byte artifacts. Overwriting
+        // each env variant with a valid empty-object JSON keeps the config loader
+        // happy regardless of the host filesystem's state. Matches the build env
+        // name set by WasmApplicationEnvironmentName=Production in Lfm.App.csproj.
+        foreach (var envFile in new[]
+        {
+            "appsettings.Production.json",
+            "appsettings.Development.json",
+            "appsettings.Local.json",
+        })
+        {
+            var envPath = Path.Combine(appWwwroot, envFile);
+            if (File.Exists(envPath))
+            {
+                await File.WriteAllTextAsync(envPath, "{}");
+            }
+        }
+
         try
         {
             await WaitForHttp($"http://localhost:{_apiPort}/api/health", timeoutSec: 120);
