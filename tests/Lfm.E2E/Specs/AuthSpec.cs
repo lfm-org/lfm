@@ -108,8 +108,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
 
         try
         {
-            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-                new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
 
             var navBar = new NavBar(authPage);
             // Explicit 15s timeout — <fluent-button> component upgrade can lag
@@ -117,17 +116,21 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
             // Sign out navigates to /api/battlenet/logout (forceLoad)
-            // which clears the cookie and redirects to app base URL
+            // which clears the cookie and redirects to app base URL.
             await navBar.ClickSignOutAsync();
 
-            await authPage.WaitForURLAsync(
+            // Use the auto-retrying ToHaveURLAsync assertion instead of WaitForURLAsync:
+            // WaitUntilState.NetworkIdle does not settle cleanly through the forceLoad
+            // redirect + Blazor WASM re-bootstrap chain, which previously timed out.
+            await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"^http://localhost:\d+/?$"),
                 new() { Timeout = 15000 });
 
-            // Verify session cleared — protected route redirects to login.
-            // NetworkIdle lets Blazor fetch /api/me (now 401) and fire RedirectToLogin before the assertion.
-            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-                new() { WaitUntil = WaitUntilState.NetworkIdle });
+            // Verify session cleared — revisit a protected route and confirm the
+            // SPA redirects to /login. Goto's default WaitUntil=Load plus the
+            // auto-retrying URL assertion give Blazor enough time to fetch
+            // /api/me (now 401) and fire RedirectToLogin.
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
             await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
                 new() { Timeout = 15000 });
