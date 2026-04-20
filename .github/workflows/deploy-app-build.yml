@@ -71,6 +71,19 @@ jobs:
       - name: Check bundle size budget
         run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
 
+      # dotnet publish emits `.azurefunctions/` (FunctionMetadataLoader + worker
+      # extensions). upload-artifact defaults `include-hidden-files: false` on
+      # purpose — setting it to true would widen the artifact to any hidden
+      # path the build happens to produce (`.git/config`, `.env`, `.npmrc` …).
+      # Tar exactly the one hidden directory we need into a normal-named file
+      # so the artifact stays hidden-free while still carrying the Functions
+      # runtime metadata. Reversed in deploy-app.yml.
+      - name: Archive .azurefunctions metadata
+        run: |
+          set -euo pipefail
+          tar -cf ./publish/api/azurefunctions.tar -C ./publish/api .azurefunctions
+          rm -rf ./publish/api/.azurefunctions
+
       - name: Upload API publish artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
