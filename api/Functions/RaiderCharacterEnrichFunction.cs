@@ -31,13 +31,16 @@ public sealed class RaiderCharacterEnrichFunction(
     {
         var principal = ctx.GetPrincipal();
 
-        // Parse {id} as "{region}-{realm}-{name}" (lowercased).
-        var parts = id.Split('-', 3);
-        if (parts.Length != 3)
+        // Parse {id} as "{region}-{realm-slug}-{name}" (lowercased). Realm slugs may
+        // contain dashes (e.g. "the-maelstrom"); character names cannot. First/last
+        // dash positions uniquely identify the region and name boundaries.
+        var firstDash = id.IndexOf('-');
+        var lastDash = id.LastIndexOf('-');
+        if (firstDash <= 0 || lastDash <= firstDash)
             return new BadRequestObjectResult(new { error = "Invalid character id" });
-        var region = parts[0].ToLowerInvariant();
-        var realm = parts[1].ToLowerInvariant();
-        var lowerName = parts[2].ToLowerInvariant();
+        var region = id[..firstDash].ToLowerInvariant();
+        var realm = id[(firstDash + 1)..lastDash].ToLowerInvariant();
+        var lowerName = id[(lastDash + 1)..].ToLowerInvariant();
 
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
