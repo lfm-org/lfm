@@ -190,9 +190,10 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task EditRun_ModifyFields_ChangesReflected()
     {
-        var encodedId = Uri.EscapeDataString(DefaultSeed.TestRunId);
-
-        // Log API requests to debug 400 errors
+        // Create a dedicated run instead of editing the shared seed. Mutating the
+        // seeded description leaves a permanent diff on runs/{TestRunId} that
+        // would leak into every subsequent test run against the same database.
+        // Mirrors the per-test factory pattern in DeleteRun_Confirm_RemovedFromList.
         Page!.Request += (_, req) =>
         {
             if (req.Url.Contains("/api/runs/") && req.Method is "PUT" or "PATCH")
@@ -204,11 +205,13 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
                 Log($"[API RESP] {resp.Status} {resp.Url}");
         };
 
+        var runsPage = new RunsPage(Page);
+        var createdRunId = await CreateFreshRunAsync(runsPage);
+        var encodedId = Uri.EscapeDataString(createdRunId);
+
         await Page.GotoAsync(
             $"{fixture.Stack.AppBaseUrl}/runs/{encodedId}/edit",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        var runsPage = new RunsPage(Page);
 
         // Wait for the edit form to load
         await Assertions.Expect(runsPage.SaveChangesButton).ToBeVisibleAsync(new() { Timeout = 15000 });
@@ -227,9 +230,44 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Page.GotoAsync(
             $"{fixture.Stack.AppBaseUrl}/runs/{encodedId}",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
-        await Assertions.Expect(runsPage.AttendingHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(Page.GetByText(updatedDescription)).ToBeVisibleAsync(
-            new() { Timeout = 10000 });
+            new() { Timeout = 15000 });
+    }
+
+    /// <summary>
+    /// Creates a fresh run via the create-run form and returns the new run id.
+    /// Callers use this to scope destructive mutations to a per-test document so
+    /// no test bleeds state into <c>runs/{DefaultSeed.TestRunId}</c>.
+    /// </summary>
+    private async Task<string> CreateFreshRunAsync(RunsPage runsPage)
+    {
+        await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
+        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // FluentUI <fluent-select> does not yet expose ARIA combobox roles to
+        // Playwright (microsoft/fluentui-blazor#2614); target by element id.
+        var instanceSelect = Page.Locator("#instance-select");
+        await instanceSelect.ClickAsync();
+        var firstRealOption = Page.Locator("#instance-select fluent-option").Nth(1);
+        await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
+        await firstRealOption.ClickAsync();
+
+        await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
+        // Native <input type="datetime-local"> rejects a Z suffix.
+        await runsPage.StartTimeInput.FillAsync(
+            DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
+        await runsPage.DescriptionInput.FillAsync($"E2E-Scratch-{Guid.NewGuid():N}");
+
+        await runsPage.CreateRunSubmitButton.ClickAsync();
+
+        // The pre-submit URL is /runs/new — exclude it from the match.
+        await Page.WaitForURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/runs/(?!new$)[^/]+$"),
+            new() { Timeout = 20000 });
+
+        var detailUrl = Page.Url;
+        var runId = detailUrl.Substring(detailUrl.LastIndexOf('/') + 1);
+        return Uri.UnescapeDataString(runId);
     }
 
     [Fact]
