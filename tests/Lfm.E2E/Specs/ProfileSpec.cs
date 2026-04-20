@@ -82,31 +82,12 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
-    [Fact]
-    public async Task RefreshCharactersButton_DispatchesRefreshRequest()
-    {
-        // Verifies the refresh button is wired to the correct API route.
-        // The actual refresh outcome (updated character data) is not asserted
-        // here — the seeded raider has accountProfileRefreshedAt = now, so the
-        // server returns 429 and no data update happens. Asserting the
-        // user-observable update would require a freshly-aged raider in the
-        // seed; for now the test pins the wire-up only.
-        var charactersPage = new CharactersPage(Page!);
-
-        await charactersPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
-
-        await Assertions.Expect(charactersPage.RefreshButton).ToBeVisibleAsync(new() { Timeout = 10000 });
-
-        var refreshRequestTask = Page!.WaitForRequestAsync(
-            req => req.Url.Contains("/api/battlenet/characters/refresh"),
-            new() { Timeout = 10000 });
-
-        await charactersPage.ClickRefreshAsync();
-
-        var refreshRequest = await refreshRequestTask;
-        Assert.Contains("/api/battlenet/characters/refresh", refreshRequest.Url);
-    }
+    // RefreshCharactersButton_DispatchesRefreshRequest was removed in favour of
+    // CharactersPage_RefreshButton_Click_Replaces_Character_List in
+    // tests/Lfm.App.Tests/CharactersPagesTests.cs. The bUnit test proves the
+    // user-observable outcome (the rendered card list changes) without needing
+    // a full stack bringup or the E2E-only 429 cooldown dance. The refresh
+    // endpoint's own contract is covered by BattleNetCharactersRefreshFunctionTests.
 
     // -------------------------------------------------------------------------
     // Guild tests (4.3)
