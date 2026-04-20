@@ -79,11 +79,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Let the difficulty pill drop below the title at narrow widths or long
+       titles (e.g. a wide M+ keystone pill next to a long instance name)
+       instead of squeezing the title to nothing. */
+    flex-wrap: wrap;
 }
 
 .run-list-item__title {
     font-weight: 600;
-    flex: 1;
+    flex: 1 1 auto;
     min-inline-size: 0;
     overflow-wrap: anywhere;
     line-height: 1.3;

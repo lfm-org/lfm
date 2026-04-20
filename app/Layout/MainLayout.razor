@@ -22,11 +22,13 @@
 
             <AuthorizeView>
                 <Authorized>
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Style="margin-inline-start:16px" Class="desktop-nav">
+                    @* Plain <div> (not FluentStack) so `.desktop-nav { display: none }` isn't
+                       overridden by FluentStack's inline display:flex at narrow viewports. *@
+                    <div class="desktop-nav">
                         <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
                         <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
                         <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
-                    </FluentStack>
+                    </div>
                     <div style="margin-inline-start:auto;display:flex;align-items:center;gap:4px">
                         <FluentButton Appearance="Appearance.Stealth"
                                       Class="mobile-nav-toggle"

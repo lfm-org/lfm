@@ -19,7 +19,11 @@
     overflow: hidden;
 }
 
-@media (min-width: 48em) {
+/* Two-column split only on genuine desktop widths.
+   At 48em the sidebar + gap + page padding left the detail pane around 420px,
+   which cramped the roster grid and edit form. 64em gives the detail pane
+   ~640px+ and keeps the whole tablet range on a single-column layout. */
+@media (min-width: 64em) {
     .runs-layout {
         flex-direction: row;
     }

@@ -12,6 +12,7 @@
         var (difficulty, _) = RunMode.Parse(modeKey);
         return difficulty switch
         {
+            "MYTHIC_KEYSTONE" => "M+",
             "MYTHIC" => "Mythic",
             "HEROIC" => "Heroic",
             "NORMAL" => "Normal",
@@ -25,6 +26,7 @@
         var (difficulty, _) = RunMode.Parse(modeKey);
         return difficulty switch
         {
+            "MYTHIC_KEYSTONE" => "mplus",
             "MYTHIC" => "mythic",
             "HEROIC" => "heroic",
             "NORMAL" => "normal",
