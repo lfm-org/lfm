@@ -14,7 +14,8 @@ attempts="${2:-12}"
 sleep_seconds="${3:-10}"
 
 for i in $(seq 1 "$attempts"); do
-  status=$(curl -s -o /dev/null -w "%{http_code}" "$url" || echo "000")
+  status=$(curl -s -o /dev/null --max-time 10 -w "%{http_code}" "$url" || true)
+  status="${status:-000}"
   if [ "$status" = "200" ]; then
     echo "Health check passed (attempt $i)"
     exit 0
