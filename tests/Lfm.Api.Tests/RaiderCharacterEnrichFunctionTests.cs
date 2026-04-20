@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Text.Json;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
@@ -105,7 +106,9 @@ public class RaiderCharacterEnrichFunctionTests
         var fn = MakeFunction(repo.Object, profileClient.Object);
         var result = await fn.Run(MakeRequest(), CharId, MakeCtx(), CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var body = JsonSerializer.SerializeToElement(notFound.Value);
+        Assert.Equal("Character not found on Blizzard", body.GetProperty("error").GetString());
     }
 
     // ---- helpers ----
