@@ -27,7 +27,7 @@
     <div id="blazor-error-ui">
         An unhandled error has occurred.
         <a href="." class="reload">Reload</a>
-        <span class="dismiss" aria-label="Dismiss">×</span>
+        <button type="button" class="dismiss" aria-label="Dismiss">×</button>
     </div>
     <script src="js/lfm-interop.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
