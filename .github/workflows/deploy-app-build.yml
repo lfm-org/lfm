@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: Deploy App - Build
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-app-build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore lfm.sln
+
+      - name: Audit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet list lfm.sln package --vulnerable --include-transitive --format json > audit.json
+          count=$(jq '[.. | objects | select(has("vulnerabilities")) | .vulnerabilities[]] | length' audit.json)
+          if [ "$count" -gt 0 ]; then
+            echo "FAIL: vulnerable packages must be resolved before deploy" >&2
+            jq '.' audit.json >&2
+            exit 1
+          fi
+
+      - name: Build
+        run: dotnet build lfm.sln -c Release --no-restore -p:TreatWarningsAsErrors=true
+
+      - name: Tests (parallel)
+        run: ./scripts/run-tests-parallel.sh ./artifacts/test-results
+
+      - name: Publish API
+        run: dotnet publish api/Lfm.Api.csproj -c Release -o ./publish/api --no-build
+
+      - name: Publish App
+        env:
+          PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
+          EXPIRES_SECURITY_TXT: ${{ vars.EXPIRES_SECURITY_TXT }}
+          FRONTEND_HOSTNAME: ${{ vars.FRONTEND_HOSTNAME }}
+          SECURITY_POLICY_URL: ${{ vars.SECURITY_POLICY_URL }}
+          API_HOSTNAME: ${{ vars.API_HOSTNAME }}
+          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
+        run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
+
+      - name: Install brotli
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends brotli
+
+      - name: Check bundle size budget
+        run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
+
+      - name: Upload API publish artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: deploy-app-publish-api
+          path: ./publish/api
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload App publish artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: deploy-app-publish-app
+          path: ./publish/app
+          if-no-files-found: error
+          retention-days: 1
