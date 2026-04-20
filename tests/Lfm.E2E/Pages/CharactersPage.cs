@@ -13,10 +13,6 @@ public class CharactersPage(IPage page)
     public ILocator Heading =>
         _page.GetByText("My Characters");
 
-    // The refresh button — "Refresh from Battle.net"
-    public ILocator RefreshButton =>
-        _page.GetByRole(AriaRole.Button, new() { Name = "Refresh from Battle.net" });
-
     // Character cards rendered in the grid (FluentCard elements within the grid div)
     public ILocator CharacterList =>
         _page.Locator("div[style*='grid-template-columns'] fluent-card");
@@ -38,11 +34,6 @@ public class CharactersPage(IPage page)
     public async Task<bool> IsLoadedAsync()
     {
         return await Heading.IsVisibleAsync();
-    }
-
-    public async Task ClickRefreshAsync()
-    {
-        await RefreshButton.ClickAsync();
     }
 
     public async Task<int> GetCharacterCountAsync()
