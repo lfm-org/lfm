@@ -101,6 +101,14 @@ jobs:
     uses: ./.github/workflows/analyze-infra.yml
     secrets: inherit
 
+  build-app:
+    needs: [detect-changes, secrets-scan]
+    if: |
+      needs.secrets-scan.result == 'success' &&
+      needs.detect-changes.outputs.app == 'true'
+    uses: ./.github/workflows/deploy-app-build.yml
+    secrets: inherit
+
   deploy-infra:
     needs: [detect-changes, secrets-scan, analyze-infra]
     if: |
@@ -111,11 +119,12 @@ jobs:
     secrets: inherit
 
   deploy-app:
-    needs: [detect-changes, secrets-scan, analyze-infra, deploy-infra]
+    needs: [detect-changes, secrets-scan, analyze-infra, build-app, deploy-infra]
     if: |
       always() &&
       needs.secrets-scan.result == 'success' &&
       (needs.analyze-infra.result == 'success' || needs.analyze-infra.result == 'skipped') &&
+      needs.build-app.result == 'success' &&
       needs.detect-changes.outputs.app == 'true' &&
       (needs.deploy-infra.result == 'success' || needs.deploy-infra.result == 'skipped')
     uses: ./.github/workflows/deploy-app.yml
