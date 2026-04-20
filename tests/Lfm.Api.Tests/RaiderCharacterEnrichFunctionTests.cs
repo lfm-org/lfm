@@ -91,6 +91,23 @@ public class RaiderCharacterEnrichFunctionTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Returns_404_when_Blizzard_returns_404()
+    {
+        var raider = MakeRaider(accountChars: [("stormreaver", "Shalena")]);
+        var repo = RepoReturning(raider);
+        var profileClient = new Mock<IBlizzardProfileClient>();
+        profileClient.Setup(p => p.GetCharacterProfileAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException(
+                "Not Found", inner: null, statusCode: System.Net.HttpStatusCode.NotFound));
+
+        var fn = MakeFunction(repo.Object, profileClient.Object);
+        var result = await fn.Run(MakeRequest(), CharId, MakeCtx(), CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
     // ---- helpers ----
     private static RaiderCharacterEnrichFunction MakeFunction(
         IRaidersRepository repo, IBlizzardProfileClient profile)
