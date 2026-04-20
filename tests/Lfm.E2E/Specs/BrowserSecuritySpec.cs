@@ -15,9 +15,9 @@ namespace Lfm.E2E.Specs;
 // prove. This spec replaces the deleted SecuritySpec.cs whose 19 tests all
 // asserted server response headers without ever touching a browser (`E-HC-S1`).
 //
-// The four tests below pin contracts the real Static Web Apps deployment
-// enforces in production, replicated locally by StackFixture's Kestrel host
-// (which sets the same globalHeaders the production platform sets).
+// The tests below pin contracts the real Static Web Apps deployment enforces
+// in production, replicated locally by StackFixture's Kestrel host (which sets
+// the same globalHeaders the production platform sets).
 [Collection("BrowserSecurity")]
 [Trait("Category", "Security")]
 public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelper output)
@@ -175,5 +175,97 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             """);
 
         Assert.NotEqual(true, pwnedFlag);
+    }
+
+    [Fact]
+    public async Task TamperedSessionCookie_AccessingProtectedRoute_RedirectsToLogin()
+    {
+        // Establish a real authenticated session, then corrupt the cookie so
+        // the server cannot decrypt it. The server rejects the tampered cookie
+        // with 401; the SPA must honour that rejection by routing the user to
+        // /login. This proves browser-side handling of a rejected session —
+        // the integration-layer CorsMiddlewareTests / AuthMiddlewareTests
+        // prove the server-side rejection, but not the SPA's response to it.
+        var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
+        try
+        {
+            var original = (await authContext.CookiesAsync())
+                .First(c => c.Name == "battlenet_token");
+            await authContext.AddCookiesAsync(
+            [
+                new Cookie
+                {
+                    Name = original.Name,
+                    Value = "TAMPERED-" + original.Value,
+                    Domain = original.Domain,
+                    Path = original.Path,
+                    HttpOnly = original.HttpOnly,
+                    Secure = original.Secure,
+                    SameSite = original.SameSite,
+                    Expires = original.Expires,
+                },
+            ]);
+
+            var tamperedPage = await authContext.NewPageAsync();
+            await tamperedPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
+
+            await Assertions.Expect(tamperedPage).ToHaveURLAsync(
+                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+                new() { Timeout = 15000 });
+        }
+        finally
+        {
+            await authContext.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ExpiredSessionCookie_AccessingProtectedRoute_RedirectsToLogin()
+    {
+        // Re-add the session cookie with an Expires timestamp in the past so
+        // the Chromium cookie jar treats it as expired and drops it before
+        // sending the request. The backend then sees an anonymous request,
+        // returns 401, and the SPA routes to /login. Proves *browser*
+        // cookie-jar expiry enforcement — even though the encrypted
+        // principal inside the cookie is still valid, the browser's own
+        // Expires check must prevent the cookie from leaving the jar.
+        var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
+        try
+        {
+            var original = (await authContext.CookiesAsync())
+                .First(c => c.Name == "battlenet_token");
+            var pastExpiry = DateTimeOffset.UtcNow.AddHours(-1).ToUnixTimeSeconds();
+            await authContext.AddCookiesAsync(
+            [
+                new Cookie
+                {
+                    Name = original.Name,
+                    Value = original.Value,
+                    Domain = original.Domain,
+                    Path = original.Path,
+                    HttpOnly = original.HttpOnly,
+                    Secure = original.Secure,
+                    SameSite = original.SameSite,
+                    Expires = pastExpiry,
+                },
+            ]);
+
+            var expiredPage = await authContext.NewPageAsync();
+            await expiredPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
+
+            await Assertions.Expect(expiredPage).ToHaveURLAsync(
+                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+                new() { Timeout = 15000 });
+        }
+        finally
+        {
+            await authContext.CloseAsync();
+        }
     }
 }
