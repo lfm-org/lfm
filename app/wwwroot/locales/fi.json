@@ -80,6 +80,7 @@
     "runs.columns.spec": "Spec",
     "runs.noSignups": "Ei ilmoittautumisia viel\u00e4.",
     "runs.attendingSignedUp": "{0} osallistuu \u00B7 {1} ilmoittautunut",
+    "runs.listItemAriaLabel": "{0} \u2013 {1}",
     "runs.attendingSection": "Osallistuu",
     "runs.notAttendingSection": "Ei osallistu",
     "runs.role.tank": "Tank",
