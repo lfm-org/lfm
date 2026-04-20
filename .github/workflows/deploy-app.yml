@@ -30,6 +30,14 @@ jobs:
           name: deploy-app-publish-api
           path: ./publish/api
 
+      # Reverses deploy-app-build.yml's `Archive .azurefunctions metadata`
+      # step. See that step for the why.
+      - name: Restore .azurefunctions metadata
+        run: |
+          set -euo pipefail
+          tar -xf ./publish/api/azurefunctions.tar -C ./publish/api
+          rm ./publish/api/azurefunctions.tar
+
       - name: Download App publish artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
