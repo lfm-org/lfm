@@ -86,6 +86,10 @@ public sealed class RaiderCharacterEnrichFunction(
             {
                 return new ObjectResult(new { error = "Upstream rate-limited" }) { StatusCode = 429 };
             }
+            catch (HttpRequestException ex) when ((int?)ex.StatusCode == 404)
+            {
+                return new NotFoundObjectResult(new { error = "Character not found on Blizzard" });
+            }
             catch (HttpRequestException)
             {
                 return new ObjectResult(new { error = "Failed to fetch character from Blizzard" }) { StatusCode = 502 };
