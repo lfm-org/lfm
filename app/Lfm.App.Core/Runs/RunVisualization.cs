@@ -136,19 +136,4 @@ public static class RunVisualization
         }
         return TimeHorizon.Later;
     }
-
-    // Deterministic 0-359 hue from an instance id. Multiplier chosen to
-    // scatter adjacent ids (1, 2, 3…) into visually distinct hues.
-    public static int GetInstanceHue(int instanceId)
-    {
-        var hue = (instanceId * 47) % 360;
-        return hue < 0 ? hue + 360 : hue;
-    }
-
-    public static string GetInstanceGradient(int instanceId)
-    {
-        var hue = GetInstanceHue(instanceId);
-        return FormattableString.Invariant(
-            $"linear-gradient(135deg, oklch(0.55 0.12 {hue} / 0.18), oklch(0.35 0.10 {(hue + 40) % 360} / 0.10))");
-    }
 }
