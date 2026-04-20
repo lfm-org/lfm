@@ -156,6 +156,42 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CharactersPage_RefreshButton_Click_Replaces_Character_List()
+    {
+        // Proves the "Refresh from Battle.net" button is wired to
+        // IBattleNetClient.RefreshCharactersAsync and that its returned
+        // list replaces the currently-rendered cards. This used to be an
+        // E2E test that asserted only an outbound HTTP request was fired
+        // (E-HC-F10); the integration-layer contract is covered by
+        // BattleNetCharactersRefreshFunctionTests, and the user-observable
+        // re-render is bUnit territory.
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas") }));
+        battleNet.Setup(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Sylvanas", "silvermoon") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() => Assert.Contains("Arthas", cut.Markup));
+
+        var refreshButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("characters.refresh")));
+        refreshButton.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Sylvanas", cut.Markup);
+            Assert.DoesNotContain("Arthas", cut.Markup);
+        });
+    }
+
+    [Fact]
     public void CharactersPage_Renders_Multiple_Characters()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
