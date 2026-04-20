@@ -155,6 +155,26 @@ public static class DefaultSeed
                                     ["name"] = "Mage",
                                 },
                             },
+                            // Keep in sync with raider.characters above: the characters
+                            // endpoint iterates wow_accounts[*].characters to build the
+                            // card list, so a mismatch here shows as missing cards in
+                            // the UI and drove CharactersPage_Loads_DisplaysCharacterList
+                            // to tolerate an empty render as a pass.
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Aelrinalt",
+                                ["level"] = 80,
+                                ["realm"] = new Dictionary<string, object?>
+                                {
+                                    ["slug"] = "test-realm",
+                                    ["name"] = "Test Realm",
+                                },
+                                ["playable_class"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 2,
+                                    ["name"] = "Paladin",
+                                },
+                            },
                         },
                     },
                 },
