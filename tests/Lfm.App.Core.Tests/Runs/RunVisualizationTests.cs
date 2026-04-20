@@ -1,0 +1,193 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 LFM contributors
+
+using Lfm.App.Runs;
+using Lfm.Contracts.Runs;
+using Xunit;
+
+namespace Lfm.App.Core.Tests.Runs;
+
+public class RunVisualizationTests
+{
+    [Theory]
+    [InlineData("MYTHIC:5", RunKind.Dungeon)]
+    [InlineData("HEROIC:5", RunKind.Dungeon)]
+    [InlineData("NORMAL:10", RunKind.Raid)]
+    [InlineData("MYTHIC:20", RunKind.Raid)]
+    [InlineData("LFR:25", RunKind.Raid)]
+    [InlineData("HEROIC:30", RunKind.Raid)]
+    [InlineData("MYTHIC", RunKind.Unknown)]
+    [InlineData("", RunKind.Unknown)]
+    [InlineData(null, RunKind.Unknown)]
+    public void GetKind_parses_size_from_mode_key(string? modeKey, RunKind expected)
+    {
+        Assert.Equal(expected, RunVisualization.GetKind(modeKey));
+    }
+
+    [Theory]
+    [InlineData(5, 1, 1, 3)]
+    [InlineData(10, 2, 2, 6)]
+    [InlineData(20, 2, 4, 14)]
+    [InlineData(25, 2, 5, 18)]
+    [InlineData(30, 2, 6, 22)]
+    [InlineData(0, 0, 0, 0)]
+    [InlineData(40, 0, 0, 0)]
+    public void GetRoleTargets_returns_standard_comp(int size, int tanks, int healers, int dps)
+    {
+        Assert.Equal((tanks, healers, dps), RunVisualization.GetRoleTargets(size));
+    }
+
+    [Fact]
+    public void CountRoles_counts_attending_per_role_and_fills_targets()
+    {
+        var chars = new List<RunCharacterDto>
+        {
+            MakeChar("TANK", "IN"),
+            MakeChar("TANK", "OUT"),
+            MakeChar("HEALER", "IN"),
+            MakeChar("HEALER", "LATE"),
+            MakeChar("HEALER", "BENCH"),
+            MakeChar("DPS", "IN"),
+            MakeChar("DPS", "AWAY"),
+            MakeChar(null, "IN"),
+        };
+
+        var counts = RunVisualization.CountRoles(chars, "MYTHIC:20");
+
+        Assert.Equal(1, counts.Tank.Attending);
+        Assert.Equal(2, counts.Tank.Target);
+        Assert.Equal(3, counts.Healer.Attending);
+        Assert.Equal(4, counts.Healer.Target);
+        Assert.Equal(2, counts.Dps.Attending);
+        Assert.Equal(14, counts.Dps.Target);
+    }
+
+    [Fact]
+    public void CountRoles_marks_shortage_when_attending_below_target()
+    {
+        var chars = new List<RunCharacterDto> { MakeChar("HEALER", "IN") };
+        var counts = RunVisualization.CountRoles(chars, "NORMAL:10");
+        Assert.True(counts.Tank.IsShortage);
+        Assert.True(counts.Healer.IsShortage);
+        Assert.True(counts.Dps.IsShortage);
+    }
+
+    [Fact]
+    public void CountRoles_no_shortage_when_size_unknown()
+    {
+        var chars = new List<RunCharacterDto> { MakeChar("TANK", "IN") };
+        var counts = RunVisualization.CountRoles(chars, "MYTHIC");
+        Assert.False(counts.Tank.IsShortage);
+        Assert.False(counts.Healer.IsShortage);
+        Assert.False(counts.Dps.IsShortage);
+    }
+
+    [Theory]
+    [InlineData("IN", true)]
+    [InlineData("LATE", true)]
+    [InlineData("BENCH", true)]
+    [InlineData("OUT", false)]
+    [InlineData("AWAY", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsAttending_covers_all_states(string? attendance, bool expected)
+    {
+        Assert.Equal(expected, RunVisualization.IsAttending(attendance));
+    }
+
+    [Fact]
+    public void IsCurrentUserSignedUp_true_when_any_character_is_current_user()
+    {
+        var chars = new List<RunCharacterDto>
+        {
+            MakeChar("TANK", "IN", isCurrentUser: false),
+            MakeChar("DPS", "IN", isCurrentUser: true),
+        };
+        Assert.True(RunVisualization.IsCurrentUserSignedUp(chars));
+    }
+
+    [Fact]
+    public void IsCurrentUserSignedUp_false_when_empty_or_no_match()
+    {
+        Assert.False(RunVisualization.IsCurrentUserSignedUp(Array.Empty<RunCharacterDto>()));
+        Assert.False(RunVisualization.IsCurrentUserSignedUp(new[] { MakeChar("TANK", "IN") }));
+    }
+
+    [Fact]
+    public void GetHorizon_classifies_runs_against_fixed_now()
+    {
+        var now = new DateTimeOffset(2026, 4, 20, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(TimeHorizon.Past, RunVisualization.GetHorizon("2026-04-19T10:00:00+00:00", now));
+        Assert.Equal(TimeHorizon.ThisWeek, RunVisualization.GetHorizon("2026-04-23T19:00:00+00:00", now));
+        Assert.Equal(TimeHorizon.NextWeek, RunVisualization.GetHorizon("2026-04-29T19:00:00+00:00", now));
+        Assert.Equal(TimeHorizon.Later, RunVisualization.GetHorizon("2026-05-15T19:00:00+00:00", now));
+    }
+
+    [Fact]
+    public void GetHorizon_returns_unknown_on_unparseable_input()
+    {
+        var now = new DateTimeOffset(2026, 4, 20, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(TimeHorizon.Unknown, RunVisualization.GetHorizon("", now));
+        Assert.Equal(TimeHorizon.Unknown, RunVisualization.GetHorizon(null, now));
+        Assert.Equal(TimeHorizon.Unknown, RunVisualization.GetHorizon("not a date", now));
+    }
+
+    [Fact]
+    public void GetInstanceHue_is_stable_and_in_range()
+    {
+        var a1 = RunVisualization.GetInstanceHue(1234);
+        var a2 = RunVisualization.GetInstanceHue(1234);
+        Assert.Equal(a1, a2);
+        Assert.InRange(a1, 0, 359);
+        Assert.NotEqual(
+            RunVisualization.GetInstanceHue(1),
+            RunVisualization.GetInstanceHue(2));
+    }
+
+    [Fact]
+    public void GetInstanceGradient_produces_css_gradient_string()
+    {
+        var gradient = RunVisualization.GetInstanceGradient(1234);
+        Assert.StartsWith("linear-gradient(", gradient);
+        Assert.Contains("oklch(", gradient);
+    }
+
+    [Theory]
+    [InlineData("MYTHIC:20", "mythic")]
+    [InlineData("HEROIC:10", "heroic")]
+    [InlineData("NORMAL:5", "normal")]
+    [InlineData("LFR:25", "lfr")]
+    [InlineData("weird", "unknown")]
+    [InlineData("", "unknown")]
+    public void GetDifficultyClass_maps_difficulty_token(string modeKey, string expected)
+    {
+        Assert.Equal(expected, RunVisualization.GetDifficultyClass(modeKey));
+    }
+
+    [Theory]
+    [InlineData(RunKind.Dungeon, "dungeon")]
+    [InlineData(RunKind.Raid, "raid")]
+    [InlineData(RunKind.Unknown, "unknown")]
+    public void GetKindClass_maps_kind_enum(RunKind kind, string expected)
+    {
+        Assert.Equal(expected, RunVisualization.GetKindClass(kind));
+    }
+
+    private static RunCharacterDto MakeChar(string? role, string attendance, bool isCurrentUser = false) =>
+        new(
+            Id: Guid.NewGuid().ToString(),
+            CharacterId: "c",
+            CharacterName: "Char",
+            CharacterRealm: "Realm",
+            CharacterLevel: 80,
+            CharacterClassId: 1,
+            CharacterClassName: "Warrior",
+            CharacterRaceId: 1,
+            CharacterRaceName: "Human",
+            DesiredAttendance: attendance,
+            ReviewedAttendance: attendance,
+            SpecId: null,
+            SpecName: null,
+            Role: role,
+            IsCurrentUser: isCurrentUser);
+}
