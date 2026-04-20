@@ -64,6 +64,14 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             await instancesPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
             await Assertions.Expect(instancesPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+
+            // DefaultSeed seeds one instance ("Liberation of Undermine"); the test
+            // name promises a data display, so assert the grid actually rendered it
+            // instead of only pinning the page heading.
+            await Assertions.Expect(instancesPage.InstanceRows)
+                .ToHaveCountAsync(1, new() { Timeout = 15000 });
+            await Assertions.Expect(authPage.GetByText("Liberation of Undermine"))
+                .ToBeVisibleAsync(new() { Timeout = 10000 });
         }
         finally
         {
