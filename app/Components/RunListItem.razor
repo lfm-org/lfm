@@ -1,0 +1,84 @@
+@using Lfm.App.Runs
+@using Lfm.Contracts.Runs
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer Loc
+
+<button type="button"
+        class="run-list-item @(IsSelected ? "run-list-item--selected" : "")"
+        data-testid="run-item-@Run.Id"
+        data-difficulty="@_difficultyClass"
+        data-kind="@_kindClass"
+        data-current-user="@_isCurrentUserClass"
+        aria-label="@_ariaLabel"
+        aria-pressed="@(IsSelected ? "true" : "false")"
+        style="@_instanceStyle"
+        @onclick="HandleClick">
+    <span class="run-list-item__header">
+        <span class="run-list-item__title">@Run.InstanceName</span>
+        <DifficultyPill ModeKey="@Run.ModeKey" />
+    </span>
+    <span class="run-list-item__meta">
+        <span class="run-list-item__date">@FormatDate(Run.StartTime)</span>
+        @if (_isMe)
+        {
+            <span class="run-list-item__badge"
+                  aria-label="@Loc["runs.signedUpAria"]"
+                  title="@Loc["runs.signedUpAria"]">&#9733;</span>
+        }
+    </span>
+    <span class="run-list-item__composition" aria-label="@_compositionAria">
+        <span class="run-list-item__roleslot @(_counts.Tank.IsShortage ? "run-list-item__roleslot--short" : "")">
+            <span class="run-list-item__rolekey">@Loc["runs.roleShort.tank"]</span>
+            @RenderCount(_counts.Tank)
+        </span>
+        <span class="run-list-item__roleslot @(_counts.Healer.IsShortage ? "run-list-item__roleslot--short" : "")">
+            <span class="run-list-item__rolekey">@Loc["runs.roleShort.healer"]</span>
+            @RenderCount(_counts.Healer)
+        </span>
+        <span class="run-list-item__roleslot @(_counts.Dps.IsShortage ? "run-list-item__roleslot--short" : "")">
+            <span class="run-list-item__rolekey">@Loc["runs.roleShort.dps"]</span>
+            @RenderCount(_counts.Dps)
+        </span>
+    </span>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public RunSummaryDto Run { get; set; } = default!;
+    [Parameter] public bool IsSelected { get; set; }
+    [Parameter] public EventCallback<string> OnSelected { get; set; }
+
+    private string _difficultyClass = "unknown";
+    private string _kindClass = "unknown";
+    private string _isCurrentUserClass = "false";
+    private bool _isMe;
+    private RunRoleCounts _counts;
+    private string _ariaLabel = "";
+    private string _compositionAria = "";
+    private string _instanceStyle = "";
+
+    protected override void OnParametersSet()
+    {
+        _difficultyClass = RunVisualization.GetDifficultyClass(Run.ModeKey);
+        _kindClass = RunVisualization.GetKindClass(RunVisualization.GetKind(Run.ModeKey));
+        _isMe = RunVisualization.IsCurrentUserSignedUp(Run.RunCharacters);
+        _isCurrentUserClass = _isMe ? "true" : "false";
+        _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.ModeKey);
+        _ariaLabel = Loc["runs.listItemAriaLabel", Run.InstanceName, FormatDate(Run.StartTime)].Value;
+        _compositionAria = Loc["runs.compositionAria",
+            _counts.Tank.Attending, _counts.Healer.Attending, _counts.Dps.Attending].Value;
+        _instanceStyle = $"--instance-bg:{RunVisualization.GetInstanceGradient(Run.InstanceId)}";
+    }
+
+    private Task HandleClick() => OnSelected.InvokeAsync(Run.Id);
+
+    private static string RenderCount(RoleCount slot) =>
+        slot.Target > 0 ? $"{slot.Attending}/{slot.Target}" : slot.Attending.ToString();
+
+    private static string FormatDate(string? isoDate)
+    {
+        if (string.IsNullOrEmpty(isoDate)) return "\u2014";
+        if (DateTimeOffset.TryParse(isoDate, out var dto))
+            return dto.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        return isoDate;
+    }
+}
