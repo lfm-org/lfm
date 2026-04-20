@@ -182,19 +182,28 @@
         state = new LoadingState<IReadOnlyList<CharacterDto>>.Loading();
         try
         {
-            var chars = await BattleNetClient.GetCharactersAsync(CancellationToken.None);
-            if (chars is null)
+            var result = await BattleNetClient.GetCharactersAsync(CancellationToken.None);
+            switch (result)
             {
-                state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure(Loc["characters.error.loadFailed"]);
-            }
-            else
-            {
-                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
-                foreach (var c in chars)
-                    cardState[CharKey(c)] = (c.ClassId is not null && c.ActiveSpecId is not null)
-                        ? EnrichState.Enriched
-                        : EnrichState.Pending;
-                _ = LoadPortraitsAsync(chars);
+                case CharactersFetchResult.Cached cached:
+                    ApplyCharacters(cached.Characters);
+                    break;
+
+                case CharactersFetchResult.NeedsRefresh:
+                    // Backend has no cached profile (or cooldown expired) and asks
+                    // us to fetch fresh from Blizzard.  Without this fallback, a
+                    // first visit to /characters shows "load failed" until the
+                    // user clicks the refresh button.
+                    var fresh = await BattleNetClient.RefreshCharactersAsync(CancellationToken.None);
+                    if (fresh is null)
+                        state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure(Loc["characters.error.loadFailed"]);
+                    else
+                        ApplyCharacters(fresh);
+                    break;
+
+                default:
+                    state = new LoadingState<IReadOnlyList<CharacterDto>>.Failure(Loc["characters.error.loadFailed"]);
+                    break;
             }
         }
         catch (Exception ex)
@@ -205,6 +214,16 @@
         {
             loading = false;
         }
+    }
+
+    private void ApplyCharacters(IReadOnlyList<CharacterDto> chars)
+    {
+        state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
+        foreach (var c in chars)
+            cardState[CharKey(c)] = (c.ClassId is not null && c.ActiveSpecId is not null)
+                ? EnrichState.Enriched
+                : EnrichState.Pending;
+        _ = LoadPortraitsAsync(chars);
     }
 
     private async Task RefreshCharacters()
