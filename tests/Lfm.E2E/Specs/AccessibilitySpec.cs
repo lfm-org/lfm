@@ -61,7 +61,16 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         var loginPage = new LoginPage(Page);
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        await AccessibilityHelper.ScanAndAssert(Page, Output, "/login");
+        await AccessibilityHelper.ScanAndAssert(Page, Output, "/login (load)");
+
+        // Re-scan after keyboard-focusing the sign-in button. The focus
+        // indicator styles, any aria-describedby tooltips, and the focused
+        // element's contrast against its focus ring only surface after
+        // interaction — a load-time scan alone misses those (`E-HC-A2`).
+        await AccessibilityHelper.ScanAfterAsync(Page, Output, "/login (sign-in focused)", async () =>
+        {
+            await loginPage.SignInButton.FocusAsync();
+        });
     }
 
     [Fact]
