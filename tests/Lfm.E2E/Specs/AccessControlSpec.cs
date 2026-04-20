@@ -83,25 +83,34 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
     }
 
     [Fact]
-    public async Task PublicRoute_Unauthenticated_RendersWithoutRedirect()
+    public async Task PublicLandingPage_Unauthenticated_RendersWithoutRedirect()
     {
-        // Landing page
-        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-        Assert.DoesNotContain("/login?redirect", Page.Url);
+        var landingPage = new LandingPage(Page!);
+        await landingPage.GotoAsync(fixture.Stack.AppBaseUrl);
 
-        // Login page
-        await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/login",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-        var loginPage = new LoginPage(Page);
+        await Assertions.Expect(landingPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        Assert.DoesNotContain("/login?redirect", Page!.Url);
+    }
+
+    [Fact]
+    public async Task PublicLoginPage_Unauthenticated_RendersWithoutRedirect()
+    {
+        var loginPage = new LoginPage(Page!);
+        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
+
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        Assert.Contains("/login", Page.Url);
+        Assert.Contains("/login", Page!.Url);
         Assert.DoesNotContain("redirect=", Page.Url);
+    }
 
-        // Privacy page
-        await Page.GotoAsync($"{fixture.Stack.AppBaseUrl}/privacy",
-            new() { WaitUntil = WaitUntilState.NetworkIdle });
-        Assert.Contains("/privacy", Page.Url);
+    [Fact]
+    public async Task PublicPrivacyPage_Unauthenticated_RendersWithoutRedirect()
+    {
+        var privacyPage = new PrivacyPage(Page!);
+        await privacyPage.GotoAsync(fixture.Stack.AppBaseUrl);
+
+        await Assertions.Expect(privacyPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        Assert.Contains("/privacy", Page!.Url);
         Assert.DoesNotContain("/login?redirect", Page.Url);
     }
 }
