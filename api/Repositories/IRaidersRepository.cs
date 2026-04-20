@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Text.Json.Serialization;
+using Lfm.Api.Serialization;
 
 namespace Lfm.Api.Repositories;
 
@@ -38,7 +39,9 @@ public sealed record BlizzardAccountProfileSummary(
 // Field names match the camelCase keys the TS refresh handler writes to Cosmos.
 // ---------------------------------------------------------------------------
 
-public sealed record StoredCharacterSpecialization(int Id, string? Name = null);
+public sealed record StoredCharacterSpecialization(
+    int Id,
+    [property: Newtonsoft.Json.JsonConverter(typeof(LocalizedStringConverter))] string? Name = null);
 
 public sealed record StoredSpecializationsSummary(
     StoredCharacterSpecialization? ActiveSpecialization = null,
@@ -69,7 +72,7 @@ public sealed record StoredSelectedCharacter(
     StoredSpecializationsSummary? SpecializationsSummary = null,
     BlizzardCharacterMediaSummary? MediaSummary = null,
     int? ClassId = null,
-    string? ClassName = null,
+    [property: Newtonsoft.Json.JsonConverter(typeof(LocalizedStringConverter))] string? ClassName = null,
     int? Level = null,
     int? GuildId = null,
     string? GuildName = null,
