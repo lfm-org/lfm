@@ -50,10 +50,15 @@ a, .btn-link {
 }
 
     #blazor-error-ui .dismiss {
+        background: transparent;
+        border: 0;
+        color: inherit;
         cursor: pointer;
+        font: inherit;
+        padding: 0;
         position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+        inset-inline-end: 0.75rem;
+        inset-block-start: 0.5rem;
     }
 
 .blazor-error-boundary {
