@@ -104,7 +104,7 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task Navbar_Links_NavigateCorrectly()
+    public async Task NavbarCharactersLink_Click_NavigatesToCharactersPage()
     {
         var authContext = await AuthHelper.AuthenticatedContextAsync(
             fixture.Stack.Browser,
@@ -114,29 +114,59 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
 
         try
         {
-            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-                new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await authPage.RouteAsync("**/api/battlenet/character-portraits", async route =>
+            {
+                await route.FulfillAsync(new()
+                {
+                    Status = 200,
+                    ContentType = "application/json",
+                    Body = "{\"portraits\":{}}",
+                });
+            });
+
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
 
             var navBar = new NavBar(authPage);
-
-            // Verify authenticated nav links are visible and clickable
-            await Assertions.Expect(navBar.RunsLink).ToBeVisibleAsync(new() { Timeout = 10000 });
-            await Assertions.Expect(navBar.GuildLink).ToBeVisibleAsync(new() { Timeout = 10000 });
             await Assertions.Expect(navBar.CharactersLink).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-            // Navigate via the Characters link
             await navBar.CharactersLink.ClickAsync();
-            await authPage.WaitForURLAsync(
-                new System.Text.RegularExpressions.Regex(@"/characters$"),
-                new() { Timeout = 15000 });
-            Assert.Contains("/characters", authPage.Url);
 
-            // Navigate via the Guild link
+            // Prove the link reached the destination UI, not just the URL.
+            var charactersPage = new CharactersPage(authPage);
+            await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Assertions.Expect(authPage).ToHaveURLAsync(
+                new System.Text.RegularExpressions.Regex(@"/characters$"),
+                new() { Timeout = 10000 });
+        }
+        finally
+        {
+            await authContext.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public async Task NavbarGuildLink_Click_NavigatesToGuildPage()
+    {
+        var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
+        var authPage = await authContext.NewPageAsync();
+
+        try
+        {
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
+
+            var navBar = new NavBar(authPage);
+            await Assertions.Expect(navBar.GuildLink).ToBeVisibleAsync(new() { Timeout = 10000 });
+
             await navBar.GuildLink.ClickAsync();
-            await authPage.WaitForURLAsync(
+
+            var guildPage = new GuildPage(authPage);
+            await Assertions.Expect(guildPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/guild$"),
-                new() { Timeout = 15000 });
-            Assert.Contains("/guild", authPage.Url);
+                new() { Timeout = 10000 });
         }
         finally
         {
