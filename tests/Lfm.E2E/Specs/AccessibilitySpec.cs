@@ -299,23 +299,29 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     [Fact]
     public async Task InteractiveElements_ReachableViaTab()
     {
+        // WCAG 2.1.1 (Keyboard): interactive controls must be reachable via Tab.
+        // Asserting only Assert.NotEmpty(focusedTags) passes for any tab stop —
+        // the skip link alone would satisfy it — and a regression that made the
+        // sign-in button unreachable would go undetected. Walk the tab sequence
+        // and assert the sign-in button is actually one of the stops (`E-HC-F1`).
         var loginPage = new LoginPage(Page!);
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // Collect all elements reachable by Tab (up to 20 tabs)
-        var focusedTags = new List<string>();
+        // Collect (tag, text) for each focusable tab stop, up to 20 stops.
+        var stops = new List<(string Tag, string Text)>();
         for (var i = 0; i < 20; i++)
         {
             await Page!.Keyboard.PressAsync("Tab");
             var tag = await Page.EvaluateAsync<string>(
                 "() => document.activeElement?.tagName?.toUpperCase() ?? ''");
             if (string.IsNullOrEmpty(tag) || tag == "BODY") break;
-            focusedTags.Add(tag);
+            var text = await Page.EvaluateAsync<string>(
+                "() => (document.activeElement?.textContent ?? '').trim()");
+            stops.Add((tag, text));
         }
 
-        // The login page must have at least the sign-in button reachable via Tab
-        Assert.NotEmpty(focusedTags);
+        Assert.Contains(stops, s => s.Text.Contains("Sign in with Battle.net"));
     }
 
     [Fact]
