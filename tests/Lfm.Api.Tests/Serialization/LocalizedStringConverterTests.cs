@@ -299,6 +299,48 @@ public class LocalizedStringConverterTests
     }
 
     [Fact]
+    public void InstanceListRow_deserializes_with_localized_name()
+    {
+        // Shape of the row produced by InstancesRepository.ListAsync's projection:
+        //   SELECT c.instanceId AS id, c.name, c.modeKey, c.expansion FROM c
+        // Legacy documents store c.name as the no-locale object; projecting
+        // directly into InstanceDto (no converter) crashed every /api/instances
+        // call with JsonReaderException — same root cause as the 2026-04-20
+        // /api/guild incident, retriggered when editing a run.
+        var json = """
+        {
+          "id": "67",
+          "name": { "en_US": "Icecrown Citadel", "de_DE": "Eiskronenzitadelle" },
+          "modeKey": "NORMAL:25",
+          "expansion": "WRATH_OF_THE_LICH_KING"
+        }
+        """;
+
+        var row = JsonConvert.DeserializeObject<InstanceListRow>(json, CosmosLikeSettings);
+
+        Assert.Equal("Icecrown Citadel", row!.Name);
+    }
+
+    [Fact]
+    public void InstanceListRow_deserializes_with_plain_string_name()
+    {
+        // Newly-written documents use the plain-string shape via
+        // LocalizedStringConverter.WriteJson — must keep working.
+        var json = """
+        {
+          "id": "67",
+          "name": "Icecrown Citadel",
+          "modeKey": "NORMAL:25",
+          "expansion": "WRATH_OF_THE_LICH_KING"
+        }
+        """;
+
+        var row = JsonConvert.DeserializeObject<InstanceListRow>(json, CosmosLikeSettings);
+
+        Assert.Equal("Icecrown Citadel", row!.Name);
+    }
+
+    [Fact]
     public void SpecializationDocument_deserializes_with_localized_name()
     {
         var json = """
