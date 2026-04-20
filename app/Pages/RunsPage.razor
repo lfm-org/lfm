@@ -1,6 +1,8 @@
 @page "/runs"
 @page "/runs/{RunId}"
 @attribute [Authorize]
+@using Lfm.App.Components
+@using Lfm.App.Runs
 @using Lfm.App.Services
 @using Lfm.Contracts.Runs
 @inject IRunsClient RunsClient
@@ -10,21 +12,38 @@
 <PageTitle>@Loc["runs.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" Style="align-items:center">
         <FluentLabel Typo="Typography.H1" Style="flex:1">@Loc["runs.title"]</FluentLabel>
         <FluentButton Appearance="Appearance.Accent" OnClick="@(() => Nav.NavigateTo("/runs/new"))">
             @Loc["runs.create"]
         </FluentButton>
-        <FluentButton Appearance="Appearance.Outline" OnClick="@LoadRuns" Disabled="@loading">
-            @Loc["common.refresh"]
-        </FluentButton>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="align-items:center">
+            <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshRuns" Disabled="@_refreshing">
+                @Loc["common.refresh"]
+            </FluentButton>
+            @if (_refreshing && state is LoadingState<IReadOnlyList<RunSummaryDto>>.Success)
+            {
+                <span class="runs-inline-spinner" role="status"
+                      aria-label="@Loc["runs.refreshing"]" title="@Loc["runs.refreshing"]">
+                    <FluentProgressRing Style="width:20px;height:20px" />
+                </span>
+            }
+        </FluentStack>
     </FluentStack>
 
     @switch (state)
     {
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Idle:
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Loading:
-            <FluentProgressRing />
+            <div class="runs-loading" role="status" aria-live="polite" aria-label="@Loc["common.loading"]">
+                <FluentProgressRing />
+                <div class="runs-skeleton" aria-hidden="true">
+                    @for (var i = 0; i < 5; i++)
+                    {
+                        <div class="run-skeleton"></div>
+                    }
+                </div>
+            </div>
             break;
 
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Failure f:
@@ -41,46 +60,45 @@
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
             <div class="runs-layout">
                 <div class="runs-sidebar">
-                    @foreach (var run in s.Value)
+                    @{
+                        var groups = GroupRuns(s.Value, DateTimeOffset.UtcNow);
+                        var pastCount = s.Value.Count(r =>
+                            RunVisualization.GetHorizon(r.StartTime, DateTimeOffset.UtcNow) == TimeHorizon.Past);
+                    }
+                    @foreach (var group in groups)
                     {
-                        var isSelected = run.Id == selectedRunId;
-                        var attending = CountAttending(run.RunCharacters);
-                        // Explicit aria-label collapses the multi-line visible
-                        // content into a single concise screen-reader name
-                        // (otherwise the implicit name concatenates every nested
-                        // span — date + mode + footer — without separators).
-                        // The connector between instance and date lives in the
-                        // resx so non-English locales don't leak a stray English
-                        // word into the name.
-                        // data-testid is retained so E2E tests can look up a
-                        // specific run by id without having to derive its
-                        // instance + date from external state.
-                        <button type="button"
-                                @key="run.Id"
-                                data-testid="run-item-@run.Id"
-                                aria-label="@Loc["runs.listItemAriaLabel", run.InstanceName, FormatDate(run.StartTime)]"
-                                class="run-list-item @(isSelected ? "run-list-item--selected" : "")"
-                                aria-pressed="@(isSelected ? "true" : "false")"
-                                @onclick="@(() => SelectRun(run.Id))">
-                            <span class="run-list-item__header">
-                                <span class="run-list-item__title">@run.InstanceName</span>
-                                <DifficultyPill ModeKey="@run.ModeKey" />
-                            </span>
-                            <span class="run-list-item__date">@FormatDate(run.StartTime)</span>
-                            <span class="run-list-item__footer">
-                                @Loc["runs.attendingSignedUp", attending, run.RunCharacters.Count]
-                            </span>
+                        if (group.Horizon == TimeHorizon.Past && !_showPast)
+                        {
+                            continue;
+                        }
+                        <div class="runs-group" @key="group.Horizon">
+                            <h2 class="runs-group__title">@HorizonLabel(group.Horizon)</h2>
+                            @foreach (var run in group.Runs)
+                            {
+                                <RunListItem @key="run.Id"
+                                             Run="run"
+                                             IsSelected="@(run.Id == selectedRunId)"
+                                             OnSelected="@SelectRun" />
+                            }
+                        </div>
+                    }
+                    @if (pastCount > 0)
+                    {
+                        <button type="button" class="runs-past-toggle"
+                                aria-expanded="@(_showPast ? "true" : "false")"
+                                @onclick="@TogglePast">
+                            @(_showPast ? Loc["runs.hidePast"] : Loc["runs.showPast", pastCount])
                         </button>
                     }
                 </div>
 
-                <div style="flex:1;min-width:0">
+                <div class="runs-detail">
                     @if (selectedRun != null)
                     {
                         <FluentCard>
                             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                                 <div class="run-detail-header">
-                                    <div style="flex:1;min-width:0">
+                                    <div class="run-detail-heading">
                                         <h2 class="run-detail-title">@selectedRun.InstanceName</h2>
                                         @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
                                         {
@@ -103,8 +121,8 @@
                                 </FluentStack>
 
                                 @{
-                                    var attending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance == "IN" || c.ReviewedAttendance == "LATE" || c.ReviewedAttendance == "BENCH").ToList();
-                                    var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance == "OUT" || c.ReviewedAttendance == "AWAY").ToList();
+                                    var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
+                                    var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
                                 }
 
                                 @if (selectedRun.RunCharacters.Count == 0)
@@ -121,7 +139,7 @@
                                         <div class="roster-role-grid">
                                             @foreach (var (roleKey, roleLabel) in RoleColumns)
                                             {
-                                                var roleChars = attending.Where(c => NormalizeRole(c.Role) == roleKey).ToList();
+                                                var roleChars = attending.Where(c => RunVisualization.NormalizeRole(c.Role) == roleKey).ToList();
                                                 <div class="roster-role-column">
                                                     <h4 class="roster-role-column-title">@roleLabel (@roleChars.Count)</h4>
                                                     @foreach (var character in roleChars)
@@ -163,7 +181,8 @@
     [Parameter] public string? RunId { get; set; }
 
     private LoadingState<IReadOnlyList<RunSummaryDto>> state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Idle();
-    private bool loading;
+    private bool _refreshing;
+    private bool _showPast;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
 
@@ -180,7 +199,7 @@
     protected override async Task OnInitializedAsync()
     {
         selectedRunId = RunId;
-        await LoadRuns();
+        await LoadRuns(isRefresh: false);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -199,10 +218,16 @@
         }
     }
 
-    private async Task LoadRuns()
+    private Task RefreshRuns() => LoadRuns(isRefresh: true);
+
+    private async Task LoadRuns(bool isRefresh)
     {
-        loading = true;
-        state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Loading();
+        _refreshing = true;
+        if (!isRefresh)
+        {
+            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Loading();
+        }
+
         try
         {
             var items = await RunsClient.ListAsync(CancellationToken.None);
@@ -215,11 +240,17 @@
         }
         catch (Exception ex)
         {
-            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Failure(ex.Message);
+            // On refresh, keep the previously-loaded list visible rather than
+            // dropping the user back to an error-only view; a transient
+            // network blip shouldn't wipe the page they were already reading.
+            if (!isRefresh)
+            {
+                state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Failure(ex.Message);
+            }
         }
         finally
         {
-            loading = false;
+            _refreshing = false;
         }
     }
 
@@ -242,9 +273,69 @@
         }
     }
 
+    private void TogglePast() => _showPast = !_showPast;
+
+    private string HorizonLabel(TimeHorizon horizon) => horizon switch
+    {
+        TimeHorizon.ThisWeek => Loc["runs.horizon.thisWeek"],
+        TimeHorizon.NextWeek => Loc["runs.horizon.nextWeek"],
+        TimeHorizon.Later => Loc["runs.horizon.later"],
+        TimeHorizon.Past => Loc["runs.horizon.past"],
+        _ => Loc["runs.horizon.unknown"],
+    };
+
+    // Upcoming horizons ascending (soonest first); Past descending (most
+    // recent first); Unknown tail-end so unparseable rows remain visible.
+    private static readonly IReadOnlyList<TimeHorizon> HorizonOrder =
+    [
+        TimeHorizon.ThisWeek,
+        TimeHorizon.NextWeek,
+        TimeHorizon.Later,
+        TimeHorizon.Past,
+        TimeHorizon.Unknown,
+    ];
+
+    private sealed record RunGroup(TimeHorizon Horizon, IReadOnlyList<RunSummaryDto> Runs);
+
+    private static IReadOnlyList<RunGroup> GroupRuns(
+        IReadOnlyList<RunSummaryDto> runs,
+        DateTimeOffset now)
+    {
+        var buckets = runs
+            .GroupBy(r => RunVisualization.GetHorizon(r.StartTime, now))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var result = new List<RunGroup>(HorizonOrder.Count);
+        foreach (var horizon in HorizonOrder)
+        {
+            if (!buckets.TryGetValue(horizon, out var bucket) || bucket.Count == 0)
+            {
+                continue;
+            }
+            bucket.Sort((a, b) =>
+            {
+                var at = ParseOrMax(a.StartTime);
+                var bt = ParseOrMax(b.StartTime);
+                return horizon == TimeHorizon.Past
+                    ? bt.CompareTo(at)
+                    : at.CompareTo(bt);
+            });
+            result.Add(new RunGroup(horizon, bucket));
+        }
+        return result;
+    }
+
+    private static DateTimeOffset ParseOrMax(string? iso)
+    {
+        return DateTimeOffset.TryParse(iso, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind, out var v)
+            ? v
+            : DateTimeOffset.MaxValue;
+    }
+
     private static string FormatDate(string? isoDate)
     {
-        if (string.IsNullOrEmpty(isoDate)) return "—";
+        if (string.IsNullOrEmpty(isoDate)) return "\u2014";
         if (DateTimeOffset.TryParse(isoDate, out var dto))
             return dto.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         return isoDate;
@@ -255,16 +346,4 @@
         if (string.IsNullOrEmpty(signupCloseTime)) return false;
         return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
     }
-
-    private static int CountAttending(IReadOnlyList<RunCharacterDto> characters) =>
-        characters.Count(c => c.ReviewedAttendance == "IN" || c.ReviewedAttendance == "LATE");
-
-    private static string NormalizeRole(string? role) => (role ?? "").ToUpperInvariant() switch
-    {
-        "TANK" => "TANK",
-        "HEALER" => "HEALER",
-        "HEAL" => "HEALER",
-        "DPS" or "MELEE" or "RANGED" => "DPS",
-        _ => "DPS"
-    };
 }
