@@ -71,24 +71,15 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // The characters page may show "No characters found" if the API returns data
-        // that the client can't deserialize. Verify the page loaded without crashing.
-        var noCharsMessage = Page.GetByText("No characters found");
-        var firstCard = charactersPage.CharacterList.First;
-
-        // Wait for either cards or the "no characters" message
-        await Assertions.Expect(noCharsMessage.Or(firstCard))
-            .ToBeVisibleAsync(new() { Timeout = 15000 });
-
-        if (await firstCard.IsVisibleAsync())
-        {
-            var count = await charactersPage.GetCharacterCountAsync();
-            Log($"Character cards rendered: {count}");
-        }
-        else
-        {
-            Log("Characters page loaded but no cards rendered — API data may not match client DTOs");
-        }
+        // DefaultSeed populates accountProfileSummary.wow_accounts[0].characters
+        // with exactly two characters (Aelrin + Aelrinalt); the characters endpoint
+        // must return both and the page must render one card per character.
+        await Assertions.Expect(charactersPage.CharacterList)
+            .ToHaveCountAsync(2, new() { Timeout = 15000 });
+        await Assertions.Expect(Page.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(Page.GetByText("Aelrinalt", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
