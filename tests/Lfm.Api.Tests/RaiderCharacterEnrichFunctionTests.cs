@@ -75,6 +75,22 @@ public class RaiderCharacterEnrichFunctionTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Calls_Blizzard_with_dashed_realm_slug_intact()
+    {
+        const string dashedId = "eu-the-maelstrom-kalmatar";
+        var raider = MakeRaider(accountChars: [("the-maelstrom", "Kalmatar")]);
+        var repo = RepoReturning(raider);
+        var profileClient = MakeProfileClient();
+
+        var fn = MakeFunction(repo.Object, profileClient.Object);
+        await fn.Run(MakeRequest(), dashedId, MakeCtx(), CancellationToken.None);
+
+        profileClient.Verify(p => p.GetCharacterProfileAsync(
+            "the-maelstrom", "kalmatar", It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     // ---- helpers ----
     private static RaiderCharacterEnrichFunction MakeFunction(
         IRaidersRepository repo, IBlizzardProfileClient profile)
