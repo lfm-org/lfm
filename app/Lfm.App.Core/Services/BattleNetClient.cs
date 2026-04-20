@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Lfm.Contracts.Characters;
@@ -14,16 +15,24 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
         PropertyNameCaseInsensitive = true,
     };
 
-    public async Task<IReadOnlyList<CharacterDto>?> GetCharactersAsync(CancellationToken ct)
+    public async Task<CharactersFetchResult> GetCharactersAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
         try
         {
-            return await http.GetFromJsonAsync<List<CharacterDto>>("api/battlenet/characters", JsonOptions, ct);
+            var response = await http.GetAsync("api/battlenet/characters", ct);
+            if (response.StatusCode == HttpStatusCode.NoContent)
+                return new CharactersFetchResult.NeedsRefresh();
+            if (!response.IsSuccessStatusCode)
+                return new CharactersFetchResult.Error();
+            var chars = await response.Content.ReadFromJsonAsync<List<CharacterDto>>(JsonOptions, ct);
+            return chars is null
+                ? new CharactersFetchResult.Error()
+                : new CharactersFetchResult.Cached(chars);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException)
         {
-            return null;
+            return new CharactersFetchResult.Error();
         }
     }
 

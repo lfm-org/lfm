@@ -22,7 +22,7 @@ public class HeadingStructureTests : ComponentTestBase
     {
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<CharacterDto>?)null);
+            .ReturnsAsync(new CharactersFetchResult.Error());
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();

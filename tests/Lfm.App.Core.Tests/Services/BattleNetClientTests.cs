@@ -36,7 +36,7 @@ public class BattleNetClientTests
     // ── GetCharactersAsync ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetCharactersAsync_returns_characters_on_success()
+    public async Task GetCharactersAsync_returns_Cached_on_success()
     {
         var (client, handler) = MakeClient(StubHttpMessageHandler.Json(
             HttpStatusCode.OK,
@@ -44,9 +44,9 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        Assert.NotNull(result);
-        Assert.Equal(2, result!.Count);
-        Assert.Equal("Char-A", result[0].Name);
+        var cached = Assert.IsType<CharactersFetchResult.Cached>(result);
+        Assert.Equal(2, cached.Characters.Count);
+        Assert.Equal("Char-A", cached.Characters[0].Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
         Assert.Equal("/api/battlenet/characters", handler.LastRequest.RequestUri!.PathAndQuery);
     }
@@ -64,42 +64,58 @@ public class BattleNetClientTests
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        Assert.NotNull(result);
-        Assert.Single(result!);
-        Assert.Equal("Lower", result![0].Name);
-        Assert.Equal("eu", result[0].Region);
+        var cached = Assert.IsType<CharactersFetchResult.Cached>(result);
+        var single = Assert.Single(cached.Characters);
+        Assert.Equal("Lower", single.Name);
+        Assert.Equal("eu", single.Region);
     }
 
     [Fact]
-    public async Task GetCharactersAsync_returns_null_when_server_returns_5xx()
+    public async Task GetCharactersAsync_returns_NeedsRefresh_on_204()
+    {
+        // Backend returns 204 when no cached account profile exists (or the
+        // 15-minute cooldown expired), signalling the caller must POST to
+        // /api/battlenet/characters/refresh. Regression guard for the bug where
+        // /characters showed "load failed" on first visit until the user
+        // clicked refresh manually.
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NoContent));
+
+        var result = await client.GetCharactersAsync(CancellationToken.None);
+
+        Assert.IsType<CharactersFetchResult.NeedsRefresh>(result);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetCharactersAsync_returns_Error_when_server_returns_5xx()
     {
         var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        Assert.Null(result);
+        Assert.IsType<CharactersFetchResult.Error>(result);
         Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
-    public async Task GetCharactersAsync_returns_null_when_handler_throws_HttpRequestException()
+    public async Task GetCharactersAsync_returns_Error_when_handler_throws_HttpRequestException()
     {
         var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network down")));
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        Assert.Null(result);
+        Assert.IsType<CharactersFetchResult.Error>(result);
         Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
-    public async Task GetCharactersAsync_returns_null_when_handler_throws_JsonException()
+    public async Task GetCharactersAsync_returns_Error_when_handler_throws_JsonException()
     {
         var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new JsonException("bad payload")));
 
         var result = await client.GetCharactersAsync(CancellationToken.None);
 
-        Assert.Null(result);
+        Assert.IsType<CharactersFetchResult.Error>(result);
         Assert.Equal(1, handler.CallCount);
     }
 

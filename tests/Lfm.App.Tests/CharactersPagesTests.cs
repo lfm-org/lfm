@@ -46,7 +46,7 @@ public class CharactersPagesTests : ComponentTestBase
     {
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
-        var tcs = new TaskCompletionSource<IReadOnlyList<CharacterDto>?>();
+        var tcs = new TaskCompletionSource<CharactersFetchResult>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
@@ -65,7 +65,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar() });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar() }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -83,7 +83,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto>());
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto>()));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -112,12 +112,12 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void CharactersPage_Renders_Error_When_Client_Returns_Null()
+    public void CharactersPage_Renders_Error_When_Client_Returns_Error()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<CharacterDto>?)null);
+            .ReturnsAsync(new CharactersFetchResult.Error());
         var me = new Mock<IMeClient>();
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
@@ -128,12 +128,40 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CharactersPage_Auto_Refreshes_When_Client_Returns_NeedsRefresh()
+    {
+        // Regression guard for bug: first visit to /characters used to show
+        // "load failed" until the user clicked refresh.  Backend returns 204
+        // (NeedsRefresh) when no cached account profile exists; the page must
+        // auto-POST to /refresh in that case.
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.NeedsRefresh());
+        battleNet.Setup(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas") });
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            battleNet.Verify(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Contains("Arthas", cut.Markup);
+        });
+    }
+
+    [Fact]
     public void CharactersPage_Renders_Multiple_Characters()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -155,7 +183,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto>());
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto>()));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -175,7 +203,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -200,7 +228,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -224,7 +252,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -250,7 +278,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -289,7 +317,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(chars);
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
 
@@ -348,7 +376,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(chars);
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
 
@@ -409,7 +437,7 @@ public class CharactersPagesTests : ComponentTestBase
         var battleNet = new Mock<IBattleNetClient>();
         // MakeChar returns a char with ClassId/ActiveSpecId set → starts Enriched.
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -454,7 +482,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(chars);
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
 
@@ -513,7 +541,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { MakeChar("Arthas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new[] { MakeChar("Arthas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
@@ -556,7 +584,7 @@ public class CharactersPagesTests : ComponentTestBase
 
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(chars);
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
 
@@ -608,7 +636,7 @@ public class CharactersPagesTests : ComponentTestBase
         this.AddAuthorization().SetAuthorized("player#1234");
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") });
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") }));
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
         var me = new Mock<IMeClient>();
