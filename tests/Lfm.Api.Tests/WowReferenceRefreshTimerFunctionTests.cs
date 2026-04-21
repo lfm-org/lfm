@@ -23,10 +23,10 @@ public class WowReferenceRefreshTimerFunctionTests
     {
         var sync = new Mock<IReferenceSync>();
         sync.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new WowUpdateResponse(new[]
+            .ReturnsAsync(new WowReferenceRefreshResponse(new[]
             {
-                new WowUpdateEntityResult("instances", "synced (211 docs)"),
-                new WowUpdateEntityResult("specializations", "synced (40 docs)"),
+                new WowReferenceRefreshEntityResult("instances", "synced (211 docs)"),
+                new WowReferenceRefreshEntityResult("specializations", "synced (40 docs)"),
             }));
         var logger = new TestLogger<WowReferenceRefreshTimerFunction>();
         var sut = new WowReferenceRefreshTimerFunction(sync.Object, logger);
