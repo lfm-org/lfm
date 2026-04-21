@@ -37,9 +37,8 @@ public class FunctionAuthorizationContractTests
         // Health probes — App Service Health Check / external monitors.
         "health",
         "health-ready",
-        // Public privacy contact — anonymous form submission.
+        // Public privacy contact — the SPA reveals this only on user click.
         "privacy-email",
-        "privacy-contact",
         // Catch-all OPTIONS preflight handler — short-circuited by CorsMiddleware.
         "cors-preflight",
     };
