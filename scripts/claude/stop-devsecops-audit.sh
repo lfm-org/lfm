@@ -65,7 +65,6 @@ changed=$(git -C "$repo_root" diff --name-only main -- \
   'SECURITY.md' \
   'CODEOWNERS' \
   'docker-compose.local.yml' \
-  'docker-compose.test.yml' \
   'Dockerfile' \
   2>/dev/null || true)
 
