@@ -31,6 +31,10 @@ public class PrivacyContactFunctionTests
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(200, ok.StatusCode);
 
+        // Reflection access into the anonymous-type response body. The "email"
+        // property name here matches the wire contract — response shape is
+        // { "email": "..." } per PrivacyContactFunction.GetEmail. If the
+        // property ever gets renamed or wrapped in a DTO, update here.
         var emailProp = ok.Value!.GetType().GetProperty("email")!.GetValue(ok.Value);
         Assert.Equal("privacy@example.com", emailProp);
     }
