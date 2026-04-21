@@ -59,7 +59,7 @@ public class HealthFunctionTests
             DatabaseName = "test-db",
         });
 
-        return (new HealthFunction(mockClient.Object, opts), mockDb);
+        return (new HealthFunction(mockClient.Object, opts, new TestLogger<HealthFunction>()), mockDb);
     }
 
     [Fact]
@@ -86,9 +86,8 @@ public class HealthFunctionTests
     [Fact]
     public async Task Ready_returns_503_with_unready_status_when_cosmos_throws()
     {
-        // Per HealthFunction.Ready xmldoc: failure must surface as 503 with status="unready".
-        // The `error` field carries the exception type name for operator triage but is not
-        // part of the client contract — clients must key off the HTTP status code only.
+        // Per HealthFunction.Ready xmldoc: failure must surface as 503 with status="unready"
+        // and nothing else. The exception is logged server-side; clients key off status only.
         var (fn, mockDb) = CreateReadyFunction();
         mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new CosmosException("Service unavailable", System.Net.HttpStatusCode.ServiceUnavailable, 0, "", 0));
@@ -99,6 +98,7 @@ public class HealthFunctionTests
         Assert.Equal(503, obj.StatusCode);
         var statusProp = obj.Value!.GetType().GetProperty("status")!.GetValue(obj.Value);
         Assert.Equal("unready", statusProp);
+        Assert.Null(obj.Value!.GetType().GetProperty("error"));
     }
 
     [Fact]
@@ -122,9 +122,9 @@ public class HealthFunctionTests
     // `HealthEndpoint_NoSensitiveInfo`, which exercised the full Docker
     // stack to prove the same property at much higher cost. Asserts on
     // the JSON-serialized form of every health response shape (live,
-    // ready-success, ready-cosmos-error, ready-unexpected-error) since
-    // a future refactor that swaps `ex.GetType().Name` for `ex.ToString()`
-    // would be a real regression.
+    // ready-success, ready-cosmos-error, ready-unexpected-error) since a
+    // future refactor that re-adds a response field carrying `ex.Message`
+    // or `ex.ToString()` would be a real regression.
     // ------------------------------------------------------------------
 
     private static readonly string[] SensitiveSubstrings =
@@ -175,10 +175,11 @@ public class HealthFunctionTests
     public async Task Ready_failure_response_body_does_not_leak_sensitive_configuration()
     {
         // CosmosException messages typically contain the account endpoint and
-        // diagnostic JSON. The contract is that we expose only the exception
-        // *type name*, not the message. Pin it: a refactor that swaps
-        // `ex.GetType().Name` for `ex.ToString()` or `ex.Message` would
-        // surface AccountEndpoint and request diagnostics to clients.
+        // diagnostic JSON. The contract is that the readiness response body
+        // carries only { status: "unready" } — no exception type, message, or
+        // any derived string. Pin it: a refactor that re-adds an `error` field
+        // (or anything else derived from the exception) would surface
+        // AccountEndpoint and request diagnostics to clients.
         var (fn, mockDb) = CreateReadyFunction();
         mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new CosmosException(
@@ -190,5 +191,7 @@ public class HealthFunctionTests
         var obj = Assert.IsType<ObjectResult>(result);
         var json = JsonSerializer.Serialize(obj.Value);
         AssertNoSensitiveSubstrings(json, "/api/health/ready (failure)");
+        Assert.DoesNotContain("CosmosException", json);
+        Assert.DoesNotContain("Service unavailable", json);
     }
 }
