@@ -4,6 +4,13 @@
 
 <PageTitle>@Loc["privacy.title"] — @Loc["nav.logo"]</PageTitle>
 
+@* Response-header X-Robots-Tag lives in wwwroot/staticwebapp.config.json.template,
+   this <meta> is the same signal inside the rendered page so a crawler that only
+   inspects HTML still sees the instruction. *@
+<HeadContent>
+    <meta name="robots" content="noindex, nofollow" />
+</HeadContent>
+
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="24">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
         <FluentLabel Typo="Typography.H1">@Loc["privacy.title"]</FluentLabel>
@@ -40,15 +47,33 @@
         <FluentLabel>@Loc["privacy.rights.body"]</FluentLabel>
     </FluentStack>
 
+    @* Click-to-reveal: the email is never in the static HTML and never fetched
+       until the user explicitly clicks. A crawler walking the rendered page —
+       even one that executes Blazor's OnInitialized — never sees the address. *@
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
         <FluentLabel Typo="Typography.H4">@Loc["privacy.contact.heading"]</FluentLabel>
-        @if (_email is not null)
+        <FluentLabel>@Loc["privacy.contact.body"]</FluentLabel>
+        @switch (_state)
         {
-            <FluentLabel>@Loc["privacy.contact.body"] <a href="mailto:@_email">@_email</a></FluentLabel>
-        }
-        else
-        {
-            <FluentLabel>@Loc["privacy.contact.loading"]</FluentLabel>
+            case RevealState.Idle:
+                <FluentButton Appearance="Appearance.Accent" @onclick="RevealAsync">
+                    @Loc["privacy.contact.reveal"]
+                </FluentButton>
+                break;
+            case RevealState.Loading:
+                <FluentLabel>@Loc["privacy.contact.revealing"]</FluentLabel>
+                break;
+            case RevealState.Error:
+                <FluentLabel>@Loc["privacy.contact.error"]</FluentLabel>
+                break;
+            case RevealState.Loaded:
+                @* Split across spans with an entity-encoded "@" so a regex like
+                   [\w.+-]+@[\w.-]+ scanning source HTML finds nothing. The
+                   visible text still reads correctly once the browser decodes. *@
+                <FluentLabel>
+                    <span>@_local</span><span>&#64;</span><span>@_domain</span>
+                </FluentLabel>
+                break;
         }
     </FluentStack>
 </FluentStack>
@@ -62,19 +87,40 @@
 </a>
 
 @code {
-    private string? _email;
+    private enum RevealState { Idle, Loading, Loaded, Error }
 
-    protected override async Task OnInitializedAsync()
+    private RevealState _state = RevealState.Idle;
+    private string? _local;
+    private string? _domain;
+
+    private async Task RevealAsync()
     {
+        _state = RevealState.Loading;
         try
         {
             var http = HttpFactory.CreateClient("api");
             var result = await http.GetFromJsonAsync<PrivacyEmailResponse>("api/privacy-contact/email");
-            _email = result?.Email;
+            var email = result?.Email;
+            if (string.IsNullOrEmpty(email))
+            {
+                _state = RevealState.Error;
+                return;
+            }
+
+            var atIndex = email.IndexOf('@');
+            if (atIndex <= 0 || atIndex == email.Length - 1)
+            {
+                _state = RevealState.Error;
+                return;
+            }
+
+            _local = email[..atIndex];
+            _domain = email[(atIndex + 1)..];
+            _state = RevealState.Loaded;
         }
         catch
         {
-            // Silently fail — contact section will not render the email link.
+            _state = RevealState.Error;
         }
     }
 

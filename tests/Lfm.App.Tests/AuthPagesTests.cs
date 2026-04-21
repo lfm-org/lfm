@@ -84,4 +84,30 @@ public class AuthPagesTests : ComponentTestBase
         Assert.Contains(Loc("privacy.rights.heading"), cut.Markup);
         Assert.Contains(Loc("privacy.contact.heading"), cut.Markup);
     }
+
+    [Fact]
+    public void PrivacyPolicyPage_Does_Not_Leak_Email_In_Initial_Markup()
+    {
+        // Crawl resistance: the contact email must NOT appear in the rendered
+        // markup before the user clicks the reveal button. Pin: (1) the
+        // PRIVACY_EMAIL substitution pattern is absent, (2) no token looking
+        // like a real email literal appears, and (3) the reveal CTA is the
+        // entry point a scraper would have to exercise.
+        var cut = Render<PrivacyPolicyPage>();
+
+        Assert.DoesNotContain("@dinosauruskeksi", cut.Markup);
+        Assert.DoesNotContain("privacy@", cut.Markup);
+        Assert.DoesNotContain("security@", cut.Markup);
+        // Build-time PRIVACY_EMAIL is never inlined into this page.
+        Assert.DoesNotContain("mailto:privacy", cut.Markup);
+
+        // Reveal CTA is present as the gated entry point.
+        Assert.Contains(Loc("privacy.contact.reveal"), cut.Markup);
+
+        // The <meta name="robots" content="noindex, nofollow"> tag emitted
+        // via <HeadContent> lives in a separate head fragment that bUnit does
+        // not include in cut.Markup. The response-layer X-Robots-Tag header is
+        // covered by StaticWebAppConfigContractTests. The <meta> duplicate in
+        // the page is verified manually in the pre-deploy checklist.
+    }
 }

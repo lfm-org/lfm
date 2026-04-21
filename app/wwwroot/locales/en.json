@@ -57,7 +57,9 @@
     "privacy.rights.body": "You have the right to access, rectify, and erase your personal data. Contact us at the address below to exercise these rights.",
     "privacy.contact.heading": "Contact",
     "privacy.contact.body": "For privacy-related enquiries:",
-    "privacy.contact.loading": "Loading contact information...",
+    "privacy.contact.reveal": "Show contact email",
+    "privacy.contact.revealing": "Loading…",
+    "privacy.contact.error": "Unable to load contact email. Please try again later.",
 
     "runs.title": "Runs",
     "runs.create": "Create Run",
