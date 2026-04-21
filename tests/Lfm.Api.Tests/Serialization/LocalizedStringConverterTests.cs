@@ -281,63 +281,48 @@ public class LocalizedStringConverterTests
     // ------------------------------------------------------------------
 
     [Fact]
-    public void InstanceDocument_deserializes_with_localized_name()
+    public void JournalInstanceBlob_deserializes_with_localized_name_and_expansion()
     {
+        // Shape of a verbatim TS-ingested journal-instance blob at
+        // reference/journal-instance/{id}.json. Blizzard's no-locale response
+        // stores both instance name and expansion.name as localized objects —
+        // the converter must handle both sites (fallback path in
+        // InstancesRepository reads both).
         var json = """
         {
-          "id": "67:NORMAL:25",
-          "instanceId": "67",
+          "id": 67,
           "name": { "en_US": "Icecrown Citadel", "de_DE": "Eiskronenzitadelle" },
-          "modeKey": "NORMAL:25",
-          "expansion": "WRATH_OF_THE_LICH_KING"
+          "expansion": {
+            "name": { "en_US": "Wrath of the Lich King", "de_DE": "Zorn des Lichkönigs" }
+          },
+          "modes": [{ "mode": { "type": "NORMAL" }, "players": 25 }]
         }
         """;
 
-        var doc = JsonConvert.DeserializeObject<InstanceDocument>(json, CosmosLikeSettings);
+        var blob = JsonConvert.DeserializeObject<JournalInstanceBlob>(json, CosmosLikeSettings);
 
-        Assert.Equal("Icecrown Citadel", doc!.Name);
+        Assert.Equal("Icecrown Citadel", blob!.Name);
+        Assert.Equal("Wrath of the Lich King", blob.Expansion?.Name);
     }
 
     [Fact]
-    public void InstanceListRow_deserializes_with_localized_name()
+    public void JournalInstanceBlob_deserializes_with_plain_string_name()
     {
-        // Shape of the row produced by InstancesRepository.ListAsync's projection:
-        //   SELECT c.instanceId AS id, c.name, c.modeKey, c.expansion FROM c
-        // Legacy documents store c.name as the no-locale object; projecting
-        // directly into InstanceDto (no converter) crashed every /api/instances
-        // call with JsonReaderException — same root cause as the 2026-04-20
-        // /api/guild incident, retriggered when editing a run.
+        // After Phase 3 ingestion with locale=en_US on the Blizzard call,
+        // the reader also must handle plain-string names.
         var json = """
         {
-          "id": "67",
-          "name": { "en_US": "Icecrown Citadel", "de_DE": "Eiskronenzitadelle" },
-          "modeKey": "NORMAL:25",
-          "expansion": "WRATH_OF_THE_LICH_KING"
-        }
-        """;
-
-        var row = JsonConvert.DeserializeObject<InstanceListRow>(json, CosmosLikeSettings);
-
-        Assert.Equal("Icecrown Citadel", row!.Name);
-    }
-
-    [Fact]
-    public void InstanceListRow_deserializes_with_plain_string_name()
-    {
-        // Newly-written documents use the plain-string shape via
-        // LocalizedStringConverter.WriteJson — must keep working.
-        var json = """
-        {
-          "id": "67",
+          "id": 67,
           "name": "Icecrown Citadel",
-          "modeKey": "NORMAL:25",
-          "expansion": "WRATH_OF_THE_LICH_KING"
+          "expansion": { "name": "Wrath of the Lich King" },
+          "modes": [{ "mode": { "type": "NORMAL" }, "players": 25 }]
         }
         """;
 
-        var row = JsonConvert.DeserializeObject<InstanceListRow>(json, CosmosLikeSettings);
+        var blob = JsonConvert.DeserializeObject<JournalInstanceBlob>(json, CosmosLikeSettings);
 
-        Assert.Equal("Icecrown Citadel", row!.Name);
+        Assert.Equal("Icecrown Citadel", blob!.Name);
+        Assert.Equal("Wrath of the Lich King", blob.Expansion?.Name);
     }
 
     [Fact]
