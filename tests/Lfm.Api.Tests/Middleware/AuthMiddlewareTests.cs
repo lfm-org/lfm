@@ -170,4 +170,48 @@ public class AuthMiddlewareTests
         Assert.True(nextCalled);
         Assert.False(items.ContainsKey(SessionKeys.Principal));
     }
+
+    // ── Clock-skew tolerance ──────────────────────────────────────────────
+    //
+    // A small grace window guards against cross-instance clock drift between
+    // the Functions instance that issued the cookie and the one validating it.
+    // The boundary is pinned at ExpiresAt + ClockSkew.
+
+    [Fact]
+    public void ClockSkew_is_thirty_seconds()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(30), AuthMiddleware.ClockSkew);
+    }
+
+    [Fact]
+    public async Task Invoke_sets_principal_when_session_expired_within_clock_skew()
+    {
+        // Principal whose declared expiry is 5 s in the past: inside the 30 s
+        // skew window, so still acceptable.
+        var principal = MakePrincipal(DateTimeOffset.UtcNow.AddSeconds(-5));
+        var cipher = new Mock<ISessionCipher>();
+        cipher.Setup(c => c.Unprotect("ciphertext")).Returns(principal);
+        var sut = new AuthMiddleware(cipher.Object, MsOptions.Create(DefaultAuthOptions()));
+        var (ctx, _, items) = CreateContext(new Dictionary<string, string> { ["battlenet_token"] = "ciphertext" });
+
+        await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
+
+        Assert.Equal(principal, items[SessionKeys.Principal]);
+    }
+
+    [Fact]
+    public async Task Invoke_does_not_set_principal_when_session_expired_beyond_clock_skew()
+    {
+        // Principal whose declared expiry is 60 s in the past: well beyond the
+        // 30 s skew window, so rejected.
+        var principal = MakePrincipal(DateTimeOffset.UtcNow.AddSeconds(-60));
+        var cipher = new Mock<ISessionCipher>();
+        cipher.Setup(c => c.Unprotect("ciphertext")).Returns(principal);
+        var sut = new AuthMiddleware(cipher.Object, MsOptions.Create(DefaultAuthOptions()));
+        var (ctx, _, items) = CreateContext(new Dictionary<string, string> { ["battlenet_token"] = "ciphertext" });
+
+        await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
+
+        Assert.False(items.ContainsKey(SessionKeys.Principal));
+    }
 }

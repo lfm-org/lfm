@@ -140,7 +140,16 @@ public class SiteAdminServiceTests
         resolver.Verify(
             r => r.GetSecretAsync(TestVaultUrl, SecretName, It.IsAny<CancellationToken>()),
             Times.Once,
-            "two calls within the 60-second cache window must only fetch the secret once");
+            "two calls within the cache TTL window must only fetch the secret once");
+    }
+
+    [Fact]
+    public void CacheTtl_is_ten_seconds()
+    {
+        // Pins the TTL at 10 seconds — the maximum window during which a revoked
+        // admin retains access. Any change here should be a deliberate trade-off
+        // against Key Vault read frequency. See the xmldoc on SiteAdminService.
+        Assert.Equal(TimeSpan.FromSeconds(10), SiteAdminService.CacheTtl);
     }
 
     [Fact]
