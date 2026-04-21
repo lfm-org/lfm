@@ -21,7 +21,6 @@ namespace Lfm.Api.Services;
 /// </summary>
 public sealed class ReferenceSync(
     IBlizzardGameDataClient gameData,
-    IInstancesRepository instancesRepo,
     ISpecializationsRepository specsRepo,
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
@@ -64,67 +63,16 @@ public sealed class ReferenceSync(
     // Instance sync
     // ---------------------------------------------------------------------------
 
-    private async Task<int> SyncInstancesAsync(string token, CancellationToken ct)
-    {
-        var index = await gameData.GetJournalInstanceIndexAsync(token, ct);
-        var documents = new List<InstanceDocument>();
-
-        foreach (var entry in index.Instances)
-        {
-            BlizzardJournalInstanceDetail detail;
-            while (true)
-            {
-                try
-                {
-                    detail = await gameData.GetJournalInstanceAsync(entry.Id, token, ct);
-                    break;
-                }
-                catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1), ct);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Skipping instance {Id}: detail fetch failed", entry.Id);
-                    detail = null!;
-                    break;
-                }
-            }
-            if (detail is null) continue;
-
-            var expansion = detail.Expansion?.Name ?? "";
-            var modes = detail.Modes ?? [];
-
-            var instanceIdStr = detail.Id.ToString();
-
-            if (modes.Count == 0)
-            {
-                // No modes — store a sentinel record with modeKey "UNKNOWN:0"
-                documents.Add(new InstanceDocument(
-                    Id: $"{instanceIdStr}:UNKNOWN:0",
-                    InstanceId: instanceIdStr,
-                    Name: detail.Name,
-                    ModeKey: "UNKNOWN:0",
-                    Expansion: expansion));
-            }
-            else
-            {
-                foreach (var mode in modes)
-                {
-                    var modeKey = $"{mode.Mode.Type}:{mode.Players ?? 0}";
-                    documents.Add(new InstanceDocument(
-                        Id: $"{instanceIdStr}:{modeKey}",
-                        InstanceId: instanceIdStr,
-                        Name: detail.Name,
-                        ModeKey: modeKey,
-                        Expansion: expansion));
-                }
-            }
-        }
-
-        await instancesRepo.UpsertBatchAsync(documents, ct);
-        return documents.Count;
-    }
+    private static Task<int> SyncInstancesAsync(string token, CancellationToken ct)
+        // Reference data moved from Cosmos to blob — see docs/storage-architecture.md.
+        // Phase 1 rewired the reader (InstancesRepository now reads lfmstore/wow/reference/
+        // journal-instance/). Phase 3 will re-implement this sync writing to blob. Until
+        // then admin POST /api/wow/update reports "instances" as "failed:"; production
+        // blobs remain as ingested by the legacy TS job (2026-03-30) and the reader
+        // serves those.
+        => throw new NotImplementedException(
+            "Instance sync is being rewritten to write blobs in Phase 3. " +
+            "Existing lfmstore/wow/reference/journal-instance/ blobs remain readable via InstancesRepository.");
 
     // ---------------------------------------------------------------------------
     // Specialization sync
