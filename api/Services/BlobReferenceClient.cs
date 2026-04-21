@@ -25,14 +25,30 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
     public async Task<T?> GetAsync<T>(string blobName, CancellationToken ct) where T : class
     {
         var blob = container.GetBlobClient(blobName);
+        string json;
         try
         {
             var response = await blob.DownloadContentAsync(ct);
-            var json = response.Value.Content.ToString();
-            return JsonConvert.DeserializeObject<T>(json, JsonSettings);
+            json = response.Value.Content.ToString();
         }
         catch (RequestFailedException ex) when (ex.Status == 404)
         {
+            return null;
+        }
+
+        try
+        {
+            return JsonConvert.DeserializeObject<T>(json, JsonSettings);
+        }
+        catch (JsonException)
+        {
+            // A blob whose JSON shape does not match T is treated the same as
+            // a missing blob. The legacy TS ingester wrote Blizzard's raw
+            // index response at reference/{kind}/index.json (an object with
+            // _links + an instances array) — not the Phase 3 manifest format
+            // (a flat List<IndexEntry>). Returning null lets InstancesRepository
+            // and SpecializationsRepository fall through to the per-id
+            // enumeration path instead of 500-ing the endpoint.
             return null;
         }
     }
