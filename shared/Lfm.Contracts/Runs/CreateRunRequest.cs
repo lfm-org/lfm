@@ -27,10 +27,15 @@ public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunReque
     public CreateRunRequestValidator()
     {
         RuleFor(x => x.StartTime)
-            .NotEmpty().WithMessage("startTime is required");
+            .NotEmpty().WithMessage("startTime is required")
+            .MaximumLength(64).WithMessage("startTime must be at most 64 characters");
+
+        RuleFor(x => x.SignupCloseTime)
+            .MaximumLength(64).WithMessage("signupCloseTime must be at most 64 characters");
 
         RuleFor(x => x.ModeKey)
-            .NotEmpty().WithMessage("modeKey is required");
+            .NotEmpty().WithMessage("modeKey is required")
+            .MaximumLength(64).WithMessage("modeKey must be at most 64 characters");
 
         RuleFor(x => x.Visibility)
             .NotEmpty().WithMessage("visibility is required")
@@ -39,5 +44,11 @@ public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunReque
 
         RuleFor(x => x.InstanceId)
             .NotNull().WithMessage("instanceId is required");
+
+        RuleFor(x => x.InstanceName)
+            .MaximumLength(128).WithMessage("instanceName must be at most 128 characters");
+
+        RuleFor(x => x.Description)
+            .MaximumLength(2000).WithMessage("description must be at most 2000 characters");
     }
 }
