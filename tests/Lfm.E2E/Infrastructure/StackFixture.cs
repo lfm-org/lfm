@@ -58,6 +58,10 @@ public class StackFixture : IAsyncLifetime
     public CosmosClient CosmosClient { get; private set; } = null!;
     public string ApiBaseUrl => $"http://localhost:{_apiPort}";
     public string AppBaseUrl => $"http://localhost:{_appPort}";
+    // Azurite connection string used by E2E seeders and passed to the API as
+    // Storage__BlobConnectionString so BlobReferenceClient binds to the
+    // containerised Azurite instead of trying managed identity at startup.
+    public string BlobConnectionString => _azurite.GetConnectionString();
 
     /// <summary>
     /// Recent API process stdout/stderr for test failure diagnostics. The
@@ -143,6 +147,12 @@ public class StackFixture : IAsyncLifetime
                 ["Cosmos__ConnectionMode"] = "Gateway",
                 ["Cosmos__SkipCertValidation"] = "true",
                 ["AzureWebJobsStorage"] = "UseDevelopmentStorage=true",
+                // Storage__BlobConnectionString drives BlobReferenceClient in
+                // api/Program.cs. Must point at the same Azurite the seeder
+                // uploads reference fixtures into — otherwise /api/instances
+                // and /api/reference/specializations see an empty container.
+                ["Storage__BlobConnectionString"] = _azurite.GetConnectionString(),
+                ["Storage__WowContainerName"] = Seeds.WowReferenceSeed.ContainerName,
                 ["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated",
                 ["E2E_TEST_MODE"] = "true",
                 ["Auth__CookieName"] = "battlenet_token",

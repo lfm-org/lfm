@@ -21,6 +21,7 @@ public static class SharedStack
             var stack = new StackFixture();
             await stack.InitializeAsync();
             await DefaultSeed.SeedAsync(stack.CosmosClient, StackFixture.DatabaseName);
+            await WowReferenceSeed.SeedAsync(stack.BlobConnectionString);
             return stack;
         },
         LazyThreadSafetyMode.ExecutionAndPublication);
