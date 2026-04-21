@@ -11,6 +11,12 @@ namespace Lfm.Api.Middleware;
 
 public sealed class AuthMiddleware(ISessionCipher cipher, IOptions<AuthOptions> authOpts) : IFunctionsWorkerMiddleware
 {
+    // Small grace window on session-expiry checks. Functions instances read
+    // UtcNow from the same kernel source, but requests can transit multiple
+    // instances (cookie issued on A, validated on B) with brief clock drift.
+    // Matches the default ClockSkew of ASP.NET Core's JWT handler.
+    internal static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(30);
+
     private readonly AuthOptions _auth = authOpts.Value;
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
@@ -21,7 +27,7 @@ public sealed class AuthMiddleware(ISessionCipher cipher, IOptions<AuthOptions> 
             !string.IsNullOrEmpty(cookieValue))
         {
             var principal = cipher.Unprotect(cookieValue);
-            if (principal is not null && principal.ExpiresAt > DateTimeOffset.UtcNow)
+            if (principal is not null && principal.ExpiresAt + ClockSkew > DateTimeOffset.UtcNow)
             {
                 context.Items[SessionKeys.Principal] = principal;
             }

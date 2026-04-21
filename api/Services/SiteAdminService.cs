@@ -8,13 +8,20 @@ namespace Lfm.Api.Services;
 
 /// <summary>
 /// Reads the site-admin allowlist from a secret store, with an in-memory cache
-/// that expires every 60 seconds — matching the TypeScript CACHE_TTL_MS behaviour.
+/// that expires every 10 seconds. A revoked admin loses access within the TTL
+/// window; the ceiling is traded against Key Vault read frequency. Free-tier
+/// Key Vault grants handle the 6× increase over the original 60 s TTL easily
+/// at this project's scale (a handful of admin operations per hour at most).
 /// When KeyVaultUrl is not configured, IsAdminAsync always returns false.
 /// </summary>
 public sealed class SiteAdminService(IOptions<AuthOptions> authOpts, ISecretResolver secretResolver) : ISiteAdminService
 {
     private const string SecretName = "site-admin-battle-net-ids";
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
+
+    // Exposed as internal for pinning in tests via InternalsVisibleTo; changing
+    // this value without updating SiteAdminServiceTests.CacheTtl_matches_expected
+    // is a contract drift that the test catches.
+    internal static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(10);
 
     private readonly AuthOptions _auth = authOpts.Value;
     private readonly ISecretResolver _secretResolver = secretResolver;
