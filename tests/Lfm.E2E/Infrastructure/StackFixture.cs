@@ -47,7 +47,15 @@ public class StackFixture : IAsyncLifetime
         })
         .Build();
 
-    private readonly AzuriteContainer _azurite = new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:3.28.0")
+    // Version tag + manifest-list digest, matching the Cosmos pin above. The
+    // :3.28.0 tag documents which Azurite release the digest corresponds to;
+    // the @sha256: digest (on the multi-arch manifest list) guarantees the
+    // same bytes every run and still resolves to the correct platform
+    // manifest (linux/amd64 on CI, linux/arm64 on Apple-silicon dev). Bump
+    // both together when upgrading.
+    private readonly AzuriteContainer _azurite = new AzuriteBuilder(
+        "mcr.microsoft.com/azure-storage/azurite:3.28.0"
+        + "@sha256:b2edf4c05060390f368fef3dde4b82981b7125c763a3c6fdeb16e74b20094375")
         .WithPortBinding(10000, 10000)
         .WithPortBinding(10001, 10001)
         .WithPortBinding(10002, 10002)
