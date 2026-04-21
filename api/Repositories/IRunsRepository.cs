@@ -46,6 +46,13 @@ public sealed record RunDocument(
     IReadOnlyList<RunCharacterEntry> RunCharacters,
     [property: System.Text.Json.Serialization.JsonPropertyName("_etag")] string? ETag = null);
 
+/// <summary>
+/// One page of runs returned by the list endpoints. <see cref="ContinuationToken"/>
+/// is the opaque Cosmos continuation token to pass back for the next page; a
+/// null value means the server has no more results.
+/// </summary>
+public sealed record RunsPage(IReadOnlyList<RunDocument> Items, string? ContinuationToken);
+
 public interface IRunsRepository
 {
     /// <summary>
@@ -59,23 +66,26 @@ public interface IRunsRepository
     Task ScrubRaiderAsync(string battleNetId, CancellationToken ct);
 
     /// <summary>
-    /// Returns all runs visible to a user who belongs to the given guild.
+    /// Returns one page of runs visible to a user who belongs to the given guild.
     /// Visibility rules (mirrors runs-list.ts):
     ///   - PUBLIC runs (visible to everyone)
     ///   - GUILD runs created by the same guild (creatorGuildId matches)
     ///   - runs created by the user themselves (creatorBattleNetId matches)
-    /// Ordered by startTime ascending.
+    /// Ordered by startTime ascending. Caps the page at <paramref name="top"/> items
+    /// via Cosmos <c>MaxItemCount</c>; returns a continuation token when more
+    /// pages are available.
     /// </summary>
-    Task<IReadOnlyList<RunDocument>> ListForGuildAsync(string guildId, string battleNetId, CancellationToken ct);
+    Task<RunsPage> ListForGuildAsync(string guildId, string battleNetId, int top, string? continuationToken, CancellationToken ct);
 
     /// <summary>
-    /// Returns all runs visible to a user who has no guild.
+    /// Returns one page of runs visible to a user who has no guild.
     /// Visibility rules:
     ///   - PUBLIC runs
     ///   - runs created by the user themselves
-    /// Ordered by startTime ascending.
+    /// Ordered by startTime ascending. Paginated the same way as
+    /// <see cref="ListForGuildAsync"/>.
     /// </summary>
-    Task<IReadOnlyList<RunDocument>> ListForUserAsync(string battleNetId, CancellationToken ct);
+    Task<RunsPage> ListForUserAsync(string battleNetId, int top, string? continuationToken, CancellationToken ct);
 
     /// <summary>
     /// Returns a single run by its document id, or null if it does not exist.
