@@ -11,7 +11,7 @@ namespace Lfm.Api.Repositories;
 /// Source: blob container <c>lfmstore/wow/reference/playable-specialization/</c>
 /// plus <c>.../playable-specialization-media/</c> for icon URLs — see
 /// <c>docs/storage-architecture.md</c>. The ingester that populates this is
-/// <c>WowUpdateFunction</c> / <c>WowUpdateTimerFunction</c> (Phase 3).
+/// <c>WowReferenceRefreshFunction</c> / <c>WowReferenceRefreshTimerFunction</c> (Phase 3).
 /// </summary>
 public interface ISpecializationsRepository
 {

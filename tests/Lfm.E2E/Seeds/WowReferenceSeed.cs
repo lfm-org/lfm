@@ -9,8 +9,9 @@ namespace Lfm.E2E.Seeds;
 
 /// <summary>
 /// Seeds the <c>wow</c> container in Azurite with enough static Blizzard
-/// reference data for the Phase-1 blob-backed read paths (<c>/api/instances</c>
-/// and <c>/api/reference/specializations</c>) to return meaningful rows during
+/// reference data for the Phase-1 blob-backed read paths
+/// (<c>/api/wow/reference/instances</c> and
+/// <c>/api/wow/reference/specializations</c>) to return meaningful rows during
 /// E2E. Mirrors the on-disk layout defined in <c>docs/storage-architecture.md</c>
 /// — fixtures are intentionally minimal but shaped like the verbatim Blizzard
 /// responses the legacy TS ingester wrote (localized-object names included so

@@ -156,7 +156,7 @@ See [docs/storage-architecture.md](docs/storage-architecture.md) for the full da
 
 **Never hardcode the Cosmos database name.** Read `Cosmos__DatabaseName` from configuration — E2E runs against a different database than production.
 
-There is no DB migration runner. Reference data refresh is handled by `WowUpdateFunction` (admin-only `POST /api/wow/update`) and `WowUpdateTimerFunction` (weekly), both writing to blob.
+There is no DB migration runner. Reference data refresh is handled by `WowReferenceRefreshFunction` (admin-only `POST /api/wow/reference/refresh`) and `WowReferenceRefreshTimerFunction` (weekly), both writing to blob.
 
 ## Documentation Separation
 
