@@ -62,7 +62,6 @@ jobs:
           FRONTEND_HOSTNAME: ${{ vars.FRONTEND_HOSTNAME }}
           SECURITY_POLICY_URL: ${{ vars.SECURITY_POLICY_URL }}
           API_HOSTNAME: ${{ vars.API_HOSTNAME }}
-          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
         run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
 
       - name: Install brotli
