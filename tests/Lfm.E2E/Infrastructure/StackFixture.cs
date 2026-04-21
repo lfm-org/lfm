@@ -149,8 +149,8 @@ public class StackFixture : IAsyncLifetime
                 ["AzureWebJobsStorage"] = "UseDevelopmentStorage=true",
                 // Storage__BlobConnectionString drives BlobReferenceClient in
                 // api/Program.cs. Must point at the same Azurite the seeder
-                // uploads reference fixtures into — otherwise /api/instances
-                // and /api/reference/specializations see an empty container.
+                // uploads reference fixtures into — otherwise /api/wow/reference/instances
+                // and /api/wow/reference/specializations see an empty container.
                 ["Storage__BlobConnectionString"] = _azurite.GetConnectionString(),
                 ["Storage__WowContainerName"] = Seeds.WowReferenceSeed.ContainerName,
                 ["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated",
