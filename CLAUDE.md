@@ -86,7 +86,7 @@ xUnit in .NET, no DOM. **Use for:** pure logic, validation, mocked API handlers.
 
 ### E2E tests
 
-Playwright .NET against full Docker stack (Cosmos, Azurite, Functions, Blazor app). `docker-compose.test.yml` manages the stack.
+Playwright .NET against an in-process stack: Testcontainers brings up Cosmos + Azurite, the published API runs under `func start`, and the published Blazor `wwwroot` is served from an in-process Kestrel host. Requires a running Docker engine (for Testcontainers); no `docker compose` invocation.
 
 Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release`.
 

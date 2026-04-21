@@ -97,7 +97,7 @@ dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app
 dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release
 ```
 
-Requires the Docker test stack from `docker-compose.test.yml`.
+Requires a running Docker engine — Testcontainers spins up Cosmos + Azurite; the API and Blazor app are published and run in-process.
 
 ## Deployment
 
