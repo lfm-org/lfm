@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Lfm.Api.Tests;
 
-public class InstancesListFunctionTests
+public class WowReferenceInstancesFunctionTests
 {
     private static List<InstanceDto> RepositoryFixture() => new()
     {
@@ -25,7 +25,7 @@ public class InstancesListFunctionTests
         var fixture = RepositoryFixture();
         var repo = new Mock<IInstancesRepository>();
         repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(fixture);
-        var fn = new InstancesListFunction(repo.Object);
+        var fn = new WowReferenceInstancesFunction(repo.Object);
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
@@ -39,7 +39,7 @@ public class InstancesListFunctionTests
     {
         var repo = new Mock<IInstancesRepository>();
         repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<InstanceDto>());
-        var fn = new InstancesListFunction(repo.Object);
+        var fn = new WowReferenceInstancesFunction(repo.Object);
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
