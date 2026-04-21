@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Azure.Cosmos;
 using Azure.Identity;
+using Azure.Storage.Blobs;
 using Lfm.Api.Auth;
 using Lfm.Api.Options;
 using Microsoft.AspNetCore.Builder;
@@ -102,6 +103,27 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         ? new CosmosClient(opts.Endpoint, new DefaultAzureCredential(), clientOptions)
         : new CosmosClient(opts.Endpoint, opts.AuthKey, clientOptions);
 });
+
+// Static Blizzard reference data lives in blob — see docs/storage-architecture.md.
+// BlobContainerClient binds to the "wow" container at startup; auth picks the
+// connection string first (Azurite in E2E) and falls back to managed identity.
+builder.Services.AddSingleton<BlobContainerClient>(sp =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<StorageOptions>>().Value;
+    if (!string.IsNullOrEmpty(opts.BlobConnectionString))
+    {
+        var service = new BlobServiceClient(opts.BlobConnectionString);
+        return service.GetBlobContainerClient(opts.WowContainerName);
+    }
+    if (!string.IsNullOrEmpty(opts.BlobServiceUri))
+    {
+        var service = new BlobServiceClient(new Uri(opts.BlobServiceUri), new DefaultAzureCredential());
+        return service.GetBlobContainerClient(opts.WowContainerName);
+    }
+    throw new InvalidOperationException(
+        "Storage:BlobServiceUri or Storage:BlobConnectionString must be configured for reference-data reads.");
+});
+builder.Services.AddSingleton<Lfm.Api.Services.IBlobReferenceClient, Lfm.Api.Services.BlobReferenceClient>();
 
 builder.Services.AddScoped<Lfm.Api.Repositories.IInstancesRepository, Lfm.Api.Repositories.InstancesRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.ISpecializationsRepository, Lfm.Api.Repositories.SpecializationsRepository>();
