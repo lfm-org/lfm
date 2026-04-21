@@ -21,8 +21,8 @@ namespace Lfm.Api.Functions;
 /// patch cadence (weeks to months); weekly is more than enough.
 ///
 /// The same <see cref="IReferenceSync"/> code path serves both this timer and
-/// the admin-only <see cref="WowUpdateFunction"/> HTTP endpoint, so behaviour
-/// is identical between scheduled and ad-hoc invocations.
+/// the admin-only <see cref="WowReferenceRefreshFunction"/> HTTP endpoint, so
+/// behaviour is identical between scheduled and ad-hoc invocations.
 ///
 /// Ad-hoc invocation for a backfill (e.g. the first run after this ships) is
 /// via the Functions host admin endpoint — timer triggers bypass the HTTP
@@ -31,15 +31,15 @@ namespace Lfm.Api.Functions;
 /// <code>
 /// MASTER=$(az functionapp keys list -g lfm -n lfm-functions --query masterKey -o tsv)
 /// curl -X POST -H "x-functions-key: $MASTER" \
-///     https://lfm-functions.azurewebsites.net/admin/functions/wow-update-timer \
+///     https://lfm-functions.azurewebsites.net/admin/functions/wow-reference-refresh-timer \
 ///     -H "Content-Type: application/json" -d '{}'
 /// </code>
 /// </summary>
-public class WowUpdateTimerFunction(
+public class WowReferenceRefreshTimerFunction(
     IReferenceSync referenceSync,
-    ILogger<WowUpdateTimerFunction> logger)
+    ILogger<WowReferenceRefreshTimerFunction> logger)
 {
-    [Function("wow-update-timer")]
+    [Function("wow-reference-refresh-timer")]
     public async Task Run(
         [TimerTrigger("0 0 4 * * SUN")] TimerInfo timer,
         CancellationToken ct)

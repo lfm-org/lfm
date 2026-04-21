@@ -16,7 +16,7 @@ namespace Lfm.Api.Tests;
 /// <see cref="IReferenceSync"/>, which has its own tests; this file only
 /// verifies that the timer invokes the sync and logs each entity's result.
 /// </summary>
-public class WowUpdateTimerFunctionTests
+public class WowReferenceRefreshTimerFunctionTests
 {
     [Fact]
     public async Task Run_invokes_reference_sync_and_logs_each_entity_result()
@@ -28,8 +28,8 @@ public class WowUpdateTimerFunctionTests
                 new WowUpdateEntityResult("instances", "synced (211 docs)"),
                 new WowUpdateEntityResult("specializations", "synced (40 docs)"),
             }));
-        var logger = new TestLogger<WowUpdateTimerFunction>();
-        var sut = new WowUpdateTimerFunction(sync.Object, logger);
+        var logger = new TestLogger<WowReferenceRefreshTimerFunction>();
+        var sut = new WowReferenceRefreshTimerFunction(sync.Object, logger);
 
         await sut.Run(new TimerInfo(), CancellationToken.None);
 

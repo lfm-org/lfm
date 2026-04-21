@@ -11,7 +11,7 @@ public sealed class InstancesClient(IHttpClientFactory factory) : IInstancesClie
     public async Task<IReadOnlyList<InstanceDto>> ListAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        var items = await http.GetFromJsonAsync<List<InstanceDto>>("api/instances", ct);
+        var items = await http.GetFromJsonAsync<List<InstanceDto>>("api/wow/reference/instances", ct);
         return items ?? [];
     }
 }
