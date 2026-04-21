@@ -13,10 +13,10 @@ using Microsoft.Extensions.Options;
 namespace Lfm.Api.Middleware;
 
 /// <summary>
-/// Per-IP rate limiting for auth and write endpoints using sliding window limiters.
-/// GET and OPTIONS requests are not rate limited.
+/// Per-IP rate limiting for auth, write, and read endpoints using sliding
+/// window limiters. OPTIONS bypasses entirely (handled by CorsMiddleware).
 /// </summary>
-public sealed class RateLimitMiddleware(IOptions<RateLimitOptions> opts) : IFunctionsWorkerMiddleware
+public sealed class RateLimitMiddleware : IFunctionsWorkerMiddleware
 {
     private static readonly HashSet<string> AuthFunctions =
         new(["battlenet-login", "battlenet-callback"], StringComparer.OrdinalIgnoreCase);
@@ -26,9 +26,17 @@ public sealed class RateLimitMiddleware(IOptions<RateLimitOptions> opts) : IFunc
 
     private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _authLimiters = new();
     private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _writeLimiters = new();
+    private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _readLimiters = new();
 
     private long _callCount;
-    private readonly RateLimitOptions _options = opts.Value;
+    private readonly RateLimitOptions _options;
+    private readonly HashSet<string> _trustedProxies;
+
+    public RateLimitMiddleware(IOptions<RateLimitOptions> opts)
+    {
+        _options = opts.Value;
+        _trustedProxies = new HashSet<string>(_options.TrustedProxyAddresses, StringComparer.OrdinalIgnoreCase);
+    }
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
     {
@@ -47,9 +55,8 @@ public sealed class RateLimitMiddleware(IOptions<RateLimitOptions> opts) : IFunc
 
         var method = httpContext.Request.Method;
 
-        // OPTIONS and GET are never rate limited
-        if (string.Equals(method, HttpMethods.Options, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
+        // OPTIONS bypasses — preflight is handled by CorsMiddleware.
+        if (string.Equals(method, HttpMethods.Options, StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;
@@ -58,8 +65,9 @@ public sealed class RateLimitMiddleware(IOptions<RateLimitOptions> opts) : IFunc
         var functionName = context.FunctionDefinition.Name;
         var isAuth = AuthFunctions.Contains(functionName);
         var isWrite = !isAuth && WriteMethods.Contains(method);
+        var isRead = !isAuth && !isWrite && string.Equals(method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase);
 
-        if (!isAuth && !isWrite)
+        if (!isAuth && !isWrite && !isRead)
         {
             await next(context);
             return;
@@ -71,11 +79,16 @@ public sealed class RateLimitMiddleware(IOptions<RateLimitOptions> opts) : IFunc
         {
             EvictStaleEntries(_authLimiters);
             EvictStaleEntries(_writeLimiters);
+            EvictStaleEntries(_readLimiters);
         }
 
         var clientIp = GetClientIp(httpContext);
-        var limiters = isAuth ? _authLimiters : _writeLimiters;
-        var permitLimit = isAuth ? _options.AuthRequestsPerMinute : _options.WriteRequestsPerMinute;
+        var (limiters, permitLimit) = (isAuth, isWrite) switch
+        {
+            (true, _) => (_authLimiters, _options.AuthRequestsPerMinute),
+            (_, true) => (_writeLimiters, _options.WriteRequestsPerMinute),
+            _ => (_readLimiters, _options.ReadRequestsPerMinute),
+        };
 
         var entry = limiters.AddOrUpdate(
             clientIp,
@@ -96,20 +109,32 @@ public sealed class RateLimitMiddleware(IOptions<RateLimitOptions> opts) : IFunc
         await next(context);
     }
 
-    internal static string GetClientIp(HttpContext httpContext)
+    internal string GetClientIp(HttpContext httpContext)
     {
-        var forwarded = httpContext.Request.Headers["X-Forwarded-For"].ToString();
-        if (!string.IsNullOrEmpty(forwarded))
+        var remote = httpContext.Connection.RemoteIpAddress?.ToString();
+
+        // Only honour X-Forwarded-For when the TCP peer is a known, configured
+        // proxy. Otherwise a direct attacker can forge the header and spin up
+        // arbitrarily many fresh buckets, bypassing rate limits entirely.
+        if (remote is not null && _trustedProxies.Contains(remote))
         {
-            // Take the first entry (leftmost = original client)
-            var firstIp = forwarded.Split(',', StringSplitOptions.TrimEntries)[0];
-            if (!string.IsNullOrEmpty(firstIp))
+            var forwarded = httpContext.Request.Headers["X-Forwarded-For"].ToString();
+            if (!string.IsNullOrEmpty(forwarded))
             {
-                return firstIp;
+                // Take the rightmost entry: the proxy that added it is trusted,
+                // and any entries to its left could have been forged by the
+                // original client. The rightmost is the only hop the trusted
+                // proxy actually witnessed.
+                var parts = forwarded.Split(',', StringSplitOptions.TrimEntries);
+                var lastIp = parts[^1];
+                if (!string.IsNullOrEmpty(lastIp))
+                {
+                    return lastIp;
+                }
             }
         }
 
-        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return remote ?? "unknown";
     }
 
     private static SlidingWindowRateLimiter CreateLimiter(int permitLimit)
