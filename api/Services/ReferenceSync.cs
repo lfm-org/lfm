@@ -1,62 +1,228 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Lfm.Api.Repositories;
 using Lfm.Contracts.Admin;
 using Microsoft.Extensions.Logging;
 
 namespace Lfm.Api.Services;
 
 /// <summary>
-/// Implements <see cref="IReferenceSync"/>.
+/// Syncs static Blizzard reference data (journal-instance, playable-specialization,
+/// plus their media blobs) from the Blizzard Game Data API into the
+/// <c>lfmstore/wow/reference/</c> blob container — see
+/// <c>docs/storage-architecture.md</c>.
 ///
-/// Phase 1 (2026-04-21) moved reference-data *reads* from Cosmos to blob — see
-/// <c>docs/storage-architecture.md</c>. The writer side (this class) will be
-/// re-implemented in Phase 3 to upload blobs instead of upserting Cosmos
-/// documents. In the meantime both entity stubs surface a clear "failed:"
-/// status through the admin <c>POST /api/wow/update</c> endpoint, while the
-/// respective repositories continue to serve the existing
-/// <c>lfmstore/wow/reference/</c> blobs ingested by the legacy TS job.
+/// For each entity the sync:
+/// 1. Fetches the Blizzard index and iterates entries.
+/// 2. Per entry: fetches the detail (with simple 429 retry) + media (best-effort).
+/// 3. Writes per-id detail + media blobs.
+/// 4. At the end, writes <c>reference/{kind}/index.json</c> — a self-contained
+///    list-endpoint manifest that the repositories read as a single blob GET.
 ///
-/// Per-entity failures are caught and recorded; the remaining entities are
-/// still attempted.
+/// Per-entity failures are caught by <see cref="SyncAllAsync"/>; the remaining
+/// entities are still attempted.
 /// </summary>
-public sealed class ReferenceSync(ILogger<ReferenceSync> logger) : IReferenceSync
+public sealed class ReferenceSync(
+    IBlizzardGameDataClient gameData,
+    IBlobReferenceClient blobs,
+    ILogger<ReferenceSync> logger) : IReferenceSync
 {
     /// <inheritdoc/>
-    public Task<WowUpdateResponse> SyncAllAsync(CancellationToken ct)
+    public async Task<WowUpdateResponse> SyncAllAsync(CancellationToken ct)
     {
         var results = new List<WowUpdateEntityResult>();
+        string? token = null;
 
-        foreach (var (name, sync) in Entities)
+        try
         {
+            token ??= await gameData.GetClientCredentialsTokenAsync(ct);
+            var count = await SyncInstancesAsync(token, ct);
+            results.Add(new WowUpdateEntityResult("instances", $"synced ({count} docs)"));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to sync instances");
+            results.Add(new WowUpdateEntityResult("instances", $"failed: {ex.Message}"));
+        }
+
+        try
+        {
+            token ??= await gameData.GetClientCredentialsTokenAsync(ct);
+            var count = await SyncSpecializationsAsync(token, ct);
+            results.Add(new WowUpdateEntityResult("specializations", $"synced ({count} docs)"));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to sync specializations");
+            results.Add(new WowUpdateEntityResult("specializations", $"failed: {ex.Message}"));
+        }
+
+        return new WowUpdateResponse(results);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Instance sync
+    // ---------------------------------------------------------------------------
+
+    private async Task<int> SyncInstancesAsync(string token, CancellationToken ct)
+    {
+        var index = await gameData.GetJournalInstanceIndexAsync(token, ct);
+        var manifest = new List<InstanceIndexEntry>();
+
+        foreach (var entry in index.Instances)
+        {
+            var detail = await FetchWithRetryAsync(
+                () => gameData.GetJournalInstanceAsync(entry.Id, token, ct),
+                $"instance {entry.Id}",
+                ct);
+            if (detail is null) continue;
+
+            BlizzardMediaAssets? media = null;
             try
             {
-                sync();
-                results.Add(new WowUpdateEntityResult(name, "synced"));
+                media = await gameData.GetJournalInstanceMediaAsync(entry.Id, token, ct);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to sync {Entity}", name);
-                results.Add(new WowUpdateEntityResult(name, $"failed: {ex.Message}"));
+                logger.LogWarning(ex, "Could not fetch media for instance {Id}", entry.Id);
             }
+
+            var modeBlobs = detail.Modes?
+                .Select(m => new JournalInstanceModeBlob(new JournalModeRefBlob(m.Mode.Type), m.Players))
+                .ToList();
+            var detailBlob = new JournalInstanceBlob(
+                Id: detail.Id,
+                Name: detail.Name,
+                Expansion: detail.Expansion is null ? null : new JournalInstanceExpansionBlob(detail.Expansion.Name),
+                Modes: modeBlobs);
+            await blobs.UploadAsync($"reference/journal-instance/{detail.Id}.json", detailBlob, ct);
+
+            string? portraitUrl = null;
+            if (media?.Assets is not null)
+            {
+                var assetBlobs = media.Assets.Select(a => new MediaAssetBlob(a.Key, a.Value)).ToList();
+                await blobs.UploadAsync(
+                    $"reference/journal-instance-media/{detail.Id}.json",
+                    new MediaAssetsBlob(assetBlobs),
+                    ct);
+                portraitUrl = assetBlobs.FirstOrDefault(a => a.Key == "tile")?.Value
+                           ?? assetBlobs.FirstOrDefault(a => a.Key == "image")?.Value;
+            }
+
+            var manifestModes = (detail.Modes?.Count ?? 0) == 0
+                ? new List<InstanceIndexMode> { new("UNKNOWN:0") }
+                : detail.Modes!
+                    .Select(m => new InstanceIndexMode($"{m.Mode.Type}:{m.Players ?? 0}"))
+                    .ToList();
+
+            manifest.Add(new InstanceIndexEntry(
+                Id: detail.Id,
+                Name: detail.Name,
+                Modes: manifestModes,
+                Expansion: detail.Expansion?.Name ?? "",
+                PortraitUrl: portraitUrl));
         }
 
-        return Task.FromResult(new WowUpdateResponse(results));
+        await blobs.UploadAsync("reference/journal-instance/index.json", manifest, ct);
+        return manifest.Count;
     }
 
-    private static readonly (string Name, Action Sync)[] Entities =
-    [
-        ("instances", SyncInstancesAsync),
-        ("specializations", SyncSpecializationsAsync),
-    ];
+    // ---------------------------------------------------------------------------
+    // Specialization sync
+    // ---------------------------------------------------------------------------
 
-    private static void SyncInstancesAsync() =>
-        throw new NotImplementedException(
-            "Instance sync is being rewritten to write blobs in Phase 3. " +
-            "Existing lfmstore/wow/reference/journal-instance/ blobs remain readable via InstancesRepository.");
+    private async Task<int> SyncSpecializationsAsync(string token, CancellationToken ct)
+    {
+        var index = await gameData.GetPlayableSpecIndexAsync(token, ct);
+        var manifest = new List<SpecializationIndexEntry>();
 
-    private static void SyncSpecializationsAsync() =>
-        throw new NotImplementedException(
-            "Specialization sync is being rewritten to write blobs in Phase 3. " +
-            "Existing lfmstore/wow/reference/playable-specialization/ blobs remain readable via SpecializationsRepository.");
+        foreach (var entry in index.CharacterSpecializations)
+        {
+            var detail = await FetchWithRetryAsync(
+                () => gameData.GetPlayableSpecAsync(entry.Id, token, ct),
+                $"specialization {entry.Id}",
+                ct);
+            if (detail is null) continue;
+
+            BlizzardMediaAssets? media = null;
+            try
+            {
+                media = await gameData.GetPlayableSpecMediaAsync(entry.Id, token, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not fetch media for spec {Id}", entry.Id);
+            }
+
+            var detailBlob = new PlayableSpecializationBlob(
+                Id: detail.Id,
+                Name: detail.Name,
+                PlayableClass: new PlayableClassRefBlob(detail.PlayableClass.Id),
+                Role: new PlayableSpecRoleRefBlob(detail.Role.Type));
+            await blobs.UploadAsync($"reference/playable-specialization/{detail.Id}.json", detailBlob, ct);
+
+            string? iconUrl = null;
+            if (media?.Assets is not null)
+            {
+                var assetBlobs = media.Assets.Select(a => new MediaAssetBlob(a.Key, a.Value)).ToList();
+                await blobs.UploadAsync(
+                    $"reference/playable-specialization-media/{detail.Id}.json",
+                    new MediaAssetsBlob(assetBlobs),
+                    ct);
+                iconUrl = assetBlobs.FirstOrDefault(a => a.Key == "icon")?.Value;
+            }
+
+            manifest.Add(new SpecializationIndexEntry(
+                Id: detail.Id,
+                Name: detail.Name,
+                ClassId: detail.PlayableClass.Id,
+                Role: ToRole(detail.Role.Type),
+                IconUrl: iconUrl));
+        }
+
+        await blobs.UploadAsync("reference/playable-specialization/index.json", manifest, ct);
+        return manifest.Count;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// Simple 429-retry wrapper: sleep 1s and retry on <c>HttpStatusCode.TooManyRequests</c>,
+    /// log + skip on any other error. The shared <c>BlizzardRateLimiter</c> gates
+    /// outbound traffic to ~80 req/s so genuine 429s from Blizzard are rare, but
+    /// the retry is kept for safety.
+    /// </summary>
+    private async Task<T?> FetchWithRetryAsync<T>(
+        Func<Task<T>> fetch,
+        string description,
+        CancellationToken ct) where T : class
+    {
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                return await fetch();
+            }
+            catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Skipping {Description}: fetch failed", description);
+                return null;
+            }
+        }
+    }
+
+    private static string ToRole(string blizzardRoleType) => blizzardRoleType switch
+    {
+        "HEALER" => "HEALER",
+        "TANK" => "TANK",
+        _ => "DPS",
+    };
 }
