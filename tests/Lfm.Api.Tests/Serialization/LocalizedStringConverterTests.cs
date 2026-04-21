@@ -326,63 +326,42 @@ public class LocalizedStringConverterTests
     }
 
     [Fact]
-    public void SpecializationDocument_deserializes_with_localized_name()
+    public void PlayableSpecializationBlob_deserializes_with_localized_name()
     {
-        var json = """
-        {
-          "id": "262",
-          "specId": 262,
-          "name": { "en_US": "Elemental", "de_DE": "Elementar" },
-          "classId": 7,
-          "role": "DAMAGE",
-          "iconUrl": null
-        }
-        """;
-
-        var doc = JsonConvert.DeserializeObject<SpecializationDocument>(json, CosmosLikeSettings);
-
-        Assert.Equal("Elemental", doc!.Name);
-    }
-
-    [Fact]
-    public void SpecializationListRow_deserializes_with_localized_name()
-    {
-        // Shape of the row produced by SpecializationsRepository.ListAsync's
-        // projection: SELECT c.specId AS id, c.name, c.classId, c.role, c.iconUrl FROM c.
-        // Same root cause as InstanceListRow / /api/guild: legacy documents
-        // store c.name as Blizzard's no-locale object, and SpecializationDto
-        // (in Lfm.Contracts, no converter) cannot accept that shape.
+        // Shape of a verbatim TS-ingested playable-specialization blob at
+        // reference/playable-specialization/{id}.json. Blizzard's no-locale
+        // response stores name as a localized object.
         var json = """
         {
           "id": 262,
           "name": { "en_US": "Elemental", "de_DE": "Elementar" },
-          "classId": 7,
-          "role": "DAMAGE",
-          "iconUrl": null
+          "playable_class": { "id": 7 },
+          "role": { "type": "DAMAGE" }
         }
         """;
 
-        var row = JsonConvert.DeserializeObject<SpecializationListRow>(json, CosmosLikeSettings);
+        var blob = JsonConvert.DeserializeObject<PlayableSpecializationBlob>(json, CosmosLikeSettings);
 
-        Assert.Equal("Elemental", row!.Name);
+        Assert.Equal("Elemental", blob!.Name);
     }
 
     [Fact]
-    public void SpecializationListRow_deserializes_with_plain_string_name()
+    public void PlayableSpecializationBlob_deserializes_with_plain_string_name()
     {
+        // After Phase 3 ingestion with locale=en_US on the Blizzard call,
+        // the reader also must handle plain-string names.
         var json = """
         {
           "id": 262,
           "name": "Elemental",
-          "classId": 7,
-          "role": "DAMAGE",
-          "iconUrl": null
+          "playable_class": { "id": 7 },
+          "role": { "type": "DAMAGE" }
         }
         """;
 
-        var row = JsonConvert.DeserializeObject<SpecializationListRow>(json, CosmosLikeSettings);
+        var blob = JsonConvert.DeserializeObject<PlayableSpecializationBlob>(json, CosmosLikeSettings);
 
-        Assert.Equal("Elemental", row!.Name);
+        Assert.Equal("Elemental", blob!.Name);
     }
 
     // Record used only by the converter unit tests above.
