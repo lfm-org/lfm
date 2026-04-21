@@ -30,5 +30,20 @@ public sealed class UpdateRunRequestValidator : AbstractValidator<UpdateRunReque
         RuleFor(x => x.Visibility)
             .Must(v => v is null || ValidVisibilities.Contains(v))
             .WithMessage("visibility must be PUBLIC or GUILD");
+
+        RuleFor(x => x.StartTime)
+            .MaximumLength(64).WithMessage("startTime must be at most 64 characters");
+
+        RuleFor(x => x.SignupCloseTime)
+            .MaximumLength(64).WithMessage("signupCloseTime must be at most 64 characters");
+
+        RuleFor(x => x.ModeKey)
+            .MaximumLength(64).WithMessage("modeKey must be at most 64 characters");
+
+        RuleFor(x => x.InstanceName)
+            .MaximumLength(128).WithMessage("instanceName must be at most 128 characters");
+
+        RuleFor(x => x.Description)
+            .MaximumLength(2000).WithMessage("description must be at most 2000 characters");
     }
 }

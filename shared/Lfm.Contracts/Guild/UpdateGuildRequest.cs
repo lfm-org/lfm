@@ -41,7 +41,8 @@ public sealed class UpdateGuildRequestValidator : AbstractValidator<UpdateGuildR
     {
         RuleFor(x => x.Timezone)
             .NotEmpty()
-            .WithMessage("timezone is required");
+            .WithMessage("timezone is required")
+            .MaximumLength(64).WithMessage("timezone must be at most 64 characters");
 
         RuleFor(x => x.Locale)
             .NotEmpty()
@@ -49,5 +50,8 @@ public sealed class UpdateGuildRequestValidator : AbstractValidator<UpdateGuildR
             .Must(l => l is not null && AllowedLocales.Contains(
                 l.Replace('_', '-'), StringComparer.OrdinalIgnoreCase))
             .WithMessage($"Invalid locale. Supported: {string.Join(", ", AllowedLocales)}");
+
+        RuleFor(x => x.Slogan)
+            .MaximumLength(200).WithMessage("slogan must be at most 200 characters");
     }
 }
