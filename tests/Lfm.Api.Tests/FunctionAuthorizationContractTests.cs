@@ -38,8 +38,8 @@ public class FunctionAuthorizationContractTests
         "health",
         "health-ready",
         // Static reference data — anonymous read endpoints with no PII.
-        "instances-list",
-        "specializations-list",
+        "wow-reference-instances",
+        "wow-reference-specializations",
         // Public privacy contact — anonymous form submission.
         "privacy-email",
         "privacy-contact",
