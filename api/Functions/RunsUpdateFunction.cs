@@ -103,9 +103,12 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             if (body is null)
                 return new BadRequestObjectResult(new { error = "Invalid request body" });
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            return new BadRequestObjectResult(new { error = ex.Message });
+            // Never echo JsonException.Message — it can disclose offset/line/path
+            // detail from the caller's payload that is not useful to the user and
+            // inconsistent with how other handlers report parse failures.
+            return new BadRequestObjectResult(new { error = "Invalid request body" });
         }
 
         var validator = new UpdateRunRequestValidator();
@@ -190,14 +193,14 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
 
         AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "success", null));
 
-        return new OkObjectResult(MapToDto(persisted));
+        return new OkObjectResult(MapToDto(persisted, principal.BattleNetId));
     }
 
     // ------------------------------------------------------------------
     // Mapping helper — projects the stored RunDocument to its wire DTO.
     // ------------------------------------------------------------------
 
-    private static RunDetailDto MapToDto(RunDocument doc) =>
+    private static RunDetailDto MapToDto(RunDocument doc, string currentBattleNetId) =>
         new(
             Id: doc.Id,
             StartTime: doc.StartTime,
@@ -218,6 +221,6 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                     ReviewedAttendance: c.ReviewedAttendance,
                     SpecName: c.SpecName,
                     Role: c.Role,
-                    IsCurrentUser: false))
+                    IsCurrentUser: c.RaiderBattleNetId == currentBattleNetId))
                 .ToList());
 }

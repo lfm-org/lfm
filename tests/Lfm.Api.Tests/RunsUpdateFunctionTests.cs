@@ -345,4 +345,123 @@ public class RunsUpdateFunctionTests
             actorId: "bnet-creator",
             result: "success"));
     }
+
+    // ------------------------------------------------------------------
+    // Test 6: Malformed JSON returns 400 with a static error string,
+    // never echoing the JsonException message (which can leak the
+    // caller's payload offset/line/path).
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_400_with_static_message_on_malformed_json()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{not valid json"));
+        httpContext.Request.ContentType = "application/json";
+
+        var result = await fn.Run(httpContext.Request, "run-1", ctx, CancellationToken.None);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var errorProp = bad.Value!.GetType().GetProperty("error");
+        Assert.NotNull(errorProp);
+        Assert.Equal("Invalid request body", errorProp!.GetValue(bad.Value));
+
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 7: After a successful update, IsCurrentUser is true on the
+    // caller's own roster row (mirrors the sanitization in the other 5
+    // run handlers; was previously hardcoded false).
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_dto_with_IsCurrentUser_true_for_callers_own_roster_row()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+
+        // Run with two roster entries: one belongs to the caller, one to a peer.
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator") with
+        {
+            RunCharacters =
+            [
+                new RunCharacterEntry(
+                    Id: "rc-1",
+                    CharacterId: "char-self",
+                    CharacterName: "Selfwarrior",
+                    CharacterRealm: "silvermoon",
+                    CharacterLevel: 80,
+                    CharacterClassId: 1,
+                    CharacterClassName: "Warrior",
+                    CharacterRaceId: 1,
+                    CharacterRaceName: "Human",
+                    RaiderBattleNetId: "bnet-creator",
+                    DesiredAttendance: "IN",
+                    ReviewedAttendance: "IN",
+                    SpecId: 71,
+                    SpecName: "Arms",
+                    Role: "DPS"),
+                new RunCharacterEntry(
+                    Id: "rc-2",
+                    CharacterId: "char-peer",
+                    CharacterName: "Peerpriest",
+                    CharacterRealm: "silvermoon",
+                    CharacterLevel: 80,
+                    CharacterClassId: 5,
+                    CharacterClassName: "Priest",
+                    CharacterRaceId: 1,
+                    CharacterRaceName: "Human",
+                    RaiderBattleNetId: "bnet-someone-else",
+                    DesiredAttendance: "IN",
+                    ReviewedAttendance: "IN",
+                    SpecId: 257,
+                    SpecName: "Holy",
+                    Role: "HEALER"),
+            ],
+        };
+
+        // Update only the description so the locked-fields guard doesn't fire.
+        var updated = existing with { Description = "Updated description" };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updated);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePutRequest(new { description = "Updated description" }), "run-1", ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<RunDetailDto>(ok.Value);
+        Assert.Equal(2, dto.RunCharacters.Count);
+
+        var ownRow = dto.RunCharacters.Single(c => c.CharacterName == "Selfwarrior");
+        var peerRow = dto.RunCharacters.Single(c => c.CharacterName == "Peerpriest");
+        Assert.True(ownRow.IsCurrentUser);
+        Assert.False(peerRow.IsCurrentUser);
+    }
 }
