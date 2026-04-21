@@ -25,12 +25,9 @@ public class GuildClientTests
                 Id: 1,
                 Name: name,
                 Slogan: "We ride the storm",
-                RealmSlug: "silvermoon",
                 RealmName: "Silvermoon",
                 FactionName: "Alliance",
                 MemberCount: 120,
-                AchievementPoints: 5000,
-                SyncedMemberCount: 100,
                 RankCount: 10,
                 CrestEmblemUrl: null,
                 CrestBorderUrl: null),
@@ -38,17 +35,14 @@ public class GuildClientTests
                 IsInitialized: true,
                 RequiresSetup: false,
                 RankDataFresh: true,
-                RankDataFetchedAt: null,
                 Timezone: "Europe/Helsinki",
                 Locale: "fi"),
             Settings: null,
-            Editor: new GuildEditorDto(CanEdit: false, Mode: "member"),
+            Editor: new GuildEditorDto(CanEdit: false),
             MemberPermissions: new GuildMemberPermissionsDto(
-                MatchedRank: 3,
                 CanCreateGuildRuns: true,
                 CanSignupGuildRuns: true,
-                CanDeleteGuildRuns: false,
-                RankDataFresh: true));
+                CanDeleteGuildRuns: false));
 
     // ── GetAsync ─────────────────────────────────────────────────────────────
 

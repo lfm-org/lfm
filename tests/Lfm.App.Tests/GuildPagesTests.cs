@@ -34,10 +34,10 @@ public class GuildPagesTests : ComponentTestBase
         var client = new Mock<IGuildClient>();
         var dto = new GuildDto(
             Guild: null,
-            Setup: new GuildSetupDto(false, true, false, null, "Europe/Helsinki", "fi"),
+            Setup: new GuildSetupDto(false, true, false, "Europe/Helsinki", "fi"),
             Settings: null,
-            Editor: new GuildEditorDto(false, "member"),
-            MemberPermissions: new GuildMemberPermissionsDto(null, false, false, false, false));
+            Editor: new GuildEditorDto(false),
+            MemberPermissions: new GuildMemberPermissionsDto(false, false, false));
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
         Services.AddSingleton(client.Object);
 
@@ -52,12 +52,12 @@ public class GuildPagesTests : ComponentTestBase
     {
         var client = new Mock<IGuildClient>();
         var dto = new GuildDto(
-            Guild: new GuildInfoDto(1, "Stormchasers", "We ride the storm", "silvermoon", "Silvermoon", "Alliance",
-                120, 5000, 100, 10, null, null),
-            Setup: new GuildSetupDto(true, false, true, null, "Europe/Helsinki", "fi"),
+            Guild: new GuildInfoDto(1, "Stormchasers", "We ride the storm", "Silvermoon", "Alliance",
+                120, 10, null, null),
+            Setup: new GuildSetupDto(true, false, true, "Europe/Helsinki", "fi"),
             Settings: null,
-            Editor: new GuildEditorDto(false, "member"),
-            MemberPermissions: new GuildMemberPermissionsDto(3, true, true, false, true));
+            Editor: new GuildEditorDto(false),
+            MemberPermissions: new GuildMemberPermissionsDto(true, true, false));
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
         Services.AddSingleton(client.Object);
 

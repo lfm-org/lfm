@@ -19,17 +19,14 @@ internal static class GuildMapper
                 IsInitialized: false,
                 RequiresSetup: true,
                 RankDataFresh: false,
-                RankDataFetchedAt: null,
                 Timezone: "UTC",
                 Locale: "en"),
             Settings: null,
-            Editor: new GuildEditorDto(CanEdit: false, Mode: "member"),
+            Editor: new GuildEditorDto(CanEdit: false),
             MemberPermissions: new GuildMemberPermissionsDto(
-                MatchedRank: null,
                 CanCreateGuildRuns: false,
                 CanSignupGuildRuns: false,
-                CanDeleteGuildRuns: false,
-                RankDataFresh: false));
+                CanDeleteGuildRuns: false));
 
     internal static GuildDto MapToDto(GuildDocument doc)
     {
@@ -47,12 +44,9 @@ internal static class GuildMapper
                 Id: doc.GuildId,
                 Name: profile.Name,
                 Slogan: doc.Slogan,
-                RealmSlug: doc.RealmSlug,
                 RealmName: profile.Realm.Name ?? doc.RealmSlug,
                 FactionName: profile.Faction?.Name,
                 MemberCount: profile.MemberCount,
-                AchievementPoints: profile.AchievementPoints,
-                SyncedMemberCount: rosterMembers?.Count,
                 RankCount: rankCount,
                 CrestEmblemUrl: doc.CrestEmblemUrl,
                 CrestBorderUrl: doc.CrestBorderUrl);
@@ -62,18 +56,15 @@ internal static class GuildMapper
             IsInitialized: doc.Setup?.InitializedAt is not null,
             RequiresSetup: false,
             RankDataFresh: IsRosterFresh(doc),
-            RankDataFetchedAt: doc.BlizzardRosterFetchedAt,
             Timezone: doc.Setup?.Timezone ?? "Europe/Helsinki",
             Locale: doc.Setup?.Locale ?? "fi");
 
-        var editor = new GuildEditorDto(CanEdit: false, Mode: "member");
+        var editor = new GuildEditorDto(CanEdit: false);
 
         var memberPermissions = new GuildMemberPermissionsDto(
-            MatchedRank: null,
             CanCreateGuildRuns: false,
             CanSignupGuildRuns: false,
-            CanDeleteGuildRuns: false,
-            RankDataFresh: IsRosterFresh(doc));
+            CanDeleteGuildRuns: false);
 
         return new GuildDto(
             Guild: guildInfo,
