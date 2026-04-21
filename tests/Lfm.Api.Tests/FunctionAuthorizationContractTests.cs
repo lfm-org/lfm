@@ -37,9 +37,6 @@ public class FunctionAuthorizationContractTests
         // Health probes — App Service Health Check / external monitors.
         "health",
         "health-ready",
-        // Static reference data — anonymous read endpoints with no PII.
-        "wow-reference-instances",
-        "wow-reference-specializations",
         // Public privacy contact — anonymous form submission.
         "privacy-email",
         "privacy-contact",
