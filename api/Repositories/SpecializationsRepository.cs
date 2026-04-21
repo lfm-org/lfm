@@ -1,59 +1,91 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using Lfm.Api.Options;
 using Lfm.Api.Serialization;
+using Lfm.Api.Services;
 using Lfm.Contracts.Specializations;
+using Newtonsoft.Json;
 
 namespace Lfm.Api.Repositories;
 
 /// <summary>
-/// Projection row for <see cref="SpecializationsRepository.ListAsync"/>.
-///
-/// Mirrors <c>InstanceListRow</c>: we cannot project Cosmos directly into
-/// <see cref="SpecializationDto"/> because legacy documents store <c>c.name</c>
-/// as Blizzard's localized-object shape, and <see cref="SpecializationDto"/>
-/// has no converter. Same root cause as the 2026-04-20 /api/guild and
-/// /api/instances incidents.
+/// Manifest entry emitted by the ingester (Phase 3) at
+/// <c>reference/playable-specialization/index.json</c>. When present, the reader
+/// returns this directly — one blob GET for the whole list endpoint. When absent
+/// (first deploy, pre-ingest), the reader falls back to enumerating per-id
+/// detail blobs plus per-id media blobs for icon URLs.
 /// </summary>
-internal sealed record SpecializationListRow(
+internal sealed record SpecializationIndexEntry(
     int Id,
-    [property: JsonConverter(typeof(LocalizedStringConverter))] string Name,
+    string Name,
     int ClassId,
     string Role,
     string? IconUrl);
 
-public sealed class SpecializationsRepository(CosmosClient client, IOptions<CosmosOptions> cosmosOpts) : ISpecializationsRepository
+/// <summary>
+/// Verbatim Blizzard playable-specialization detail as stored at
+/// <c>reference/playable-specialization/{id}.json</c>. Legacy TS-ingested blobs
+/// carry localized-object names; the converter handles both shapes.
+/// </summary>
+internal sealed record PlayableSpecializationBlob(
+    int Id,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string Name,
+    [property: JsonProperty("playable_class")] PlayableClassRefBlob? PlayableClass = null,
+    PlayableSpecRoleRefBlob? Role = null);
+
+internal sealed record PlayableClassRefBlob(int Id);
+
+internal sealed record PlayableSpecRoleRefBlob(string Type);
+
+public sealed class SpecializationsRepository(IBlobReferenceClient blobs) : ISpecializationsRepository
 {
-    private const string ContainerName = "specializations";
-    private readonly Container _container = client.GetContainer(cosmosOpts.Value.DatabaseName, ContainerName);
+    private const string Prefix = "reference/playable-specialization/";
+    private const string MediaPrefix = "reference/playable-specialization-media/";
+    private const string ManifestName = "reference/playable-specialization/index.json";
 
     public async Task<IReadOnlyList<SpecializationDto>> ListAsync(CancellationToken ct)
     {
-        // Project specId → id so that the projection row's Id (int) receives the numeric
-        // spec id rather than the Cosmos string document id.
-        var query = new QueryDefinition("SELECT c.specId AS id, c.name, c.classId, c.role, c.iconUrl FROM c");
-        var results = new List<SpecializationDto>();
-        using var iterator = _container.GetItemQueryIterator<SpecializationListRow>(query);
-        while (iterator.HasMoreResults)
+        // Fast path: single GET of the manifest produced by the ingester (Phase 3).
+        var manifest = await blobs.GetAsync<List<SpecializationIndexEntry>>(ManifestName, ct);
+        if (manifest is not null)
         {
-            var page = await iterator.ReadNextAsync(ct);
-            foreach (var row in page)
-            {
-                results.Add(new SpecializationDto(row.Id, row.Name, row.ClassId, row.Role, row.IconUrl));
-            }
+            return manifest
+                .Select(e => new SpecializationDto(e.Id, e.Name, e.ClassId, e.Role, e.IconUrl))
+                .ToList();
         }
-        return results;
+
+        // Fallback: enumerate per-id detail blobs + tolerantly fetch media for icons.
+        // Runs on the first deploy before the ingester has emitted a manifest.
+        var rows = new List<SpecializationDto>();
+        await foreach (var detail in blobs.ListAsync<PlayableSpecializationBlob>(Prefix, ct))
+        {
+            var iconUrl = await ResolveIconUrlAsync(detail.Id, ct);
+            var role = ToRole(detail.Role?.Type ?? "");
+            var classId = detail.PlayableClass?.Id ?? 0;
+            rows.Add(new SpecializationDto(detail.Id, detail.Name, classId, role, iconUrl));
+        }
+        return rows;
     }
 
-    public async Task UpsertBatchAsync(IEnumerable<SpecializationDocument> documents, CancellationToken ct)
+    private async Task<string?> ResolveIconUrlAsync(int specId, CancellationToken ct)
     {
-        foreach (var doc in documents)
+        var media = await blobs.GetAsync<MediaAssetsBlob>($"{MediaPrefix}{specId}.json", ct);
+        if (media?.Assets is null) return null;
+
+        foreach (var asset in media.Assets)
         {
-            await _container.UpsertItemAsync(doc, new Microsoft.Azure.Cosmos.PartitionKey(doc.Id), cancellationToken: ct);
+            if (asset.Key == "icon" && !string.IsNullOrEmpty(asset.Value))
+                return asset.Value;
         }
+        return null;
     }
+
+    // Mirrors ReferenceSync.ToRole: Blizzard's role.type ("DAMAGE", "HEALER", "TANK", ...)
+    // collapses to the three game roles the frontend renders.
+    private static string ToRole(string blizzardRoleType) => blizzardRoleType switch
+    {
+        "HEALER" => "HEALER",
+        "TANK" => "TANK",
+        _ => "DPS",
+    };
 }
