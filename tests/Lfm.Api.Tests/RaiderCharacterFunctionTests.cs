@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Moq;
 using Lfm.Api.Auth;
@@ -19,11 +21,14 @@ public class RaiderCharacterFunctionTests
     // Helpers
     // ------------------------------------------------------------------
 
+    private const string FakeInvocationId = "00000000-0000-0000-0000-000000000001";
+
     private static FunctionContext MakeFunctionContext(SessionPrincipal principal)
     {
         var items = new Dictionary<object, object> { [SessionKeys.Principal] = principal };
         var ctx = new Mock<FunctionContext>();
         ctx.Setup(c => c.Items).Returns(items);
+        ctx.Setup(c => c.InvocationId).Returns(FakeInvocationId);
         return ctx.Object;
     }
 
@@ -76,7 +81,7 @@ public class RaiderCharacterFunctionTests
         repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var fn = new RaiderCharacterFunction(repo.Object);
+        var fn = new RaiderCharacterFunction(repo.Object, new TestLogger<RaiderCharacterFunction>());
         var result = await fn.Run(MakePutRequest(), "eu-silvermoon-aelrin", MakeFunctionContext(principal), CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
@@ -102,7 +107,7 @@ public class RaiderCharacterFunctionTests
         repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(raider);
 
-        var fn = new RaiderCharacterFunction(repo.Object);
+        var fn = new RaiderCharacterFunction(repo.Object, new TestLogger<RaiderCharacterFunction>());
         var result = await fn.Run(MakePutRequest(), "eu-silvermoon-unknownchar", MakeFunctionContext(principal), CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
@@ -111,4 +116,41 @@ public class RaiderCharacterFunctionTests
         repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // ------------------------------------------------------------------
+    // Test 3: Upsert failure — 500 with no exception detail in the body
+    // ------------------------------------------------------------------
+    //
+    // Pin the contract that the 500 path never echoes `ex.Message` or
+    // `ex.GetType().Name` to the caller. CosmosException messages typically
+    // embed AccountEndpoint / diagnostic JSON; a refactor that stops routing
+    // through `InternalErrorResult.Create` would re-leak them.
+
+    [Fact]
+    public async Task Run_returns_generic_500_without_exception_detail_when_upsert_throws()
+    {
+        var principal = MakePrincipal();
+        var raider = MakeRaiderDoc();
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new CosmosException(
+                "ProvisioningRU exhausted. AccountEndpoint=https://secret.documents.azure.com; AccountKey=topsecret",
+                System.Net.HttpStatusCode.TooManyRequests, 0, "", 0));
+
+        var fn = new RaiderCharacterFunction(repo.Object, new TestLogger<RaiderCharacterFunction>());
+        var result = await fn.Run(MakePutRequest(), "eu-silvermoon-aelrin", MakeFunctionContext(principal), CancellationToken.None);
+
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, obj.StatusCode);
+
+        var json = JsonSerializer.Serialize(obj.Value);
+        Assert.DoesNotContain("ProvisioningRU", json);
+        Assert.DoesNotContain("AccountEndpoint", json);
+        Assert.DoesNotContain("AccountKey", json);
+        Assert.DoesNotContain("CosmosException", json);
+        Assert.Contains("internal error", json);
+        Assert.Contains(FakeInvocationId, json);
+    }
 }
