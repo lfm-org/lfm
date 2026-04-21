@@ -343,6 +343,36 @@ public class RateLimitMiddlewareTests
     }
 
     [Fact]
+    public async Task Xff_different_rightmost_entries_from_trusted_proxy_get_separate_buckets()
+    {
+        // Covers the mutant where the proxy IP is used as the bucket key
+        // (ignoring XFF) or where a constant is used (collapsing all clients
+        // behind one proxy). Two requests with *different* rightmost entries
+        // through the same trusted proxy must land in separate buckets.
+        var options = DefaultOptions(trustedProxies: ["10.0.0.1"]);
+        options.WriteRequestsPerMinute = 1;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        // Client A exhausts their bucket.
+        var (ctx1, _) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.10");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        // Client B via the same trusted proxy must have its own permit.
+        var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.1",
+            xForwardedFor: "203.0.113.20");
+        var nextCalled = false;
+
+        await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
+
+        Assert.True(nextCalled);
+        Assert.NotEqual(429, httpCtx2.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task Xff_trims_whitespace_around_addresses()
     {
         var options = DefaultOptions(trustedProxies: ["10.0.0.1"]);
@@ -369,6 +399,7 @@ public class RateLimitMiddlewareTests
     [Fact]
     public async Task Empty_xff_from_trusted_remote_falls_back_to_remote_ip()
     {
+        // Empty-string XFF header must resolve to the remote-IP bucket.
         var options = DefaultOptions(trustedProxies: ["10.0.0.5"]);
         options.WriteRequestsPerMinute = 1;
         var opts = MsOptions.Create(options);
@@ -379,15 +410,41 @@ public class RateLimitMiddlewareTests
             xForwardedFor: "");
         await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
 
+        // Second request with a distinct but still-empty XFF input proves the
+        // bucket is keyed on the TCP peer, not on the XFF literal.
         var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
             clientIp: "10.0.0.5",
+            xForwardedFor: "");
+        httpCtx2.Response.Body = new MemoryStream();
+
+        await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
+
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Missing_xff_from_trusted_remote_falls_back_to_remote_ip()
+    {
+        // Separate from the empty-string case: an absent XFF header is a
+        // different input path (no Request.Headers entry at all), so it gets
+        // its own test to isolate failure modes.
+        var options = DefaultOptions(trustedProxies: ["10.0.0.6"]);
+        options.WriteRequestsPerMinute = 1;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        var (ctx1, _) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.6",
+            xForwardedFor: null);
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        var (ctx2, httpCtx2) = CreateContext("runs-create", "POST",
+            clientIp: "10.0.0.6",
             xForwardedFor: null);
         httpCtx2.Response.Body = new MemoryStream();
 
         await middleware.Invoke(ctx2.Object, _ => Task.CompletedTask);
 
-        // Both requests share the RemoteIpAddress bucket (no XFF → no
-        // forwarded client identity), so the second must be blocked.
         Assert.Equal(429, httpCtx2.Response.StatusCode);
     }
 
