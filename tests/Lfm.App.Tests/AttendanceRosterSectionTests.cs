@@ -21,18 +21,12 @@ public class AttendanceRosterSectionTests : ComponentTestBase
         string desired = "IN",
         string reviewed = "IN") =>
         new(
-            Id: "rc-1",
-            CharacterId: "char-1",
             CharacterName: name,
             CharacterRealm: realm,
-            CharacterLevel: 80,
             CharacterClassId: classId,
             CharacterClassName: className,
-            CharacterRaceId: 1,
-            CharacterRaceName: "Human",
             DesiredAttendance: desired,
             ReviewedAttendance: reviewed,
-            SpecId: 71,
             SpecName: spec,
             Role: role,
             IsCurrentUser: false);

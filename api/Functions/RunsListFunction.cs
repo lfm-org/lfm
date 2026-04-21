@@ -92,12 +92,8 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
             ModeKey: run.ModeKey,
             Visibility: run.Visibility,
             CreatorGuild: run.CreatorGuild,
-            CreatorGuildId: run.CreatorGuildId,
             InstanceId: run.InstanceId,
             InstanceName: run.InstanceName,
-            CreatorBattleNetId: run.CreatorBattleNetId,
-            CreatedAt: run.CreatedAt,
-            Ttl: run.Ttl,
             RunCharacters: run.RunCharacters
                 .Select(c => SanitizeCharacter(c, currentBattleNetId))
                 .ToList());
@@ -105,18 +101,12 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
     private static RunCharacterDto SanitizeCharacter(
         RunCharacterEntry character, string currentBattleNetId) =>
         new RunCharacterDto(
-            Id: character.Id,
-            CharacterId: character.CharacterId,
             CharacterName: character.CharacterName,
             CharacterRealm: character.CharacterRealm,
-            CharacterLevel: character.CharacterLevel,
             CharacterClassId: character.CharacterClassId,
             CharacterClassName: character.CharacterClassName,
-            CharacterRaceId: character.CharacterRaceId,
-            CharacterRaceName: character.CharacterRaceName,
             DesiredAttendance: character.DesiredAttendance,
             ReviewedAttendance: character.ReviewedAttendance,
-            SpecId: character.SpecId,
             SpecName: character.SpecName,
             Role: character.Role,
             IsCurrentUser: character.RaiderBattleNetId == currentBattleNetId);

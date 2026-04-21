@@ -22,8 +22,6 @@ public class RunsPagesTests : ComponentTestBase
         DateTimeOffset.UtcNow.AddDays(30).ToString("o");
     private static readonly string FutureSignupCloseTime =
         DateTimeOffset.UtcNow.AddDays(30).AddHours(-2).ToString("o");
-    private static readonly string PastCreatedAt =
-        DateTimeOffset.UtcNow.AddDays(-14).ToString("o");
 
     private static RunSummaryDto MakeSummary(string id = "run-1") =>
         new(
@@ -34,12 +32,8 @@ public class RunsPagesTests : ComponentTestBase
             ModeKey: "heroic",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
-            CreatorGuildId: 42,
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            CreatorBattleNetId: "player#1234",
-            CreatedAt: PastCreatedAt,
-            Ttl: 604800,
             RunCharacters: []);
 
     private static RunDetailDto MakeDetail(string id = "run-1") =>
@@ -51,12 +45,8 @@ public class RunsPagesTests : ComponentTestBase
             ModeKey: "heroic",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
-            CreatorGuildId: 42,
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            CreatorBattleNetId: "player#1234",
-            CreatedAt: PastCreatedAt,
-            Ttl: 604800,
             RunCharacters: []);
 
     // ── RunsPage ─────────────────────────────────────────────────────────────
@@ -156,18 +146,12 @@ public class RunsPagesTests : ComponentTestBase
         string attendance = "IN",
         string? spec = "Arcane") =>
         new(
-            Id: id,
-            CharacterId: $"char-{id}",
             CharacterName: name,
             CharacterRealm: "Test Realm",
-            CharacterLevel: 80,
             CharacterClassId: classId,
             CharacterClassName: className,
-            CharacterRaceId: 1,
-            CharacterRaceName: "Human",
             DesiredAttendance: attendance,
             ReviewedAttendance: attendance,
-            SpecId: 62,
             SpecName: spec,
             Role: role,
             IsCurrentUser: false);

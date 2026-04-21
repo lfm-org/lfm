@@ -18,8 +18,6 @@ public class RunsPageKeyboardTests : ComponentTestBase
         DateTimeOffset.UtcNow.AddDays(30).ToString("o");
     private static readonly string FutureSignupCloseTime =
         DateTimeOffset.UtcNow.AddDays(30).AddHours(-2).ToString("o");
-    private static readonly string PastCreatedAt =
-        DateTimeOffset.UtcNow.AddDays(-14).ToString("o");
 
     private static RunSummaryDto MakeRun(string id, string name) =>
         new(
@@ -30,12 +28,8 @@ public class RunsPageKeyboardTests : ComponentTestBase
             ModeKey: "MYTHIC",
             Visibility: "PUBLIC",
             CreatorGuild: "Test",
-            CreatorGuildId: null,
             InstanceId: 1,
             InstanceName: name,
-            CreatorBattleNetId: null,
-            CreatedAt: PastCreatedAt,
-            Ttl: 604800,
             RunCharacters: Array.Empty<RunCharacterDto>());
 
     [Fact]

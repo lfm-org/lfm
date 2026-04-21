@@ -194,7 +194,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
     }
 
     // ------------------------------------------------------------------
-    // Mapping helper — same shape as RunDetailDto.
+    // Mapping helper — projects the stored RunDocument to its wire DTO.
     // ------------------------------------------------------------------
 
     private static RunDetailDto MapToDto(RunDocument doc) =>
@@ -206,26 +206,16 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             ModeKey: doc.ModeKey,
             Visibility: doc.Visibility,
             CreatorGuild: doc.CreatorGuild,
-            CreatorGuildId: doc.CreatorGuildId,
             InstanceId: doc.InstanceId,
             InstanceName: doc.InstanceName,
-            CreatorBattleNetId: doc.CreatorBattleNetId,
-            CreatedAt: doc.CreatedAt,
-            Ttl: doc.Ttl,
             RunCharacters: doc.RunCharacters
                 .Select(c => new RunCharacterDto(
-                    Id: c.Id,
-                    CharacterId: c.CharacterId,
                     CharacterName: c.CharacterName,
                     CharacterRealm: c.CharacterRealm,
-                    CharacterLevel: c.CharacterLevel,
                     CharacterClassId: c.CharacterClassId,
                     CharacterClassName: c.CharacterClassName,
-                    CharacterRaceId: c.CharacterRaceId,
-                    CharacterRaceName: c.CharacterRaceName,
                     DesiredAttendance: c.DesiredAttendance,
                     ReviewedAttendance: c.ReviewedAttendance,
-                    SpecId: c.SpecId,
                     SpecName: c.SpecName,
                     Role: c.Role,
                     IsCurrentUser: false))

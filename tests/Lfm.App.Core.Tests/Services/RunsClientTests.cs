@@ -17,8 +17,6 @@ public class RunsClientTests
         DateTimeOffset.UtcNow.AddDays(30).ToString("o");
     private static readonly string FutureSignupCloseTime =
         DateTimeOffset.UtcNow.AddDays(30).AddHours(-2).ToString("o");
-    private static readonly string PastCreatedAt =
-        DateTimeOffset.UtcNow.AddDays(-14).ToString("o");
 
     private static (RunsClient client, StubHttpMessageHandler handler) MakeClient(StubHttpMessageHandler handler)
     {
@@ -39,12 +37,8 @@ public class RunsClientTests
             ModeKey: "heroic",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
-            CreatorGuildId: 42,
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            CreatorBattleNetId: "player#1234",
-            CreatedAt: PastCreatedAt,
-            Ttl: 604800,
             RunCharacters: []);
 
     private static RunDetailDto MakeDetail(string id = "run-1") =>
@@ -56,12 +50,8 @@ public class RunsClientTests
             ModeKey: "heroic",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
-            CreatorGuildId: 42,
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            CreatorBattleNetId: "player#1234",
-            CreatedAt: PastCreatedAt,
-            Ttl: 604800,
             RunCharacters: []);
 
     private static CreateRunRequest MakeCreateRequest() =>
