@@ -27,6 +27,11 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRepo)
 {
+    // Hard cap on page size. Keeps per-request RU + payload bounded regardless
+    // of what the caller asks for.
+    internal const int DefaultTop = 200;
+    internal const int MaxTop = 200;
+
     [Function("runs-list")]
     [RequireAuth]
     public async Task<IActionResult> Run(
@@ -42,15 +47,35 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
 
         var (guildId, _) = GuildResolver.FromRaider(raider);
 
-        IReadOnlyList<RunDocument> runs = guildId is not null
-            ? await repo.ListForGuildAsync(guildId, principal.BattleNetId, ct)
-            : await repo.ListForUserAsync(principal.BattleNetId, ct);
+        var top = ParseTop(req);
+        var continuationToken = ParseContinuationToken(req);
 
-        var dtos = runs
+        var page = guildId is not null
+            ? await repo.ListForGuildAsync(guildId, principal.BattleNetId, top, continuationToken, ct)
+            : await repo.ListForUserAsync(principal.BattleNetId, top, continuationToken, ct);
+
+        var dtos = page.Items
             .Select(r => Sanitize(r, principal.BattleNetId))
             .ToList();
 
-        return new OkObjectResult(dtos);
+        return new OkObjectResult(new RunsListResponse(dtos, page.ContinuationToken));
+    }
+
+    private static int ParseTop(HttpRequest req)
+    {
+        if (!req.Query.TryGetValue("top", out var raw) || raw.Count == 0)
+            return DefaultTop;
+        if (!int.TryParse(raw[0], out var parsed))
+            return DefaultTop;
+        return Math.Clamp(parsed, 1, MaxTop);
+    }
+
+    private static string? ParseContinuationToken(HttpRequest req)
+    {
+        if (!req.Query.TryGetValue("continuationToken", out var raw) || raw.Count == 0)
+            return null;
+        var value = raw[0];
+        return string.IsNullOrEmpty(value) ? null : value;
     }
 
     // ------------------------------------------------------------------

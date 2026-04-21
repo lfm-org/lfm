@@ -75,11 +75,15 @@ public class RunsClientTests
             InstanceName: "Liberation of Undermine");
 
     [Fact]
-    public async Task ListAsync_deserializes_json_array_response()
+    public async Task ListAsync_deserializes_items_from_runs_list_response_envelope()
     {
-        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(
-            HttpStatusCode.OK,
-            new[] { MakeSummary("run-a"), MakeSummary("run-b") }));
+        // Server now returns a RunsListResponse envelope ({ items, continuationToken })
+        // — the client must deserialize it and surface only the items through the
+        // existing IRunsClient.ListAsync signature.
+        var envelope = new RunsListResponse(
+            Items: [MakeSummary("run-a"), MakeSummary("run-b")],
+            ContinuationToken: "next-page");
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, envelope));
 
         var result = await client.ListAsync(CancellationToken.None);
 
@@ -90,9 +94,10 @@ public class RunsClientTests
     }
 
     [Fact]
-    public async Task ListAsync_returns_empty_list_when_body_is_empty_array()
+    public async Task ListAsync_returns_empty_list_when_envelope_items_is_empty()
     {
-        var (client, _) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, Array.Empty<RunSummaryDto>()));
+        var envelope = new RunsListResponse(Items: [], ContinuationToken: null);
+        var (client, _) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, envelope));
 
         var result = await client.ListAsync(CancellationToken.None);
 

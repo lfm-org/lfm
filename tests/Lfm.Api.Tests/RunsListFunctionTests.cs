@@ -111,8 +111,8 @@ public class RunsListFunctionTests
             runCharacters: [ownCharacter, otherCharacter]);
 
         var repo = new Mock<IRunsRepository>();
-        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<RunDocument> { doc });
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument> { doc }, null));
 
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
@@ -124,10 +124,10 @@ public class RunsListFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var runs = Assert.IsAssignableFrom<IReadOnlyList<RunSummaryDto>>(ok.Value);
-        Assert.Single(runs);
+        var response = Assert.IsType<RunsListResponse>(ok.Value);
+        Assert.Single(response.Items);
 
-        var run = runs[0];
+        var run = response.Items[0];
         Assert.Equal(doc.Id, run.Id);
         Assert.Equal(2, run.RunCharacters.Count);
 
@@ -177,8 +177,8 @@ public class RunsListFunctionTests
         var principal = MakePrincipal();
 
         var repo = new Mock<IRunsRepository>();
-        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<RunDocument>());
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument>(), null));
 
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
@@ -190,8 +190,9 @@ public class RunsListFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var runs = Assert.IsAssignableFrom<IReadOnlyList<RunSummaryDto>>(ok.Value);
-        Assert.Empty(runs);
+        var response = Assert.IsType<RunsListResponse>(ok.Value);
+        Assert.Empty(response.Items);
+        Assert.Null(response.ContinuationToken);
     }
 
     // ------------------------------------------------------------------
@@ -208,8 +209,8 @@ public class RunsListFunctionTests
         var doc = MakeRunDoc(runCharacters: [ownCharacter]);
 
         var repo = new Mock<IRunsRepository>();
-        repo.Setup(r => r.ListForUserAsync("bnet-loner", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<RunDocument> { doc });
+        repo.Setup(r => r.ListForUserAsync("bnet-loner", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument> { doc }, null));
 
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-loner", It.IsAny<CancellationToken>()))
@@ -221,14 +222,121 @@ public class RunsListFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var runs = Assert.IsAssignableFrom<IReadOnlyList<RunSummaryDto>>(ok.Value);
-        Assert.Single(runs);
+        var response = Assert.IsType<RunsListResponse>(ok.Value);
+        Assert.Single(response.Items);
 
         // The guild query must not be called when the raider has no guild.
         repo.Verify(r => r.ListForGuildAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never,
             "a raider with no guild must use ListForUserAsync, not ListForGuildAsync");
     }
 
+    // ------------------------------------------------------------------
+    // Pagination — request parsing and response envelope (W5)
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_passes_default_top_200_when_top_query_param_missing()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument>(), null));
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        await fn.Run(new DefaultHttpContext().Request, MakeFunctionContext(principal), CancellationToken.None);
+
+        repo.Verify(r => r.ListForGuildAsync("12345", "bnet-1", 200, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_clamps_over_max_top_to_200()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument>(), null));
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var ctx = new DefaultHttpContext();
+        ctx.Request.QueryString = new Microsoft.AspNetCore.Http.QueryString("?top=5000");
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        await fn.Run(ctx.Request, MakeFunctionContext(principal), CancellationToken.None);
+
+        // Client-requested 5000 is clamped down to the service cap.
+        repo.Verify(r => r.ListForGuildAsync("12345", "bnet-1", 200, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_honours_top_query_param_within_range()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument>(), null));
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var ctx = new DefaultHttpContext();
+        ctx.Request.QueryString = new Microsoft.AspNetCore.Http.QueryString("?top=25");
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        await fn.Run(ctx.Request, MakeFunctionContext(principal), CancellationToken.None);
+
+        repo.Verify(r => r.ListForGuildAsync("12345", "bnet-1", 25, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_passes_continuation_token_from_query_to_repo()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument>(), null));
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var ctx = new DefaultHttpContext();
+        ctx.Request.QueryString = new Microsoft.AspNetCore.Http.QueryString("?continuationToken=abc123");
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        await fn.Run(ctx.Request, MakeFunctionContext(principal), CancellationToken.None);
+
+        repo.Verify(r => r.ListForGuildAsync("12345", "bnet-1", 200, "abc123", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_returns_repo_continuation_token_in_response_envelope()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+        var doc = MakeRunDoc();
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(new List<RunDocument> { doc }, "next-page-token"));
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        var result = await fn.Run(new DefaultHttpContext().Request, MakeFunctionContext(principal), CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<RunsListResponse>(ok.Value);
+        Assert.Single(response.Items);
+        Assert.Equal("next-page-token", response.ContinuationToken);
+    }
 }

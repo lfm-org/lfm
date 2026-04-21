@@ -12,14 +12,14 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
     private const string ContainerName = "runs";
     private readonly Container _container = client.GetContainer(cosmosOpts.Value.DatabaseName, ContainerName);
 
-    public async Task<IReadOnlyList<RunDocument>> ListForGuildAsync(
-        string guildId, string battleNetId, CancellationToken ct)
+    public async Task<RunsPage> ListForGuildAsync(
+        string guildId, string battleNetId, int top, string? continuationToken, CancellationToken ct)
     {
         // Mirrors the guild-scoped query in runs-list.ts:
         //   PUBLIC runs | runs created by this user | GUILD runs from the same guild
         //   Ordered by startTime ascending.
         if (!int.TryParse(guildId, out var numericGuildId))
-            return Array.Empty<RunDocument>();
+            return new RunsPage(Array.Empty<RunDocument>(), null);
 
         const string query = """
             SELECT * FROM c
@@ -29,15 +29,17 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
             ORDER BY c.startTime ASC
             """;
 
-        return await QueryRunsAsync(
+        return await QueryOnePageAsync(
             new QueryDefinition(query)
                 .WithParameter("@battleNetId", battleNetId)
                 .WithParameter("@guildId", numericGuildId),
+            top,
+            continuationToken,
             ct);
     }
 
-    public async Task<IReadOnlyList<RunDocument>> ListForUserAsync(
-        string battleNetId, CancellationToken ct)
+    public async Task<RunsPage> ListForUserAsync(
+        string battleNetId, int top, string? continuationToken, CancellationToken ct)
     {
         // Mirrors the no-guild branch in runs-list.ts:
         //   PUBLIC runs | runs created by this user
@@ -49,23 +51,30 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
             ORDER BY c.startTime ASC
             """;
 
-        return await QueryRunsAsync(
+        return await QueryOnePageAsync(
             new QueryDefinition(query)
                 .WithParameter("@battleNetId", battleNetId),
+            top,
+            continuationToken,
             ct);
     }
 
-    private async Task<IReadOnlyList<RunDocument>> QueryRunsAsync(
-        QueryDefinition queryDef, CancellationToken ct)
+    // Reads exactly one page (up to `top` items) from Cosmos and returns it
+    // alongside the continuation token. Does NOT drain the iterator — the caller
+    // re-invokes us with the returned token to fetch the next page.
+    private async Task<RunsPage> QueryOnePageAsync(
+        QueryDefinition queryDef, int top, string? continuationToken, CancellationToken ct)
     {
-        var feedIterator = _container.GetItemQueryIterator<RunDocument>(queryDef);
-        var results = new List<RunDocument>();
-        while (feedIterator.HasMoreResults)
-        {
-            var page = await feedIterator.ReadNextAsync(ct);
-            results.AddRange(page);
-        }
-        return results;
+        var options = new QueryRequestOptions { MaxItemCount = top };
+        var feedIterator = _container.GetItemQueryIterator<RunDocument>(
+            queryDef, continuationToken, options);
+
+        if (!feedIterator.HasMoreResults)
+            return new RunsPage(Array.Empty<RunDocument>(), null);
+
+        var response = await feedIterator.ReadNextAsync(ct);
+        var items = response.ToList();
+        return new RunsPage(items, response.ContinuationToken);
     }
 
     public async Task<RunDocument?> GetByIdAsync(string id, CancellationToken ct)
