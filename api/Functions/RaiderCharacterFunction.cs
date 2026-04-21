@@ -4,7 +4,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Raiders;
@@ -27,7 +29,7 @@ namespace Lfm.Api.Functions;
 /// Mirrors the character-selection part of <c>handler</c> in
 /// <c>functions/src/functions/raider-character.ts</c>.
 /// </summary>
-public class RaiderCharacterFunction(IRaidersRepository repo)
+public class RaiderCharacterFunction(IRaidersRepository repo, ILogger<RaiderCharacterFunction> logger)
 {
     [Function("raider-character")]
     [RequireAuth]
@@ -60,8 +62,7 @@ public class RaiderCharacterFunction(IRaidersRepository repo)
         }
         catch (Exception ex)
         {
-            return new ObjectResult(new { error = ex.Message, type = ex.GetType().Name })
-            { StatusCode = 500 };
+            return InternalErrorResult.Create(logger, ctx, ex, "raider-character select");
         }
 
         // 4. Return updated selection.
