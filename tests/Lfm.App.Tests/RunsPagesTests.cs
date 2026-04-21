@@ -138,7 +138,6 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     private static RunCharacterDto MakeCharacter(
-        string id,
         string name,
         int classId = 8,
         string className = "Mage",
@@ -168,9 +167,9 @@ public class RunsPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
             {
-                MakeCharacter("c-tank", "Tankington", classId: 1, className: "Warrior", role: "TANK", spec: "Protection"),
-                MakeCharacter("c-heal", "Healsworth", classId: 2, className: "Paladin", role: "HEALER", spec: "Holy"),
-                MakeCharacter("c-dps", "Dpsalot", classId: 8, className: "Mage", role: "DPS", spec: "Frost"),
+                MakeCharacter("Tankington", classId: 1, className: "Warrior", role: "TANK", spec: "Protection"),
+                MakeCharacter("Healsworth", classId: 2, className: "Paladin", role: "HEALER", spec: "Holy"),
+                MakeCharacter("Dpsalot", classId: 8, className: "Mage", role: "DPS", spec: "Frost"),
             }));
         Services.AddSingleton(client.Object);
 
@@ -200,9 +199,9 @@ public class RunsPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
             {
-                MakeCharacter("c-in", "Present", attendance: "IN"),
-                MakeCharacter("c-out", "Skipper", attendance: "OUT"),
-                MakeCharacter("c-away", "Traveler", attendance: "AWAY"),
+                MakeCharacter("Present", attendance: "IN"),
+                MakeCharacter("Skipper", attendance: "OUT"),
+                MakeCharacter("Traveler", attendance: "AWAY"),
             }));
         Services.AddSingleton(client.Object);
 
@@ -229,7 +228,7 @@ public class RunsPagesTests : ComponentTestBase
         client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
             {
-                MakeCharacter("c-mage", "Frostmage", classId: 8, className: "Mage"),
+                MakeCharacter("Frostmage", classId: 8, className: "Mage"),
             }));
         Services.AddSingleton(client.Object);
 
@@ -260,9 +259,9 @@ public class RunsPagesTests : ComponentTestBase
                 {
                     RunCharacters = new List<RunCharacterDto>
                     {
-                        MakeCharacter("c1", "A", attendance: "IN"),
-                        MakeCharacter("c2", "B", attendance: "IN"),
-                        MakeCharacter("c3", "C", attendance: "OUT"),
+                        MakeCharacter("A", attendance: "IN"),
+                        MakeCharacter("B", attendance: "IN"),
+                        MakeCharacter("C", attendance: "OUT"),
                     },
                 },
             });
