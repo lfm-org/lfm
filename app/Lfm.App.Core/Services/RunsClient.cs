@@ -10,9 +10,13 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
 {
     public async Task<IReadOnlyList<RunSummaryDto>> ListAsync(CancellationToken ct)
     {
+        // The server returns a RunsListResponse envelope capped at 200 items per
+        // page with a continuation token for further pages. The SPA currently
+        // consumes only the first page — a future "load more" feature will need
+        // a ListAsync overload that exposes ContinuationToken.
         var http = factory.CreateClient("api");
-        var items = await http.GetFromJsonAsync<List<RunSummaryDto>>("api/runs", ct);
-        return items ?? [];
+        var response = await http.GetFromJsonAsync<RunsListResponse>("api/runs", ct);
+        return response?.Items ?? [];
     }
 
     public async Task<RunDetailDto?> GetAsync(string id, CancellationToken ct)
