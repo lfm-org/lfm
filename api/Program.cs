@@ -170,7 +170,7 @@ builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardProfileClient, Lfm.Api.
   .AddStandardResilienceHandler();
 
 // WAF/Reliability: Typed HttpClient for the Blizzard Game Data API (client-credentials / static data).
-// Used by wow-update (B6.4) to fetch reference data (instances, specializations).
+// Used by wow-reference-refresh (B6.4) to fetch reference data (instances, specializations).
 // Longer timeout because the sync fetches many individual detail documents sequentially.
 builder.Services.AddHttpClient<Lfm.Api.Services.IBlizzardGameDataClient, Lfm.Api.Services.BlizzardGameDataClient>((sp, client) =>
 {

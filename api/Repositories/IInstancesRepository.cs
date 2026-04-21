@@ -10,7 +10,7 @@ namespace Lfm.Api.Repositories;
 ///
 /// Source: blob container <c>lfmstore/wow/reference/journal-instance/</c> — see
 /// <c>docs/storage-architecture.md</c>. The ingester that populates this is
-/// <c>WowUpdateFunction</c> / <c>WowUpdateTimerFunction</c> (Phase 3).
+/// <c>WowReferenceRefreshFunction</c> / <c>WowReferenceRefreshTimerFunction</c> (Phase 3).
 /// </summary>
 public interface IInstancesRepository
 {

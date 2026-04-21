@@ -121,8 +121,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         // StorageOptions (section: Storage)
         { name: 'Storage__DataProtectionBlobUri', value: dataProtectionBlobUri }
         // Drives BlobReferenceClient (api/Program.cs) for the Phase 1
-        // blob-backed reference reads (`/api/instances`,
-        // `/api/reference/specializations`). Managed identity flows through
+        // blob-backed reference reads (`/api/wow/reference/instances`,
+        // `/api/wow/reference/specializations`). Managed identity flows through
         // DefaultAzureCredential — no shared key in app settings. Container
         // name defaults to "wow" in StorageOptions.
         { name: 'Storage__BlobServiceUri', value: storageAccountRef.properties.primaryEndpoints.blob }

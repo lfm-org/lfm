@@ -53,8 +53,8 @@ Endpoints that are intentionally unauthenticated and may be called by any client
 - `GET /api/battlenet/login` — initiates OAuth flow
 - `GET /api/battlenet/callback` — receives OAuth callback
 - `GET /api/health/ready` — liveness probe
-- `GET /api/instances` — static reference data (WoW instances)
-- `GET /api/reference/specializations` — static reference data (WoW specs)
+- `GET /api/wow/reference/instances` — static reference data (WoW instances)
+- `GET /api/wow/reference/specializations` — static reference data (WoW specs)
 - `GET /api/privacy-contact/email` — privacy contact email
 
 All other endpoints require a valid session cookie enforced by `AuthPolicyMiddleware`.

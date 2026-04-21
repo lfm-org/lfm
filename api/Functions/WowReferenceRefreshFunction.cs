@@ -14,8 +14,7 @@ namespace Lfm.Api.Functions;
 /// Serves POST /api/wow/reference/refresh (admin only).
 ///
 /// Syncs WoW reference data (instances, specializations) from the Blizzard
-/// Game Data API into the blob reference store. Mirrors wow-update.ts +
-/// reference-sync-blizzard.ts.
+/// Game Data API into the blob reference store.
 ///
 /// Auth:
 ///   - [RequireAuth] → AuthPolicyMiddleware returns 401 for unauthenticated callers.
