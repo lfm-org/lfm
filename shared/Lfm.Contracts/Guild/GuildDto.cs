@@ -6,37 +6,35 @@ namespace Lfm.Contracts.Guild;
 /// <summary>
 /// Guild info nested inside GuildDto; null when the user is not in a guild
 /// or the guild document has not been bootstrapped yet.
-/// Mirrors the <c>guild</c> field in the TypeScript <c>GuildHomeView</c>.
+/// Wire-only shape per docs/wire-payload-contract.md — fields the app does
+/// not render (RealmSlug, AchievementPoints, SyncedMemberCount) are omitted.
 /// </summary>
 public sealed record GuildInfoDto(
     int Id,
     string Name,
     string? Slogan,
-    string RealmSlug,
     string RealmName,
     string? FactionName,
     int? MemberCount,
-    int? AchievementPoints,
-    int? SyncedMemberCount,
     int? RankCount,
     string? CrestEmblemUrl,
     string? CrestBorderUrl);
 
 /// <summary>
 /// Setup / initialisation status of the guild.
-/// Mirrors the <c>setup</c> field in the TypeScript <c>GuildHomeView</c>.
+/// Wire-only shape per docs/wire-payload-contract.md — RankDataFetchedAt is
+/// omitted; the app reads RankDataFresh (the derived boolean), not the
+/// raw timestamp.
 /// </summary>
 public sealed record GuildSetupDto(
     bool IsInitialized,
     bool RequiresSetup,
     bool RankDataFresh,
-    string? RankDataFetchedAt,
     string Timezone,
     string Locale);
 
 /// <summary>
 /// Per-rank permission entry.
-/// Mirrors the <c>rankPermissions</c> entries in the TypeScript <c>GuildHomeView</c>.
 /// </summary>
 public sealed record GuildRankPermissionDto(
     int Rank,
@@ -55,23 +53,25 @@ public sealed record GuildSettingsDto(
 /// Guild editor context.
 /// </summary>
 public sealed record GuildEditorDto(
-    bool CanEdit,
-    string Mode);
+    bool CanEdit);
 
+/// <param name="CanDeleteGuildRuns">
+/// Kept for peer-permission symmetry with CanCreateGuildRuns / CanSignupGuildRuns
+/// (the wire-payload-contract peer-permission exception — see
+/// docs/wire-payload-contract.md), even though no UI surfaces it today.
+/// </param>
 /// <summary>
 /// Effective permission set for the current raider within the guild.
-/// Mirrors the <c>memberPermissions</c> field in the TypeScript <c>GuildHomeView</c>.
+/// Wire-only shape per docs/wire-payload-contract.md — MatchedRank is
+/// omitted (not rendered) and RankDataFresh is read from GuildSetupDto.
 /// </summary>
 public sealed record GuildMemberPermissionsDto(
-    int? MatchedRank,
     bool CanCreateGuildRuns,
     bool CanSignupGuildRuns,
-    bool CanDeleteGuildRuns,
-    bool RankDataFresh);
+    bool CanDeleteGuildRuns);
 
 /// <summary>
 /// Response body for GET /api/guild.
-/// Mirrors the TypeScript <c>GuildHomeView</c> returned by <c>loadCurrentGuildHome</c>.
 /// </summary>
 public sealed record GuildDto(
     GuildInfoDto? Guild,
