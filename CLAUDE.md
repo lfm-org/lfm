@@ -148,15 +148,15 @@ Acceptable for cleanup or exploration or debugging. Any `az` CLI change is eithe
 
 New endpoint → add a new file under `api/Functions/` and register `app.MapXxx()` (or use attribute routing on the function class). The .NET isolated model auto-discovers functions in the assembly; no manual import list needed.
 
-## Database Migrations
+## Storage Architecture
 
-Migrations in `api/Migrations/` run via the migration runner before every functions deploy. The migrations container in Cosmos tracks execution; each runs at most once.
+Static Blizzard reference data (journal-instance, playable-specialization, playable-class, playable-race, hero-talent-tree) lives in blob at `lfmstore/wow/reference/{kind}/`. Dynamic per-user / per-guild / per-run data lives in Cosmos (`lfm-cosmos/lfm/{raiders,runs,guilds}`). Per-entity caches of Blizzard responses (e.g. one user's account profile, one guild's roster) stay **embedded** inside the owning Cosmos document with a `*FetchedAt` timestamp, not in blob.
 
-**Migrations must be additive (expand-only)** — never remove/rename fields the deployed code reads. Migrations run before new code deploys; if deploy fails, old code runs against the migrated database.
+See [docs/storage-architecture.md](docs/storage-architecture.md) for the full data-kind matrix, rationale, image-caching policy (URL caches only — browser HTTP cache handles bytes), and the decision flow for a new data kind. When adding something new that needs to persist, start there.
 
-For breaking changes, use expand/contract: (1) **Expand** — add new field alongside old; deploy code handling both. (2) **Contract** — later deploy removes old field once no code references it.
+**Never hardcode the Cosmos database name.** Read `Cosmos__DatabaseName` from configuration — E2E runs against a different database than production.
 
-**Never hardcode the database name.** Read `Cosmos__DatabaseName` from configuration — migrations run against different databases per environment.
+There is no DB migration runner. Reference data refresh is handled by `WowUpdateFunction` (admin-only `POST /api/wow/update`) and `WowUpdateTimerFunction` (weekly), both writing to blob.
 
 ## Documentation Separation
 
