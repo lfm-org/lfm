@@ -66,9 +66,12 @@ public class RunsSignupFunction(
             if (body is null)
                 return new BadRequestObjectResult(new { error = "Invalid request body" });
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            return new BadRequestObjectResult(new { error = ex.Message });
+            // Never echo JsonException.Message — it can disclose offset/line/path
+            // detail from the caller's payload that is not useful to the user and
+            // inconsistent with how other handlers report parse failures.
+            return new BadRequestObjectResult(new { error = "Invalid request body" });
         }
 
         var validator = new SignupRequestValidator();

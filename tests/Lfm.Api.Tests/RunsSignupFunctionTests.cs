@@ -382,4 +382,44 @@ public class RunsSignupFunctionTests
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(409, objectResult.StatusCode);
     }
+
+    // ------------------------------------------------------------------
+    // Invalid JSON body — generic 400 with no parser detail
+    // ------------------------------------------------------------------
+    //
+    // Pin the contract that a JsonException never flows to the client. The
+    // message typically contains byte offsets, line numbers, and fragments
+    // of the caller's payload — none of it is useful over the wire, and it
+    // drifts between System.Text.Json versions.
+
+    [Fact]
+    public async Task Run_returns_generic_400_when_body_is_invalid_json()
+    {
+        var principal = MakePrincipal();
+        var runsRepo = new Mock<IRunsRepository>();
+        var raidersRepo = new Mock<IRaidersRepository>();
+        var permissions = new Mock<IGuildPermissions>();
+        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{ not valid json at all"));
+        httpContext.Request.ContentType = "application/json";
+
+        var result = await fn.Run(httpContext.Request, "run-1", MakeFunctionContext(principal), CancellationToken.None);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, bad.StatusCode);
+
+        var json = JsonSerializer.Serialize(bad.Value);
+        Assert.DoesNotContain("line", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("byte", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("path:", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("position", json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Invalid request body", json);
+
+        // Repos must not have been touched for a parse failure.
+        runsRepo.VerifyNoOtherCalls();
+        raidersRepo.VerifyNoOtherCalls();
+        permissions.VerifyNoOtherCalls();
+    }
 }
