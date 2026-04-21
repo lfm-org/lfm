@@ -22,5 +22,5 @@ public interface IReferenceSync
     /// Fetches all entities from the Blizzard API and upserts them into Cosmos.
     /// Never throws; individual entity failures are reported in the returned results.
     /// </summary>
-    Task<WowUpdateResponse> SyncAllAsync(CancellationToken ct);
+    Task<WowReferenceRefreshResponse> SyncAllAsync(CancellationToken ct);
 }

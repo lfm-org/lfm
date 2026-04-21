@@ -29,36 +29,36 @@ public sealed class ReferenceSync(
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
     /// <inheritdoc/>
-    public async Task<WowUpdateResponse> SyncAllAsync(CancellationToken ct)
+    public async Task<WowReferenceRefreshResponse> SyncAllAsync(CancellationToken ct)
     {
-        var results = new List<WowUpdateEntityResult>();
+        var results = new List<WowReferenceRefreshEntityResult>();
         string? token = null;
 
         try
         {
             token ??= await gameData.GetClientCredentialsTokenAsync(ct);
             var count = await SyncInstancesAsync(token, ct);
-            results.Add(new WowUpdateEntityResult("instances", $"synced ({count} docs)"));
+            results.Add(new WowReferenceRefreshEntityResult("instances", $"synced ({count} docs)"));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to sync instances");
-            results.Add(new WowUpdateEntityResult("instances", $"failed: {ex.Message}"));
+            results.Add(new WowReferenceRefreshEntityResult("instances", $"failed: {ex.Message}"));
         }
 
         try
         {
             token ??= await gameData.GetClientCredentialsTokenAsync(ct);
             var count = await SyncSpecializationsAsync(token, ct);
-            results.Add(new WowUpdateEntityResult("specializations", $"synced ({count} docs)"));
+            results.Add(new WowReferenceRefreshEntityResult("specializations", $"synced ({count} docs)"));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to sync specializations");
-            results.Add(new WowUpdateEntityResult("specializations", $"failed: {ex.Message}"));
+            results.Add(new WowReferenceRefreshEntityResult("specializations", $"failed: {ex.Message}"));
         }
 
-        return new WowUpdateResponse(results);
+        return new WowReferenceRefreshResponse(results);
     }
 
     // ---------------------------------------------------------------------------

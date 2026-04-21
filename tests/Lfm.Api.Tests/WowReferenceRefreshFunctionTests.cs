@@ -49,10 +49,10 @@ public class WowReferenceRefreshFunctionTests
         siteAdmin.Setup(s => s.IsAdminAsync("admin-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var expectedResponse = new WowUpdateResponse(
+        var expectedResponse = new WowReferenceRefreshResponse(
         [
-            new WowUpdateEntityResult("instances", "synced (12 docs)"),
-            new WowUpdateEntityResult("specializations", "synced (36 docs)"),
+            new WowReferenceRefreshEntityResult("instances", "synced (12 docs)"),
+            new WowReferenceRefreshEntityResult("specializations", "synced (36 docs)"),
         ]);
 
         var referenceSync = new Mock<IReferenceSync>();
@@ -111,10 +111,10 @@ public class WowReferenceRefreshFunctionTests
             .ReturnsAsync(true);
 
         // instances fails, specializations succeeds
-        var partialResponse = new WowUpdateResponse(
+        var partialResponse = new WowReferenceRefreshResponse(
         [
-            new WowUpdateEntityResult("instances", "failed: Blizzard API returned 503"),
-            new WowUpdateEntityResult("specializations", "synced (36 docs)"),
+            new WowReferenceRefreshEntityResult("instances", "failed: Blizzard API returned 503"),
+            new WowReferenceRefreshEntityResult("specializations", "synced (36 docs)"),
         ]);
 
         var referenceSync = new Mock<IReferenceSync>();
@@ -127,7 +127,7 @@ public class WowReferenceRefreshFunctionTests
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
         // Even with partial failure the HTTP response is 200 — failures are in the body.
-        // Assert against the same WowUpdateResponse instance the stub returned, not pasted literals.
+        // Assert against the same WowReferenceRefreshResponse instance the stub returned, not pasted literals.
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(partialResponse, ok.Value);
     }
