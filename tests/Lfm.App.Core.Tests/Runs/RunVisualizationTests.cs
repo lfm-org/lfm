@@ -155,18 +155,12 @@ public class RunVisualizationTests
 
     private static RunCharacterDto MakeChar(string? role, string attendance, bool isCurrentUser = false) =>
         new(
-            Id: Guid.NewGuid().ToString(),
-            CharacterId: "c",
             CharacterName: "Char",
             CharacterRealm: "Realm",
-            CharacterLevel: 80,
             CharacterClassId: 1,
             CharacterClassName: "Warrior",
-            CharacterRaceId: 1,
-            CharacterRaceName: "Human",
             DesiredAttendance: attendance,
             ReviewedAttendance: attendance,
-            SpecId: null,
             SpecName: null,
             Role: role,
             IsCurrentUser: isCurrentUser);

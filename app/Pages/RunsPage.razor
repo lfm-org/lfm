@@ -144,7 +144,7 @@
                                                     <h4 class="roster-role-column-title">@roleLabel (@roleChars.Count)</h4>
                                                     @foreach (var character in roleChars)
                                                     {
-                                                        <CharacterRow @key="character.Id" Character="character" />
+                                                        <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
                                                     }
                                                 </div>
                                             }
@@ -159,7 +159,7 @@
                                         <div class="roster-rows">
                                             @foreach (var character in notAttending)
                                             {
-                                                <CharacterRow @key="character.Id" Character="character" />
+                                                <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
                                             }
                                         </div>
                                     }
