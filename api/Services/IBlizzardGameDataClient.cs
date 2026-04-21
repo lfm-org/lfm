@@ -55,6 +55,11 @@ public interface IBlizzardGameDataClient
     /// Fetches a single journal-instance detail document.
     /// </summary>
     Task<BlizzardJournalInstanceDetail> GetJournalInstanceAsync(int instanceId, string accessToken, CancellationToken ct);
+
+    /// <summary>
+    /// Fetches the media (tile / image URLs) for a single journal-instance.
+    /// </summary>
+    Task<BlizzardMediaAssets> GetJournalInstanceMediaAsync(int instanceId, string accessToken, CancellationToken ct);
 }
 
 // ---------------------------------------------------------------------------

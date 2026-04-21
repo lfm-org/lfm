@@ -107,6 +107,11 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
         => GetStaticJsonAsync<BlizzardJournalInstanceDetail>(
             $"data/wow/journal-instance/{instanceId}", accessToken, ct);
 
+    /// <inheritdoc/>
+    public Task<BlizzardMediaAssets> GetJournalInstanceMediaAsync(int instanceId, string accessToken, CancellationToken ct)
+        => GetStaticJsonAsync<BlizzardMediaAssets>(
+            $"data/wow/media/journal-instance/{instanceId}", accessToken, ct);
+
     // ---------------------------------------------------------------------------
     // Generic static-namespace fetch
     // ---------------------------------------------------------------------------

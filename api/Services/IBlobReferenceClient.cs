@@ -26,4 +26,12 @@ public interface IBlobReferenceClient
     /// receive only per-id detail documents.
     /// </summary>
     IAsyncEnumerable<T> ListAsync<T>(string prefix, CancellationToken ct) where T : class;
+
+    /// <summary>
+    /// Serializes <paramref name="payload"/> with Newtonsoft and uploads it to the
+    /// container at <paramref name="blobName"/>, overwriting any existing blob.
+    /// Used by the ingester (<c>ReferenceSync</c>) to write per-id reference
+    /// documents and the list-endpoint manifest (<c>reference/{kind}/index.json</c>).
+    /// </summary>
+    Task UploadAsync<T>(string blobName, T payload, CancellationToken ct);
 }
