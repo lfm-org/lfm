@@ -57,8 +57,6 @@
       <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">https://example.com/SECURITY.md</SecurityPolicyUrl>
       <ApiHostname Condition="'$(ApiHostname)' == ''">$(API_HOSTNAME)</ApiHostname>
       <ApiHostname Condition="'$(ApiHostname)' == ''">api.localhost</ApiHostname>
-      <StorageAccountName Condition="'$(StorageAccountName)' == ''">$(STORAGE_ACCOUNT_NAME)</StorageAccountName>
-      <StorageAccountName Condition="'$(StorageAccountName)' == ''">examplestore</StorageAccountName>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -82,7 +80,6 @@
 
     <Exec Command="bash -c &quot;sed \
         -e 's|{{API_HOSTNAME}}|$(ApiHostname)|g' \
-        -e 's|{{STORAGE_ACCOUNT_NAME}}|$(StorageAccountName)|g' \
         '$(SwaConfigSource)' &gt; '$(SwaConfigDest)'&quot;"
           Condition="Exists('$(SwaConfigSource)')" />
 
