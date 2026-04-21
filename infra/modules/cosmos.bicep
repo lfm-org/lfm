@@ -120,24 +120,6 @@ resource guildsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
   }
 }
 
-resource migrationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
-  parent: database
-  name: 'migrations'
-  properties: {
-    resource: {
-      id: 'migrations'
-      partitionKey: { paths: ['/id'], kind: 'Hash' }
-      // Point-read only (by partition key). Exclude all secondary indexes to save write RU.
-      indexingPolicy: {
-        automatic: true
-        indexingMode: 'consistent'
-        includedPaths: []
-        excludedPaths: [{ path: '/*' }]
-      }
-    }
-  }
-}
-
 resource cosmosLock 'Microsoft.Authorization/locks@2020-05-01' = {
   name: '${accountName}-lock'
   scope: cosmosAccount
