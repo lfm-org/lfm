@@ -11,10 +11,11 @@ using Lfm.Api.Services;
 namespace Lfm.Api.Functions;
 
 /// <summary>
-/// Serves POST /api/wow/update (admin only).
+/// Serves POST /api/wow/reference/refresh (admin only).
 ///
 /// Syncs WoW reference data (instances, specializations) from the Blizzard
-/// Game Data API into Cosmos. Mirrors wow-update.ts + reference-sync-blizzard.ts.
+/// Game Data API into the blob reference store. Mirrors wow-update.ts +
+/// reference-sync-blizzard.ts.
 ///
 /// Auth:
 ///   - [RequireAuth] → AuthPolicyMiddleware returns 401 for unauthenticated callers.
@@ -23,12 +24,12 @@ namespace Lfm.Api.Functions;
 /// Response: { results: [{ name, status }] } — one entry per entity type,
 /// reporting "synced (N docs)" or "failed: ..." per entity.
 /// </summary>
-public class WowUpdateFunction(ISiteAdminService siteAdmin, IReferenceSync referenceSync)
+public class WowReferenceRefreshFunction(ISiteAdminService siteAdmin, IReferenceSync referenceSync)
 {
-    [Function("wow-update")]
+    [Function("wow-reference-refresh")]
     [RequireAuth]
     public async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "wow/update")] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "wow/reference/refresh")] HttpRequest req,
         FunctionContext ctx,
         CancellationToken ct)
     {

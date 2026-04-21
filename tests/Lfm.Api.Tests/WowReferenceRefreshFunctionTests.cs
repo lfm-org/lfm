@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Lfm.Api.Tests;
 
-public class WowUpdateFunctionTests
+public class WowReferenceRefreshFunctionTests
 {
     // ---------------------------------------------------------------------------
     // Helpers
@@ -59,7 +59,7 @@ public class WowUpdateFunctionTests
         referenceSync.Setup(r => r.SyncAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
-        var fn = new WowUpdateFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -85,7 +85,7 @@ public class WowUpdateFunctionTests
 
         var referenceSync = new Mock<IReferenceSync>();
 
-        var fn = new WowUpdateFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -121,7 +121,7 @@ public class WowUpdateFunctionTests
         referenceSync.Setup(r => r.SyncAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(partialResponse);
 
-        var fn = new WowUpdateFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);

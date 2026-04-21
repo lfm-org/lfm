@@ -8,11 +8,11 @@ using Lfm.Api.Repositories;
 
 namespace Lfm.Api.Functions;
 
-public class InstancesListFunction(IInstancesRepository repo)
+public class WowReferenceSpecializationsFunction(ISpecializationsRepository repo)
 {
-    [Function("instances-list")]
+    [Function("wow-reference-specializations")]
     public async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "instances")] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "wow/reference/specializations")] HttpRequest req,
         CancellationToken ct)
     {
         var items = await repo.ListAsync(ct);

@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Lfm.Api.Tests;
 
-public class SpecializationsListFunctionTests
+public class WowReferenceSpecializationsFunctionTests
 {
     private static List<SpecializationDto> RepositoryFixture() => new()
     {
@@ -26,7 +26,7 @@ public class SpecializationsListFunctionTests
         var fixture = RepositoryFixture();
         var repo = new Mock<ISpecializationsRepository>();
         repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(fixture);
-        var fn = new SpecializationsListFunction(repo.Object);
+        var fn = new WowReferenceSpecializationsFunction(repo.Object);
 
         var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
 
@@ -37,11 +37,11 @@ public class SpecializationsListFunctionTests
     [Fact]
     public void Function_has_correct_function_attribute()
     {
-        var method = typeof(SpecializationsListFunction).GetMethod(nameof(SpecializationsListFunction.Run));
+        var method = typeof(WowReferenceSpecializationsFunction).GetMethod(nameof(WowReferenceSpecializationsFunction.Run));
         var attr = method!.GetCustomAttributes(typeof(FunctionAttribute), false)
             .Cast<FunctionAttribute>()
             .Single();
 
-        Assert.Equal("specializations-list", attr.Name);
+        Assert.Equal("wow-reference-specializations", attr.Name);
     }
 }
