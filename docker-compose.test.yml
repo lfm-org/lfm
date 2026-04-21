@@ -39,6 +39,11 @@ services:
       COSMOS_KEY: ${COSMOS_KEY}
       COSMOS_DATABASE: ${COSMOS_DATABASE}
       AzureWebJobsStorage: ${AzureWebJobsStorage}
+      # Storage__BlobConnectionString drives BlobReferenceClient in
+      # api/Program.cs for the Phase-1 blob-backed reference-data reads.
+      # Inside the docker network Azurite is addressable as "azurite" on 10000.
+      Storage__BlobConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      Storage__WowContainerName: wow
       BLOB_STORAGE_URL: ${BLOB_STORAGE_URL}
       PUBLIC_BLOB_STORAGE_URL: ${PUBLIC_BLOB_STORAGE_URL}
       APP_BASE_URL: ${APP_BASE_URL}
