@@ -148,7 +148,7 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
     }
 
     // ------------------------------------------------------------------
-    // Mapping helper — reuses RunDetailDto (same shape as the run doc).
+    // Mapping helper — projects the stored RunDocument to its wire DTO.
     // ------------------------------------------------------------------
 
     private static RunDetailDto MapToDto(RunDocument doc) =>
@@ -160,11 +160,7 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             ModeKey: doc.ModeKey,
             Visibility: doc.Visibility,
             CreatorGuild: doc.CreatorGuild,
-            CreatorGuildId: doc.CreatorGuildId,
             InstanceId: doc.InstanceId,
             InstanceName: doc.InstanceName,
-            CreatorBattleNetId: doc.CreatorBattleNetId,
-            CreatedAt: doc.CreatedAt,
-            Ttl: doc.Ttl,
             RunCharacters: []);
 }

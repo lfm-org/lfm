@@ -4,10 +4,10 @@
 namespace Lfm.Contracts.Runs;
 
 /// <summary>
-/// Sanitized run document returned to API callers.
-/// Mirrors RunDocumentResponse in functions/src/lib/runResponseSanitizer.ts:
-///   - runCharacters contain RunCharacterDto (raiderBattleNetId stripped, isCurrentUser added)
-///   - all other fields pass through unchanged
+/// Sanitized run document returned by GET /api/runs.
+/// Wire-only shape per docs/wire-payload-contract.md — omits storage-internal
+/// fields (Ttl, CreatedAt) and audit identifiers the app does not render
+/// (CreatorGuildId, CreatorBattleNetId).
 /// </summary>
 public sealed record RunSummaryDto(
     string Id,
@@ -17,10 +17,6 @@ public sealed record RunSummaryDto(
     string ModeKey,
     string Visibility,
     string CreatorGuild,
-    int? CreatorGuildId,
     int InstanceId,
     string InstanceName,
-    string? CreatorBattleNetId,
-    string CreatedAt,
-    int Ttl,
     IReadOnlyList<RunCharacterDto> RunCharacters);

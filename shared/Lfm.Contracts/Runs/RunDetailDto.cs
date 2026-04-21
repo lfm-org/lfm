@@ -7,8 +7,7 @@ namespace Lfm.Contracts.Runs;
 /// Sanitized run document returned by GET /api/runs/{id}.
 /// Contains the same fields as RunSummaryDto; defined as a distinct type so
 /// that detail-specific fields can be added later without breaking the list
-/// endpoint contract.
-/// Mirrors RunDocumentResponse in functions/src/lib/runResponseSanitizer.ts.
+/// endpoint contract. Wire-only shape per docs/wire-payload-contract.md.
 /// </summary>
 public sealed record RunDetailDto(
     string Id,
@@ -18,10 +17,6 @@ public sealed record RunDetailDto(
     string ModeKey,
     string Visibility,
     string CreatorGuild,
-    int? CreatorGuildId,
     int InstanceId,
     string InstanceName,
-    string? CreatorBattleNetId,
-    string CreatedAt,
-    int Ttl,
     IReadOnlyList<RunCharacterDto> RunCharacters);
