@@ -67,6 +67,24 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
         }
     }
 
+    public async Task UploadAsync<T>(string blobName, T payload, CancellationToken ct)
+    {
+        var json = JsonConvert.SerializeObject(payload, JsonSettings);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        using var stream = new MemoryStream(bytes);
+        var blob = container.GetBlobClient(blobName);
+        await blob.UploadAsync(
+            stream,
+            new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders
+                {
+                    ContentType = "application/json",
+                },
+            },
+            ct);
+    }
+
     private static bool IsManifestBlob(string blobName)
         => blobName.EndsWith("/index.json", StringComparison.Ordinal)
         || blobName.EndsWith("/meta.json", StringComparison.Ordinal);
