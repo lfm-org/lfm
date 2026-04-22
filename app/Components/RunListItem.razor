@@ -61,7 +61,7 @@
         _isMe = RunVisualization.IsCurrentUserSignedUp(Run.RunCharacters);
         _isCurrentUserClass = _isMe ? "true" : "false";
         _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.ModeKey);
-        _ariaLabel = Loc["runs.listItemAriaLabel", Run.InstanceName, FormatDate(Run.StartTime)].Value;
+        _ariaLabel = Loc["runs.listItemAriaLabel", Run.InstanceName ?? "", FormatDate(Run.StartTime)].Value;
         _compositionAria = Loc["runs.compositionAria",
             _counts.Tank.Attending, _counts.Healer.Attending, _counts.Dps.Attending].Value;
     }
