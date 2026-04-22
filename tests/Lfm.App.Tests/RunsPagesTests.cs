@@ -104,7 +104,7 @@ public class RunsPagesTests : ComponentTestBase
             // get, without reaching into the page object's private helpers.
             var formattedDate = DateTimeOffset.Parse(summary.StartTime, System.Globalization.CultureInfo.InvariantCulture)
                 .ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-            var expected = Loc("runs.listItemAriaLabel", summary.InstanceName, formattedDate);
+            var expected = Loc("runs.listItemAriaLabel", summary.InstanceName ?? "", formattedDate);
             Assert.Equal(expected, ariaLabel);
         });
     }
