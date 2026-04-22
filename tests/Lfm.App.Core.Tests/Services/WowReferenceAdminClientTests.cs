@@ -32,6 +32,17 @@ public class WowReferenceRefreshAdminClientTests
             Content = new StringContent(body, Encoding.UTF8, "application/x-ndjson"),
         });
 
+    /// <summary>
+    /// Synchronous <see cref="IProgress{T}"/>: unlike <see cref="Progress{T}"/>
+    /// it calls back inline on <c>Report</c> instead of dispatching to the
+    /// thread pool, which keeps the assertions deterministic without a
+    /// wall-clock flush.
+    /// </summary>
+    private sealed class InlineProgress<T>(Action<T> onReport) : IProgress<T>
+    {
+        public void Report(T value) => onReport(value);
+    }
+
     [Fact]
     public async Task RefreshAsync_reports_each_progress_line_to_the_caller_sink()
     {
@@ -45,14 +56,9 @@ public class WowReferenceRefreshAdminClientTests
         var client = MakeClient(Ndjson(body));
 
         var events = new List<WowReferenceRefreshProgress>();
-        var progress = new Progress<WowReferenceRefreshProgress>(events.Add);
+        var progress = new InlineProgress<WowReferenceRefreshProgress>(events.Add);
 
         var result = await client.RefreshAsync(CancellationToken.None, progress);
-
-        // Progress<T> posts back via SynchronizationContext; inside a plain
-        // unit test the callback runs on the thread pool, so allow a brief
-        // flush before asserting.
-        await Task.Delay(50);
 
         Assert.Collection(events,
             e =>
