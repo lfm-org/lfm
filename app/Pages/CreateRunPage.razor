@@ -49,12 +49,12 @@
 
                 @* ── Activity (Raid / Dungeon) ──────────────────────────── *@
                 <div>
-                    <label for="activity-toggle" class="field__label">@Loc["createRun.activity"]</label>
+                    <span id="createRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
                     <ToggleGroup TValue="ActivityKind"
                                  Options="_activityOptions"
                                  Value="_activity"
                                  ValueChanged="OnActivityChanged"
-                                 AriaLabel="@Loc["createRun.activity"]"
+                                 AriaLabelledBy="createRun-activity-label"
                                  Disabled="@_submitting" />
                 </div>
 
@@ -62,12 +62,12 @@
                 @if (_activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE")
                 {
                     <div>
-                        <label for="dungeonScope-toggle" class="field__label">@Loc["createRun.dungeonScope"]</label>
+                        <span id="createRun-dungeonScope-label" class="field__label">@Loc["createRun.dungeonScope"]</span>
                         <ToggleGroup TValue="bool"
                                      Options="_dungeonScopeOptions"
                                      Value="_anyDungeon"
                                      ValueChanged="OnDungeonScopeChanged"
-                                     AriaLabel="@Loc["createRun.dungeonScope"]"
+                                     AriaLabelledBy="createRun-dungeonScope-label"
                                      Disabled="@_submitting" />
                     </div>
                 }
@@ -93,12 +93,12 @@
                 @if (ShowDifficultyToggle && _difficultyOptions.Count > 1)
                 {
                     <div>
-                        <label for="difficulty-toggle" class="field__label">@Loc["createRun.difficulty"]</label>
+                        <span id="createRun-difficulty-label" class="field__label">@Loc["createRun.difficulty"]</span>
                         <ToggleGroup TValue="string"
                                      Options="_difficultyOptions"
                                      Value="_difficulty"
                                      ValueChanged="OnDifficultyChanged"
-                                     AriaLabel="@Loc["createRun.difficulty"]"
+                                     AriaLabelledBy="createRun-difficulty-label"
                                      Disabled="@_submitting" />
                     </div>
                 }
@@ -170,12 +170,12 @@
                 @if (_canShowGuildOption)
                 {
                     <div>
-                        <label for="visibility-toggle" class="field__label">@Loc["createRun.visibility"]</label>
+                        <span id="createRun-visibility-label" class="field__label">@Loc["createRun.visibility"]</span>
                         <ToggleGroup TValue="string"
                                      Options="_visibilityOptions"
                                      Value="_visibility"
                                      ValueChanged="@(v => _visibility = v)"
-                                     AriaLabel="@Loc["createRun.visibility"]"
+                                     AriaLabelledBy="createRun-visibility-label"
                                      Disabled="@_submitting" />
                         @if (!_canCreateGuildRuns)
                         {
