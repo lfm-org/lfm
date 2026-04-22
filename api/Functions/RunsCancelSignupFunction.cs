@@ -107,8 +107,10 @@ public class RunsCancelSignupFunction(
     // functions/src/lib/runResponseSanitizer.ts
     // ------------------------------------------------------------------
 
-    private static RunDetailDto Sanitize(RunDocument run, string currentBattleNetId) =>
-        new(
+    private static RunDetailDto Sanitize(RunDocument run, string currentBattleNetId)
+    {
+        var (difficulty, size) = Helpers.RunModeResolver.Resolve(run.Difficulty, run.Size, run.ModeKey);
+        return new RunDetailDto(
             Id: run.Id,
             StartTime: run.StartTime,
             SignupCloseTime: run.SignupCloseTime,
@@ -118,6 +120,9 @@ public class RunsCancelSignupFunction(
             CreatorGuild: run.CreatorGuild,
             InstanceId: run.InstanceId,
             InstanceName: run.InstanceName,
+            Difficulty: difficulty,
+            Size: size,
+            KeystoneLevel: run.KeystoneLevel,
             RunCharacters: run.RunCharacters
                 .Select(c => new RunCharacterDto(
                     CharacterName: c.CharacterName,
@@ -130,4 +135,5 @@ public class RunsCancelSignupFunction(
                     Role: c.Role,
                     IsCurrentUser: c.RaiderBattleNetId == currentBattleNetId))
                 .ToList());
+    }
 }
