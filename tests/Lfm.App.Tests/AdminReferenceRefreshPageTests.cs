@@ -33,7 +33,7 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
 
         // The refresh button label isn't in the markup when the role gate fails.
         Assert.DoesNotContain(Loc("adminReference.refreshButton"), cut.Markup);
-        client.Verify(c => c.RefreshAsync(It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()), Times.Never);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
             new WowReferenceRefreshEntityResult("expansions", "synced (10 docs)"),
         ]));
         var client = new Mock<IWowReferenceAdminClient>();
-        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
+        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>())).Returns(tcs.Task);
         Services.AddSingleton(client.Object);
 
         var cut = Render<AdminReferenceRefreshPage>();
@@ -74,7 +74,7 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
             Assert.Contains("specializations", cut.Markup);
             Assert.Contains("expansions", cut.Markup);
         });
-        client.Verify(c => c.RefreshAsync(It.IsAny<CancellationToken>()), Times.Once);
+        client.Verify(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()), Times.Once);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
     {
         this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
         var client = new Mock<IWowReferenceAdminClient>();
-        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>()))
+        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()))
             .ReturnsAsync(new WowReferenceRefreshResponse(
             [
                 new WowReferenceRefreshEntityResult("instances", "failed: Blizzard returned 503"),
@@ -107,7 +107,7 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
     {
         this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
         var client = new Mock<IWowReferenceAdminClient>();
-        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>()))
+        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()))
             .ThrowsAsync(new HttpRequestException("connection refused"));
         Services.AddSingleton(client.Object);
 

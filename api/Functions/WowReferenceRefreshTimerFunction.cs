@@ -45,6 +45,7 @@ public class WowReferenceRefreshTimerFunction(
         CancellationToken ct)
     {
         logger.LogInformation("Starting weekly WoW reference sync");
+        // Timer-driven sync has no UI subscriber — run without a progress sink.
         var response = await referenceSync.SyncAllAsync(ct);
         foreach (var result in response.Results)
         {
