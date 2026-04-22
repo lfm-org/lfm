@@ -85,7 +85,13 @@
 
 .toggle-group__option[data-selected="true"] {
     background-color: var(--accent-fill-rest);
-    color: var(--accent-foreground-rest, #fff);
+    /* --foreground-on-accent-rest is the FluentUI token for text placed ON
+       TOP OF accent fill (contrast-paired with --accent-fill-rest).
+       --accent-foreground-rest is a different token — accent color used AS
+       text (link emphasis, icon tint) — pairing it with --accent-fill-rest
+       produces accent-on-accent with no contrast. See
+       docs/frontend-style-guide.md §Tokens. */
+    color: var(--foreground-on-accent-rest, #fff);
     /* Match the selected border to the fill so the boundary with adjacent
        unselected buttons reads as a single coherent shape rather than a
        stripe. Keep the same width to avoid layout shift. */

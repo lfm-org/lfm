@@ -274,6 +274,42 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await AccessibilityHelper.ScanAndAssert(page, Output, "/instances");
     }
 
+    [Fact]
+    public async Task CreateRunPage_MeetsWcag22AA()
+    {
+        // `/runs/new` (Schedule a run) was reshaped on 2026-04-22 without any
+        // axe-core coverage. This scan would have caught the ToggleGroup
+        // selected-state contrast regression where `--accent-foreground-rest`
+        // (wrong token — accent-color-as-text) was paired with
+        // `--accent-fill-rest` (accent fill) instead of
+        // `--foreground-on-accent-rest`. The post-interaction scan swaps the
+        // selected radio so the active accent-fill pairing is exercised even
+        // if the default (`Raid`) happened to pass (`E-HC-A2`).
+        await using var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
+
+        var page = await authContext.NewPageAsync();
+
+        await page.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs/new",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        await Assertions.Expect(
+            page.GetByRole(AriaRole.Heading, new() { Name = "Schedule a run" }))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        await AccessibilityHelper.ScanAndAssert(page, Output, "/runs/new (load)");
+
+        // Toggling Activity re-renders the selected ToggleGroup option, the
+        // conditional Dungeon sub-toggle, and the instance dropdown — all
+        // surfaces whose contrast / labels are invisible at load time.
+        await AccessibilityHelper.ScanAfterAsync(page, Output, "/runs/new (Dungeon selected)", async () =>
+        {
+            await page.GetByRole(AriaRole.Radio, new() { Name = "Dungeon" }).ClickAsync();
+        });
+    }
+
     // -------------------------------------------------------------------------
     // Keyboard navigation tests
     // -------------------------------------------------------------------------

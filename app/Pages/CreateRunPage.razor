@@ -120,11 +120,16 @@
                                    @bind:event="oninput"
                                    disabled="@_submitting"
                                    style="inline-size:7rem" />
+                            @* The visible text ("WNL (+10)") is the accessible name so SC 2.5.3
+                               (Label in Name) holds — voice control users can say the button's
+                               visible label to activate it. Title still exposes the explanation
+                               as a pointer tooltip + screen-reader description. A separate
+                               aria-label duplicating the description would hide "WNL (+10)" from
+                               the accessible name and fail the label-in-name check. *@
                             <FluentButton Appearance="Appearance.Outline"
                                           OnClick="@(() => _keystoneLevel = 10)"
                                           Disabled="@_submitting"
-                                          Title="@Loc["createRun.keyLevel.wnlDescription"]"
-                                          aria-label="@Loc["createRun.keyLevel.wnlDescription"]">
+                                          Title="@Loc["createRun.keyLevel.wnlDescription"]">
                                 @Loc["createRun.keyLevel.wnl"]
                             </FluentButton>
                         </FluentStack>
