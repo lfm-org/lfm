@@ -25,8 +25,10 @@
 
     Keyboard (WAI-ARIA Authoring Practices for radiogroup):
       - Tab enters/leaves the group; only the selected button is tabbable
-      - ArrowRight / ArrowDown → next option (wraps; respects `dir`)
-      - ArrowLeft / ArrowUp → previous option (wraps)
+      - ArrowRight / ArrowLeft → next / previous option (wraps); swapped
+        when IsRtl=true so they follow the visual reading direction
+      - ArrowDown / ArrowUp → next / previous option (wraps); unaffected
+        by IsRtl because they map to block direction, not inline
       - Home → first; End → last
       - Space re-asserts the focused option (no-op when already selected)
 *@
@@ -79,6 +81,21 @@
 
     [Parameter] public string? Class { get; set; }
 
+    /// <summary>
+    /// When true, arrow-key semantics are swapped so that ArrowRight /
+    /// ArrowLeft follow the RTL reading direction (ArrowLeft advances,
+    /// ArrowRight retreats). WAI-ARIA Authoring Practices specifies that
+    /// arrow keys in a radiogroup follow visual reading order, and CSS
+    /// <c>flex-direction: row</c> already renders Options[0] on the
+    /// visual right under <c>dir="rtl"</c>.
+    /// The consumer supplies this from the active locale context
+    /// (<c>ILocaleService.IsRtl</c> once the locale service grows that
+    /// flag, or a derived check against <c>CurrentLocale</c>). ArrowUp /
+    /// ArrowDown are unchanged — vertical navigation maps to block
+    /// direction, not inline direction.
+    /// </summary>
+    [Parameter] public bool IsRtl { get; set; }
+
     private ElementReference[] _buttonRefs = [];
 
     protected override void OnParametersSet()
@@ -102,10 +119,21 @@
         if (Disabled || Options.Count == 0) return;
 
         var current = CurrentIndex();
+        var inlineForward = (current + 1 + Options.Count) % Options.Count;
+        var inlineBack = (current - 1 + Options.Count) % Options.Count;
+        // In RTL, the visual right edge is the inline-start edge, so
+        // ArrowRight retreats (toward lower index) and ArrowLeft advances.
+        // ArrowUp/Down map to block direction and are unaffected.
+        var (rightKey, leftKey) = IsRtl
+            ? (inlineBack, inlineForward)
+            : (inlineForward, inlineBack);
+
         int? target = args.Key switch
         {
-            "ArrowRight" or "ArrowDown" => (current + 1 + Options.Count) % Options.Count,
-            "ArrowLeft" or "ArrowUp" => (current - 1 + Options.Count) % Options.Count,
+            "ArrowRight" => rightKey,
+            "ArrowLeft" => leftKey,
+            "ArrowDown" => inlineForward,
+            "ArrowUp" => inlineBack,
             "Home" => 0,
             "End" => Options.Count - 1,
             " " or "Spacebar" => current, // Space re-asserts current — roving-tabindex semantics

@@ -114,11 +114,19 @@ public class ToggleGroupTests : ComponentTestBase
             .Add(c => c.Disabled, true)
             .Add(c => c.ValueChanged, _ => callbackCount++));
 
-        // The native <button disabled> suppresses the click event before it
-        // reaches the handler — which is the WCAG-correct behaviour.
         var buttons = cut.FindAll("[role='radio']");
-        Assert.Equal("", buttons[1].GetAttribute("disabled") ?? "");
+
+        // The SUT's SelectAsync has an explicit `if (Disabled) return;`
+        // guard, so the callback is not invoked even if bUnit's synthetic
+        // click event bypasses the native <button disabled> suppression.
+        buttons[1].Click();
+
+        Assert.Equal(0, callbackCount);
+        // And the native disabled attribute is still present on every
+        // option so the browser itself suppresses real click events.
+        Assert.NotNull(buttons[0].GetAttribute("disabled"));
         Assert.NotNull(buttons[1].GetAttribute("disabled"));
+        Assert.NotNull(buttons[2].GetAttribute("disabled"));
     }
 
     // ── Keyboard navigation (WAI-ARIA radiogroup) ────────────────────────────
@@ -182,6 +190,47 @@ public class ToggleGroupTests : ComponentTestBase
            .KeyDown(new KeyboardEventArgs { Key = key });
 
         Assert.Equal(expected, received);
+    }
+
+    [Fact]
+    public void IsRtl_swaps_ArrowRight_and_ArrowLeft_to_follow_reading_direction()
+    {
+        // Under dir="rtl", flex-direction: row renders Options[0] on the
+        // visual RIGHT. ArrowRight should therefore retreat (move toward
+        // index 0) and ArrowLeft should advance — matching the reader's
+        // RTL reading order.
+        string? received = null;
+        var cut = Render<ToggleGroup<string>>(p => p
+            .Add(c => c.Options, ThreeOptions)
+            .Add(c => c.Value, "DUNGEON")
+            .Add(c => c.IsRtl, true)
+            .Add(c => c.ValueChanged, v => received = v));
+
+        cut.Find("[role='radiogroup']")
+           .KeyDown(new KeyboardEventArgs { Key = "ArrowRight" });
+        Assert.Equal("RAID", received); // RTL: ArrowRight retreats
+
+        received = null;
+        cut.Find("[role='radiogroup']")
+           .KeyDown(new KeyboardEventArgs { Key = "ArrowLeft" });
+        Assert.Equal("OTHER", received); // RTL: ArrowLeft advances
+    }
+
+    [Fact]
+    public void IsRtl_does_not_affect_ArrowUp_or_ArrowDown()
+    {
+        // Block-direction keys map to vertical layout, not inline, so
+        // they stay index-forward/back regardless of RTL.
+        string? received = null;
+        var cut = Render<ToggleGroup<string>>(p => p
+            .Add(c => c.Options, ThreeOptions)
+            .Add(c => c.Value, "RAID")
+            .Add(c => c.IsRtl, true)
+            .Add(c => c.ValueChanged, v => received = v));
+
+        cut.Find("[role='radiogroup']")
+           .KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+        Assert.Equal("DUNGEON", received);
     }
 
     [Fact]
