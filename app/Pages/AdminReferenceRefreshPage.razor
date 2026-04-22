@@ -1,0 +1,108 @@
+@page "/admin/reference"
+@attribute [Authorize(Roles = "SiteAdmin")]
+@using Lfm.App.Services
+@using Lfm.Contracts.Admin
+@inject IWowReferenceAdminClient AdminClient
+@inject IStringLocalizer Loc
+
+<PageTitle>@Loc["adminReference.title"]</PageTitle>
+
+@*
+    Belt-and-braces auth: the [Authorize(Roles = "SiteAdmin")] route-level
+    attribute blocks non-admins from navigating here, but that gate only
+    fires through the Router. <AuthorizeView> wraps the content so the
+    page remains safe when rendered directly (bUnit component tests, some
+    pre-render paths).
+*@
+<AuthorizeView Roles="SiteAdmin">
+    <Authorized>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-inline-size:640px">
+            <FluentLabel Typo="Typography.H1">@Loc["adminReference.title"]</FluentLabel>
+
+            <FluentCard>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <FluentLabel>@Loc["adminReference.description"]</FluentLabel>
+
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <FluentButton
+                            Appearance="Appearance.Accent"
+                            OnClick="@RefreshAsync"
+                            Disabled="@_refreshing"
+                            aria-label="@Loc["adminReference.refreshButton"]">
+                            @(_refreshing ? Loc["adminReference.refreshing"] : Loc["adminReference.refreshButton"])
+                        </FluentButton>
+                        @if (_refreshing)
+                        {
+                            <FluentProgressRing />
+                        }
+                    </FluentStack>
+
+                    @if (_error is not null)
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error">
+                            @_error
+                        </FluentMessageBar>
+                    }
+
+                    @if (_lastResult is not null)
+                    {
+                        <FluentLabel Typo="Typography.H4">@Loc["adminReference.resultsHeading"]</FluentLabel>
+                        <table class="admin-reference-results" role="table" aria-label="@Loc["adminReference.resultsHeading"]">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@Loc["adminReference.columns.entity"]</th>
+                                    <th scope="col">@Loc["adminReference.columns.status"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in _lastResult.Results)
+                                {
+                                    <tr data-status="@StatusCategory(row.Status)">
+                                        <td>@row.Name</td>
+                                        <td>@row.Status</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </FluentStack>
+            </FluentCard>
+        </FluentStack>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool _refreshing;
+    private string? _error;
+    private WowReferenceRefreshResponse? _lastResult;
+
+    private async Task RefreshAsync()
+    {
+        _refreshing = true;
+        _error = null;
+        try
+        {
+            _lastResult = await AdminClient.RefreshAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            // Admin audience — show the raw message rather than a toast;
+            // it's useful signal when Blizzard returns 503 or auth is off.
+            _error = string.IsNullOrEmpty(ex.Message)
+                ? Loc["adminReference.errorGeneric"]
+                : $"{Loc["adminReference.errorPrefix"]} {ex.Message}";
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    /// <summary>
+    /// Derives a CSS-hook string for a result row ("ok" / "failed") from the
+    /// human-readable status. Lets the stylesheet show each row's state
+    /// without parsing free text at render time.
+    /// </summary>
+    private static string StatusCategory(string status) =>
+        status.StartsWith("failed", StringComparison.OrdinalIgnoreCase) ? "failed" : "ok";
+}
