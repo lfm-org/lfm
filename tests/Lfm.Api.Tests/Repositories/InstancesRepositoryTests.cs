@@ -56,6 +56,7 @@ public class InstancesRepositoryTests
             r =>
             {
                 Assert.Equal("1200:NORMAL:25", r.Id);
+                Assert.Equal(1200, r.InstanceNumericId);
                 Assert.Equal("Liberation of Undermine", r.Name);
                 Assert.Equal("NORMAL:25", r.ModeKey);
                 Assert.Equal("The War Within", r.Expansion);
@@ -64,6 +65,7 @@ public class InstancesRepositoryTests
             r =>
             {
                 Assert.Equal("1200:HEROIC:25", r.Id);
+                Assert.Equal(1200, r.InstanceNumericId);
                 Assert.Equal("HEROIC:25", r.ModeKey);
                 Assert.Equal("https://render.worldofwarcraft.com/tile.jpg", r.PortraitUrl);
             });
@@ -126,9 +128,35 @@ public class InstancesRepositoryTests
 
         var row = Assert.Single(rows);
         Assert.Equal("67:NORMAL:5", row.Id);
+        Assert.Equal(67, row.InstanceNumericId);
         Assert.Equal("The Stonecore", row.Name);
         Assert.Equal("Cataclysm", row.Expansion);
         Assert.Equal("https://render.worldofwarcraft.com/stonecore-tile.jpg", row.PortraitUrl);
+    }
+
+    // ── Regression for the composite-Id crash ────────────────────────────────
+
+    [Fact]
+    public async Task ListAsync_InstanceNumericId_is_the_plain_numeric_id_not_parseable_composite()
+    {
+        // Regression for the create-run / edit-run submit crash: callers used
+        // to run Convert.ToInt32(dto.Id), which throws FormatException because
+        // dto.Id is a composite like "1200:HEROIC:25". The InstanceNumericId
+        // field exists to give callers the integer without string parsing.
+        var blobs = new Mock<IBlobReferenceClient>();
+        blobs.Setup(b => b.GetAsync<List<InstanceIndexEntry>>(
+                "reference/journal-instance/index.json", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceIndexEntry>
+            {
+                new(Id: 1200, Name: "X", Modes: new[] { new InstanceIndexMode("HEROIC:25") }, Expansion: null, PortraitUrl: null),
+            });
+
+        var repo = new InstancesRepository(blobs.Object);
+        var row = Assert.Single(await repo.ListAsync(CancellationToken.None));
+
+        Assert.Equal("1200:HEROIC:25", row.Id);
+        Assert.Equal(1200, row.InstanceNumericId);
+        Assert.Throws<FormatException>(() => Convert.ToInt32(row.Id));
     }
 
     [Fact]

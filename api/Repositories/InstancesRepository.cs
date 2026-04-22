@@ -73,6 +73,7 @@ public sealed class InstancesRepository(IBlobReferenceClient blobs) : IInstances
             {
                 rows.Add(new InstanceDto(
                     Id: $"{instanceId}:UNKNOWN:0",
+                    InstanceNumericId: detail.Id,
                     Name: detail.Name,
                     ModeKey: "UNKNOWN:0",
                     Expansion: expansion,
@@ -86,6 +87,7 @@ public sealed class InstancesRepository(IBlobReferenceClient blobs) : IInstances
                 var modeKey = $"{modeType}:{mode.Players ?? 0}";
                 rows.Add(new InstanceDto(
                     Id: $"{instanceId}:{modeKey}",
+                    InstanceNumericId: detail.Id,
                     Name: detail.Name,
                     ModeKey: modeKey,
                     Expansion: expansion,
@@ -125,6 +127,7 @@ public sealed class InstancesRepository(IBlobReferenceClient blobs) : IInstances
             {
                 rows.Add(new InstanceDto(
                     Id: $"{instanceId}:UNKNOWN:0",
+                    InstanceNumericId: entry.Id,
                     Name: entry.Name,
                     ModeKey: "UNKNOWN:0",
                     Expansion: expansion,
@@ -136,6 +139,7 @@ public sealed class InstancesRepository(IBlobReferenceClient blobs) : IInstances
             {
                 rows.Add(new InstanceDto(
                     Id: $"{instanceId}:{mode.ModeKey}",
+                    InstanceNumericId: entry.Id,
                     Name: entry.Name,
                     ModeKey: mode.ModeKey,
                     Expansion: expansion,

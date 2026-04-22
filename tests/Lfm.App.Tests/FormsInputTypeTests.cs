@@ -15,7 +15,7 @@ namespace Lfm.App.Tests;
 public class FormsInputTypeTests : ComponentTestBase
 {
     private static InstanceDto MakeInstance() =>
-        new(Id: "1", Name: "Test", ModeKey: "MYTHIC", Expansion: "TWW");
+        new(Id: "1:MYTHIC", InstanceNumericId: 1, Name: "Test", ModeKey: "MYTHIC", Expansion: "TWW");
 
     [Fact]
     public void CreateRunPage_StartTime_Is_DatetimeLocal_Input()

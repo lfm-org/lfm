@@ -33,7 +33,7 @@ public class InstancesPageTests : ComponentTestBase
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<InstanceDto>
             {
-                new("liberation", "Liberation of Undermine", "raid", "tww")
+                new("1234:raid", 1234, "Liberation of Undermine", "raid", "tww")
             });
         Services.AddSingleton(client.Object);
 
@@ -51,7 +51,7 @@ public class InstancesPageTests : ComponentTestBase
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<InstanceDto>
             {
-                new("liberation", "Liberation of Undermine", "raid", "tww")
+                new("1234:raid", 1234, "Liberation of Undermine", "raid", "tww")
             });
         Services.AddSingleton(client.Object);
 

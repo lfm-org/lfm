@@ -24,15 +24,15 @@ public class InstancesClientTests
     {
         var instances = new[]
         {
-            new InstanceDto("liberation-of-undermine", "Liberation of Undermine", "raid", "tww"),
-            new InstanceDto("operation-mechagon", "Operation: Mechagon", "mythic-plus", "bfa"),
+            new InstanceDto("1234:raid", 1234, "Liberation of Undermine", "raid", "tww"),
+            new InstanceDto("5678:mythic-plus", 5678, "Operation: Mechagon", "mythic-plus", "bfa"),
         };
         var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, instances));
 
         var result = await client.ListAsync(CancellationToken.None);
 
         Assert.Equal(2, result.Count);
-        Assert.Equal("liberation-of-undermine", result[0].Id);
+        Assert.Equal("1234:raid", result[0].Id);
         Assert.Equal("Operation: Mechagon", result[1].Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
         Assert.Equal("/api/wow/reference/instances", handler.LastRequest.RequestUri!.PathAndQuery);

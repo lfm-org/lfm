@@ -15,8 +15,8 @@ public class WowReferenceInstancesFunctionTests
 {
     private static List<InstanceDto> RepositoryFixture() => new()
     {
-        new("liberation-of-undermine", "Liberation of Undermine", "raid", "tww"),
-        new("manaforge-omega", "Manaforge Omega", "raid", "tww"),
+        new("1234:raid", 1234, "Liberation of Undermine", "raid", "tww"),
+        new("5678:raid", 5678, "Manaforge Omega", "raid", "tww"),
     };
 
     [Fact]
