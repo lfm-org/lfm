@@ -31,12 +31,14 @@ public class RunsPagesTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            ModeKey: "heroic",
+            ModeKey: "HEROIC:25",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            RunCharacters: []);
+            RunCharacters: [],
+            Difficulty: "HEROIC",
+            Size: 25);
 
     private static RunDetailDto MakeDetail(string id = "run-1") =>
         new(
@@ -255,11 +257,11 @@ public class RunsPagesTests : ComponentTestBase
     public void RunsPage_RunListItem_RendersDifficultyPillAndCompositionSummary()
     {
         var client = new Mock<IRunsClient>();
-        // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC:25 raid.
+        // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC 25-man raid.
         // Standard composition target for 25-man is 2T / 5H / 18D, so the
         // rendered composition summary is "T 0/2 · H 0/5 · D 2/18" with the
         // tank + healer slots carrying the shortage modifier class.
-        var summary = MakeSummary() with { ModeKey = "MYTHIC:25" };
+        var summary = MakeSummary() with { Difficulty = "MYTHIC", Size = 25, ModeKey = "MYTHIC:25" };
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunSummaryDto>
             {
