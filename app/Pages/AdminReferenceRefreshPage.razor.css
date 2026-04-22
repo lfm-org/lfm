@@ -23,8 +23,14 @@
     color: var(--neutral-foreground-hint-rest);
 }
 
+/*
+ * #c0392b passes 4.5:1 on white but disappears on dark surfaces; #ff6b6b
+ * is the tuned dark-mode variant (≥ 4.5:1 on Fluent's dark neutral fill).
+ * light-dark() keeps both values local to this rule — no separate
+ * prefers-color-scheme media query needed.
+ */
 .admin-reference-results tbody tr[data-status="failed"] td {
-    color: #c0392b;
+    color: light-dark(#c0392b, #ff6b6b);
 }
 
 @media (forced-colors: active) {
