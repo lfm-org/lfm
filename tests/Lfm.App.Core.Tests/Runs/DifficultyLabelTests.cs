@@ -46,6 +46,9 @@ public class DifficultyLabelTests
     public void Unknown_difficulty_title_cases_the_wire_token()
     {
         // Defensive: Blizzard could ship a new difficulty type we don't know yet.
+        // The WoW difficulty words are canonical English brand terms, so we
+        // title-case the wire token rather than translate — same rule as LFR /
+        // NORMAL / HEROIC / MYTHIC above, which are intentionally not localised.
         Assert.Equal("Ascended", DifficultyLabel.Format("ASCENDED", 0, ActivityKind.Raid));
     }
 }

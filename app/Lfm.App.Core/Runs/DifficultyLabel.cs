@@ -4,17 +4,17 @@
 namespace Lfm.App.Runs;
 
 /// <summary>
-/// Maps Blizzard's wire-format difficulty strings and the player-count
-/// integer to the user-facing label the create-run form shows. Pure; no
-/// i18n — label strings are English-only for now, localisation happens at
-/// the Razor boundary via the existing locale JSON files.
+/// Maps Blizzard's wire-format difficulty strings to the label the create-run
+/// form shows. Returns English because the WoW difficulty words are canonical
+/// brand terms (raid leaders say "Heroic Amirdrassil" regardless of locale);
+/// translating them would confuse Finnish / German / Spanish players who have
+/// always read them as English. Compare "Battlegrounds" / "Dungeon Finder".
 /// </summary>
 public static class DifficultyLabel
 {
     /// <summary>
-    /// Short label for a <see cref="ToggleGroup"/> option (Activity = Raid
-    /// or Dungeon determines whether Size is shown). For M+, always returns
-    /// "M+" regardless of size — the key level is a separate control.
+    /// Short label for a ToggleGroup option. For M+ always returns "M+"
+    /// regardless of size — the key level is a separate control.
     /// </summary>
     public static string Format(string difficultyId, int size, ActivityKind activity)
     {
