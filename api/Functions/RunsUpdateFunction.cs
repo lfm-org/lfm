@@ -154,20 +154,19 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             }
         }
 
-        // 7. Resolve effective instanceId + modeKey and look up the instance name.
+        // 7. Resolve effective instanceId + mode fields and look up the
+        //    instance name.
         var effectiveInstanceId = body.InstanceId ?? existing.InstanceId;
-        var effectiveModeKey = body.ModeKey ?? existing.ModeKey;
-        var (effectiveDifficulty, effectiveSize) = RunModeResolver.Resolve(
-            body.Difficulty ?? existing.Difficulty,
-            body.Size ?? existing.Size,
-            effectiveModeKey);
+        var effectiveDifficulty = body.Difficulty ?? existing.Difficulty;
+        var effectiveSize = body.Size ?? existing.Size;
+        // ModeKey stays in storage only — derived here so legacy reads still
+        // resolve. The wire no longer carries it.
+        var effectiveModeKey = $"{effectiveDifficulty}:{effectiveSize}";
         var effectiveKeystoneLevel = body.KeystoneLevel ?? existing.KeystoneLevel;
 
-        // Load instances to validate the (instanceId, modeKey) combination and obtain
-        // the canonical instance name. Each InstanceDto row in the container represents
-        // one (instance, mode) pair: InstanceNumericId == Blizzard instance id,
-        // ModeKey == "TYPE:players". Id is a composite "{instanceId}:{modeKey}" —
-        // never parse it as an int (see InstanceDto doc-comment).
+        // Load instances to validate the (instanceId, difficulty, size)
+        // combination and obtain the canonical instance name. Each InstanceDto
+        // row represents one (instance, mode) pair.
         //
         // A dungeon-agnostic Mythic+ run (effectiveInstanceId is null) skips
         // this validation — there is no specific instance to match.
@@ -178,10 +177,12 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             if (instances.Count == 0)
                 return new ObjectResult(new { error = "Instance data not available" }) { StatusCode = 503 };
 
-            var matchedInstance = instances.FirstOrDefault(
-                i => i.InstanceNumericId == effectiveInstanceId.Value && i.ModeKey == effectiveModeKey);
+            var matchedInstance = instances.FirstOrDefault(i =>
+                i.InstanceNumericId == effectiveInstanceId.Value
+                && i.Difficulty == effectiveDifficulty
+                && i.Size == effectiveSize);
             if (matchedInstance is null)
-                return new BadRequestObjectResult(new { error = "Invalid modeKey for instance" });
+                return new BadRequestObjectResult(new { error = "Invalid difficulty/size for instance" });
             effectiveInstanceName = matchedInstance.Name;
         }
         else
@@ -230,7 +231,6 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             StartTime: doc.StartTime,
             SignupCloseTime: doc.SignupCloseTime,
             Description: doc.Description,
-            ModeKey: doc.ModeKey,
             Visibility: doc.Visibility,
             CreatorGuild: doc.CreatorGuild,
             InstanceId: doc.InstanceId,

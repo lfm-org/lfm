@@ -91,17 +91,16 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
             StartTime: run.StartTime,
             SignupCloseTime: run.SignupCloseTime,
             Description: run.Description,
-            ModeKey: run.ModeKey,
             Visibility: run.Visibility,
             CreatorGuild: run.CreatorGuild,
             InstanceId: run.InstanceId,
             InstanceName: run.InstanceName,
-            Difficulty: difficulty,
-            Size: size,
-            KeystoneLevel: run.KeystoneLevel,
             RunCharacters: run.RunCharacters
                 .Select(c => SanitizeCharacter(c, currentBattleNetId))
-                .ToList());
+                .ToList(),
+            Difficulty: difficulty,
+            Size: size,
+            KeystoneLevel: run.KeystoneLevel);
     }
 
     private static RunCharacterDto SanitizeCharacter(
