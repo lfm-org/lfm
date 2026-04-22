@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -11,6 +12,7 @@ using Lfm.Contracts.Admin;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 
 namespace Lfm.Api.Functions;
 
@@ -30,8 +32,20 @@ namespace Lfm.Api.Functions;
 /// Auth:
 ///   - [RequireAuth] → AuthPolicyMiddleware returns 401 for unauthenticated callers.
 ///   - ISiteAdminService check → 403 for authenticated non-admin callers.
+///
+/// <para>
+/// Host trigger level is <c>AuthorizationLevel.Anonymous</c> — the repo-wide
+/// convention because every HTTP function fronts a browser-based Blazor WASM
+/// SPA that cannot safely carry a Functions host key (the key would be
+/// extractable from the bundle). Auth is enforced entirely in application
+/// code by the Battle.net OAuth cookie + <c>[RequireAuth]</c> +
+/// <c>ISiteAdminService</c> chain. See <c>docs/security-architecture.md</c>.
+/// </para>
 /// </summary>
-public class WowReferenceRefreshFunction(ISiteAdminService siteAdmin, IReferenceSync referenceSync)
+public class WowReferenceRefreshFunction(
+    ISiteAdminService siteAdmin,
+    IReferenceSync referenceSync,
+    ILogger<WowReferenceRefreshFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -48,7 +62,18 @@ public class WowReferenceRefreshFunction(ISiteAdminService siteAdmin, IReference
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
         if (!await siteAdmin.IsAdminAsync(principal.BattleNetId, ct))
+        {
+            // Non-admin attempts on the reference-refresh endpoint are worth
+            // recording — the endpoint is site-wide destructive (overwrites
+            // blob). TraceId ties the log line to the Application Insights
+            // end-to-end trace for the same request.
+            logger.LogWarning(
+                "403 Forbidden: non-admin caller {BattleNetId} on {Route} (trace {TraceId})",
+                principal.BattleNetId,
+                "wow/reference/refresh",
+                Activity.Current?.TraceId.ToString());
             return new ObjectResult(new { error = "Forbidden" }) { StatusCode = 403 };
+        }
 
         var response = req.HttpContext.Response;
         response.StatusCode = StatusCodes.Status200OK;

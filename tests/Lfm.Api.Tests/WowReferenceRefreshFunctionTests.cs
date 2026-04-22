@@ -5,6 +5,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
@@ -96,7 +98,7 @@ public class WowReferenceRefreshFunctionTests
             .Setup(r => r.SyncAllAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()))
             .ReturnsAsync(expectedResponse);
 
-        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object, NullLogger<WowReferenceRefreshFunction>.Instance);
         var ctx = MakeFunctionContext(principal);
 
         var (http, lines) = await InvokeAndReadBody(fn, ctx);
@@ -116,11 +118,13 @@ public class WowReferenceRefreshFunctionTests
     }
 
     // ---------------------------------------------------------------------------
-    // Test 2: Admin-only gate — non-admin caller returns 403 (no stream)
+    // Test 2: Admin-only gate — non-admin caller returns 403 and the rejection
+    // is logged with the caller's Battle.net id so operators can see failed
+    // attempts in App Insights (dns.HC-8 mitigation).
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task Returns_403_when_caller_is_not_site_admin()
+    public async Task Returns_403_and_logs_warning_when_caller_is_not_site_admin()
     {
         var principal = MakePrincipal("raider-1");
 
@@ -129,8 +133,9 @@ public class WowReferenceRefreshFunctionTests
             .ReturnsAsync(false);
 
         var referenceSync = new Mock<IReferenceSync>();
+        var logger = new Mock<ILogger<WowReferenceRefreshFunction>>();
 
-        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object, logger.Object);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -138,10 +143,21 @@ public class WowReferenceRefreshFunctionTests
         var forbidden = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, forbidden.StatusCode);
 
-        // SyncAllAsync must NOT be called for non-admin callers.
         referenceSync.Verify(
             r => r.SyncAllAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()),
             Times.Never);
+
+        // Warning-level log with the rejected Battle.net id in the formatted
+        // message. ILogger is awkward to verify structurally in Moq; matching
+        // on the rendered message keeps the assertion at the observable level.
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, _) => o.ToString()!.Contains("raider-1")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     // ---------------------------------------------------------------------------
@@ -173,7 +189,7 @@ public class WowReferenceRefreshFunctionTests
                 return Task.FromResult(finalResponse);
             });
 
-        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object, NullLogger<WowReferenceRefreshFunction>.Instance);
         var ctx = MakeFunctionContext(principal);
 
         var (_, lines) = await InvokeAndReadBody(fn, ctx);
@@ -213,7 +229,7 @@ public class WowReferenceRefreshFunctionTests
             .Setup(r => r.SyncAllAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()))
             .ReturnsAsync(partialResponse);
 
-        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object);
+        var fn = new WowReferenceRefreshFunction(siteAdmin.Object, referenceSync.Object, NullLogger<WowReferenceRefreshFunction>.Instance);
         var ctx = MakeFunctionContext(principal);
 
         var (http, lines) = await InvokeAndReadBody(fn, ctx);
