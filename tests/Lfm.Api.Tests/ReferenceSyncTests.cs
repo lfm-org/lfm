@@ -163,6 +163,43 @@ public class ReferenceSyncTests
     }
 
     [Fact]
+    public async Task SyncInstancesAsync_persists_category_expansionId_and_structured_mode_fields()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalIndex((1200, "Liberation of Undermine")));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1200, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstanceDetail(
+                1200,
+                "Liberation of Undermine",
+                expansionName: "The War Within",
+                modes: ("HEROIC", 25)));
+
+        await sut.SyncAllAsync(CancellationToken.None);
+
+        // Per-id detail blob carries Category + expansion Id (plus Name).
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/1200.json",
+            It.Is<JournalInstanceBlob>(d =>
+                d.Category!.Type == "RAID" &&
+                d.Expansion!.Id == 11 &&
+                d.Expansion.Name == "The War Within"),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        // Manifest row carries Category + ExpansionId top-level plus
+        // Difficulty + Size on every mode entry.
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/index.json",
+            It.Is<List<InstanceIndexEntry>>(ix =>
+                ix.Single().Category == "RAID" &&
+                ix.Single().ExpansionId == 11 &&
+                ix.Single().Modes!.Single().ModeKey == "HEROIC:25" &&
+                ix.Single().Modes!.Single().Difficulty == "HEROIC" &&
+                ix.Single().Modes!.Single().Size == 25),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task SyncInstancesAsync_emits_one_mode_entry_per_blizzard_mode()
     {
         var (sut, blizzard, blobs, _) = MakeSut();
