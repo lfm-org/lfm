@@ -47,6 +47,15 @@ public interface IBlizzardGameDataClient
     Task<BlizzardMediaAssets> GetPlayableSpecMediaAsync(int specId, string accessToken, CancellationToken ct);
 
     /// <summary>
+    /// Fetches the journal-expansion index — the canonical ordered list of
+    /// WoW expansions. Used to populate the expansion selector on the
+    /// create-run form. Each entry carries only <c>Id</c> and <c>Name</c>;
+    /// we never fetch per-expansion detail because the dungeon / raid
+    /// membership is already carried on each journal-instance row.
+    /// </summary>
+    Task<BlizzardJournalExpansionIndex> GetJournalExpansionIndexAsync(string accessToken, CancellationToken ct);
+
+    /// <summary>
     /// Fetches the journal-instance index.
     /// </summary>
     Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct);
@@ -92,6 +101,12 @@ public sealed record BlizzardPlayableSpecDetail(
 public sealed record BlizzardMediaAsset(string Key, string Value);
 
 public sealed record BlizzardMediaAssets(IReadOnlyList<BlizzardMediaAsset>? Assets);
+
+/// <summary>Blizzard journal-expansion index response. The wire field is
+/// <c>tiers</c>, not <c>expansions</c>.</summary>
+public sealed record BlizzardJournalExpansionIndex(
+    [property: JsonPropertyName("tiers")]
+    IReadOnlyList<BlizzardIndexEntry> Tiers);
 
 public sealed record BlizzardJournalInstanceIndex(IReadOnlyList<BlizzardIndexEntry> Instances);
 
