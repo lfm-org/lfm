@@ -57,24 +57,24 @@
                     </FluentSelect>
 
                     <div>
-                        <label for="activity-toggle" class="field__label">@Loc["createRun.activity"]</label>
+                        <span id="editRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
                         <ToggleGroup TValue="ActivityKind"
                                      Options="_activityOptions"
                                      Value="_activity"
                                      ValueChanged="OnActivityChanged"
-                                     AriaLabel="@Loc["createRun.activity"]"
+                                     AriaLabelledBy="editRun-activity-label"
                                      Disabled="@(_saving || _hasSignups)" />
                     </div>
 
                     @if (_activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE")
                     {
                         <div>
-                            <label for="dungeonScope-toggle" class="field__label">@Loc["createRun.dungeonScope"]</label>
+                            <span id="editRun-dungeonScope-label" class="field__label">@Loc["createRun.dungeonScope"]</span>
                             <ToggleGroup TValue="bool"
                                          Options="_dungeonScopeOptions"
                                          Value="_anyDungeon"
                                          ValueChanged="OnDungeonScopeChanged"
-                                         AriaLabel="@Loc["createRun.dungeonScope"]"
+                                         AriaLabelledBy="editRun-dungeonScope-label"
                                          Disabled="@(_saving || _hasSignups)" />
                         </div>
                     }
@@ -98,12 +98,12 @@
                     @if (ShowDifficultyToggle && _difficultyOptions.Count > 1)
                     {
                         <div>
-                            <label for="difficulty-toggle" class="field__label">@Loc["createRun.difficulty"]</label>
+                            <span id="editRun-difficulty-label" class="field__label">@Loc["createRun.difficulty"]</span>
                             <ToggleGroup TValue="string"
                                          Options="_difficultyOptions"
                                          Value="_difficulty"
                                          ValueChanged="OnDifficultyChanged"
-                                         AriaLabel="@Loc["createRun.difficulty"]"
+                                         AriaLabelledBy="editRun-difficulty-label"
                                          Disabled="@(_saving || _hasSignups)" />
                         </div>
                     }
@@ -171,12 +171,12 @@
                     @if (_canShowGuildOption)
                     {
                         <div>
-                            <label for="visibility-toggle" class="field__label">@Loc["createRun.visibility"]</label>
+                            <span id="editRun-visibility-label" class="field__label">@Loc["createRun.visibility"]</span>
                             <ToggleGroup TValue="string"
                                          Options="_visibilityOptions"
                                          Value="_visibility"
                                          ValueChanged="@(v => _visibility = v)"
-                                         AriaLabel="@Loc["createRun.visibility"]"
+                                         AriaLabelledBy="editRun-visibility-label"
                                          Disabled="@_saving" />
                             @if (!_canCreateGuildRuns)
                             {
