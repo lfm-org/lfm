@@ -42,20 +42,6 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                     <FluentLabel Typo="Typography.H4">@Loc["editRun.runDetails"]</FluentLabel>
 
-                    @* Expansion selector — locked once the run has signups so the
-                       instance list stays stable on the row the run is pinned to. *@
-                    <FluentSelect Id="expansion-select"
-                                  Label="@Loc["createRun.expansion"]"
-                                  TOption="string"
-                                  Value="@_expansionId.ToString()"
-                                  ValueChanged="@OnExpansionChanged"
-                                  Disabled="@(_saving || _hasSignups)">
-                        @foreach (var exp in _expansions)
-                        {
-                            <FluentOption Value="@exp.Id.ToString()">@exp.Name</FluentOption>
-                        }
-                    </FluentSelect>
-
                     <div>
                         <span id="editRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
                         <ToggleGroup TValue="ActivityKind"
@@ -276,6 +262,12 @@
 </FluentStack>
 
 @code {
+    // The instance list is scoped to Blizzard's "Current Season" journal
+    // expansion tier. The edit-run form does not let the user pick an
+    // expansion — M+, raids, and non-M+ dungeons are all pulled from the
+    // currently-active rotation.
+    private const string CurrentSeasonExpansion = "Current Season";
+
     [Parameter] public string? RunId { get; set; }
 
     // ── Loading ────────────────────────────────────────────────────────────
@@ -339,6 +331,16 @@
     private static string? ToIsoOrNull(DateTime? dt) =>
         dt is null ? null : dt.Value.ToUniversalTime().ToString("o");
 
+    // Match the Blizzard "Current Season" tier by its canonical English name.
+    // Falls back to the highest-id expansion so the form still works on a
+    // stale manifest that predates the current rotation being ingested.
+    private static int ResolveCurrentSeasonId(IReadOnlyList<ExpansionDto> expansions)
+    {
+        var current = expansions.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
+        if (current is not null) return current.Id;
+        return expansions.Count == 0 ? 0 : expansions.MaxBy(e => e.Id)!.Id;
+    }
+
     // ── Lifecycle ──────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
@@ -391,7 +393,7 @@
 
         _activity = match?.Activity
             ?? (run.Difficulty == "MYTHIC_KEYSTONE" ? ActivityKind.Dungeon : ActivityKind.Raid);
-        _expansionId = match?.ExpansionId ?? _expansions.LastOrDefault()?.Id ?? 0;
+        _expansionId = match?.ExpansionId ?? ResolveCurrentSeasonId(_expansions);
         _instanceId = match?.InstanceId ?? 0;
         _difficulty = string.IsNullOrEmpty(run.Difficulty)
             ? (match?.Difficulties.LastOrDefault()?.DifficultyId ?? "")
@@ -410,19 +412,6 @@
 
         RefreshDifficultyOptions();
         _canCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
-    }
-
-    private void OnExpansionChanged(string value)
-    {
-        if (int.TryParse(value, out var id))
-        {
-            _expansionId = id;
-            _instanceId = 0;
-            _difficulty = _activity == ActivityKind.Dungeon ? "MYTHIC_KEYSTONE" : "";
-            _size = _activity == ActivityKind.Dungeon ? 5 : 0;
-            _keystoneLevel = null;
-            RefreshDifficultyOptions();
-        }
     }
 
     private void OnActivityChanged(ActivityKind value)
