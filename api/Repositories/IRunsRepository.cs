@@ -135,4 +135,16 @@ public interface IRunsRepository
     /// Mirrors <c>getRunsContainer().item(id, id).delete()</c> in runs-delete.ts.
     /// </summary>
     Task DeleteAsync(string id, CancellationToken ct);
+
+    /// <summary>
+    /// Backfills <c>Difficulty</c> / <c>Size</c> / <c>KeystoneLevel</c> on every
+    /// <see cref="RunDocument"/> that predates the PR 5 schema. Idempotent —
+    /// documents whose typed fields are already populated are left untouched.
+    /// When <paramref name="dryRun"/> is true, returns the would-migrate count
+    /// without writing anything. Admin-only; callers must gate on
+    /// <see cref="Services.ISiteAdminService"/>.
+    /// </summary>
+    Task<RunMigrationResult> MigrateSchemaAsync(bool dryRun, CancellationToken ct);
 }
+
+public sealed record RunMigrationResult(int Scanned, int Migrated, bool DryRun);
