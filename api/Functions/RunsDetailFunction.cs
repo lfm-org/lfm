@@ -73,8 +73,10 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
     // functions/src/lib/runResponseSanitizer.ts
     // ------------------------------------------------------------------
 
-    private static RunDetailDto Sanitize(RunDocument run, string currentBattleNetId) =>
-        new RunDetailDto(
+    private static RunDetailDto Sanitize(RunDocument run, string currentBattleNetId)
+    {
+        var (difficulty, size) = Helpers.RunModeResolver.Resolve(run.Difficulty, run.Size, run.ModeKey);
+        return new RunDetailDto(
             Id: run.Id,
             StartTime: run.StartTime,
             SignupCloseTime: run.SignupCloseTime,
@@ -84,9 +86,13 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
             CreatorGuild: run.CreatorGuild,
             InstanceId: run.InstanceId,
             InstanceName: run.InstanceName,
+            Difficulty: difficulty,
+            Size: size,
+            KeystoneLevel: run.KeystoneLevel,
             RunCharacters: run.RunCharacters
                 .Select(c => SanitizeCharacter(c, currentBattleNetId))
                 .ToList());
+    }
 
     private static RunCharacterDto SanitizeCharacter(
         RunCharacterEntry character, string currentBattleNetId) =>
