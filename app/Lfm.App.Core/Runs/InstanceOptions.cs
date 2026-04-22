@@ -37,15 +37,13 @@ public static class InstanceOptions
             .Select(g =>
             {
                 var first = g.First();
+                var activity = ActivityKindExtensions.FromCategory(first.Category);
                 var difficulties = g
+                    .Where(i => !string.IsNullOrEmpty(i.Difficulty))
                     .Select(i => new DifficultyOption(
                         DifficultyId: i.Difficulty,
                         Size: i.Size,
-                        DisplayName: DifficultyLabel.Format(
-                            i.Difficulty,
-                            i.Size,
-                            ActivityKindExtensions.FromCategory(first.Category))))
-                    .Where(d => !string.IsNullOrEmpty(d.DifficultyId))
+                        DisplayName: DifficultyLabel.Format(i.Difficulty, i.Size, activity)))
                     .OrderBy(d => CanonicalOrder(d.DifficultyId))
                     .ThenBy(d => d.Size)
                     .ToList();
@@ -53,7 +51,7 @@ public static class InstanceOptions
                 return new InstanceOption(
                     InstanceId: first.InstanceNumericId,
                     Name: first.Name,
-                    Activity: ActivityKindExtensions.FromCategory(first.Category),
+                    Activity: activity,
                     ExpansionId: first.ExpansionId,
                     Difficulties: difficulties);
             })
