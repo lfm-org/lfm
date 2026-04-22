@@ -1,0 +1,34 @@
+/*
+ * Admin-only reference-refresh results table. Logical properties only
+ * (works unchanged under dir="rtl"); stripes via nth-of-type; status
+ * hook via data-status; forced-colors falls back to ButtonText /
+ * Highlight so pass/fail stays visible.
+ */
+.admin-reference-results {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-reference-results th,
+.admin-reference-results td {
+    padding-block: 6px;
+    padding-inline: 12px;
+    text-align: start;
+    border-block-end: 1px solid var(--neutral-stroke-rest);
+}
+
+.admin-reference-results th {
+    font-weight: 600;
+    color: var(--neutral-foreground-hint-rest);
+}
+
+.admin-reference-results tbody tr[data-status="failed"] td {
+    color: #c0392b;
+}
+
+@media (forced-colors: active) {
+    .admin-reference-results tbody tr[data-status="failed"] td {
+        color: Highlight;
+    }
+}
