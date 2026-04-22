@@ -28,6 +28,9 @@
                         <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
                         <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
                         <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
+                        <AuthorizeView Roles="SiteAdmin" Context="adminAuth">
+                            <FluentAnchor Href="/admin/reference">@Loc["nav.admin"]</FluentAnchor>
+                        </AuthorizeView>
                     </div>
                     <div style="margin-inline-start:auto;display:flex;align-items:center;gap:4px">
                         <FluentButton Appearance="Appearance.Stealth"
@@ -72,6 +75,9 @@
                     <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
                     <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
                     <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
+                    <AuthorizeView Roles="SiteAdmin" Context="adminMobileAuth">
+                        <FluentAnchor Href="/admin/reference">@Loc["nav.admin"]</FluentAnchor>
+                    </AuthorizeView>
                 </FluentStack>
             </nav>
         </Authorized>
