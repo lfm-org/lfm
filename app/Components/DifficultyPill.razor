@@ -1,37 +1,33 @@
-@using Lfm.Contracts.Runs
-
-<span class="difficulty-pill difficulty-pill--@DifficultyClass(ModeKey)" title="@ModeKey">
-    @DifficultyLabel(ModeKey)
+@*
+    Difficulty badge rendered in the run list and run detail. Reads the
+    typed Difficulty field from the wire DTO — the server guarantees it is
+    populated (see RunModeResolver) so no client-side ModeKey parsing.
+*@
+<span class="difficulty-pill difficulty-pill--@DifficultyClass(Difficulty)" title="@Difficulty">
+    @DifficultyLabel(Difficulty)
 </span>
 
 @code {
-    [Parameter, EditorRequired] public string ModeKey { get; set; } = "";
+    [Parameter, EditorRequired] public string? Difficulty { get; set; }
 
-    private static string DifficultyLabel(string modeKey)
+    private static string DifficultyLabel(string? difficulty) => difficulty switch
     {
-        var (difficulty, _) = RunMode.Parse(modeKey);
-        return difficulty switch
-        {
-            "MYTHIC_KEYSTONE" => "M+",
-            "MYTHIC" => "Mythic",
-            "HEROIC" => "Heroic",
-            "NORMAL" => "Normal",
-            "LFR" => "LFR",
-            _ => difficulty.Length == 0 ? "—" : char.ToUpperInvariant(difficulty[0]) + difficulty[1..].ToLowerInvariant()
-        };
-    }
+        "MYTHIC_KEYSTONE" => "M+",
+        "MYTHIC" => "Mythic",
+        "HEROIC" => "Heroic",
+        "NORMAL" => "Normal",
+        "LFR" => "LFR",
+        null or "" => "—",
+        _ => char.ToUpperInvariant(difficulty[0]) + difficulty[1..].ToLowerInvariant(),
+    };
 
-    private static string DifficultyClass(string modeKey)
+    private static string DifficultyClass(string? difficulty) => difficulty switch
     {
-        var (difficulty, _) = RunMode.Parse(modeKey);
-        return difficulty switch
-        {
-            "MYTHIC_KEYSTONE" => "mplus",
-            "MYTHIC" => "mythic",
-            "HEROIC" => "heroic",
-            "NORMAL" => "normal",
-            "LFR" => "lfr",
-            _ => "unknown"
-        };
-    }
+        "MYTHIC_KEYSTONE" => "mplus",
+        "MYTHIC" => "mythic",
+        "HEROIC" => "heroic",
+        "NORMAL" => "normal",
+        "LFR" => "lfr",
+        _ => "unknown",
+    };
 }

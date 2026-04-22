@@ -10,18 +10,16 @@ namespace Lfm.App.Core.Tests.Runs;
 public class RunVisualizationTests
 {
     [Theory]
-    [InlineData("MYTHIC:5", RunKind.Dungeon)]
-    [InlineData("HEROIC:5", RunKind.Dungeon)]
-    [InlineData("NORMAL:10", RunKind.Raid)]
-    [InlineData("MYTHIC:20", RunKind.Raid)]
-    [InlineData("LFR:25", RunKind.Raid)]
-    [InlineData("HEROIC:30", RunKind.Raid)]
-    [InlineData("MYTHIC", RunKind.Unknown)]
-    [InlineData("", RunKind.Unknown)]
-    [InlineData(null, RunKind.Unknown)]
-    public void GetKind_parses_size_from_mode_key(string? modeKey, RunKind expected)
+    [InlineData(5, RunKind.Dungeon)]
+    [InlineData(10, RunKind.Raid)]
+    [InlineData(20, RunKind.Raid)]
+    [InlineData(25, RunKind.Raid)]
+    [InlineData(30, RunKind.Raid)]
+    [InlineData(0, RunKind.Unknown)]
+    [InlineData(-1, RunKind.Unknown)]
+    public void GetKind_classifies_size_into_run_kind(int size, RunKind expected)
     {
-        Assert.Equal(expected, RunVisualization.GetKind(modeKey));
+        Assert.Equal(expected, RunVisualization.GetKind(size));
     }
 
     [Theory]
@@ -52,7 +50,7 @@ public class RunVisualizationTests
             MakeChar(null, "IN"),
         };
 
-        var counts = RunVisualization.CountRoles(chars, "MYTHIC:20");
+        var counts = RunVisualization.CountRoles(chars, size: 20);
 
         Assert.Equal(1, counts.Tank.Attending);
         Assert.Equal(2, counts.Tank.Target);
@@ -66,7 +64,7 @@ public class RunVisualizationTests
     public void CountRoles_marks_shortage_when_attending_below_target()
     {
         var chars = new List<RunCharacterDto> { MakeChar("HEALER", "IN") };
-        var counts = RunVisualization.CountRoles(chars, "NORMAL:10");
+        var counts = RunVisualization.CountRoles(chars, size: 10);
         Assert.True(counts.Tank.IsShortage);
         Assert.True(counts.Healer.IsShortage);
         Assert.True(counts.Dps.IsShortage);
@@ -76,7 +74,7 @@ public class RunVisualizationTests
     public void CountRoles_no_shortage_when_size_unknown()
     {
         var chars = new List<RunCharacterDto> { MakeChar("TANK", "IN") };
-        var counts = RunVisualization.CountRoles(chars, "MYTHIC");
+        var counts = RunVisualization.CountRoles(chars, size: 0);
         Assert.False(counts.Tank.IsShortage);
         Assert.False(counts.Healer.IsShortage);
         Assert.False(counts.Dps.IsShortage);
@@ -133,15 +131,16 @@ public class RunVisualizationTests
     }
 
     [Theory]
-    [InlineData("MYTHIC:20", "mythic")]
-    [InlineData("HEROIC:10", "heroic")]
-    [InlineData("NORMAL:5", "normal")]
-    [InlineData("LFR:25", "lfr")]
+    [InlineData("MYTHIC", "mythic")]
+    [InlineData("HEROIC", "heroic")]
+    [InlineData("NORMAL", "normal")]
+    [InlineData("LFR", "lfr")]
     [InlineData("weird", "unknown")]
     [InlineData("", "unknown")]
-    public void GetDifficultyClass_maps_difficulty_token(string modeKey, string expected)
+    [InlineData(null, "unknown")]
+    public void GetDifficultyClass_maps_difficulty_token(string? difficulty, string expected)
     {
-        Assert.Equal(expected, RunVisualization.GetDifficultyClass(modeKey));
+        Assert.Equal(expected, RunVisualization.GetDifficultyClass(difficulty));
     }
 
     [Theory]

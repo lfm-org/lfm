@@ -21,15 +21,13 @@ public class DifficultyPillTests : ComponentTestBase
 {
     [Theory]
     [InlineData("MYTHIC_KEYSTONE", "M+", "mplus")]
-    [InlineData("mythic_keystone:5", "M+", "mplus")]
     [InlineData("MYTHIC", "Mythic", "mythic")]
-    [InlineData("MYTHIC:25", "Mythic", "mythic")]
     [InlineData("HEROIC", "Heroic", "heroic")]
     [InlineData("NORMAL", "Normal", "normal")]
     [InlineData("LFR", "LFR", "lfr")]
-    public void Renders_Expected_Label_And_Class(string modeKey, string expectedLabel, string expectedVariant)
+    public void Renders_Expected_Label_And_Class(string difficulty, string expectedLabel, string expectedVariant)
     {
-        var cut = Render<DifficultyPill>(p => p.Add(x => x.ModeKey, modeKey));
+        var cut = Render<DifficultyPill>(p => p.Add(x => x.Difficulty, difficulty));
 
         var pill = cut.Find(".difficulty-pill");
         Assert.Contains(expectedLabel, pill.TextContent);
@@ -39,7 +37,7 @@ public class DifficultyPillTests : ComponentTestBase
     [Fact]
     public void MythicKeystone_Does_Not_Leak_Raw_Enum_Text()
     {
-        var cut = Render<DifficultyPill>(p => p.Add(x => x.ModeKey, "MYTHIC_KEYSTONE"));
+        var cut = Render<DifficultyPill>(p => p.Add(x => x.Difficulty, "MYTHIC_KEYSTONE"));
 
         var pill = cut.Find(".difficulty-pill");
         Assert.DoesNotContain("keystone", pill.TextContent, System.StringComparison.OrdinalIgnoreCase);
@@ -49,12 +47,27 @@ public class DifficultyPillTests : ComponentTestBase
     [Fact]
     public void Unknown_Difficulty_Falls_Back_To_TitleCased_Label()
     {
-        var cut = Render<DifficultyPill>(p => p.Add(x => x.ModeKey, "PVP"));
+        var cut = Render<DifficultyPill>(p => p.Add(x => x.Difficulty, "PVP"));
 
         var pill = cut.Find(".difficulty-pill");
         // Title-case rule: first letter upper, rest lower (invariant) — not
         // CultureInfo.TextInfo.ToTitleCase, which is locale-sensitive.
         Assert.Equal("Pvp", pill.TextContent.Trim());
+        Assert.Contains("difficulty-pill--unknown", pill.ClassName);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Empty_Or_Null_Difficulty_Renders_Em_Dash_Placeholder(string? difficulty)
+    {
+        var cut = Render<DifficultyPill>(p => p.Add(x => x.Difficulty, difficulty));
+
+        var pill = cut.Find(".difficulty-pill");
+        // Em dash (U+2014) signals "unknown difficulty" in the UI — the
+        // server's RunModeResolver is expected to populate Difficulty for
+        // every wire DTO, so this branch is defensive rather than a hot path.
+        Assert.Equal("—", pill.TextContent.Trim());
         Assert.Contains("difficulty-pill--unknown", pill.ClassName);
     }
 }

@@ -105,7 +105,7 @@
                                             <p class="run-detail-description">@selectedRun.Description</p>
                                         }
                                     </div>
-                                    <DifficultyPill ModeKey="@selectedRun.ModeKey" />
+                                    <DifficultyPill Difficulty="@selectedRun.Difficulty" />
                                     <FluentButton Appearance="Appearance.Outline"
                                                   OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
                                                   Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">

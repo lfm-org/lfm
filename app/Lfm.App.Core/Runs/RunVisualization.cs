@@ -31,16 +31,12 @@ public readonly record struct RunRoleCounts(RoleCount Tank, RoleCount Healer, Ro
 
 public static class RunVisualization
 {
-    public static RunKind GetKind(string? modeKey)
+    public static RunKind GetKind(int size) => size switch
     {
-        var (_, size) = RunMode.Parse(modeKey);
-        return size switch
-        {
-            <= 0 => RunKind.Unknown,
-            <= 5 => RunKind.Dungeon,
-            _ => RunKind.Raid,
-        };
-    }
+        <= 0 => RunKind.Unknown,
+        <= 5 => RunKind.Dungeon,
+        _ => RunKind.Raid,
+    };
 
     public static string GetKindClass(RunKind kind) => kind switch
     {
@@ -49,18 +45,14 @@ public static class RunVisualization
         _ => "unknown",
     };
 
-    public static string GetDifficultyClass(string? modeKey)
+    public static string GetDifficultyClass(string? difficulty) => difficulty switch
     {
-        var (difficulty, _) = RunMode.Parse(modeKey);
-        return difficulty switch
-        {
-            "MYTHIC" => "mythic",
-            "HEROIC" => "heroic",
-            "NORMAL" => "normal",
-            "LFR" => "lfr",
-            _ => "unknown",
-        };
-    }
+        "MYTHIC" => "mythic",
+        "HEROIC" => "heroic",
+        "NORMAL" => "normal",
+        "LFR" => "lfr",
+        _ => "unknown",
+    };
 
     public static (int Tank, int Healer, int Dps) GetRoleTargets(int size) => size switch
     {
@@ -83,9 +75,8 @@ public static class RunVisualization
         _ => "DPS",
     };
 
-    public static RunRoleCounts CountRoles(IEnumerable<RunCharacterDto> characters, string? modeKey)
+    public static RunRoleCounts CountRoles(IEnumerable<RunCharacterDto> characters, int size)
     {
-        var (_, size) = RunMode.Parse(modeKey);
         var (tTarget, hTarget, dTarget) = GetRoleTargets(size);
 
         int tAttend = 0, hAttend = 0, dAttend = 0;
