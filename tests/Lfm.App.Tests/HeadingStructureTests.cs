@@ -8,6 +8,7 @@ using Moq;
 using Lfm.App.Pages;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Expansions;
 using Lfm.Contracts.Guild;
 using Lfm.Contracts.Instances;
 using Lfm.Contracts.Me;
@@ -37,12 +38,16 @@ public class HeadingStructureTests : ComponentTestBase
         var instances = new Mock<IInstancesClient>();
         instances.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<InstanceDto>());
+        var expansions = new Mock<IExpansionsClient>();
+        expansions.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<ExpansionDto>());
 
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
         Services.AddSingleton(guild.Object);
         Services.AddSingleton(runs.Object);
         Services.AddSingleton(instances.Object);
+        Services.AddSingleton(expansions.Object);
     }
 
     [Theory]
