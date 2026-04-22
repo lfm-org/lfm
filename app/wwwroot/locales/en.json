@@ -14,6 +14,7 @@
     "nav.runs": "Runs",
     "nav.guild": "Guild",
     "nav.characters": "Characters",
+    "nav.admin": "Admin",
     "nav.signIn": "Sign In",
     "nav.signOut": "Sign Out",
 
@@ -213,6 +214,16 @@
     "guildAdmin.saveFailed": "Failed to save guild settings.",
     "guildAdmin.saveSuccess": "Settings saved successfully.",
     "guildAdmin.saveError": "An error occurred while saving.",
+
+    "adminReference.title": "Reference data",
+    "adminReference.description": "Pulls the latest journal-instance, playable-specialization, and journal-expansion data from the Blizzard Game Data API and writes it to blob. Takes about a minute.",
+    "adminReference.refreshButton": "Refresh now",
+    "adminReference.refreshing": "Refreshing…",
+    "adminReference.resultsHeading": "Results",
+    "adminReference.columns.entity": "Entity",
+    "adminReference.columns.status": "Status",
+    "adminReference.errorPrefix": "Refresh failed:",
+    "adminReference.errorGeneric": "Refresh failed.",
 
     "instances.title": "Instances",
     "instances.tableAriaLabel": "Instances table",
