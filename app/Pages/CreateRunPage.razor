@@ -32,7 +32,7 @@
                     Label="@Loc["createRun.instance"]"
                     TOption="string"
                     Value="@instanceId"
-                    ValueChanged="@(v => { instanceId = v; modeKey = string.Empty; })"
+                    ValueChanged="@OnInstanceChanged"
                     Disabled="@submitting">
                     <FluentOption Value="">@Loc["createRun.selectInstance"]</FluentOption>
                     @foreach (var inst in instances)
@@ -80,12 +80,14 @@
                     <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
                 </FluentSelect>
 
-                <FluentTextField
+                <FluentTextArea
                     Id="description-input"
                     Label="@Loc["createRun.description"]"
                     Value="@description"
                     ValueChanged="@(v => description = v)"
                     Disabled="@submitting"
+                    Rows="5"
+                    Resize="TextAreaResize.Vertical"
                     @attributes="DescriptionAttrs" />
 
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
@@ -138,7 +140,7 @@
     private static readonly Dictionary<string, object> DescriptionAttrs = new()
     {
         ["enterkeyhint"] = "done",
-        ["maxlength"] = (int?)500,
+        ["maxlength"] = (int?)2000,
     };
 
     protected override async Task OnInitializedAsync()
@@ -157,6 +159,16 @@
         }
     }
 
+    // Auto-fill modeKey from the selected instance. Each InstanceDto row carries
+    // one (instance, mode) pair, so picking a dropdown option fully determines
+    // the ModeKey — the text field below the dropdown is just a read/override
+    // affordance until the form is reshaped in a follow-up.
+    private void OnInstanceChanged(string value)
+    {
+        instanceId = value;
+        modeKey = instances.FirstOrDefault(i => i.Id == value)?.ModeKey ?? string.Empty;
+    }
+
     private async Task HandleSubmit()
     {
         submitting = true;
@@ -169,7 +181,7 @@
                 Description: string.IsNullOrWhiteSpace(description) ? null : description,
                 ModeKey: modeKey,
                 Visibility: visibility,
-                InstanceId: selectedInstance != null ? (int?)Convert.ToInt32(selectedInstance.Id) : null,
+                InstanceId: selectedInstance?.InstanceNumericId,
                 InstanceName: selectedInstance?.Name);
 
             var created = await RunsClient.CreateAsync(request, CancellationToken.None);

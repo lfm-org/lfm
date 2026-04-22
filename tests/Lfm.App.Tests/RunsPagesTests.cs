@@ -319,7 +319,7 @@ public class RunsPagesTests : ComponentTestBase
         var instancesClient = new Mock<IInstancesClient>();
         var runsClient = new Mock<IRunsClient>();
         instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto> { new("1", "Liberation of Undermine", "raid", "tww") });
+            .ReturnsAsync(new List<InstanceDto> { new("1:raid", 1, "Liberation of Undermine", "raid", "tww") });
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
@@ -372,7 +372,7 @@ public class RunsPagesTests : ComponentTestBase
         runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetail());
         instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto> { new("1", "Liberation of Undermine", "raid", "tww") });
+            .ReturnsAsync(new List<InstanceDto> { new("1:raid", 1, "Liberation of Undermine", "raid", "tww") });
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(runsClient.Object);
 
@@ -413,7 +413,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var instancesClient = new Mock<IInstancesClient>();
         instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto> { new("1", "Liberation of Undermine", "raid", "tww") });
+            .ReturnsAsync(new List<InstanceDto> { new("1:raid", 1, "Liberation of Undermine", "raid", "tww") });
 
         UpdateRunRequest? captured = null;
         var runsClient = new Mock<IRunsClient>();
