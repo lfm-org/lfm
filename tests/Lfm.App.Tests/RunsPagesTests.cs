@@ -18,6 +18,11 @@ public class RunsPagesTests : ComponentTestBase
 {
     // ── Shared helpers ───────────────────────────────────────────────────────
 
+    // Mirrors the same constant in CreateRunPage/EditRunPage — see those
+    // pages' `ResolveCurrentSeasonId` helper. Kept local so a rename in the
+    // page breaks this test before the form silently reverts behavior.
+    private const string CurrentSeasonExpansion = "Current Season";
+
     // Anchored to UtcNow so these fixtures never become time bombs against a
     // future-dated assertion. See issue #49.
     private static readonly string FutureStartTime =
@@ -304,6 +309,74 @@ public class RunsPagesTests : ComponentTestBase
         Assert.False(item.HasAttribute("style"));
     }
 
+    [Fact]
+    public void RunsPage_RunListItem_FallsBackToAnyDungeonLabel_WhenInstanceNameIsNull()
+    {
+        // Mythic+ "any dungeon" runs persist InstanceName as null per the
+        // wire contract. Without a fallback the list item renders a blank
+        // heading, which is what the user reported. Pin the localized label
+        // so a locale-key rename or fallback regression is caught here.
+        var summary = MakeSummary() with
+        {
+            InstanceId = null,
+            InstanceName = null,
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var title = cut.Find(".run-list-item__title");
+            Assert.Equal(Loc("runs.anyDungeon"), title.TextContent.Trim());
+        });
+
+        // The aria-label template weaves the title into the accessible name
+        // too — same fallback must apply so screen-reader users aren't fed
+        // an empty string before the date.
+        var runButton = cut.Find("button.run-list-item");
+        var ariaLabel = runButton.GetAttribute("aria-label") ?? string.Empty;
+        Assert.Contains(Loc("runs.anyDungeon"), ariaLabel);
+    }
+
+    [Fact]
+    public void RunsPage_DetailHeading_FallsBackToAnyDungeonLabel_WhenInstanceNameIsNull()
+    {
+        var summary = MakeSummary() with
+        {
+            InstanceId = null,
+            InstanceName = null,
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var detail = MakeDetail() with
+        {
+            InstanceId = null,
+            InstanceName = null,
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(detail);
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var heading = cut.Find(".run-detail-title");
+            Assert.Equal(Loc("runs.anyDungeon"), heading.TextContent.Trim());
+        });
+    }
+
     // ── CreateRunPage ────────────────────────────────────────────────────────
 
     private void WireCreateRunServices(
@@ -370,6 +443,27 @@ public class RunsPagesTests : ComponentTestBase
             Assert.Contains(Loc("createRun.submit"), cut.Markup));
     }
 
+    [Fact]
+    public void CreateRunPage_DoesNotRenderExpansionSelector()
+    {
+        // The create-run form scopes its instance list to the Blizzard
+        // "Current Season" tier unconditionally — M+, raids, and non-M+
+        // dungeons all come from the current rotation. Pin the absence of
+        // an expansion dropdown so a regression that reintroduces cross-
+        // expansion selection surfaces here.
+        WireCreateRunServices(expansions: new List<ExpansionDto>
+        {
+            new(505, "The War Within"),
+            new(999, CurrentSeasonExpansion),
+        });
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("createRun.submit"), cut.Markup));
+        Assert.Empty(cut.FindAll("#expansion-select"));
+    }
+
     // ── EditRunPage ──────────────────────────────────────────────────────────
 
     private Mock<IRunsClient> WireEditRunServices(
@@ -420,6 +514,27 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+    }
+
+    [Fact]
+    public void EditRunPage_DoesNotRenderExpansionSelector()
+    {
+        // Same rationale as CreateRunPage_DoesNotRenderExpansionSelector:
+        // the edit form also scopes to the Current Season tier only.
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        WireEditRunServices(runsClient, expansions: new List<ExpansionDto>
+        {
+            new(505, "The War Within"),
+            new(999, CurrentSeasonExpansion),
+        });
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+        Assert.Empty(cut.FindAll("#expansion-select"));
     }
 
     [Fact]

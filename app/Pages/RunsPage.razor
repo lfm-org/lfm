@@ -99,7 +99,7 @@
                             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                                 <div class="run-detail-header">
                                     <div class="run-detail-heading">
-                                        <h2 class="run-detail-title">@selectedRun.InstanceName</h2>
+                                        <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
                                         @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
                                         {
                                             <p class="run-detail-description">@selectedRun.Description</p>
@@ -283,6 +283,11 @@
         TimeHorizon.Past => Loc["runs.horizon.past"],
         _ => Loc["runs.horizon.unknown"],
     };
+
+    // Mythic+ "any dungeon" runs carry no InstanceName; fall back to a
+    // localized label so the detail heading isn't missing.
+    private string RenderTitle(string? instanceName) =>
+        string.IsNullOrEmpty(instanceName) ? Loc["runs.anyDungeon"].Value : instanceName;
 
     // Upcoming horizons ascending (soonest first); Past descending (most
     // recent first); Unknown tail-end so unparseable rows remain visible.

@@ -13,7 +13,7 @@
         aria-pressed="@(IsSelected ? "true" : "false")"
         @onclick="HandleClick">
     <span class="run-list-item__header">
-        <span class="run-list-item__title">@Run.InstanceName</span>
+        <span class="run-list-item__title">@_title</span>
         <DifficultyPill Difficulty="@Run.Difficulty" />
     </span>
     <span class="run-list-item__meta">
@@ -51,6 +51,7 @@
     private string _isCurrentUserClass = "false";
     private bool _isMe;
     private RunRoleCounts _counts;
+    private string _title = "";
     private string _ariaLabel = "";
     private string _compositionAria = "";
 
@@ -61,7 +62,12 @@
         _isMe = RunVisualization.IsCurrentUserSignedUp(Run.RunCharacters);
         _isCurrentUserClass = _isMe ? "true" : "false";
         _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.Size);
-        _ariaLabel = Loc["runs.listItemAriaLabel", Run.InstanceName ?? "", FormatDate(Run.StartTime)].Value;
+        // Mythic+ "any dungeon" runs carry no InstanceName; fall back to a
+        // localized label so the list entry isn't missing a heading.
+        _title = string.IsNullOrEmpty(Run.InstanceName)
+            ? Loc["runs.anyDungeon"].Value
+            : Run.InstanceName;
+        _ariaLabel = Loc["runs.listItemAriaLabel", _title, FormatDate(Run.StartTime)].Value;
         _compositionAria = Loc["runs.compositionAria",
             _counts.Tank.Attending, _counts.Healer.Attending, _counts.Dps.Attending].Value;
     }

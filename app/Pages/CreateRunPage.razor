@@ -34,19 +34,6 @@
         <FluentCard>
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
 
-                @* ── Expansion selector ─────────────────────────────────── *@
-                <FluentSelect Id="expansion-select"
-                              Label="@Loc["createRun.expansion"]"
-                              TOption="string"
-                              Value="@_expansionId.ToString()"
-                              ValueChanged="@OnExpansionChanged"
-                              Disabled="@_submitting">
-                    @foreach (var exp in _expansions)
-                    {
-                        <FluentOption Value="@exp.Id.ToString()">@exp.Name</FluentOption>
-                    }
-                </FluentSelect>
-
                 @* ── Activity (Raid / Dungeon) ──────────────────────────── *@
                 <div>
                     <span id="createRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
@@ -239,6 +226,12 @@
 </FluentStack>
 
 @code {
+    // The instance list is scoped to Blizzard's "Current Season" journal
+    // expansion tier. The create-run form does not let the user pick an
+    // expansion — M+, raids, and non-M+ dungeons are all pulled from the
+    // currently-active rotation.
+    private const string CurrentSeasonExpansion = "Current Season";
+
     // ── Loaded data ────────────────────────────────────────────────────────
     private IReadOnlyList<ExpansionDto> _expansions = [];
     private IReadOnlyList<InstanceOption> _allInstances = [];
@@ -321,8 +314,7 @@
             try { _guild = await guildTask; }
             catch { _guild = null; }
 
-            // Default to the newest (= last in Blizzard's canonical order) expansion.
-            if (_expansions.Count > 0) _expansionId = _expansions[^1].Id;
+            _expansionId = ResolveCurrentSeasonId(_expansions);
 
             RebuildStaticOptions();
             RefreshDifficultyOptions();
@@ -342,19 +334,6 @@
     }
 
     // ── Event handlers ─────────────────────────────────────────────────────
-    private void OnExpansionChanged(string value)
-    {
-        if (int.TryParse(value, out var id))
-        {
-            _expansionId = id;
-            _instanceId = 0;
-            _difficulty = _activity == ActivityKind.Dungeon ? "MYTHIC_KEYSTONE" : "";
-            _size = _activity == ActivityKind.Dungeon ? 5 : 0;
-            _keystoneLevel = null;
-            RefreshDifficultyOptions();
-        }
-    }
-
     private void OnActivityChanged(ActivityKind value)
     {
         _activity = value;
@@ -439,6 +418,16 @@
             _visibility = "GUILD";
         else
             _visibility = "PUBLIC";
+    }
+
+    // Match the Blizzard "Current Season" tier by its canonical English name.
+    // Falls back to the highest-id expansion so the form still works on a
+    // stale manifest that predates the current rotation being ingested.
+    private static int ResolveCurrentSeasonId(IReadOnlyList<ExpansionDto> expansions)
+    {
+        var current = expansions.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
+        if (current is not null) return current.Id;
+        return expansions.Count == 0 ? 0 : expansions.MaxBy(e => e.Id)!.Id;
     }
 
     // The native <input type="datetime-local"> binds wall-clock time with no

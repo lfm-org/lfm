@@ -109,6 +109,7 @@
     "runs.horizon.unknown": "Scheduled",
     "runs.showPast": "Show past runs ({0})",
     "runs.hidePast": "Hide past runs",
+    "runs.anyDungeon": "Any dungeon",
     "runs.refreshing": "Refreshing\u2026",
 
     "createRun.title": "Schedule a run",
