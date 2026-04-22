@@ -46,6 +46,9 @@ public class ReferenceSyncTests
     private static BlizzardPlayableSpecIndex MakeSpecIndex(params (int Id, string Name)[] entries) =>
         new(entries.Select(e => new BlizzardIndexEntry(e.Id, e.Name)).ToList());
 
+    private static BlizzardJournalExpansionIndex MakeExpansionIndex(params (int Id, string Name)[] entries) =>
+        new(entries.Select(e => new BlizzardIndexEntry(e.Id, e.Name)).ToList());
+
     private static BlizzardPlayableSpecDetail MakeSpecDetail(
         int id, string name, int classId, string roleType) =>
         new(
@@ -67,6 +70,8 @@ public class ReferenceSyncTests
             .ReturnsAsync(MakeJournalIndex());
         blizzard.Setup(b => b.GetPlayableSpecIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeSpecIndex());
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex());
 
         var blobs = new Mock<IBlobReferenceClient>();
         var logger = new TestLogger<ReferenceSync>();
@@ -297,6 +302,67 @@ public class ReferenceSyncTests
             "reference/journal-instance/index.json",
             It.Is<List<InstanceIndexEntry>>(ix => ix.Single().Id == 10),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ── Role mapping ────────────────────────────────────────────────────────
+
+    // ── Expansion sync ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SyncExpansionsAsync_uploads_manifest_in_blizzard_order()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex(
+                (68, "Classic"),
+                (67, "The Burning Crusade"),
+                (505, "The War Within")));
+
+        var response = await sut.SyncAllAsync(CancellationToken.None);
+
+        var expansionsResult = response.Results.Single(r => r.Name == "expansions");
+        Assert.Equal("synced (3 docs)", expansionsResult.Status);
+
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-expansion/index.json",
+            It.Is<List<ExpansionIndexEntry>>(ix =>
+                ix.Count == 3 &&
+                ix[0].Id == 68 && ix[0].Name == "Classic" &&
+                ix[2].Id == 505 && ix[2].Name == "The War Within"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncExpansionsAsync_writes_empty_manifest_when_index_empty()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        // default setup already returns an empty expansion index
+
+        var response = await sut.SyncAllAsync(CancellationToken.None);
+
+        var expansionsResult = response.Results.Single(r => r.Name == "expansions");
+        Assert.Equal("synced (0 docs)", expansionsResult.Status);
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-expansion/index.json",
+            It.Is<List<ExpansionIndexEntry>>(ix => ix.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncAllAsync_records_failure_for_expansions_but_still_syncs_others()
+    {
+        var (sut, blizzard, _, logger) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("blizzard 503"));
+
+        var response = await sut.SyncAllAsync(CancellationToken.None);
+
+        var expansionsResult = response.Results.Single(r => r.Name == "expansions");
+        Assert.StartsWith("failed:", expansionsResult.Status);
+        // instances + specializations should still have succeeded (empty indexes)
+        Assert.StartsWith("synced", response.Results.Single(r => r.Name == "instances").Status);
+        Assert.StartsWith("synced", response.Results.Single(r => r.Name == "specializations").Status);
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error && (e.Message ?? "").Contains("expansions"));
     }
 
     // ── Role mapping ────────────────────────────────────────────────────────

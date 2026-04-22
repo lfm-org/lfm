@@ -58,6 +58,18 @@ public sealed class ReferenceSync(
             results.Add(new WowReferenceRefreshEntityResult("specializations", $"failed: {ex.Message}"));
         }
 
+        try
+        {
+            token ??= await gameData.GetClientCredentialsTokenAsync(ct);
+            var count = await SyncExpansionsAsync(token, ct);
+            results.Add(new WowReferenceRefreshEntityResult("expansions", $"synced ({count} docs)"));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to sync expansions");
+            results.Add(new WowReferenceRefreshEntityResult("expansions", $"failed: {ex.Message}"));
+        }
+
         return new WowReferenceRefreshResponse(results);
     }
 
@@ -182,6 +194,21 @@ public sealed class ReferenceSync(
         }
 
         await blobs.UploadAsync("reference/playable-specialization/index.json", manifest, ct);
+        return manifest.Count;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Expansion sync
+    // ---------------------------------------------------------------------------
+
+    private async Task<int> SyncExpansionsAsync(string token, CancellationToken ct)
+    {
+        var index = await gameData.GetJournalExpansionIndexAsync(token, ct);
+        var manifest = index.Tiers
+            .Select(t => new ExpansionIndexEntry(Id: t.Id, Name: t.Name))
+            .ToList();
+
+        await blobs.UploadAsync("reference/journal-expansion/index.json", manifest, ct);
         return manifest.Count;
     }
 
