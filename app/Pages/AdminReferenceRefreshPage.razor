@@ -37,6 +37,16 @@
                         }
                     </FluentStack>
 
+                    @if (_refreshing && _progressLabel is not null)
+                    {
+                        @*
+                            Live progress readout — updates on every NDJSON event
+                            streamed from the server. role=status + aria-live=polite
+                            announces changes without stealing focus.
+                        *@
+                        <FluentLabel role="status" aria-live="polite">@_progressLabel</FluentLabel>
+                    }
+
                     @if (_error is not null)
                     {
                         <FluentMessageBar Intent="MessageIntent.Error">
@@ -81,15 +91,18 @@
 @code {
     private bool _refreshing;
     private string? _error;
+    private string? _progressLabel;
     private WowReferenceRefreshResponse? _lastResult;
 
     private async Task RefreshAsync()
     {
         _refreshing = true;
         _error = null;
+        _progressLabel = null;
+        var progress = new Progress<WowReferenceRefreshProgress>(OnProgress);
         try
         {
-            _lastResult = await AdminClient.RefreshAsync(CancellationToken.None);
+            _lastResult = await AdminClient.RefreshAsync(CancellationToken.None, progress);
         }
         catch (Exception ex)
         {
@@ -102,7 +115,23 @@
         finally
         {
             _refreshing = false;
+            _progressLabel = null;
         }
+    }
+
+    private void OnProgress(WowReferenceRefreshProgress evt)
+    {
+        _progressLabel = evt.Phase switch
+        {
+            "start" => Loc["adminReference.progress.starting", evt.Entity],
+            "progress" when !string.IsNullOrEmpty(evt.Current)
+                => Loc["adminReference.progress.item", evt.Entity, evt.Processed, evt.Total, evt.Current],
+            "progress" => Loc["adminReference.progress.itemNoName", evt.Entity, evt.Processed, evt.Total],
+            _ => _progressLabel,
+        };
+        // Progress<T> dispatches via the captured SynchronizationContext (the
+        // Blazor render loop), so StateHasChanged is safe to call directly.
+        StateHasChanged();
     }
 
     /// <summary>

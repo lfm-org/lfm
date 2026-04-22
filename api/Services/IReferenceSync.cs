@@ -22,5 +22,13 @@ public interface IReferenceSync
     /// Fetches all entities from the Blizzard API and upserts them into Cosmos.
     /// Never throws; individual entity failures are reported in the returned results.
     /// </summary>
-    Task<WowReferenceRefreshResponse> SyncAllAsync(CancellationToken ct);
+    /// <param name="progress">Optional progress sink. When supplied, each entity's
+    /// sync emits a <c>start</c> event (total known from the Blizzard index), a
+    /// <c>progress</c> event per item (carrying the current-item name), and an
+    /// <c>end</c> event (carrying the final per-entity status string). Intended
+    /// for streaming the sync to the admin UI — see
+    /// <c>WowReferenceRefreshFunction</c>, which serialises the events as NDJSON.</param>
+    Task<WowReferenceRefreshResponse> SyncAllAsync(
+        CancellationToken ct,
+        IProgress<WowReferenceRefreshProgress>? progress = null);
 }

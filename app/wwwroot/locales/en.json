@@ -224,6 +224,9 @@
     "adminReference.columns.status": "Status",
     "adminReference.errorPrefix": "Refresh failed:",
     "adminReference.errorGeneric": "Refresh failed.",
+    "adminReference.progress.starting": "Starting {0}…",
+    "adminReference.progress.item": "{0} {1}/{2}: {3}",
+    "adminReference.progress.itemNoName": "{0} {1}/{2}",
 
     "instances.title": "Instances",
     "instances.tableAriaLabel": "Instances table",

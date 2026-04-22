@@ -29,61 +29,95 @@ public sealed class ReferenceSync(
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
     /// <inheritdoc/>
-    public async Task<WowReferenceRefreshResponse> SyncAllAsync(CancellationToken ct)
+    public async Task<WowReferenceRefreshResponse> SyncAllAsync(
+        CancellationToken ct,
+        IProgress<WowReferenceRefreshProgress>? progress = null)
     {
         var results = new List<WowReferenceRefreshEntityResult>();
         string? token = null;
 
-        try
-        {
-            token ??= await gameData.GetClientCredentialsTokenAsync(ct);
-            var count = await SyncInstancesAsync(token, ct);
-            results.Add(new WowReferenceRefreshEntityResult("instances", $"synced ({count} docs)"));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to sync instances");
-            results.Add(new WowReferenceRefreshEntityResult("instances", $"failed: {ex.Message}"));
-        }
+        await RunEntityAsync(
+            entity: "instances",
+            results: results,
+            run: async () =>
+            {
+                token ??= await gameData.GetClientCredentialsTokenAsync(ct);
+                var count = await SyncInstancesAsync(token, progress, ct);
+                return $"synced ({count} docs)";
+            },
+            progress: progress,
+            ct: ct);
 
-        try
-        {
-            token ??= await gameData.GetClientCredentialsTokenAsync(ct);
-            var count = await SyncSpecializationsAsync(token, ct);
-            results.Add(new WowReferenceRefreshEntityResult("specializations", $"synced ({count} docs)"));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to sync specializations");
-            results.Add(new WowReferenceRefreshEntityResult("specializations", $"failed: {ex.Message}"));
-        }
+        await RunEntityAsync(
+            entity: "specializations",
+            results: results,
+            run: async () =>
+            {
+                token ??= await gameData.GetClientCredentialsTokenAsync(ct);
+                var count = await SyncSpecializationsAsync(token, progress, ct);
+                return $"synced ({count} docs)";
+            },
+            progress: progress,
+            ct: ct);
 
-        try
-        {
-            token ??= await gameData.GetClientCredentialsTokenAsync(ct);
-            var count = await SyncExpansionsAsync(token, ct);
-            results.Add(new WowReferenceRefreshEntityResult("expansions", $"synced ({count} docs)"));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to sync expansions");
-            results.Add(new WowReferenceRefreshEntityResult("expansions", $"failed: {ex.Message}"));
-        }
+        await RunEntityAsync(
+            entity: "expansions",
+            results: results,
+            run: async () =>
+            {
+                token ??= await gameData.GetClientCredentialsTokenAsync(ct);
+                var count = await SyncExpansionsAsync(token, progress, ct);
+                return $"synced ({count} docs)";
+            },
+            progress: progress,
+            ct: ct);
 
         return new WowReferenceRefreshResponse(results);
+    }
+
+    private async Task RunEntityAsync(
+        string entity,
+        List<WowReferenceRefreshEntityResult> results,
+        Func<Task<string>> run,
+        IProgress<WowReferenceRefreshProgress>? progress,
+        CancellationToken ct)
+    {
+        string status;
+        try
+        {
+            status = await run();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to sync {Entity}", entity);
+            status = $"failed: {ex.Message}";
+        }
+        results.Add(new WowReferenceRefreshEntityResult(entity, status));
+        progress?.Report(new WowReferenceRefreshProgress(
+            Entity: entity, Phase: "end", Processed: 0, Total: 0, Current: null, Status: status));
     }
 
     // ---------------------------------------------------------------------------
     // Instance sync
     // ---------------------------------------------------------------------------
 
-    private async Task<int> SyncInstancesAsync(string token, CancellationToken ct)
+    private async Task<int> SyncInstancesAsync(
+        string token,
+        IProgress<WowReferenceRefreshProgress>? progress,
+        CancellationToken ct)
     {
         var index = await gameData.GetJournalInstanceIndexAsync(token, ct);
         var manifest = new List<InstanceIndexEntry>();
+        var total = index.Instances.Count;
+        var processed = 0;
+        progress?.Report(new WowReferenceRefreshProgress(
+            "instances", "start", Processed: 0, Total: total));
 
         foreach (var entry in index.Instances)
         {
+            processed++;
+            progress?.Report(new WowReferenceRefreshProgress(
+                "instances", "progress", processed, total, Current: entry.Name));
             var detail = await FetchWithRetryAsync(
                 () => gameData.GetJournalInstanceAsync(entry.Id, token, ct),
                 $"instance {entry.Id}",
@@ -156,13 +190,23 @@ public sealed class ReferenceSync(
     // Specialization sync
     // ---------------------------------------------------------------------------
 
-    private async Task<int> SyncSpecializationsAsync(string token, CancellationToken ct)
+    private async Task<int> SyncSpecializationsAsync(
+        string token,
+        IProgress<WowReferenceRefreshProgress>? progress,
+        CancellationToken ct)
     {
         var index = await gameData.GetPlayableSpecIndexAsync(token, ct);
         var manifest = new List<SpecializationIndexEntry>();
+        var total = index.CharacterSpecializations.Count;
+        var processed = 0;
+        progress?.Report(new WowReferenceRefreshProgress(
+            "specializations", "start", Processed: 0, Total: total));
 
         foreach (var entry in index.CharacterSpecializations)
         {
+            processed++;
+            progress?.Report(new WowReferenceRefreshProgress(
+                "specializations", "progress", processed, total, Current: entry.Name));
             var detail = await FetchWithRetryAsync(
                 () => gameData.GetPlayableSpecAsync(entry.Id, token, ct),
                 $"specialization {entry.Id}",
@@ -213,12 +257,25 @@ public sealed class ReferenceSync(
     // Expansion sync
     // ---------------------------------------------------------------------------
 
-    private async Task<int> SyncExpansionsAsync(string token, CancellationToken ct)
+    private async Task<int> SyncExpansionsAsync(
+        string token,
+        IProgress<WowReferenceRefreshProgress>? progress,
+        CancellationToken ct)
     {
         var index = await gameData.GetJournalExpansionIndexAsync(token, ct);
-        var manifest = index.Tiers
-            .Select(t => new ExpansionIndexEntry(Id: t.Id, Name: t.Name))
-            .ToList();
+        var total = index.Tiers.Count;
+        progress?.Report(new WowReferenceRefreshProgress(
+            "expansions", "start", Processed: 0, Total: total));
+
+        var manifest = new List<ExpansionIndexEntry>(total);
+        var processed = 0;
+        foreach (var t in index.Tiers)
+        {
+            processed++;
+            progress?.Report(new WowReferenceRefreshProgress(
+                "expansions", "progress", processed, total, Current: t.Name));
+            manifest.Add(new ExpansionIndexEntry(Id: t.Id, Name: t.Name));
+        }
 
         await blobs.UploadAsync("reference/journal-expansion/index.json", manifest, ct);
         return manifest.Count;
