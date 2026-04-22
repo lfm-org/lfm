@@ -36,6 +36,18 @@ builder.Services.AddHttpClient("api", client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<CredentialsHandler>();
 
+// Long-running admin operations. POST /api/wow/reference/refresh iterates
+// every Blizzard journal-instance + playable-specialization + journal-expansion
+// sequentially with ~80 rps rate-limiting — a cold-cache run takes minutes,
+// well past the 10 s default the regular "api" client uses. Shares the same
+// credentials handler; just relaxes the per-request ceiling.
+builder.Services.AddHttpClient("api-admin", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.Timeout = TimeSpan.FromMinutes(5);
+}).AddHttpMessageHandler<CredentialsHandler>();
+
 builder.Services.AddScoped<IInstancesClient, InstancesClient>();
 builder.Services.AddScoped<IExpansionsClient, ExpansionsClient>();
 builder.Services.AddScoped<IWowReferenceAdminClient, WowReferenceAdminClient>();
