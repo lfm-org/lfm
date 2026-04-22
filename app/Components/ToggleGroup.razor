@@ -1,0 +1,137 @@
+@*
+    Generic single-select segmented control.
+
+    Renders as an ARIA radiogroup — one <button role="radio"> per option with
+    roving tabindex and full arrow-key navigation. Used for the create-run
+    form's Activity, Difficulty, and Visibility pickers; designed to be the
+    canonical toggle-button-group for this codebase.
+
+    Why role="radio" rather than a div of aria-pressed toggle buttons:
+    the semantic is single-select and mutually-exclusive (exactly one option
+    is active at all times), which is what WAI-ARIA's radio group pattern
+    specifies. aria-pressed toggle buttons are for multi-select or
+    self-contained on/off actions.
+
+    CSS (ToggleGroup.razor.css):
+      - logical properties only (padding-inline, border-inline-*, flex
+        row flows with dir="rtl" without a row-reverse hack)
+      - flex-wrap:wrap + row-gap so long Finnish/German labels flow to a
+        second row instead of overflowing at 320 CSS px
+      - ≥2.75rem tap target (SC 2.5.5)
+      - selected state is background-color + border only, no font-weight
+        shift, so selection changes don't shift layout (CLS = 0)
+      - forced-colors: active falls back to ButtonText/Highlight so the
+        selection stays distinguishable under Windows High Contrast
+
+    Keyboard (WAI-ARIA Authoring Practices for radiogroup):
+      - Tab enters/leaves the group; only the selected button is tabbable
+      - ArrowRight / ArrowDown → next option (wraps; respects `dir`)
+      - ArrowLeft / ArrowUp → previous option (wraps)
+      - Home → first; End → last
+      - Space re-asserts the focused option (no-op when already selected)
+*@
+@typeparam TValue
+
+<div role="radiogroup"
+     aria-label="@AriaLabel"
+     aria-labelledby="@AriaLabelledBy"
+     class="toggle-group @Class"
+     @onkeydown="OnKeyDown">
+    @for (var i = 0; i < Options.Count; i++)
+    {
+        var idx = i;
+        var opt = Options[idx];
+        var isSelected = EqualityComparer<TValue>.Default.Equals(opt.Value, Value!);
+        <button type="button"
+                role="radio"
+                aria-checked="@(isSelected ? "true" : "false")"
+                tabindex="@(isSelected ? 0 : -1)"
+                disabled="@Disabled"
+                class="toggle-group__option"
+                data-selected="@(isSelected ? "true" : "false")"
+                @ref="_buttonRefs[idx]"
+                @onclick="@(() => SelectAsync(idx))">
+            @opt.Label
+        </button>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Ordered list of (value, label) pairs. Label is what the user sees;
+    /// Value is what <see cref="ValueChanged"/> emits on selection.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<(TValue Value, string Label)> Options { get; set; } = [];
+
+    /// <summary>Currently selected value. Use with <see cref="ValueChanged"/>.</summary>
+    [Parameter] public TValue? Value { get; set; }
+
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    /// <summary>Directly-rendered aria-label. Use when no visible label exists.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of a visible label element. Preferred over <see cref="AriaLabel"/>.</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private ElementReference[] _buttonRefs = [];
+
+    protected override void OnParametersSet()
+    {
+        if (_buttonRefs.Length != Options.Count)
+        {
+            _buttonRefs = new ElementReference[Options.Count];
+        }
+    }
+
+    private async Task SelectAsync(int index)
+    {
+        if (Disabled || index < 0 || index >= Options.Count) return;
+        var next = Options[index].Value;
+        if (EqualityComparer<TValue>.Default.Equals(next, Value!)) return;
+        await ValueChanged.InvokeAsync(next);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        if (Disabled || Options.Count == 0) return;
+
+        var current = CurrentIndex();
+        int? target = args.Key switch
+        {
+            "ArrowRight" or "ArrowDown" => (current + 1 + Options.Count) % Options.Count,
+            "ArrowLeft" or "ArrowUp" => (current - 1 + Options.Count) % Options.Count,
+            "Home" => 0,
+            "End" => Options.Count - 1,
+            " " or "Spacebar" => current, // Space re-asserts current — roving-tabindex semantics
+            _ => null,
+        };
+
+        if (target is null) return;
+
+        await SelectAsync(target.Value);
+
+        // Move focus to the newly-selected button so arrow keys keep working
+        // from there. Skip for Space-on-current (focus is already correct).
+        if (target.Value != current)
+        {
+            try { await _buttonRefs[target.Value].FocusAsync(); }
+            catch { /* element may not be in the DOM yet on first render */ }
+        }
+    }
+
+    private int CurrentIndex()
+    {
+        for (var i = 0; i < Options.Count; i++)
+        {
+            if (EqualityComparer<TValue>.Default.Equals(Options[i].Value, Value!))
+                return i;
+        }
+        return 0;
+    }
+}
