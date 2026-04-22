@@ -98,6 +98,11 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
             $"data/wow/media/playable-specialization/{specId}", accessToken, ct);
 
     /// <inheritdoc/>
+    public Task<BlizzardJournalExpansionIndex> GetJournalExpansionIndexAsync(string accessToken, CancellationToken ct)
+        => GetStaticJsonAsync<BlizzardJournalExpansionIndex>(
+            "data/wow/journal-expansion/index", accessToken, ct);
+
+    /// <inheritdoc/>
     public Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct)
         => GetStaticJsonAsync<BlizzardJournalInstanceIndex>(
             "data/wow/journal-instance/index", accessToken, ct);
