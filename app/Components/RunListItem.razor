@@ -14,7 +14,7 @@
         @onclick="HandleClick">
     <span class="run-list-item__header">
         <span class="run-list-item__title">@Run.InstanceName</span>
-        <DifficultyPill ModeKey="@Run.ModeKey" />
+        <DifficultyPill Difficulty="@Run.Difficulty" />
     </span>
     <span class="run-list-item__meta">
         <span class="run-list-item__date">@FormatDate(Run.StartTime)</span>
@@ -56,11 +56,11 @@
 
     protected override void OnParametersSet()
     {
-        _difficultyClass = RunVisualization.GetDifficultyClass(Run.ModeKey);
-        _kindClass = RunVisualization.GetKindClass(RunVisualization.GetKind(Run.ModeKey));
+        _difficultyClass = RunVisualization.GetDifficultyClass(Run.Difficulty);
+        _kindClass = RunVisualization.GetKindClass(RunVisualization.GetKind(Run.Size));
         _isMe = RunVisualization.IsCurrentUserSignedUp(Run.RunCharacters);
         _isCurrentUserClass = _isMe ? "true" : "false";
-        _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.ModeKey);
+        _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.Size);
         _ariaLabel = Loc["runs.listItemAriaLabel", Run.InstanceName ?? "", FormatDate(Run.StartTime)].Value;
         _compositionAria = Loc["runs.compositionAria",
             _counts.Tank.Attending, _counts.Healer.Attending, _counts.Dps.Attending].Value;
