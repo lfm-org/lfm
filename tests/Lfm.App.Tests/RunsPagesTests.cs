@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
 using Lfm.App.Services;
+using Lfm.Contracts.Expansions;
+using Lfm.Contracts.Guild;
 using Lfm.Contracts.Instances;
 using Lfm.Contracts.Runs;
 using Xunit;
@@ -298,15 +300,38 @@ public class RunsPagesTests : ComponentTestBase
 
     // ── CreateRunPage ────────────────────────────────────────────────────────
 
+    private void WireCreateRunServices(
+        IReadOnlyList<InstanceDto>? instances = null,
+        IReadOnlyList<ExpansionDto>? expansions = null,
+        GuildDto? guild = null,
+        TaskCompletionSource<IReadOnlyList<InstanceDto>>? instancesPending = null)
+    {
+        var instancesClient = new Mock<IInstancesClient>();
+        if (instancesPending is not null)
+            instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+                .Returns(instancesPending.Task);
+        else
+            instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(instances ?? []);
+        Services.AddSingleton(instancesClient.Object);
+
+        var expansionsClient = new Mock<IExpansionsClient>();
+        expansionsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expansions ?? [new ExpansionDto(505, "The War Within")]);
+        Services.AddSingleton(expansionsClient.Object);
+
+        var guildClient = new Mock<IGuildClient>();
+        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guild);
+        Services.AddSingleton(guildClient.Object);
+
+        Services.AddSingleton(new Mock<IRunsClient>().Object);
+    }
+
     [Fact]
     public void CreateRunPage_Renders_Loading_Ring_On_Mount()
     {
-        var instancesClient = new Mock<IInstancesClient>();
-        var runsClient = new Mock<IRunsClient>();
-        var tcs = new TaskCompletionSource<IReadOnlyList<InstanceDto>>();
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>())).Returns(tcs.Task);
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireCreateRunServices(instancesPending: new TaskCompletionSource<IReadOnlyList<InstanceDto>>());
 
         var cut = Render<CreateRunPage>();
 
@@ -314,14 +339,13 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void CreateRunPage_Renders_Form_After_Instances_Load()
+    public void CreateRunPage_Renders_Form_After_Load()
     {
-        var instancesClient = new Mock<IInstancesClient>();
-        var runsClient = new Mock<IRunsClient>();
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto> { new("1:raid", 1, "Liberation of Undermine", "raid", "tww") });
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireCreateRunServices(instances: new List<InstanceDto>
+        {
+            new("1:MYTHIC_KEYSTONE:5", 1, "Ara-Kara", "MYTHIC_KEYSTONE:5",
+                "The War Within", "DUNGEON", 505, "MYTHIC_KEYSTONE", 5),
+        });
 
         var cut = Render<CreateRunPage>();
 
@@ -332,12 +356,7 @@ public class RunsPagesTests : ComponentTestBase
     [Fact]
     public void CreateRunPage_Renders_Create_Button()
     {
-        var instancesClient = new Mock<IInstancesClient>();
-        var runsClient = new Mock<IRunsClient>();
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto>());
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireCreateRunServices();
 
         var cut = Render<CreateRunPage>();
 
