@@ -37,6 +37,7 @@ builder.Services.AddHttpClient("api", client =>
 }).AddHttpMessageHandler<CredentialsHandler>();
 
 builder.Services.AddScoped<IInstancesClient, InstancesClient>();
+builder.Services.AddScoped<IExpansionsClient, ExpansionsClient>();
 builder.Services.AddScoped<IMeClient, MeClient>();
 builder.Services.AddScoped<IGuildClient, GuildClient>();
 builder.Services.AddScoped<IRunsClient, RunsClient>();
