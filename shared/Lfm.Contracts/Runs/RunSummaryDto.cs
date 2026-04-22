@@ -11,11 +11,12 @@ namespace Lfm.Contracts.Runs;
 ///
 /// <para>
 /// <b>Mode fields.</b> <see cref="Difficulty"/>, <see cref="Size"/>, and
-/// <see cref="KeystoneLevel"/> are the typed fields consumers should prefer;
-/// <see cref="ModeKey"/> is the legacy composite kept for one cycle during
-/// the schema migration. <see cref="InstanceId"/> and <see cref="InstanceName"/>
-/// are nullable because a Mythic+ "any dungeon" session has no specific
-/// instance.
+/// <see cref="KeystoneLevel"/> are the canonical typed fields. The legacy
+/// <c>ModeKey</c> composite was dropped from the wire — the server's
+/// <c>RunModeResolver</c> still resolves it internally for Cosmos documents
+/// predating the typed-fields migration, but clients only see the typed
+/// fields. <see cref="InstanceId"/> and <see cref="InstanceName"/> are
+/// nullable because a Mythic+ "any dungeon" session has no specific instance.
 /// </para>
 /// </summary>
 public sealed record RunSummaryDto(
@@ -23,12 +24,11 @@ public sealed record RunSummaryDto(
     string StartTime,
     string SignupCloseTime,
     string Description,
-    string ModeKey,
     string Visibility,
     string CreatorGuild,
     int? InstanceId,
     string? InstanceName,
     IReadOnlyList<RunCharacterDto> RunCharacters,
-    string Difficulty = "",
-    int Size = 0,
+    string Difficulty,
+    int Size,
     int? KeystoneLevel = null);

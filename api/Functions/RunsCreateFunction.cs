@@ -131,15 +131,13 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             ? gid
             : null;
 
-        // Resolve the typed mode fields: prefer what the client sent, fall
-        // back to parsing the legacy ModeKey composite. Persist ModeKey too,
-        // deriving "{Difficulty}:{Size}" when the client only sent the new
-        // fields — keeps legacy readers on the write side happy for one
-        // migration cycle.
-        var (difficulty, size) = RunModeResolver.Resolve(body.Difficulty, body.Size ?? 0, body.ModeKey);
-        var modeKey = !string.IsNullOrWhiteSpace(body.ModeKey)
-            ? body.ModeKey!
-            : $"{difficulty}:{size}";
+        // The validator guarantees Difficulty + Size are populated; ModeKey
+        // is computed from them so the persisted RunDocument still satisfies
+        // any legacy reader on the read side (storage-only compatibility —
+        // the wire no longer carries ModeKey).
+        var difficulty = body.Difficulty!;
+        var size = body.Size!.Value;
+        var modeKey = $"{difficulty}:{size}";
 
         return new RunDocument(
             Id: id,
@@ -173,7 +171,6 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             StartTime: doc.StartTime,
             SignupCloseTime: doc.SignupCloseTime,
             Description: doc.Description,
-            ModeKey: doc.ModeKey,
             Visibility: doc.Visibility,
             CreatorGuild: doc.CreatorGuild,
             InstanceId: doc.InstanceId,

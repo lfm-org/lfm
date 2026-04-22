@@ -122,7 +122,8 @@ public class RunsCreateFunctionTests
             startTime = FutureStartTime,
             signupCloseTime = FutureSignupCloseTime,
             description = "Created run",
-            modeKey = "NORMAL:10",
+            difficulty = "NORMAL",
+            size = 10,
             visibility = "GUILD",
             instanceId = 631,
             instanceName = "Icecrown Citadel",
@@ -196,7 +197,8 @@ public class RunsCreateFunctionTests
         var requestBody = new
         {
             startTime = FutureStartTime,
-            modeKey = "NORMAL:10",
+            difficulty = "NORMAL",
+            size = 10,
             visibility = "GUILD",
             instanceId = 631,
         };
@@ -244,7 +246,8 @@ public class RunsCreateFunctionTests
             startTime = FutureStartTime,
             signupCloseTime = FutureSignupCloseTime,
             description = "Created run",
-            modeKey = "NORMAL:10",
+            difficulty = "NORMAL",
+            size = 10,
             visibility = "GUILD",
             instanceId = 631,
             instanceName = "Icecrown Citadel",

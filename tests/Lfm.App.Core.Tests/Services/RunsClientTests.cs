@@ -34,12 +34,13 @@ public class RunsClientTests
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            ModeKey: "heroic",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            RunCharacters: []);
+            RunCharacters: [],
+            Difficulty: "HEROIC",
+            Size: 25);
 
     private static RunDetailDto MakeDetail(string id = "run-1") =>
         new(
@@ -47,22 +48,24 @@ public class RunsClientTests
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            ModeKey: "heroic",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            RunCharacters: []);
+            RunCharacters: [],
+            Difficulty: "HEROIC",
+            Size: 25);
 
     private static CreateRunRequest MakeCreateRequest() =>
         new(
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "desc",
-            ModeKey: "heroic",
             Visibility: "PUBLIC",
             InstanceId: 1,
-            InstanceName: "Liberation of Undermine");
+            InstanceName: "Liberation of Undermine",
+            Difficulty: "HEROIC",
+            Size: 25);
 
     [Fact]
     public async Task ListAsync_deserializes_items_from_runs_list_response_envelope()
@@ -204,10 +207,11 @@ public class RunsClientTests
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "updated",
-            ModeKey: "heroic",
             Visibility: "PUBLIC",
             InstanceId: 1,
-            InstanceName: "Liberation of Undermine");
+            InstanceName: "Liberation of Undermine",
+            Difficulty: "HEROIC",
+            Size: 25);
 
         var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
 

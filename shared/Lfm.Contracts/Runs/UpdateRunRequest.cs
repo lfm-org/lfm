@@ -8,13 +8,11 @@ namespace Lfm.Contracts.Runs;
 /// <summary>
 /// Request body for PATCH/PUT /api/runs/{id}.
 /// All fields are optional; only supplied fields are applied to the existing run.
-/// Mirrors <c>UpdateRunBody</c> in <c>functions/src/functions/runs-update.ts</c>.
 /// </summary>
 public sealed record UpdateRunRequest(
     string? StartTime,
     string? SignupCloseTime,
     string? Description,
-    string? ModeKey,
     string? Visibility,
     int? InstanceId,
     string? InstanceName,
@@ -39,9 +37,6 @@ public sealed class UpdateRunRequestValidator : AbstractValidator<UpdateRunReque
 
         RuleFor(x => x.SignupCloseTime)
             .MaximumLength(64).WithMessage("signupCloseTime must be at most 64 characters");
-
-        RuleFor(x => x.ModeKey)
-            .MaximumLength(64).WithMessage("modeKey must be at most 64 characters");
 
         RuleFor(x => x.Difficulty)
             .Must(d => d is null || CreateRunRequestValidator.ValidDifficulties.Contains(d))

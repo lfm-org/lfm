@@ -25,12 +25,13 @@ public class RunsPageKeyboardTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "",
-            ModeKey: "MYTHIC",
             Visibility: "PUBLIC",
             CreatorGuild: "Test",
             InstanceId: 1,
             InstanceName: name,
-            RunCharacters: Array.Empty<RunCharacterDto>());
+            RunCharacters: Array.Empty<RunCharacterDto>(),
+            Difficulty: "MYTHIC",
+            Size: 20);
 
     [Fact]
     public void RunsPage_Run_List_Item_Is_A_Button()

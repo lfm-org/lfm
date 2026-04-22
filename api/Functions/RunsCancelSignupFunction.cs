@@ -115,7 +115,6 @@ public class RunsCancelSignupFunction(
             StartTime: run.StartTime,
             SignupCloseTime: run.SignupCloseTime,
             Description: run.Description,
-            ModeKey: run.ModeKey,
             Visibility: run.Visibility,
             CreatorGuild: run.CreatorGuild,
             InstanceId: run.InstanceId,

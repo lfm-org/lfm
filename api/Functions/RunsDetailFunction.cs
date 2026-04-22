@@ -81,7 +81,6 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
             StartTime: run.StartTime,
             SignupCloseTime: run.SignupCloseTime,
             Description: run.Description,
-            ModeKey: run.ModeKey,
             Visibility: run.Visibility,
             CreatorGuild: run.CreatorGuild,
             InstanceId: run.InstanceId,

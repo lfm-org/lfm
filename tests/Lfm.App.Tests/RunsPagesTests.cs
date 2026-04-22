@@ -31,7 +31,6 @@ public class RunsPagesTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            ModeKey: "HEROIC:25",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
@@ -46,7 +45,6 @@ public class RunsPagesTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            ModeKey: "HEROIC:25",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
@@ -261,7 +259,7 @@ public class RunsPagesTests : ComponentTestBase
         // Standard composition target for 25-man is 2T / 5H / 18D, so the
         // rendered composition summary is "T 0/2 · H 0/5 · D 2/18" with the
         // tank + healer slots carrying the shortage modifier class.
-        var summary = MakeSummary() with { Difficulty = "MYTHIC", Size = 25, ModeKey = "MYTHIC:25" };
+        var summary = MakeSummary() with { Difficulty = "MYTHIC", Size = 25 };
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunSummaryDto>
             {
