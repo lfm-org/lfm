@@ -44,12 +44,18 @@ public class RunsPagesTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            ModeKey: "heroic",
+            ModeKey: "HEROIC:25",
             Visibility: "PUBLIC",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
-            RunCharacters: []);
+            RunCharacters: [],
+            Difficulty: "HEROIC",
+            Size: 25);
+
+    private static InstanceDto MakeInstanceFixture() =>
+        new("1:HEROIC:25", 1, "Liberation of Undermine", "HEROIC:25",
+            "The War Within", "RAID", 505, "HEROIC", 25);
 
     // ── RunsPage ─────────────────────────────────────────────────────────────
 
@@ -366,17 +372,36 @@ public class RunsPagesTests : ComponentTestBase
 
     // ── EditRunPage ──────────────────────────────────────────────────────────
 
+    private Mock<IRunsClient> WireEditRunServices(
+        Mock<IRunsClient>? runsClient = null,
+        IReadOnlyList<InstanceDto>? instances = null,
+        IReadOnlyList<ExpansionDto>? expansions = null,
+        GuildDto? guild = null)
+    {
+        runsClient ??= new Mock<IRunsClient>();
+        var instancesClient = new Mock<IInstancesClient>();
+        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(instances ?? [MakeInstanceFixture()]);
+        var expansionsClient = new Mock<IExpansionsClient>();
+        expansionsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expansions ?? [new ExpansionDto(505, "The War Within")]);
+        var guildClient = new Mock<IGuildClient>();
+        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(guild);
+
+        Services.AddSingleton(instancesClient.Object);
+        Services.AddSingleton(expansionsClient.Object);
+        Services.AddSingleton(guildClient.Object);
+        Services.AddSingleton(runsClient.Object);
+        return runsClient;
+    }
+
     [Fact]
     public void EditRunPage_Renders_Loading_Ring_On_Mount()
     {
-        var instancesClient = new Mock<IInstancesClient>();
         var runsClient = new Mock<IRunsClient>();
         var tcs = new TaskCompletionSource<RunDetailDto?>();
         runsClient.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(tcs.Task);
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto>());
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireEditRunServices(runsClient);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
@@ -386,14 +411,10 @@ public class RunsPagesTests : ComponentTestBase
     [Fact]
     public void EditRunPage_Renders_Form_After_Run_Loads()
     {
-        var instancesClient = new Mock<IInstancesClient>();
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetail());
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto> { new("1:raid", 1, "Liberation of Undermine", "raid", "tww") });
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireEditRunServices(runsClient);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
@@ -404,14 +425,10 @@ public class RunsPagesTests : ComponentTestBase
     [Fact]
     public void EditRunPage_Shows_Error_When_Run_Not_Found()
     {
-        var instancesClient = new Mock<IInstancesClient>();
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((RunDetailDto?)null);
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto>());
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireEditRunServices(runsClient, instances: []);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
 
@@ -430,10 +447,6 @@ public class RunsPagesTests : ComponentTestBase
         const string OriginalStart = "2026-05-20T15:30:45.1234567Z";
         const string OriginalSignup = "2026-05-20T15:00:45.1234567Z";
 
-        var instancesClient = new Mock<IInstancesClient>();
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<InstanceDto> { new("1:raid", 1, "Liberation of Undermine", "raid", "tww") });
-
         UpdateRunRequest? captured = null;
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
@@ -441,9 +454,7 @@ public class RunsPagesTests : ComponentTestBase
         runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), It.IsAny<CancellationToken>()))
             .Callback<string, UpdateRunRequest, CancellationToken>((_, req, _) => captured = req)
             .ReturnsAsync((RunDetailDto?)null);
-
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireEditRunServices(runsClient);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
 
@@ -466,14 +477,10 @@ public class RunsPagesTests : ComponentTestBase
     [Fact]
     public void EditRunPage_Delete_Button_Opens_Native_Dialog_Via_Interop()
     {
-        var instancesClient = new Mock<IInstancesClient>();
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetail());
-        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<InstanceDto>());
-        Services.AddSingleton(instancesClient.Object);
-        Services.AddSingleton(runsClient.Object);
+        WireEditRunServices(runsClient, instances: []);
 
         var dialogModule = JSInterop.SetupModule("./js/dialog.js");
 
