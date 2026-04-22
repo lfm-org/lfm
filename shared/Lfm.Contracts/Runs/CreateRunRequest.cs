@@ -7,19 +7,16 @@ namespace Lfm.Contracts.Runs;
 
 /// <summary>
 /// Request body for POST /api/runs.
-/// Mirrors the Zod <c>createRunSchema</c> in
-/// <c>functions/src/functions/runs-create.ts</c>.
 /// </summary>
 public sealed record CreateRunRequest(
     string? StartTime,
     string? SignupCloseTime,
     string? Description,
-    string? ModeKey,
     string? Visibility,
     int? InstanceId,
     string? InstanceName,
-    string? Difficulty = null,
-    int? Size = null,
+    string? Difficulty,
+    int? Size,
     int? KeystoneLevel = null);
 
 public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunRequest>
@@ -44,27 +41,21 @@ public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunReque
         RuleFor(x => x.SignupCloseTime)
             .MaximumLength(64).WithMessage("signupCloseTime must be at most 64 characters");
 
-        // Accept either the legacy ModeKey (for pre-PR-5 clients) or the new
-        // structured Difficulty + Size — at least one must be present.
-        RuleFor(x => x)
-            .Must(x => !string.IsNullOrWhiteSpace(x.ModeKey)
-                      || (!string.IsNullOrEmpty(x.Difficulty) && x.Size is > 0))
-            .WithMessage("modeKey or (difficulty + size) is required");
-
-        RuleFor(x => x.ModeKey)
-            .MaximumLength(64).WithMessage("modeKey must be at most 64 characters");
-
+        RuleFor(x => x.Difficulty)
+            .NotEmpty().WithMessage("difficulty is required");
         RuleFor(x => x.Difficulty)
             .Must(d => d is null || ValidDifficulties.Contains(d))
             .WithMessage("difficulty must be one of LFR, NORMAL, HEROIC, MYTHIC, MYTHIC_KEYSTONE");
 
+        RuleFor(x => x.Size)
+            .NotNull().WithMessage("size is required");
         RuleFor(x => x.Size)
             .InclusiveBetween(1, 40).When(x => x.Size.HasValue)
             .WithMessage("size must be between 1 and 40");
 
         RuleFor(x => x.Visibility)
             .NotEmpty().WithMessage("visibility is required")
-            .Must(v => v is not null && ValidVisibilities.Contains(v))
+            .Must(v => v is null || ValidVisibilities.Contains(v))
             .WithMessage("visibility must be PUBLIC or GUILD");
 
         // InstanceId is required unless the run is a Mythic+ session — M+

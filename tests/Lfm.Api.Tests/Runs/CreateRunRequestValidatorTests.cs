@@ -7,8 +7,8 @@ using Xunit;
 namespace Lfm.Api.Tests.Runs;
 
 /// <summary>
-/// Pins the new Mythic+ validation rules added in PR 5:
-///   - Legacy ModeKey or the new (Difficulty, Size) pair must be present.
+/// Pins the Mythic+ validation rules on the create-run payload:
+///   - Difficulty + Size are both required.
 ///   - InstanceId is required unless Difficulty == MYTHIC_KEYSTONE.
 ///   - KeystoneLevel is only valid on Mythic+ and must be present when the
 ///     run is dungeon-less.
@@ -22,7 +22,6 @@ public class CreateRunRequestValidatorTests
         new(StartTime: ValidStart,
             SignupCloseTime: null,
             Description: null,
-            ModeKey: null,
             Visibility: "PUBLIC",
             InstanceId: 1200,
             InstanceName: "Liberation of Undermine",
@@ -31,26 +30,26 @@ public class CreateRunRequestValidatorTests
             KeystoneLevel: null);
 
     [Fact]
-    public void Accepts_structured_Difficulty_Size_without_ModeKey()
+    public void Accepts_structured_Difficulty_Size()
     {
         var result = Sut.Validate(Valid());
         Assert.True(result.IsValid, string.Join("; ", result.Errors.Select(e => e.ErrorMessage)));
     }
 
     [Fact]
-    public void Accepts_legacy_ModeKey_without_structured_fields()
+    public void Rejects_missing_Difficulty()
     {
-        var req = Valid() with { ModeKey = "HEROIC:25", Difficulty = null, Size = null };
+        var req = Valid() with { Difficulty = null };
         var result = Sut.Validate(req);
-        Assert.True(result.IsValid, string.Join("; ", result.Errors.Select(e => e.ErrorMessage)));
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("difficulty is required"));
     }
 
     [Fact]
-    public void Rejects_when_both_ModeKey_and_structured_fields_missing()
+    public void Rejects_missing_Size()
     {
-        var req = Valid() with { ModeKey = null, Difficulty = null, Size = null };
+        var req = Valid() with { Size = null };
         var result = Sut.Validate(req);
-        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("modeKey or (difficulty + size) is required"));
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("size is required"));
     }
 
     [Fact]
