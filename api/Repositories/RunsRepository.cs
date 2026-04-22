@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
+using Lfm.Api.Helpers;
 using Lfm.Api.Options;
 
 namespace Lfm.Api.Repositories;
@@ -172,6 +173,37 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                     cancellationToken: ct);
             }
         }
+    }
+
+    public async Task<RunMigrationResult> MigrateSchemaAsync(bool dryRun, CancellationToken ct)
+    {
+        // Iterate every run document. The set is small (hobby scale), and
+        // unlike ScrubRaiderAsync we don't have a cheap WHERE predicate —
+        // every legacy doc needs inspection.
+        var feedIterator = _container.GetItemQueryIterator<RunDocument>("SELECT * FROM c");
+
+        var scanned = 0;
+        var migrated = 0;
+        while (feedIterator.HasMoreResults)
+        {
+            var page = await feedIterator.ReadNextAsync(ct);
+            foreach (var run in page)
+            {
+                scanned++;
+                var populated = RunModeResolver.EnsurePopulated(run);
+                if (ReferenceEquals(populated, run)) continue;
+                migrated++;
+                if (!dryRun)
+                {
+                    await _container.ReplaceItemAsync(
+                        populated,
+                        run.Id,
+                        new PartitionKey(run.Id),
+                        cancellationToken: ct);
+                }
+            }
+        }
+        return new RunMigrationResult(scanned, migrated, dryRun);
     }
 
     /// <summary>
