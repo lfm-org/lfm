@@ -44,9 +44,15 @@ public class InstancesRepositoryTests
                 new(
                     Id: 1200,
                     Name: "Liberation of Undermine",
-                    Modes: new[] { new InstanceIndexMode("NORMAL:25"), new InstanceIndexMode("HEROIC:25") },
+                    Modes: new[]
+                    {
+                        new InstanceIndexMode("NORMAL:25", "NORMAL", 25),
+                        new InstanceIndexMode("HEROIC:25", "HEROIC", 25),
+                    },
                     Expansion: "The War Within",
-                    PortraitUrl: "https://render.worldofwarcraft.com/tile.jpg"),
+                    PortraitUrl: "https://render.worldofwarcraft.com/tile.jpg",
+                    Category: "RAID",
+                    ExpansionId: 505),
             });
         var repo = new InstancesRepository(blobs.Object);
 
@@ -60,6 +66,10 @@ public class InstancesRepositoryTests
                 Assert.Equal("Liberation of Undermine", r.Name);
                 Assert.Equal("NORMAL:25", r.ModeKey);
                 Assert.Equal("The War Within", r.Expansion);
+                Assert.Equal("RAID", r.Category);
+                Assert.Equal(505, r.ExpansionId);
+                Assert.Equal("NORMAL", r.Difficulty);
+                Assert.Equal(25, r.Size);
                 Assert.Equal("https://render.worldofwarcraft.com/tile.jpg", r.PortraitUrl);
             },
             r =>
@@ -67,11 +77,43 @@ public class InstancesRepositoryTests
                 Assert.Equal("1200:HEROIC:25", r.Id);
                 Assert.Equal(1200, r.InstanceNumericId);
                 Assert.Equal("HEROIC:25", r.ModeKey);
+                Assert.Equal("HEROIC", r.Difficulty);
+                Assert.Equal(25, r.Size);
                 Assert.Equal("https://render.worldofwarcraft.com/tile.jpg", r.PortraitUrl);
             });
 
         blobs.Verify(b => b.ListAsync<JournalInstanceBlob>(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task ListAsync_parses_legacy_manifest_without_structured_mode_fields()
+    {
+        // Pre-PR-3 manifests only carried ModeKey. The reader splits the
+        // composite to populate Difficulty + Size so consumers can switch to
+        // the new fields immediately — the manifest converges on the next
+        // re-ingest.
+        var blobs = new Mock<IBlobReferenceClient>();
+        blobs.Setup(b => b.GetAsync<List<InstanceIndexEntry>>(
+                "reference/journal-instance/index.json", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceIndexEntry>
+            {
+                new(
+                    Id: 1200,
+                    Name: "Legacy",
+                    Modes: new[] { new InstanceIndexMode("MYTHIC:20") },
+                    Expansion: "X",
+                    PortraitUrl: null),
+            });
+        var repo = new InstancesRepository(blobs.Object);
+
+        var row = Assert.Single(await repo.ListAsync(CancellationToken.None));
+
+        Assert.Equal("MYTHIC:20", row.ModeKey);
+        Assert.Equal("MYTHIC", row.Difficulty);
+        Assert.Equal(20, row.Size);
+        Assert.Null(row.Category);
+        Assert.Null(row.ExpansionId);
     }
 
     [Fact]
@@ -109,11 +151,12 @@ public class InstancesRepositoryTests
             .Returns(AsAsync(new JournalInstanceBlob(
                 Id: 67,
                 Name: "The Stonecore",
-                Expansion: new JournalInstanceExpansionBlob("Cataclysm"),
+                Expansion: new JournalInstanceExpansionBlob("Cataclysm", 3),
                 Modes: new[]
                 {
                     new JournalInstanceModeBlob(new JournalModeRefBlob("NORMAL"), 5),
-                })));
+                },
+                Category: new JournalInstanceCategoryBlob("DUNGEON"))));
 
         blobs.Setup(b => b.GetAsync<MediaAssetsBlob>(
                 "reference/journal-instance-media/67.json", It.IsAny<CancellationToken>()))
@@ -131,6 +174,10 @@ public class InstancesRepositoryTests
         Assert.Equal(67, row.InstanceNumericId);
         Assert.Equal("The Stonecore", row.Name);
         Assert.Equal("Cataclysm", row.Expansion);
+        Assert.Equal("DUNGEON", row.Category);
+        Assert.Equal(3, row.ExpansionId);
+        Assert.Equal("NORMAL", row.Difficulty);
+        Assert.Equal(5, row.Size);
         Assert.Equal("https://render.worldofwarcraft.com/stonecore-tile.jpg", row.PortraitUrl);
     }
 
