@@ -29,6 +29,24 @@ public sealed record RunCharacterEntry(
     [property: JsonConverter(typeof(LocalizedStringConverter))] string? SpecName,
     string? Role);
 
+/// <summary>
+/// Run document in the Cosmos "runs" container. Partition key: /id.
+///
+/// <para>
+/// <b>Mode schema.</b> <see cref="Difficulty"/> + <see cref="Size"/> + <see cref="KeystoneLevel"/>
+/// are the canonical typed mode fields; <see cref="ModeKey"/> is the legacy
+/// composite (<c>"{Difficulty}:{Size}"</c>) retained for one cycle for
+/// cross-compatibility while the migration populates the new fields on
+/// existing Cosmos documents. New writes populate both; consumers prefer
+/// the typed fields and fall back to parsing <see cref="ModeKey"/> when
+/// the new fields are empty.
+/// </para>
+/// <para>
+/// <b>Instance id/name.</b> Both are nullable: a Mythic+ "any dungeon"
+/// session has no specific instance. All other run kinds require an
+/// instance, which validators enforce on the request DTOs.
+/// </para>
+/// </summary>
 public sealed record RunDocument(
     string Id,
     string StartTime,
@@ -38,12 +56,15 @@ public sealed record RunDocument(
     string Visibility,
     string CreatorGuild,
     int? CreatorGuildId,
-    int InstanceId,
-    [property: JsonConverter(typeof(LocalizedStringConverter))] string InstanceName,
+    int? InstanceId,
+    [property: JsonConverter(typeof(LocalizedStringConverter))] string? InstanceName,
     string? CreatorBattleNetId,
     string CreatedAt,
     int Ttl,
     IReadOnlyList<RunCharacterEntry> RunCharacters,
+    string Difficulty = "",
+    int Size = 0,
+    int? KeystoneLevel = null,
     [property: System.Text.Json.Serialization.JsonPropertyName("_etag")] string? ETag = null);
 
 /// <summary>

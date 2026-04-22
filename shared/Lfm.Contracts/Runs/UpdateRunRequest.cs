@@ -17,7 +17,10 @@ public sealed record UpdateRunRequest(
     string? ModeKey,
     string? Visibility,
     int? InstanceId,
-    string? InstanceName);
+    string? InstanceName,
+    string? Difficulty = null,
+    int? Size = null,
+    int? KeystoneLevel = null);
 
 public sealed class UpdateRunRequestValidator : AbstractValidator<UpdateRunRequest>
 {
@@ -39,6 +42,18 @@ public sealed class UpdateRunRequestValidator : AbstractValidator<UpdateRunReque
 
         RuleFor(x => x.ModeKey)
             .MaximumLength(64).WithMessage("modeKey must be at most 64 characters");
+
+        RuleFor(x => x.Difficulty)
+            .Must(d => d is null || CreateRunRequestValidator.ValidDifficulties.Contains(d))
+            .WithMessage("difficulty must be one of LFR, NORMAL, HEROIC, MYTHIC, MYTHIC_KEYSTONE");
+
+        RuleFor(x => x.Size)
+            .InclusiveBetween(1, 40).When(x => x.Size.HasValue)
+            .WithMessage("size must be between 1 and 40");
+
+        RuleFor(x => x.KeystoneLevel)
+            .InclusiveBetween(2, 30).When(x => x.KeystoneLevel.HasValue)
+            .WithMessage("keystoneLevel must be between 2 and 30");
 
         RuleFor(x => x.InstanceName)
             .MaximumLength(128).WithMessage("instanceName must be at most 128 characters");
