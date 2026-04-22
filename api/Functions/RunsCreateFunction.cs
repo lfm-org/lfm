@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -130,29 +131,44 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             ? gid
             : null;
 
+        // Resolve the typed mode fields: prefer what the client sent, fall
+        // back to parsing the legacy ModeKey composite. Persist ModeKey too,
+        // deriving "{Difficulty}:{Size}" when the client only sent the new
+        // fields — keeps legacy readers on the write side happy for one
+        // migration cycle.
+        var (difficulty, size) = RunModeResolver.Resolve(body.Difficulty, body.Size ?? 0, body.ModeKey);
+        var modeKey = !string.IsNullOrWhiteSpace(body.ModeKey)
+            ? body.ModeKey!
+            : $"{difficulty}:{size}";
+
         return new RunDocument(
             Id: id,
             StartTime: body.StartTime!,
             SignupCloseTime: body.SignupCloseTime ?? "",
             Description: body.Description ?? "",
-            ModeKey: body.ModeKey!,
+            ModeKey: modeKey,
             Visibility: body.Visibility!,
             CreatorGuild: guildName ?? "",
             CreatorGuildId: creatorGuildId,
-            InstanceId: body.InstanceId!.Value,
-            InstanceName: body.InstanceName ?? "",
+            InstanceId: body.InstanceId,
+            InstanceName: body.InstanceName,
             CreatorBattleNetId: principal.BattleNetId,
             CreatedAt: createdAt,
             Ttl: ttl,
-            RunCharacters: []);
+            RunCharacters: [],
+            Difficulty: difficulty,
+            Size: size,
+            KeystoneLevel: body.KeystoneLevel);
     }
 
     // ------------------------------------------------------------------
     // Mapping helper — projects the stored RunDocument to its wire DTO.
     // ------------------------------------------------------------------
 
-    private static RunDetailDto MapToDto(RunDocument doc) =>
-        new(
+    private static RunDetailDto MapToDto(RunDocument doc)
+    {
+        var (difficulty, size) = RunModeResolver.Resolve(doc.Difficulty, doc.Size, doc.ModeKey);
+        return new RunDetailDto(
             Id: doc.Id,
             StartTime: doc.StartTime,
             SignupCloseTime: doc.SignupCloseTime,
@@ -162,5 +178,9 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             CreatorGuild: doc.CreatorGuild,
             InstanceId: doc.InstanceId,
             InstanceName: doc.InstanceName,
-            RunCharacters: []);
+            RunCharacters: [],
+            Difficulty: difficulty,
+            Size: size,
+            KeystoneLevel: doc.KeystoneLevel);
+    }
 }
