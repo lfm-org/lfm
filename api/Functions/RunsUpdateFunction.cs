@@ -157,20 +157,37 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         // 7. Resolve effective instanceId + modeKey and look up the instance name.
         var effectiveInstanceId = body.InstanceId ?? existing.InstanceId;
         var effectiveModeKey = body.ModeKey ?? existing.ModeKey;
+        var (effectiveDifficulty, effectiveSize) = RunModeResolver.Resolve(
+            body.Difficulty ?? existing.Difficulty,
+            body.Size ?? existing.Size,
+            effectiveModeKey);
+        var effectiveKeystoneLevel = body.KeystoneLevel ?? existing.KeystoneLevel;
 
         // Load instances to validate the (instanceId, modeKey) combination and obtain
         // the canonical instance name. Each InstanceDto row in the container represents
         // one (instance, mode) pair: InstanceNumericId == Blizzard instance id,
         // ModeKey == "TYPE:players". Id is a composite "{instanceId}:{modeKey}" —
         // never parse it as an int (see InstanceDto doc-comment).
-        var instances = await instancesRepo.ListAsync(ct);
-        if (instances.Count == 0)
-            return new ObjectResult(new { error = "Instance data not available" }) { StatusCode = 503 };
+        //
+        // A dungeon-agnostic Mythic+ run (effectiveInstanceId is null) skips
+        // this validation — there is no specific instance to match.
+        string? effectiveInstanceName = existing.InstanceName;
+        if (effectiveInstanceId.HasValue)
+        {
+            var instances = await instancesRepo.ListAsync(ct);
+            if (instances.Count == 0)
+                return new ObjectResult(new { error = "Instance data not available" }) { StatusCode = 503 };
 
-        var matchedInstance = instances.FirstOrDefault(
-            i => i.InstanceNumericId == effectiveInstanceId && i.ModeKey == effectiveModeKey);
-        if (matchedInstance is null)
-            return new BadRequestObjectResult(new { error = "Invalid modeKey for instance" });
+            var matchedInstance = instances.FirstOrDefault(
+                i => i.InstanceNumericId == effectiveInstanceId.Value && i.ModeKey == effectiveModeKey);
+            if (matchedInstance is null)
+                return new BadRequestObjectResult(new { error = "Invalid modeKey for instance" });
+            effectiveInstanceName = matchedInstance.Name;
+        }
+        else
+        {
+            effectiveInstanceName = null;
+        }
 
         // 8. Apply changes — mirrors applyRunUpdate in runs-update.ts.
         var updated = existing with
@@ -179,9 +196,12 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             SignupCloseTime = body.SignupCloseTime ?? existing.SignupCloseTime,
             Description = body.Description ?? existing.Description,
             ModeKey = effectiveModeKey,
+            Difficulty = effectiveDifficulty,
+            Size = effectiveSize,
+            KeystoneLevel = effectiveKeystoneLevel,
             Visibility = body.Visibility ?? existing.Visibility,
             InstanceId = effectiveInstanceId,
-            InstanceName = matchedInstance.Name,
+            InstanceName = effectiveInstanceName,
             CreatorGuild = isGuildPromotion
                 ? (guildName ?? "")
                 : existing.CreatorGuild,
@@ -202,8 +222,10 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
     // Mapping helper — projects the stored RunDocument to its wire DTO.
     // ------------------------------------------------------------------
 
-    private static RunDetailDto MapToDto(RunDocument doc, string currentBattleNetId) =>
-        new(
+    private static RunDetailDto MapToDto(RunDocument doc, string currentBattleNetId)
+    {
+        var (difficulty, size) = RunModeResolver.Resolve(doc.Difficulty, doc.Size, doc.ModeKey);
+        return new RunDetailDto(
             Id: doc.Id,
             StartTime: doc.StartTime,
             SignupCloseTime: doc.SignupCloseTime,
@@ -213,6 +235,9 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             CreatorGuild: doc.CreatorGuild,
             InstanceId: doc.InstanceId,
             InstanceName: doc.InstanceName,
+            Difficulty: difficulty,
+            Size: size,
+            KeystoneLevel: doc.KeystoneLevel,
             RunCharacters: doc.RunCharacters
                 .Select(c => new RunCharacterDto(
                     CharacterName: c.CharacterName,
@@ -225,4 +250,5 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                     Role: c.Role,
                     IsCurrentUser: c.RaiderBattleNetId == currentBattleNetId))
                 .ToList());
+    }
 }
