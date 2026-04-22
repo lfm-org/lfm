@@ -47,23 +47,30 @@
                     @if (_lastResult is not null)
                     {
                         <FluentLabel Typo="Typography.H4">@Loc["adminReference.resultsHeading"]</FluentLabel>
-                        <table class="admin-reference-results" role="table" aria-label="@Loc["adminReference.resultsHeading"]">
-                            <thead>
-                                <tr>
-                                    <th scope="col">@Loc["adminReference.columns.entity"]</th>
-                                    <th scope="col">@Loc["adminReference.columns.status"]</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var row in _lastResult.Results)
-                                {
-                                    <tr data-status="@StatusCategory(row.Status)">
-                                        <td>@row.Name</td>
-                                        <td>@row.Status</td>
+                        @* Wrap the table in an overflow-inline scroll region so it stays
+                           reachable at narrow viewports and is announced as a scrollable
+                           landmark to assistive tech (matches InstancesPage convention —
+                           RD-OVERFLOW-1). *@
+                        <div class="scroll-region" role="region" tabindex="0"
+                             aria-label="@Loc["adminReference.resultsHeading"]">
+                            <table class="admin-reference-results">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@Loc["adminReference.columns.entity"]</th>
+                                        <th scope="col">@Loc["adminReference.columns.status"]</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in _lastResult.Results)
+                                    {
+                                        <tr data-status="@StatusCategory(row.Status)">
+                                            <td>@row.Name</td>
+                                            <td>@row.Status</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                 </FluentStack>
             </FluentCard>
