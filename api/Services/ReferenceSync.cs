@@ -106,8 +106,11 @@ public sealed class ReferenceSync(
             var detailBlob = new JournalInstanceBlob(
                 Id: detail.Id,
                 Name: detail.Name,
-                Expansion: detail.Expansion is null ? null : new JournalInstanceExpansionBlob(detail.Expansion.Name),
-                Modes: modeBlobs);
+                Expansion: detail.Expansion is null
+                    ? null
+                    : new JournalInstanceExpansionBlob(detail.Expansion.Name, detail.Expansion.Id),
+                Modes: modeBlobs,
+                Category: detail.Category is null ? null : new JournalInstanceCategoryBlob(detail.Category.Type));
             await blobs.UploadAsync($"reference/journal-instance/{detail.Id}.json", detailBlob, ct);
 
             string? portraitUrl = null;
@@ -122,10 +125,17 @@ public sealed class ReferenceSync(
                            ?? assetBlobs.FirstOrDefault(a => a.Key == "image")?.Value;
             }
 
+            // Write both the legacy composite ModeKey and the new structured
+            // Difficulty + Size on each manifest mode row. New consumers read
+            // Difficulty / Size; legacy readers continue to parse ModeKey.
             var manifestModes = (detail.Modes?.Count ?? 0) == 0
-                ? new List<InstanceIndexMode> { new("UNKNOWN:0") }
+                ? new List<InstanceIndexMode> { new("UNKNOWN:0", "UNKNOWN", 0) }
                 : detail.Modes!
-                    .Select(m => new InstanceIndexMode($"{m.Mode.Type}:{m.Players ?? 0}"))
+                    .Select(m =>
+                    {
+                        var size = m.Players ?? 0;
+                        return new InstanceIndexMode($"{m.Mode.Type}:{size}", m.Mode.Type, size);
+                    })
                     .ToList();
 
             manifest.Add(new InstanceIndexEntry(
@@ -133,7 +143,9 @@ public sealed class ReferenceSync(
                 Name: detail.Name,
                 Modes: manifestModes,
                 Expansion: detail.Expansion?.Name ?? "",
-                PortraitUrl: portraitUrl));
+                PortraitUrl: portraitUrl,
+                Category: detail.Category?.Type,
+                ExpansionId: detail.Expansion?.Id));
         }
 
         await blobs.UploadAsync("reference/journal-instance/index.json", manifest, ct);
