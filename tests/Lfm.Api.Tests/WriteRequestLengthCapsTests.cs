@@ -28,9 +28,10 @@ public class WriteRequestLengthCapsTests
             StartTime: "2026-05-01T19:00:00Z",
             SignupCloseTime: null,
             Description: LongerThan(2000),
-            ModeKey: "NORMAL:10",
             Visibility: "PUBLIC",
             InstanceId: 631,
+            Difficulty: "NORMAL",
+            Size: 10,
             InstanceName: null);
 
         var result = new CreateRunRequestValidator().Validate(req);
@@ -46,9 +47,10 @@ public class WriteRequestLengthCapsTests
             StartTime: "2026-05-01T19:00:00Z",
             SignupCloseTime: null,
             Description: new string('x', 2000),
-            ModeKey: "NORMAL:10",
             Visibility: "PUBLIC",
             InstanceId: 631,
+            Difficulty: "NORMAL",
+            Size: 10,
             InstanceName: null);
 
         var result = new CreateRunRequestValidator().Validate(req);
@@ -63,33 +65,16 @@ public class WriteRequestLengthCapsTests
             StartTime: "2026-05-01T19:00:00Z",
             SignupCloseTime: null,
             Description: null,
-            ModeKey: "NORMAL:10",
             Visibility: "PUBLIC",
             InstanceId: 631,
+            Difficulty: "NORMAL",
+            Size: 10,
             InstanceName: LongerThan(128));
 
         var result = new CreateRunRequestValidator().Validate(req);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == "InstanceName");
-    }
-
-    [Fact]
-    public void CreateRun_modeKey_over_64_chars_fails()
-    {
-        var req = new CreateRunRequest(
-            StartTime: "2026-05-01T19:00:00Z",
-            SignupCloseTime: null,
-            Description: null,
-            ModeKey: LongerThan(64),
-            Visibility: "PUBLIC",
-            InstanceId: 631,
-            InstanceName: null);
-
-        var result = new CreateRunRequestValidator().Validate(req);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.PropertyName == "ModeKey");
     }
 
     // ------------------------------------------------------------------
@@ -103,7 +88,6 @@ public class WriteRequestLengthCapsTests
             StartTime: null,
             SignupCloseTime: null,
             Description: LongerThan(2000),
-            ModeKey: null,
             Visibility: null,
             InstanceId: null,
             InstanceName: null);
@@ -122,7 +106,6 @@ public class WriteRequestLengthCapsTests
             StartTime: null,
             SignupCloseTime: null,
             Description: null,
-            ModeKey: null,
             Visibility: null,
             InstanceId: null,
             InstanceName: null);
@@ -139,7 +122,6 @@ public class WriteRequestLengthCapsTests
             StartTime: null,
             SignupCloseTime: null,
             Description: null,
-            ModeKey: null,
             Visibility: null,
             InstanceId: null,
             InstanceName: LongerThan(128));
