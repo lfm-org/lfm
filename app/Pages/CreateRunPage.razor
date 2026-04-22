@@ -1,25 +1,31 @@
 @page "/runs/new"
 @attribute [Authorize]
+@using Lfm.App.Components
+@using Lfm.App.Runs
 @using Lfm.App.Services
+@using Lfm.Contracts.Expansions
+@using Lfm.Contracts.Guild
 @using Lfm.Contracts.Instances
 @using Lfm.Contracts.Runs
+@using RunError = Lfm.App.Runs.RunError
 @inject IInstancesClient InstancesClient
+@inject IExpansionsClient ExpansionsClient
+@inject IGuildClient GuildClient
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
-@inject ToastHelper Toast
 @inject IStringLocalizer Loc
 
 <PageTitle>@Loc["createRun.title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:600px">
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-inline-size:640px">
     <FluentLabel Typo="Typography.H1">@Loc["createRun.title"]</FluentLabel>
 
-    @if (loadError != null)
+    @if (_loadError is not null)
     {
-        <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
+        <FluentMessageBar Intent="MessageIntent.Error">@_loadError</FluentMessageBar>
     }
 
-    @if (loading)
+    @if (_loading)
     {
         <FluentProgressRing />
     }
@@ -27,80 +33,198 @@
     {
         <FluentCard>
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <FluentSelect
-                    Id="instance-select"
-                    Label="@Loc["createRun.instance"]"
-                    TOption="string"
-                    Value="@instanceId"
-                    ValueChanged="@OnInstanceChanged"
-                    Disabled="@submitting">
-                    <FluentOption Value="">@Loc["createRun.selectInstance"]</FluentOption>
-                    @foreach (var inst in instances)
+
+                @* ── Expansion selector ─────────────────────────────────── *@
+                <FluentSelect Id="expansion-select"
+                              Label="@Loc["createRun.expansion"]"
+                              TOption="string"
+                              Value="@_expansionId.ToString()"
+                              ValueChanged="@OnExpansionChanged"
+                              Disabled="@_submitting">
+                    @foreach (var exp in _expansions)
                     {
-                        <FluentOption Value="@inst.Id">@inst.Name (@inst.ModeKey)</FluentOption>
+                        <FluentOption Value="@exp.Id.ToString()">@exp.Name</FluentOption>
                     }
                 </FluentSelect>
 
-                <FluentTextField
-                    Id="modekey-input"
-                    Label="@Loc["createRun.modeKey"]"
-                    Value="@modeKey"
-                    ValueChanged="@(v => modeKey = v)"
-                    Disabled="@submitting"
-                    Placeholder="@Loc["createRun.modeKeyPlaceholder"]"
-                    @attributes="ModeKeyAttrs" />
+                @* ── Activity (Raid / Dungeon) ──────────────────────────── *@
+                <div>
+                    <label for="activity-toggle" class="field__label">@Loc["createRun.activity"]</label>
+                    <ToggleGroup TValue="ActivityKind"
+                                 Options="_activityOptions"
+                                 Value="_activity"
+                                 ValueChanged="OnActivityChanged"
+                                 AriaLabel="@Loc["createRun.activity"]"
+                                 Disabled="@_submitting" />
+                </div>
 
+                @* ── Dungeon sub-toggle (M+ only) ───────────────────────── *@
+                @if (_activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE")
+                {
+                    <div>
+                        <label for="dungeonScope-toggle" class="field__label">@Loc["createRun.dungeonScope"]</label>
+                        <ToggleGroup TValue="bool"
+                                     Options="_dungeonScopeOptions"
+                                     Value="_anyDungeon"
+                                     ValueChanged="OnDungeonScopeChanged"
+                                     AriaLabel="@Loc["createRun.dungeonScope"]"
+                                     Disabled="@_submitting" />
+                    </div>
+                }
+
+                @* ── Instance dropdown (hidden when M+ + any-dungeon) ───── *@
+                @if (ShowInstanceDropdown)
+                {
+                    <FluentSelect Id="instance-select"
+                                  Label="@Loc["createRun.instance"]"
+                                  TOption="string"
+                                  Value="@_instanceId.ToString()"
+                                  ValueChanged="@OnInstanceChanged"
+                                  Disabled="@_submitting">
+                        <FluentOption Value="0">@Loc["createRun.selectInstance"]</FluentOption>
+                        @foreach (var opt in FilteredInstances)
+                        {
+                            <FluentOption Value="@opt.InstanceId.ToString()">@opt.Name</FluentOption>
+                        }
+                    </FluentSelect>
+                }
+
+                @* ── Difficulty toggle (only when a specific instance is selected) ── *@
+                @if (ShowDifficultyToggle && _difficultyOptions.Count > 1)
+                {
+                    <div>
+                        <label for="difficulty-toggle" class="field__label">@Loc["createRun.difficulty"]</label>
+                        <ToggleGroup TValue="string"
+                                     Options="_difficultyOptions"
+                                     Value="_difficulty"
+                                     ValueChanged="OnDifficultyChanged"
+                                     AriaLabel="@Loc["createRun.difficulty"]"
+                                     Disabled="@_submitting" />
+                    </div>
+                }
+
+                @* ── Key level + WNL chip (M+ only) ─────────────────────── *@
+                @if (_difficulty == "MYTHIC_KEYSTONE")
+                {
+                    <div>
+                        <label for="keylevel-input" class="field__label">@Loc["createRun.keyLevel"]</label>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <input id="keylevel-input"
+                                   type="number"
+                                   class="field__input"
+                                   min="2"
+                                   max="30"
+                                   inputmode="numeric"
+                                   placeholder="@Loc["createRun.keyLevel.placeholder"]"
+                                   @bind="_keystoneLevel"
+                                   @bind:event="oninput"
+                                   disabled="@_submitting"
+                                   style="inline-size:7rem" />
+                            <FluentButton Appearance="Appearance.Outline"
+                                          OnClick="@(() => _keystoneLevel = 10)"
+                                          Disabled="@_submitting"
+                                          Title="@Loc["createRun.keyLevel.wnlDescription"]"
+                                          aria-label="@Loc["createRun.keyLevel.wnlDescription"]">
+                                @Loc["createRun.keyLevel.wnl"]
+                            </FluentButton>
+                        </FluentStack>
+                        <small class="field__hint">
+                            @(_anyDungeon ? Loc["createRun.keyLevel.hintAny"] : Loc["createRun.keyLevel.hintSpecific"])
+                        </small>
+                    </div>
+                }
+
+                @* ── Start time ─────────────────────────────────────────── *@
                 <label class="field">
                     <span class="field__label">@Loc["createRun.startTime"]</span>
                     <input type="datetime-local"
                            id="starttime-input"
                            class="field__input"
-                           @bind="startTimeLocal"
-                           disabled="@submitting"
+                           @bind="_startTimeLocal"
+                           disabled="@_submitting"
                            required />
                 </label>
 
-                <label class="field">
-                    <span class="field__label">@Loc["createRun.signupCloseTime"]</span>
-                    <input type="datetime-local"
-                           id="signupclose-input"
-                           class="field__input"
-                           @bind="signupCloseLocal"
-                           disabled="@submitting" />
-                </label>
-
-                <FluentSelect
-                    Id="visibility-select"
-                    Label="@Loc["createRun.visibility"]"
-                    TOption="string"
-                    Value="@visibility"
-                    ValueChanged="@(v => visibility = v)"
-                    Disabled="@submitting">
-                    <FluentOption Value="PUBLIC">@Loc["createRun.public"]</FluentOption>
-                    <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
-                </FluentSelect>
-
-                <FluentTextArea
-                    Id="description-input"
-                    Label="@Loc["createRun.description"]"
-                    Value="@description"
-                    ValueChanged="@(v => description = v)"
-                    Disabled="@submitting"
-                    Rows="5"
-                    Resize="TextAreaResize.Vertical"
-                    @attributes="DescriptionAttrs" />
-
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                    <FluentButton
-                        Appearance="Appearance.Accent"
-                        OnClick="@HandleSubmit"
-                        Disabled="@(submitting || string.IsNullOrWhiteSpace(instanceId) || startTimeLocal is null || string.IsNullOrWhiteSpace(modeKey))">
-                        @(submitting ? Loc["common.loading"] : Loc["createRun.submit"])
+                @* ── Signups close (collapsible) ────────────────────────── *@
+                @if (_showSignupClose)
+                {
+                    <label class="field">
+                        <span class="field__label">@Loc["createRun.signupCloseTime"]</span>
+                        <input type="datetime-local"
+                               id="signupclose-input"
+                               class="field__input"
+                               @bind="_signupCloseLocal"
+                               disabled="@_submitting" />
+                    </label>
+                }
+                else
+                {
+                    <FluentButton Appearance="Appearance.Stealth"
+                                  OnClick="@(() => _showSignupClose = true)"
+                                  Disabled="@_submitting">
+                        @Loc["createRun.addSignupDeadline"]
                     </FluentButton>
-                    <FluentButton
-                        Appearance="Appearance.Outline"
-                        OnClick="@(() => Nav.NavigateTo("/runs"))"
-                        Disabled="@submitting">
+                }
+
+                @* ── Visibility ─────────────────────────────────────────── *@
+                @if (_canShowGuildOption)
+                {
+                    <div>
+                        <label for="visibility-toggle" class="field__label">@Loc["createRun.visibility"]</label>
+                        <ToggleGroup TValue="string"
+                                     Options="_visibilityOptions"
+                                     Value="_visibility"
+                                     ValueChanged="@(v => _visibility = v)"
+                                     AriaLabel="@Loc["createRun.visibility"]"
+                                     Disabled="@_submitting" />
+                        @if (!_canCreateGuildRuns)
+                        {
+                            <small class="field__hint">@Loc["createRun.visibility.guildDisabledReason"]</small>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <span class="field__label">@Loc["createRun.visibility"]</span>
+                        <small class="field__hint">@Loc["createRun.visibility.visibleToEveryone"]</small>
+                    </div>
+                }
+
+                @* ── Notes ──────────────────────────────────────────────── *@
+                <div>
+                    <FluentTextArea Id="description-input"
+                                    Label="@Loc["createRun.description"]"
+                                    Value="@_description"
+                                    ValueChanged="@(v => _description = v ?? string.Empty)"
+                                    Disabled="@_submitting"
+                                    Rows="5"
+                                    Resize="TextAreaResize.Vertical"
+                                    @attributes="DescriptionAttrs" />
+                    <small class="field__hint">@(Loc["createRun.description.charCount", _description.Length])</small>
+                </div>
+
+                @* ── Error surfacing ────────────────────────────────────── *@
+                @if (_inlineError is not null)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Error">
+                        @foreach (var m in _inlineError.Messages)
+                        {
+                            <div>@m</div>
+                        }
+                    </FluentMessageBar>
+                }
+
+                @* ── Submit / Cancel ────────────────────────────────────── *@
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentButton Appearance="Appearance.Accent"
+                                  OnClick="@HandleSubmit"
+                                  Disabled="@(!CanSubmit || _submitting)">
+                        @(_submitting ? Loc["createRun.creating"] : Loc["createRun.submit"])
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Outline"
+                                  OnClick="@(() => Nav.NavigateTo("/runs"))"
+                                  Disabled="@_submitting">
                         @Loc["createRun.cancel"]
                     </FluentButton>
                 </FluentStack>
@@ -110,32 +234,63 @@
 </FluentStack>
 
 @code {
-    private IReadOnlyList<InstanceDto> instances = [];
-    private bool loading = true;
-    private bool submitting;
-    private string? loadError;
+    // ── Loaded data ────────────────────────────────────────────────────────
+    private IReadOnlyList<ExpansionDto> _expansions = [];
+    private IReadOnlyList<InstanceOption> _allInstances = [];
+    private GuildDto? _guild;
 
-    private string instanceId = string.Empty;
-    private string modeKey = string.Empty;
-    private DateTime? startTimeLocal;
-    private DateTime? signupCloseLocal;
-    private string visibility = "PUBLIC";
-    private string description = string.Empty;
+    // ── Form state ─────────────────────────────────────────────────────────
+    private int _expansionId;
+    private ActivityKind _activity = ActivityKind.Dungeon;
+    private int _instanceId;                // 0 = unselected
+    private string _difficulty = "MYTHIC_KEYSTONE";
+    private int _size = 5;
+    private int? _keystoneLevel;
+    private bool _anyDungeon = true;        // M+ "Any dungeon" sub-toggle
+    private DateTime? _startTimeLocal;
+    private DateTime? _signupCloseLocal;
+    private bool _showSignupClose;
+    private string _visibility = "PUBLIC";
+    private string _description = string.Empty;
 
-    // The native <input type="datetime-local"> binds wall-clock time with no
-    // offset, so we must convert back to UTC before sending — otherwise the
-    // stored value would differ from the user's intent by the browser's TZ
-    // offset and round-trips through EditRunPage would drift on every save.
-    // Use "o" so the stored string matches what EditRunPage emits on re-save.
-    private static string? ToIsoOrNull(DateTime? dt) =>
-        dt is null ? null : dt.Value.ToUniversalTime().ToString("o");
+    // ── Page state ─────────────────────────────────────────────────────────
+    private bool _loading = true;
+    private bool _submitting;
+    private string? _loadError;
+    private RunError? _inlineError;
 
-    private static readonly Dictionary<string, object> ModeKeyAttrs = new()
+    // ── Options for the ToggleGroups ───────────────────────────────────────
+    private IReadOnlyList<(ActivityKind, string)> _activityOptions = [];
+    private IReadOnlyList<(bool, string)> _dungeonScopeOptions = [];
+    private IReadOnlyList<(string, string)> _difficultyOptions = [];
+    private IReadOnlyList<(string, string)> _visibilityOptions = [];
+
+    // ── Derived ────────────────────────────────────────────────────────────
+    private bool _canCreateGuildRuns;
+    private bool _canShowGuildOption => _guild?.Guild is not null;
+
+    private IEnumerable<InstanceOption> FilteredInstances =>
+        _allInstances.Where(o =>
+            (o.ExpansionId is null || o.ExpansionId == _expansionId) &&
+            o.Activity == _activity);
+
+    private bool ShowInstanceDropdown =>
+        !(_activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE" && _anyDungeon);
+
+    private bool ShowDifficultyToggle => _instanceId != 0 || !ShowInstanceDropdown;
+
+    private bool CanSubmit
     {
-        ["autocomplete"] = "off",
-        ["autocapitalize"] = "characters",
-        ["spellcheck"] = (bool?)false,
-    };
+        get
+        {
+            if (_startTimeLocal is null) return false;
+            var isMythicPlus = _activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE";
+            if (isMythicPlus && _anyDungeon)
+                return _keystoneLevel is >= 2 and <= 30;
+            if (_instanceId == 0) return false;
+            return !isMythicPlus || _keystoneLevel is null || _keystoneLevel is >= 2 and <= 30;
+        }
+    }
 
     private static readonly Dictionary<string, object> DescriptionAttrs = new()
     {
@@ -143,61 +298,189 @@
         ["maxlength"] = (int?)2000,
     };
 
+    // ── Lifecycle ──────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            instances = await InstancesClient.ListAsync(CancellationToken.None);
+            var expansionsTask = ExpansionsClient.ListAsync(CancellationToken.None);
+            var instancesTask = InstancesClient.ListAsync(CancellationToken.None);
+            var guildTask = GuildClient.GetAsync(CancellationToken.None);
+            await Task.WhenAll(expansionsTask, instancesTask, guildTask);
+
+            _expansions = await expansionsTask;
+            _allInstances = InstanceOptions.Build(await instancesTask);
+
+            // A guild fetch failure must not block the form — fall back to
+            // PUBLIC-only visibility rather than an unusable screen.
+            try { _guild = await guildTask; }
+            catch { _guild = null; }
+
+            // Default to the newest (= last in Blizzard's canonical order) expansion.
+            if (_expansions.Count > 0) _expansionId = _expansions[^1].Id;
+
+            RebuildStaticOptions();
+            RefreshDifficultyOptions();
+            ApplyVisibilityDefault();
+
+            // Start-time defaults to next Thursday at 20:00 local wall-clock.
+            _startTimeLocal = RunTimeDefaults.NextThursday20(DateTime.Now);
         }
         catch (Exception ex)
         {
-            loadError = $"Failed to load instances: {ex.Message}";
+            _loadError = $"Failed to load form data: {ex.Message}";
         }
         finally
         {
-            loading = false;
+            _loading = false;
         }
     }
 
-    // Auto-fill modeKey from the selected instance. Each InstanceDto row carries
-    // one (instance, mode) pair, so picking a dropdown option fully determines
-    // the ModeKey — the text field below the dropdown is just a read/override
-    // affordance until the form is reshaped in a follow-up.
-    private void OnInstanceChanged(string value)
+    // ── Event handlers ─────────────────────────────────────────────────────
+    private void OnExpansionChanged(string value)
     {
-        instanceId = value;
-        modeKey = instances.FirstOrDefault(i => i.Id == value)?.ModeKey ?? string.Empty;
+        if (int.TryParse(value, out var id))
+        {
+            _expansionId = id;
+            _instanceId = 0;
+            _difficulty = _activity == ActivityKind.Dungeon ? "MYTHIC_KEYSTONE" : "";
+            _size = _activity == ActivityKind.Dungeon ? 5 : 0;
+            _keystoneLevel = null;
+            RefreshDifficultyOptions();
+        }
     }
 
+    private void OnActivityChanged(ActivityKind value)
+    {
+        _activity = value;
+        _instanceId = 0;
+        _anyDungeon = value == ActivityKind.Dungeon;
+        _difficulty = value == ActivityKind.Dungeon ? "MYTHIC_KEYSTONE" : "";
+        _size = value == ActivityKind.Dungeon ? 5 : 0;
+        _keystoneLevel = null;
+        RefreshDifficultyOptions();
+    }
+
+    private void OnDungeonScopeChanged(bool anyDungeon)
+    {
+        _anyDungeon = anyDungeon;
+        if (anyDungeon) _instanceId = 0;
+        RefreshDifficultyOptions();
+    }
+
+    private void OnInstanceChanged(string value)
+    {
+        if (!int.TryParse(value, out var id)) return;
+        _instanceId = id;
+        RefreshDifficultyOptions();
+        // Default to the highest-available difficulty of this instance.
+        if (_difficultyOptions.Count > 0 && !_difficultyOptions.Any(o => o.Item1 == _difficulty))
+        {
+            var topMode = FilteredInstances
+                .FirstOrDefault(o => o.InstanceId == id)?
+                .Difficulties.LastOrDefault();
+            if (topMode is not null)
+            {
+                _difficulty = topMode.DifficultyId;
+                _size = topMode.Size;
+            }
+        }
+    }
+
+    private void OnDifficultyChanged(string value)
+    {
+        _difficulty = value;
+        var match = FilteredInstances
+            .FirstOrDefault(o => o.InstanceId == _instanceId)?
+            .Difficulties.FirstOrDefault(d => d.DifficultyId == value);
+        _size = match?.Size ?? 0;
+        if (value != "MYTHIC_KEYSTONE") _keystoneLevel = null;
+    }
+
+    // ── Option builders ────────────────────────────────────────────────────
+    private void RebuildStaticOptions()
+    {
+        _activityOptions = new (ActivityKind, string)[]
+        {
+            (ActivityKind.Raid, Loc["createRun.activity.raid"].Value),
+            (ActivityKind.Dungeon, Loc["createRun.activity.dungeon"].Value),
+        };
+        _dungeonScopeOptions = new (bool, string)[]
+        {
+            (true, Loc["createRun.dungeonScope.any"].Value),
+            (false, Loc["createRun.dungeonScope.specific"].Value),
+        };
+        _visibilityOptions = new (string, string)[]
+        {
+            ("GUILD", Loc["createRun.guildOnly"].Value),
+            ("PUBLIC", Loc["createRun.public"].Value),
+        };
+    }
+
+    private void RefreshDifficultyOptions()
+    {
+        var match = FilteredInstances.FirstOrDefault(o => o.InstanceId == _instanceId);
+        _difficultyOptions = match is null
+            ? []
+            : match.Difficulties
+                .Select(d => (d.DifficultyId, d.DisplayName))
+                .ToList();
+    }
+
+    private void ApplyVisibilityDefault()
+    {
+        _canCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
+        if (_canShowGuildOption && _canCreateGuildRuns)
+            _visibility = "GUILD";
+        else
+            _visibility = "PUBLIC";
+    }
+
+    // The native <input type="datetime-local"> binds wall-clock time with no
+    // offset, so we must convert back to UTC before sending — otherwise the
+    // stored value would differ from the user's intent by the browser's TZ
+    // offset and round-trips through EditRunPage would drift on every save.
+    private static string? ToIsoOrNull(DateTime? dt) =>
+        dt is null ? null : dt.Value.ToUniversalTime().ToString("o");
+
+    // ── Submit ─────────────────────────────────────────────────────────────
     private async Task HandleSubmit()
     {
-        submitting = true;
-        var selectedInstance = instances.FirstOrDefault(i => i.Id == instanceId);
+        _submitting = true;
+        _inlineError = null;
+        var isMythicPlus = _activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE";
+        var instanceOption = isMythicPlus && _anyDungeon
+            ? null
+            : FilteredInstances.FirstOrDefault(o => o.InstanceId == _instanceId);
+
         try
         {
             var request = new CreateRunRequest(
-                StartTime: ToIsoOrNull(startTimeLocal) ?? string.Empty,
-                SignupCloseTime: ToIsoOrNull(signupCloseLocal),
-                Description: string.IsNullOrWhiteSpace(description) ? null : description,
-                ModeKey: modeKey,
-                Visibility: visibility,
-                InstanceId: selectedInstance?.InstanceNumericId,
-                InstanceName: selectedInstance?.Name);
+                StartTime: ToIsoOrNull(_startTimeLocal) ?? string.Empty,
+                SignupCloseTime: ToIsoOrNull(_signupCloseLocal),
+                Description: string.IsNullOrWhiteSpace(_description) ? null : _description,
+                ModeKey: null,
+                Visibility: _visibility,
+                InstanceId: instanceOption?.InstanceId,
+                InstanceName: instanceOption?.Name,
+                Difficulty: _difficulty,
+                Size: _size,
+                KeystoneLevel: isMythicPlus ? _keystoneLevel : null);
 
             var created = await RunsClient.CreateAsync(request, CancellationToken.None);
             if (created is null)
             {
-                Toast.ShowError(Loc["createRun.failed"]);
-                submitting = false;
+                _inlineError = new RunError(RunErrorKind.Unknown, [Loc["createRun.failed"].Value]);
+                _submitting = false;
                 return;
             }
 
             Nav.NavigateTo($"/runs/{Uri.EscapeDataString(created.Id)}");
         }
-        catch
+        catch (Exception ex)
         {
-            Toast.ShowError(Loc["createRun.failed"]);
-            submitting = false;
+            _inlineError = RunErrorParser.Network(ex);
+            _submitting = false;
         }
     }
 }
