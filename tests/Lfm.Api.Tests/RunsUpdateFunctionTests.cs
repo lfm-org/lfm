@@ -122,8 +122,8 @@ public class RunsUpdateFunctionTests
     private static IReadOnlyList<InstanceDto> MakeInstances() =>
         new List<InstanceDto>
         {
-            new("631", "Icecrown Citadel", "NORMAL:10", "wrath"),
-            new("631", "Icecrown Citadel", "HEROIC:25", "wrath"),
+            new("631:NORMAL:10", 631, "Icecrown Citadel", "NORMAL:10", "wrath"),
+            new("631:HEROIC:25", 631, "Icecrown Citadel", "HEROIC:25", "wrath"),
         };
 
     // ------------------------------------------------------------------
