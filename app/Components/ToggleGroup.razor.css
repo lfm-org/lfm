@@ -1,0 +1,120 @@
+/*
+ * Segmented control used for mutually-exclusive single-select pickers —
+ * Activity (Raid/Dungeon), Difficulty (Normal/Heroic/Mythic/M+), Visibility
+ * (Guild only/Public). Ships as an ARIA radiogroup; the button children
+ * carry role=radio + roving tabindex (see ToggleGroup.razor).
+ *
+ * Design notes (responsive-design reference §3.9, §3.10, §3.16, §3.17):
+ *   - logical properties only — dir="rtl" flips visual order without a
+ *     row-reverse hack
+ *   - flex-wrap allows long locale labels (Finnish "Ilmoittautuminen
+ *     sulkeutuu") to flow to a second row at narrow viewports instead of
+ *     overflowing at the 320 CSS px floor
+ *   - ≥2.75rem tap target (SC 2.5.5)
+ *   - selected state is background + border only; no font-weight shift,
+ *     so switching between options does not change text metrics and does
+ *     not induce CLS
+ *   - :focus-visible fallback — we do NOT use outline:none on the button
+ *     as that would violate SC 2.4.7
+ *   - forced-colors: active falls back to ButtonText/Highlight system
+ *     colors so the selected/unselected distinction survives Windows
+ *     High Contrast mode
+ */
+.toggle-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    /* No column-gap: connected buttons look visually grouped. Internal
+       borders between buttons are handled by the per-button rules below. */
+    align-items: stretch;
+}
+
+.toggle-group__option {
+    /* Respect the Fluent theme's font inheritance rather than forcing a
+       weight. all:unset would also clear the :disabled styling the UA
+       provides; we keep the native button shell and just reset the
+       OS-default border/background. */
+    appearance: none;
+    background-color: var(--neutral-fill-rest);
+    color: var(--neutral-foreground-rest);
+    border-block: 1px solid var(--neutral-stroke-rest);
+    border-inline-start: 1px solid var(--neutral-stroke-rest);
+    border-inline-end: 0;
+    padding-inline: 1rem;
+    padding-block: 0.5rem;
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+    font: inherit;
+    cursor: pointer;
+    /* Keep text metrics stable between selected / unselected. A
+       font-weight swap here would shift the button width on select and
+       cause CLS on every arrow-key traversal. */
+    font-weight: 500;
+    /* Connected look: only the last visual-order item gets the end
+       border. Logical properties + flex row means this works in RTL too. */
+    text-wrap: balance;
+}
+
+.toggle-group__option:first-of-type {
+    border-start-start-radius: 6px;
+    border-end-start-radius: 6px;
+}
+
+.toggle-group__option:last-of-type {
+    border-start-end-radius: 6px;
+    border-end-end-radius: 6px;
+    border-inline-end: 1px solid var(--neutral-stroke-rest);
+}
+
+/* Hover, only on devices that actually hover — avoids the sticky-hover
+   effect on touch devices (reference §3.6). */
+@media (hover: hover) and (pointer: fine) {
+    .toggle-group__option:not([data-selected="true"]):not(:disabled):hover {
+        background-color: var(--neutral-fill-hover);
+    }
+}
+
+.toggle-group__option:focus-visible {
+    outline: 2px solid var(--accent-fill-rest);
+    outline-offset: -2px;
+    /* Raise focus ring above the adjacent button's shared border. */
+    z-index: 1;
+    position: relative;
+}
+
+.toggle-group__option[data-selected="true"] {
+    background-color: var(--accent-fill-rest);
+    color: var(--accent-foreground-rest, #fff);
+    /* Match the selected border to the fill so the boundary with adjacent
+       unselected buttons reads as a single coherent shape rather than a
+       stripe. Keep the same width to avoid layout shift. */
+    border-color: var(--accent-fill-rest);
+}
+
+.toggle-group__option:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* Windows High Contrast: custom tokens collapse to system colors, so
+   re-establish the selected/unselected distinction via standard system
+   color pairs. ButtonText is readable on the default button surface;
+   Highlight + HighlightText is the OS's canonical "selected" pair. */
+@media (forced-colors: active) {
+    .toggle-group__option {
+        border-color: ButtonText;
+        color: ButtonText;
+        background-color: ButtonFace;
+    }
+
+    .toggle-group__option[data-selected="true"] {
+        background-color: Highlight;
+        color: HighlightText;
+        border-color: Highlight;
+    }
+
+    .toggle-group__option:focus-visible {
+        outline-color: Highlight;
+    }
+}
