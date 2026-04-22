@@ -88,12 +88,14 @@
                         <FluentOption Value="GUILD">@Loc["createRun.guildOnly"]</FluentOption>
                     </FluentSelect>
 
-                    <FluentTextField
+                    <FluentTextArea
                         Id="description-input"
                         Label="@Loc["createRun.description"]"
                         Value="@description"
                         ValueChanged="@(v => description = v)"
                         Disabled="@saving"
+                        Rows="5"
+                        Resize="TextAreaResize.Vertical"
                         @attributes="DescriptionAttrs" />
 
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
@@ -214,7 +216,7 @@
     private static readonly Dictionary<string, object> DescriptionAttrs = new()
     {
         ["enterkeyhint"] = "done",
-        ["maxlength"] = (int?)500,
+        ["maxlength"] = (int?)2000,
     };
 
     protected override async Task OnInitializedAsync()
@@ -256,7 +258,13 @@
 
     private void PopulateForm(RunDetailDto run)
     {
-        instanceId = run.InstanceId.ToString();
+        // InstanceDto.Id is a composite "{numericId}:{modeKey}" because the
+        // dropdown lists one option per (instance, mode) pair. Match the stored
+        // run's (InstanceId, ModeKey) pair against the flat InstanceDto list
+        // and use the matching row's composite Id as the dropdown value.
+        var match = instances.FirstOrDefault(i =>
+            i.InstanceNumericId == run.InstanceId && i.ModeKey == run.ModeKey);
+        instanceId = match?.Id ?? string.Empty;
         modeKey = run.ModeKey;
         startTimeLocal = ParseIso(run.StartTime);
         signupCloseLocal = ParseIso(run.SignupCloseTime);
@@ -276,7 +284,7 @@
                 Description: description,
                 ModeKey: modeKey,
                 Visibility: visibility,
-                InstanceId: selectedInstance != null ? (int?)Convert.ToInt32(selectedInstance.Id) : null,
+                InstanceId: selectedInstance?.InstanceNumericId,
                 InstanceName: selectedInstance?.Name);
 
             var updated = await RunsClient.UpdateAsync(RunId!, request, CancellationToken.None);

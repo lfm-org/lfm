@@ -160,13 +160,15 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
 
         // Load instances to validate the (instanceId, modeKey) combination and obtain
         // the canonical instance name. Each InstanceDto row in the container represents
-        // one (instance, mode) pair: Id == instanceId string, ModeKey == "TYPE:players".
+        // one (instance, mode) pair: InstanceNumericId == Blizzard instance id,
+        // ModeKey == "TYPE:players". Id is a composite "{instanceId}:{modeKey}" —
+        // never parse it as an int (see InstanceDto doc-comment).
         var instances = await instancesRepo.ListAsync(ct);
         if (instances.Count == 0)
             return new ObjectResult(new { error = "Instance data not available" }) { StatusCode = 503 };
 
         var matchedInstance = instances.FirstOrDefault(
-            i => i.Id == effectiveInstanceId.ToString() && i.ModeKey == effectiveModeKey);
+            i => i.InstanceNumericId == effectiveInstanceId && i.ModeKey == effectiveModeKey);
         if (matchedInstance is null)
             return new BadRequestObjectResult(new { error = "Invalid modeKey for instance" });
 
