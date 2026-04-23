@@ -63,6 +63,13 @@
       <_Parameter1>Lfm.Api.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
+  <!-- SecurityHeadersMiddleware reads this at startup to emit the
+       X-Source-Commit response header for AGPL §13 disclosure. CI supplies
+       the value via `dotnet build /p:GitCommit=$(git rev-parse HEAD)`; local
+       builds without the property fall back to "unknown". -->
+  <ItemGroup Condition="'$(GitCommit)' != ''">
+    <AssemblyMetadata Include="GitCommit" Value="$(GitCommit)" />
+  </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
