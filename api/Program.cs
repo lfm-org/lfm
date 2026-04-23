@@ -50,6 +50,8 @@ builder.Services.AddOptions<StorageOptions>()
     .ValidateOnStart();
 builder.Services.AddOptions<RateLimitOptions>()
     .Bind(builder.Configuration.GetSection(RateLimitOptions.SectionName));
+builder.Services.AddOptions<AgplOptions>()
+    .Bind(builder.Configuration.GetSection(AgplOptions.SectionName));
 
 builder.Services.AddCors(options =>
 {
