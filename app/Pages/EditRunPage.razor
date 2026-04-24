@@ -294,6 +294,10 @@
     private bool _saving;
     private bool _deleting;
     private bool _hasSignups;
+
+    // ETag captured from the GET response. Sent back as If-Match on PUT so
+    // the server can enforce optimistic concurrency (RFC 9110 §13.1.1).
+    private string? _runEtag;
     private RunError? _inlineError;
     private ElementReference _deleteDialogRef;
     private IJSObjectReference? _dialogModule;
@@ -353,18 +357,21 @@
         _state = new LoadingState<RunDetailDto>.Loading();
         try
         {
-            var runTask = RunsClient.GetAsync(RunId!, CancellationToken.None);
+            var runTask = RunsClient.GetWithEtagAsync(RunId!, CancellationToken.None);
             var instancesTask = InstancesClient.ListAsync(CancellationToken.None);
             var expansionsTask = ExpansionsClient.ListAsync(CancellationToken.None);
             var guildTask = GuildClient.GetAsync(CancellationToken.None);
             await Task.WhenAll(runTask, instancesTask, expansionsTask, guildTask);
 
-            var run = await runTask;
-            if (run is null)
+            var runEnvelope = await runTask;
+            if (runEnvelope is null)
             {
                 _state = new LoadingState<RunDetailDto>.Failure(Loc["editRun.error.notFound"]);
                 return;
             }
+
+            var run = runEnvelope.Run;
+            _runEtag = runEnvelope.ETag;
 
             _allInstances = InstanceOptions.Build(await instancesTask);
             _expansions = await expansionsTask;
@@ -512,7 +519,16 @@
                 Size: _size,
                 KeystoneLevel: isMythicPlus ? _keystoneLevel : null);
 
-            var updated = await RunsClient.UpdateAsync(RunId!, request, CancellationToken.None);
+            if (string.IsNullOrEmpty(_runEtag))
+            {
+                // Defensive: if we never captured an ETag the page is in an
+                // inconsistent state; ask the user to reload rather than
+                // issuing a PUT that would 428 anyway.
+                _inlineError = new RunError(RunErrorKind.Unknown, [Loc["editRun.error.staleEtag"].Value]);
+                return;
+            }
+
+            var updated = await RunsClient.UpdateAsync(RunId!, request, _runEtag!, CancellationToken.None);
             if (updated is null)
             {
                 _inlineError = new RunError(RunErrorKind.Unknown, [Loc["editRun.saveFailed"].Value]);
@@ -522,6 +538,14 @@
                 Toast.ShowSuccess(Loc["editRun.saveSuccess"]);
                 _state = new LoadingState<RunDetailDto>.Success(updated);
             }
+        }
+        catch (StaleEtagException)
+        {
+            // The run was modified since we loaded it. Clear the stale ETag so
+            // a second click-without-reload short-circuits at the defensive
+            // guard above, then surface an inline error prompting a reload.
+            _runEtag = null;
+            _inlineError = new RunError(RunErrorKind.Unknown, [Loc["editRun.error.staleEtag"].Value]);
         }
         catch (Exception ex)
         {
