@@ -232,6 +232,19 @@ public class RunsSignupFunction(
             "Concurrent modification, please retry.");
     }
 
+    /// <summary>
+    /// <c>/api/v1/runs/{id}/signup</c> POST alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("runs-signup-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/runs/{id}/signup")] HttpRequest req,
+        string id,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, id, ctx, ct);
+
     // ------------------------------------------------------------------
     // Sanitizer — mirrors sanitizeRunDocumentForResponse in
     // functions/src/lib/runResponseSanitizer.ts

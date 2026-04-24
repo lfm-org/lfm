@@ -62,6 +62,18 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
         return new OkObjectResult(new RunsListResponse(dtos, page.ContinuationToken));
     }
 
+    /// <summary>
+    /// <c>/api/v1/runs</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("runs-list-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/runs")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, ctx, ct);
+
     private static int ParseTop(HttpRequest req)
     {
         if (!req.Query.TryGetValue("top", out var raw) || raw.Count == 0)
