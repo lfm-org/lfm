@@ -165,7 +165,9 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        Assert.IsType<ProblemDetails>(notFound.Value);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -197,7 +199,9 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        Assert.IsType<ProblemDetails>(notFound.Value);
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -266,7 +270,9 @@ public class RunsCancelSignupFunctionTests
 
         var result = await fn.Run(MakeDeleteRequest(), "run-1", ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        Assert.IsType<ProblemDetails>(notFound.Value);
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

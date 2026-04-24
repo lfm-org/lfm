@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -49,7 +50,7 @@ public class RunsCancelSignupFunction(
         // 1. Load existing run.
         var run = await runsRepo.GetByIdAsync(id, ct);
         if (run is null)
-            return new NotFoundObjectResult(new { error = "Run not found" });
+            return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
         // 2. Visibility check for GUILD runs — mirrors runs-cancel-signup.ts:
         //    if (run.visibility === "GUILD" && !isCreator && !isGuildMember)
@@ -61,7 +62,7 @@ public class RunsCancelSignupFunction(
             // Derive the caller's guild from the raider's selected character.
             var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
             if (raider is null)
-                return new NotFoundObjectResult(new { error = "Raider not found" });
+                return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
             var (guildId, _) = GuildResolver.FromRaider(raider);
 
@@ -70,7 +71,7 @@ public class RunsCancelSignupFunction(
                 && run.CreatorGuildId.ToString() == guildId;
 
             if (!isCreator && !isGuildMember)
-                return new NotFoundObjectResult(new { error = "Run not found" });
+                return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
         }
 
         // 3. Find the user's entry in runCharacters by raiderBattleNetId.
@@ -86,7 +87,7 @@ public class RunsCancelSignupFunction(
 
         // 4. Return 404 if the user is not signed up.
         if (existingIndex < 0)
-            return new NotFoundObjectResult(new { error = "No signup found" });
+            return Problem.NotFound(req.HttpContext, "signup-not-found", "No signup found.");
 
         // 5. Remove the entry from the array.
         var updatedCharacters = run.RunCharacters.ToList();
