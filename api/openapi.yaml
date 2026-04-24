@@ -1,0 +1,153 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+#
+# Source-of-truth OpenAPI 3.1 contract for the Lfm API. Committed to the repo
+# so downstream AGPL operators and the first-party SPA can read it without
+# running the server. CI lints this file via .github/workflows/openapi-lint.yml.
+#
+# Coverage is rolled out iteratively: Slice 1.3 seeds the document with the
+# two health endpoints. Subsequent slices (3.3 onward) extend coverage to
+# /me, /guild, /runs, /raider, /wow/reference, and /admin. The
+# Microsoft.Azure.Functions.Worker.Extensions.OpenApi package will be adopted
+# in development-only mode (gated on ASPNETCORE_ENVIRONMENT) so drift between
+# annotations and this static file fails CI rather than shipping quietly.
+
+openapi: 3.1.0
+info:
+  title: Lfm API
+  version: 0.1.0
+  summary: Raid logistics API for World of Warcraft guilds.
+  description: |
+    HTTP API for the Lfm raid-signup application. The contract lives at
+    `api/openapi.yaml`; it is **not** served live from production. See the
+    top-level `README.md` for the hybrid (generator-in-dev, static-in-prod)
+    setup.
+  license:
+    name: AGPL-3.0-or-later
+    identifier: AGPL-3.0-or-later
+  contact:
+    name: Lfm contributors
+    url: https://github.com/lfm-org/lfm
+
+servers:
+  - url: https://lfm-api.dinosauruskeksi.com
+    description: Production (upstream deployment)
+  - url: http://localhost:7071
+    description: Local dev (Azure Functions Core Tools via `func start`)
+
+tags:
+  - name: Health
+    description: Liveness and readiness probes.
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe.
+      description: |
+        Always returns 200 with `status: "ok"`. Never touches downstream
+        dependencies. Consumed by App Service Health Check on Premium /
+        Dedicated plans to decide whether to recycle the instance.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                live:
+                  value:
+                    status: ok
+                    timestamp: '2026-04-24T00:00:00Z'
+
+  /api/health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe.
+      description: |
+        Validates Cosmos DB connectivity with a cheap database-level read.
+        Returns 200 on success and 503 on failure. Consumed by external
+        monitors and deploy smoke tests; **not** by App Service Health Check
+        (Cosmos being down should not recycle the app).
+      operationId: getHealthReady
+      responses:
+        '200':
+          description: Ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ready:
+                  value:
+                    status: ready
+                    timestamp: '2026-04-24T00:00:00Z'
+        '503':
+          description: Not ready. Exception details are never returned; inspect Application Insights for cause.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadyResponse'
+              examples:
+                unready:
+                  value:
+                    status: unready
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          description: Liveness (`ok`) or readiness (`ready`) indicator.
+          enum: [ok, ready]
+        timestamp:
+          type: string
+          format: date-time
+          description: Server UTC timestamp at which the probe was evaluated.
+      additionalProperties: false
+
+    UnreadyResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [unready]
+      additionalProperties: false
+
+    # RFC 9457 problem+json body emitted by every error response. Seeded here
+    # so slices 2.1 / 2.2 / 2.3 can reference it as endpoints are migrated
+    # from the legacy `{ error: string }` shape. Type URIs are rooted at
+    # https://github.com/lfm-org/lfm/errors#<slug> per D0.1.
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details (`application/problem+json`).
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifying the problem type. Rooted at `https://github.com/lfm-org/lfm/errors`.
+          example: https://github.com/lfm-org/lfm/errors#run-not-found
+        title:
+          type: string
+          description: Human-readable summary of the problem type.
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: HTTP status code generated for this occurrence.
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence.
+        instance:
+          type: string
+          description: URI reference identifying the specific occurrence (typically the request path).
+        traceId:
+          type: string
+          description: W3C trace id from `Activity.Current` for correlation with Application Insights.
+      additionalProperties: true
