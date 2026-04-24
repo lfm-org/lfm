@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -25,7 +26,7 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
 
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var isAdmin = await siteAdmin.IsAdminAsync(principal.BattleNetId, cancellationToken);
 

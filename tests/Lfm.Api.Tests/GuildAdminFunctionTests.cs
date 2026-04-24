@@ -78,6 +78,8 @@ public class GuildAdminFunctionTests
 
         var forbidden = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, forbidden.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(forbidden.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#admin-only", problem.Type);
 
         guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -102,7 +104,10 @@ public class GuildAdminFunctionTests
 
         var result = await fn.Run(MakeRequest(null), ctx, CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#missing-parameter", problem.Type);
     }
 
     // ---------------------------------------------------------------------------
@@ -156,7 +161,10 @@ public class GuildAdminFunctionTests
 
         var result = await fn.Run(MakeRequest("nonexistent"), ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-not-found", problem.Type);
     }
 
 }
