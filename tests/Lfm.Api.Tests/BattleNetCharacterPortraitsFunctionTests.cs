@@ -201,7 +201,10 @@ public class BattleNetCharacterPortraitsFunctionTests
         var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
 
         // Assert: 404
-        Assert.IsType<NotFoundResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
 
         // Service should not be called when raider doesn't exist.
         portraitService.Verify(

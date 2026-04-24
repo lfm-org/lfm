@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
@@ -51,27 +52,27 @@ public class BattleNetCharactersRefreshFunction(
 
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         // Rate-limit check: mirror cooldownRemaining() from cache.ts.
         var remainingSeconds = CooldownRemainingSeconds(raider.AccountProfileRefreshedAt, AccountCharsCooldownMs);
         if (remainingSeconds > 0)
         {
-            req.HttpContext.Response.Headers["Retry-After"] = remainingSeconds.ToString();
-            return new ObjectResult(new { error = "Too many requests", retryAfter = remainingSeconds })
-            {
-                StatusCode = 429,
-            };
+            return Problem.TooManyRequests(
+                req.HttpContext,
+                "characters-refresh-cooldown",
+                "Too many requests.",
+                retryAfterSeconds: remainingSeconds);
         }
 
         // Access token is stored in the session principal (populated at OAuth callback time).
         // If missing (old session before B2.5), we cannot call Blizzard.
         var accessToken = principal.AccessToken;
         if (string.IsNullOrEmpty(accessToken))
-            return new ObjectResult(new { error = "Session does not contain an access token. Please log out and log in again." })
-            {
-                StatusCode = 401,
-            };
+            return Problem.Unauthorized(
+                req.HttpContext,
+                "missing-access-token",
+                "Session does not contain an access token. Please log out and log in again.");
 
         BlizzardAccountProfileSummary freshSummary;
         try
@@ -81,10 +82,10 @@ public class BattleNetCharactersRefreshFunction(
         catch
         {
             // Do not update accountProfileRefreshedAt — a failed attempt must not consume the cooldown.
-            return new ObjectResult(new { error = "Failed to fetch characters from Blizzard" })
-            {
-                StatusCode = 502,
-            };
+            return Problem.UpstreamFailed(
+                req.HttpContext,
+                "blizzard-upstream-failed",
+                "Failed to fetch characters from Blizzard.");
         }
 
         var now = DateTimeOffset.UtcNow.ToString("O");

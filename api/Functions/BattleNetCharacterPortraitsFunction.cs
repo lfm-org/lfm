@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -67,7 +68,7 @@ public class BattleNetCharacterPortraitsFunction(
 
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         // Access token is stored in the session principal (populated at OAuth callback time).
         // If absent (old session before B2.5), fall back to empty string; the Blizzard fetch
