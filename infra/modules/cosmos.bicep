@@ -120,6 +120,31 @@ resource guildsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
   }
 }
 
+// Idempotency cache — one short-lived document per (battleNetId, idempotencyKey)
+// pair. IdempotencyMiddleware reads/writes this container so retried POST/PUT/
+// PATCH/DELETE calls with the same Idempotency-Key replay the original response
+// instead of executing twice. Partition key scopes entries to the caller so one
+// user's keys can't collide with another's. The per-document TTL is set by the
+// application; defaultTtl:-1 enables TTL support without a container-wide
+// expiry. Point-read only, so the index is maximally trimmed.
+resource idempotencyContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: database
+  name: 'idempotency'
+  properties: {
+    resource: {
+      id: 'idempotency'
+      partitionKey: { paths: ['/battleNetId'], kind: 'Hash' }
+      defaultTtl: -1
+      indexingPolicy: {
+        automatic: true
+        indexingMode: 'consistent'
+        includedPaths: []
+        excludedPaths: [{ path: '/*' }]
+      }
+    }
+  }
+}
+
 resource cosmosLock 'Microsoft.Authorization/locks@2020-05-01' = {
   name: '${accountName}-lock'
   scope: cosmosAccount
