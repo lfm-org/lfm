@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -43,7 +44,7 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
 
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var (guildId, _) = GuildResolver.FromRaider(raider);
 
