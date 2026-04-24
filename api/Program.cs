@@ -25,6 +25,9 @@ builder.UseMiddleware<Lfm.Api.Middleware.RateLimitMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuditMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthPolicyMiddleware>();
+// Runs after AuthPolicyMiddleware so it can resolve the session principal; any
+// mutating request carrying Idempotency-Key now replays instead of duplicating.
+builder.UseMiddleware<Lfm.Api.Middleware.IdempotencyMiddleware>();
 
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 builder.Services.ConfigureFunctionsApplicationInsights();
