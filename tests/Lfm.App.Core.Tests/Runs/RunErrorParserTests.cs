@@ -12,7 +12,7 @@ public class RunErrorParserTests
     [Fact]
     public void BadRequest_with_errors_array_classifies_as_Validation_with_each_message()
     {
-        var body = """{"errors":["startTime is required","modeKey must be at most 64 characters"]}""";
+        var body = """{"type":"https://github.com/lfm-org/lfm/errors#validation-failed","title":"Bad Request","status":400,"detail":"Request body failed validation.","errors":["startTime is required","modeKey must be at most 64 characters"]}""";
         var result = RunErrorParser.Parse(HttpStatusCode.BadRequest, body);
         Assert.Equal(RunErrorKind.Validation, result.Kind);
         Assert.Equal(2, result.Messages.Count);
@@ -20,12 +20,12 @@ public class RunErrorParserTests
     }
 
     [Fact]
-    public void BadRequest_with_single_error_string_classifies_as_Validation_with_that_message()
+    public void BadRequest_with_detail_only_classifies_as_Validation_with_that_message()
     {
-        var body = """{"error":"A guild run requires an active character in a guild"}""";
+        var body = """{"type":"https://github.com/lfm-org/lfm/errors#guild-required","title":"Bad Request","status":400,"detail":"A guild run requires an active character in a guild."}""";
         var result = RunErrorParser.Parse(HttpStatusCode.BadRequest, body);
         Assert.Equal(RunErrorKind.Validation, result.Kind);
-        Assert.Equal("A guild run requires an active character in a guild", Assert.Single(result.Messages));
+        Assert.Equal("A guild run requires an active character in a guild.", Assert.Single(result.Messages));
     }
 
     [Fact]
@@ -37,13 +37,22 @@ public class RunErrorParserTests
     }
 
     [Fact]
-    public void Forbidden_with_rank_denied_body_classifies_as_GuildRankDenied()
+    public void Forbidden_with_rank_denied_type_classifies_as_GuildRankDenied()
     {
-        var body = """{"error":"Guild run creation is not enabled for your rank"}""";
+        var body = """{"type":"https://github.com/lfm-org/lfm/errors#guild-rank-denied","title":"Forbidden","status":403,"detail":"Guild run creation is not enabled for your rank."}""";
         var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, body);
         Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
         Assert.True(result.IsGuildRankDenied);
         Assert.Contains("rank", Assert.Single(result.Messages), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Forbidden_with_detail_but_unknown_type_still_surfaces_server_detail()
+    {
+        var body = """{"type":"https://github.com/lfm-org/lfm/errors#some-other-thing","title":"Forbidden","status":403,"detail":"Specific reason."}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, body);
+        Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
+        Assert.Equal("Specific reason.", Assert.Single(result.Messages));
     }
 
     [Fact]
