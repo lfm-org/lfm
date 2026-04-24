@@ -39,12 +39,13 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <!-- Microsoft.AspNetCore.DataProtection is normally supplied by the
-         FrameworkReference above, but 10.0.6 has a MAC-validation regression
-         that breaks Protect/Unprotect round-trips on the Linux managed path
-         (https://github.com/dotnet/aspnetcore/issues/66335). Pinning to 10.0.5
-         overrides the shared-framework version so app-local 10.0.5 is loaded.
-         Accepts GHSA-37gx-xxp4-5rgx DoS exposure until 10.0.7 ships a fix. -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.5" NoWarn="NU1510" />
+         FrameworkReference above; pinned at the app layer to close known
+         advisories against the shared-framework version in use. 10.0.7 ships
+         the fix for the 10.0.6 MAC-validation regression
+         (https://github.com/dotnet/aspnetcore/issues/66335 closed 2026-04-23)
+         and closes GHSA-9mv3-2cwr-p262 + GHSA-37gx-xxp4-5rgx. Must stay in
+         sync with the pin in tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj. -->
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" NoWarn="NU1510" />
     <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
          package is deprecated. MS guidance is to use the Azure.Extensions.*
          packages below, which address key security and stability issues. -->
