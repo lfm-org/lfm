@@ -56,14 +56,14 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         // 1. Load existing run.
         var existing = await repo.GetByIdAsync(id, ct);
         if (existing is null)
-            return new NotFoundObjectResult(new { error = "Run not found" });
+            return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
         // 2. Load the raider once and derive guild info from the selected character.
         //    principal.GuildId / GuildName are legacy session fields; guild info is
         //    always taken from the raider's stored selected character.
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var (guildId, guildName) = GuildResolver.FromRaider(raider);
 
@@ -78,16 +78,20 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                 || guildId != existing.CreatorGuildId.ToString())
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "not creator"));
-                return new ObjectResult(new { error = "Only the run creator can update this run" })
-                { StatusCode = 403 };
+                return Problem.Forbidden(
+                    req.HttpContext,
+                    "run-update-not-creator",
+                    "Only the run creator can update this run.");
             }
 
             var canEdit = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canEdit)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
-                return new ObjectResult(new { error = "Your guild rank does not have permission to edit guild runs" })
-                { StatusCode = 403 };
+                return Problem.Forbidden(
+                    req.HttpContext,
+                    "guild-rank-denied",
+                    "Your guild rank does not have permission to edit guild runs.");
             }
         }
 
@@ -101,28 +105,36 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                 cancellationToken: ct);
 
             if (body is null)
-                return new BadRequestObjectResult(new { error = "Invalid request body" });
+                return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
         catch (JsonException)
         {
             // Never echo JsonException.Message — it can disclose offset/line/path
             // detail from the caller's payload that is not useful to the user and
             // inconsistent with how other handlers report parse failures.
-            return new BadRequestObjectResult(new { error = "Invalid request body" });
+            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
 
         var validator = new UpdateRunRequestValidator();
         var validationResult = await validator.ValidateAsync(body, ct);
         if (!validationResult.IsValid)
-            return new BadRequestObjectResult(
-                new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        {
+            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = errors });
+        }
 
         // 4. Editability check — mirrors isEditingClosed in run-editability.ts.
         //    Returns 409 Conflict (the resource state conflicts with the request).
         if (RunEditability.IsEditingClosed(existing.SignupCloseTime, existing.StartTime, DateTimeOffset.UtcNow))
         {
-            return new ObjectResult(new { error = "Editing is closed for this run" })
-            { StatusCode = 409 };
+            return Problem.Conflict(
+                req.HttpContext,
+                "run-editing-closed",
+                "Editing is closed for this run.");
         }
 
         // 5. Locked-field check — mirrors getLockedFields in run-editability.ts.
@@ -132,9 +144,15 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         if (signupCount > 0)
         {
             if (body.StartTime is not null && body.StartTime != existing.StartTime)
-                return new BadRequestObjectResult(new { error = "Cannot change start time after signups" });
+                return Problem.BadRequest(
+                    req.HttpContext,
+                    "start-time-locked",
+                    "Cannot change start time after signups.");
             if (body.InstanceId is not null && body.InstanceId != existing.InstanceId)
-                return new BadRequestObjectResult(new { error = "Cannot change instance after signups" });
+                return Problem.BadRequest(
+                    req.HttpContext,
+                    "instance-locked",
+                    "Cannot change instance after signups.");
         }
 
         // 6. GUILD visibility promotion guard — mirrors isGuildVisibilityPromotion.
@@ -142,15 +160,19 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         if (isGuildPromotion)
         {
             if (guildId is null)
-                return new BadRequestObjectResult(
-                    new { error = "A guild run requires an active character in a guild" });
+                return Problem.BadRequest(
+                    req.HttpContext,
+                    "guild-required",
+                    "A guild run requires an active character in a guild.");
 
             var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canCreate)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "guild rank denied"));
-                return new ObjectResult(new { error = "Guild run creation is not enabled for your rank" })
-                { StatusCode = 403 };
+                return Problem.Forbidden(
+                    req.HttpContext,
+                    "guild-rank-denied",
+                    "Guild run creation is not enabled for your rank.");
             }
         }
 
@@ -175,14 +197,20 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         {
             var instances = await instancesRepo.ListAsync(ct);
             if (instances.Count == 0)
-                return new ObjectResult(new { error = "Instance data not available" }) { StatusCode = 503 };
+                return Problem.ServiceUnavailable(
+                    req.HttpContext,
+                    "instance-data-unavailable",
+                    "Instance data not available.");
 
             var matchedInstance = instances.FirstOrDefault(i =>
                 i.InstanceNumericId == effectiveInstanceId.Value
                 && i.Difficulty == effectiveDifficulty
                 && i.Size == effectiveSize);
             if (matchedInstance is null)
-                return new BadRequestObjectResult(new { error = "Invalid difficulty/size for instance" });
+                return Problem.BadRequest(
+                    req.HttpContext,
+                    "invalid-instance-mode",
+                    "Invalid difficulty/size for instance.");
             effectiveInstanceName = matchedInstance.Name;
         }
         else

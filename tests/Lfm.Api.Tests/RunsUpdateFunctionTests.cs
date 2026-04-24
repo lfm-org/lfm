@@ -190,11 +190,11 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(new { description = "Updated" }), "run-1", ctx, CancellationToken.None);
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.NotNull(notFound.Value);
-        var errorProp = notFound.Value!.GetType().GetProperty("error");
-        Assert.NotNull(errorProp);
-        Assert.Equal("Raider not found", errorProp!.GetValue(notFound.Value));
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
+        Assert.Equal("Raider not found.", problem.Detail);
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -220,7 +220,10 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(MakePutRequest(new { }), "missing-run", ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
 
         // Cosmos UpdateAsync must never be called
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -375,10 +378,11 @@ public class RunsUpdateFunctionTests
 
         var result = await fn.Run(httpContext.Request, "run-1", ctx, CancellationToken.None);
 
-        var bad = Assert.IsType<BadRequestObjectResult>(result);
-        var errorProp = bad.Value!.GetType().GetProperty("error");
-        Assert.NotNull(errorProp);
-        Assert.Equal("Invalid request body", errorProp!.GetValue(bad.Value));
+        var bad = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, bad.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(bad.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#invalid-body", problem.Type);
+        Assert.Equal("Request body is invalid or missing.", problem.Detail);
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
