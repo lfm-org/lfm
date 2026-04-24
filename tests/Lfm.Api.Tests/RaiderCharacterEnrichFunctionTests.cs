@@ -29,7 +29,10 @@ public class RaiderCharacterEnrichFunctionTests
         var fn = MakeFunction(repo.Object, new Mock<IBlizzardProfileClient>().Object);
         var result = await fn.Run(MakeRequest(), CharId, MakeCtx(), CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
     }
 
     [Fact]
@@ -106,9 +109,11 @@ public class RaiderCharacterEnrichFunctionTests
         var fn = MakeFunction(repo.Object, profileClient.Object);
         var result = await fn.Run(MakeRequest(), CharId, MakeCtx(), CancellationToken.None);
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        var body = JsonSerializer.SerializeToElement(notFound.Value);
-        Assert.Equal("Character not found on Blizzard", body.GetProperty("error").GetString());
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#character-not-found-on-blizzard", problem.Type);
+        Assert.Equal("Character not found on Blizzard.", problem.Detail);
     }
 
     // ---- helpers ----

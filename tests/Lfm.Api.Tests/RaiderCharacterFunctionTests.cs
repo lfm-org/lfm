@@ -150,7 +150,7 @@ public class RaiderCharacterFunctionTests
         Assert.DoesNotContain("AccountEndpoint", json);
         Assert.DoesNotContain("AccountKey", json);
         Assert.DoesNotContain("CosmosException", json);
-        Assert.Contains("internal error", json);
+        Assert.Contains("internal-error", json);
         Assert.Contains(FakeInvocationId, json);
     }
 }

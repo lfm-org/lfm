@@ -522,7 +522,9 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        Assert.IsType<ProblemDetails>(badRequest.Value);
 
         repo.Verify(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -546,7 +548,10 @@ public class RaiderCharacterAddFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
     }
 
     // -------------------------------------------------------------------------
