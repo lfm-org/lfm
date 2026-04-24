@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-FileCopyrightText: 2026 Sour Old Geezer
+# SPDX-FileCopyrightText: 2026 LFM contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Render every view in an ArchiMate OEF XML file as a PNG using Archi's

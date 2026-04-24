@@ -221,6 +221,7 @@
     "notFound.title": "Ei l\u00f6ytynyt",
     "notFound.body": "Sivua ei l\u00f6ydy.",
     "footer.privacyPolicy": "Tietosuojaseloste",
+    "footer.source": "Lähdekoodi",
     "nav.toggleMenu": "Vaihda navigointivalikko",
     "theme.switchToLight": "Vaihda vaaleaan tilaan",
     "theme.switchToDark": "Vaihda tummaan tilaan",

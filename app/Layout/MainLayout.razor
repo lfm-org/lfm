@@ -88,10 +88,16 @@
         @Body
     </main>
 
-    <!-- Footer with privacy link and language toggle -->
+    <!-- Footer with privacy link, AGPL §13 source link, and language toggle.
+         The "Source" anchor discharges the AGPL §13 obligation to prominently
+         offer the Corresponding Source to every user interacting over the
+         network. Fork operators: override SourceRepositoryUrl in
+         appsettings.json to point at your modified source repository. -->
     <footer style="border-top:1px solid var(--neutral-stroke-rest);padding:8px 16px">
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" Style="align-items:center;justify-content:center">
             <FluentAnchor Href="/privacy">@Loc["footer.privacyPolicy"]</FluentAnchor>
+            <span>|</span>
+            <FluentAnchor Href="@_sourceUrl" Target="_blank" rel="noopener external">@Loc["footer.source"]</FluentAnchor>
             <span>|</span>
             <FluentButton Appearance="Appearance.Stealth"
                           OnClick="@(() => LocaleService.SetLocale("en"))"
@@ -108,11 +114,14 @@
 </div>
 
 @code {
+    private const string DefaultSourceRepositoryUrl = "https://github.com/lfm-org/lfm";
+
     private bool _showMobileMenu;
     private bool _navigated;
     private ElementReference _mainRef;
     private string _themeIcon = "\u2600\ufe0f";
     private string _themeTooltip = string.Empty;
+    private string _sourceUrl = DefaultSourceRepositoryUrl;
 
     protected override void OnInitialized()
     {
@@ -120,6 +129,15 @@
         ThemeService.OnChange += OnThemeChanged;
         LocaleService.OnLocaleChanged += HandleLocaleChanged;
         UpdateThemeDisplay();
+
+        // Resolve the AGPL source URL from config. Fork operators override
+        // SourceRepositoryUrl in appsettings.json (or via environment) to
+        // satisfy AGPL \u00a713 on their deployment.
+        var configured = Config["SourceRepositoryUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            _sourceUrl = configured;
+        }
     }
 
     private void UpdateThemeDisplay()
