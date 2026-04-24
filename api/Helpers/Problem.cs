@@ -74,6 +74,9 @@ public static class Problem
     public static IActionResult UpstreamFailed(HttpContext context, string slug, string? detail = null)
         => Create(context, StatusCodes.Status502BadGateway, "Bad Gateway", slug, detail);
 
+    public static IActionResult ServiceUnavailable(HttpContext context, string slug, string? detail = null)
+        => Create(context, StatusCodes.Status503ServiceUnavailable, "Service Unavailable", slug, detail);
+
     public static IActionResult InternalError(HttpContext context, string slug, string? detail = null)
         => Create(context, StatusCodes.Status500InternalServerError, "Internal Server Error", slug, detail);
 
