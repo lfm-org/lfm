@@ -30,12 +30,14 @@ public class GuildFunctionTests
     private static HttpRequest MakeGetRequest()
         => new DefaultHttpContext().Request;
 
-    private static HttpRequest MakePatchRequest(object body)
+    private static HttpRequest MakePatchRequest(object body, string? ifMatch = null)
     {
         var json = JsonSerializer.Serialize(body);
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
         httpContext.Request.ContentType = "application/json";
+        if (ifMatch is not null)
+            httpContext.Request.Headers["If-Match"] = ifMatch;
         return httpContext.Request;
     }
 
@@ -366,5 +368,132 @@ public class GuildFunctionTests
         Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(captured);
         Assert.Equal(XssSlogan, captured!.Slogan);
+    }
+
+    // ------------------------------------------------------------------
+    // Tests 10-13: ETag / If-Match contract for GET + PATCH /api/guild
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildGet_emits_etag_header_mirroring_cosmos_etag()
+    {
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc() with { ETag = "\"guild-etag-v1\"" };
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc());
+
+        var fn = MakeFunction(guildRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeGetRequest();
+
+        var result = await fn.GuildGet(req, ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("\"guild-etag-v1\"", req.HttpContext.Response.Headers.ETag.ToString());
+    }
+
+    [Fact]
+    public async Task GuildUpdate_uses_ReplaceAsync_when_if_match_is_specific()
+    {
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc() with { ETag = "\"guild-etag-v1\"" };
+        var replaced = guildDoc with { ETag = "\"guild-etag-v2\"" };
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+        guildRepo.Setup(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), "\"guild-etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(replaced);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc());
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" }, ifMatch: "\"guild-etag-v1\"");
+
+        var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("\"guild-etag-v2\"", req.HttpContext.Response.Headers.ETag.ToString());
+        guildRepo.Verify(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        guildRepo.Verify(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), "\"guild-etag-v1\"", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GuildUpdate_returns_412_when_if_match_is_stale()
+    {
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc() with { ETag = "\"guild-etag-v1\"" };
+        var logger = new TestLogger<GuildFunction>();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+        guildRepo.Setup(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException());
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc());
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" }, ifMatch: "\"stale\"");
+
+        var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(412, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#if-match-stale", problem.Type);
+
+        Assert.Single(logger.Entries, e => e.IsAudit("guild.update", "failure", "if-match stale"));
+    }
+
+    [Fact]
+    public async Task GuildUpdate_wildcard_if_match_falls_back_to_blind_upsert()
+    {
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc());
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" }, ifMatch: "*");
+
+        var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        guildRepo.Verify(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        guildRepo.Verify(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
