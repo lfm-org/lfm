@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Services;
 using Lfm.Contracts.Admin;
@@ -72,7 +73,7 @@ public class WowReferenceRefreshFunction(
                 principal.BattleNetId,
                 "wow/reference/refresh",
                 Activity.Current?.TraceId.ToString());
-            return new ObjectResult(new { error = "Forbidden" }) { StatusCode = 403 };
+            return Problem.Forbidden(req.HttpContext, "admin-only", "Site administrator access required.");
         }
 
         var response = req.HttpContext.Response;
