@@ -20,7 +20,7 @@
     <!-- Worker core packages: .NET 10 REQUIRES v2.50.0+ of Worker and v2.0.5+ of
          Worker.Sdk per MS docs. v2.x of Worker also brings IHostApplicationBuilder
          support (FunctionsApplication.CreateBuilder). -->
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
     <!-- Timer trigger extension for the raider-cleanup scheduled function. -->
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />

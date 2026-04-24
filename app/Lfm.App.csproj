@@ -16,13 +16,13 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Blazor WebAssembly packages track the .NET version (net10.0 → 10.0.x) -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.6" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.6" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.6" />
-    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.7" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.7" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shared\Lfm.Contracts\Lfm.Contracts.csproj" />
