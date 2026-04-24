@@ -64,27 +64,33 @@ public class RunsSignupFunction(
                 cancellationToken: ct);
 
             if (body is null)
-                return new BadRequestObjectResult(new { error = "Invalid request body" });
+                return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
         catch (JsonException)
         {
             // Never echo JsonException.Message — it can disclose offset/line/path
             // detail from the caller's payload that is not useful to the user and
             // inconsistent with how other handlers report parse failures.
-            return new BadRequestObjectResult(new { error = "Invalid request body" });
+            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
 
         var validator = new SignupRequestValidator();
         var validationResult = await validator.ValidateAsync(body, ct);
         if (!validationResult.IsValid)
-            return new BadRequestObjectResult(
-                new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        {
+            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = errors });
+        }
 
         // 2. Load raider document and verify character ownership.
         //    Mirrors: const storedCharacter = raider.characters.find(c => c.id === body.characterId)
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         // Derive the caller's guild from the raider's selected character for the
         // GUILD visibility check below. principal.GuildId is a legacy session field
@@ -93,7 +99,10 @@ public class RunsSignupFunction(
 
         var storedCharacter = raider.Characters?.FirstOrDefault(c => c.Id == body.CharacterId);
         if (storedCharacter is null)
-            return new BadRequestObjectResult(new { error = "Character not found on your profile" });
+            return Problem.BadRequest(
+                req.HttpContext,
+                "character-not-on-profile",
+                "Character not found on your profile.");
 
         // 3. Resolve spec info — mirrors the specId block in runs-signup.ts.
         int? specId = body.SpecId;
@@ -105,7 +114,10 @@ public class RunsSignupFunction(
             var specEntry = storedCharacter.SpecializationsSummary?.Specializations
                 ?.FirstOrDefault(s => s.Specialization.Id == specId.Value);
             if (specEntry is null)
-                return new BadRequestObjectResult(new { error = "Invalid specId: not found on character" });
+                return Problem.BadRequest(
+                    req.HttpContext,
+                    "invalid-spec-id",
+                    "Invalid specId: not found on character.");
 
             specName = specEntry.Specialization.Name;
         }
@@ -118,13 +130,15 @@ public class RunsSignupFunction(
             // 4a. Load existing run.
             var run = await runsRepo.GetByIdAsync(id, ct);
             if (run is null)
-                return new NotFoundObjectResult(new { error = "Run not found" });
+                return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
             // 4b. Signup close time check — reject if signups are closed.
             if (RunEditability.IsEditingClosed(run.SignupCloseTime, run.StartTime, DateTimeOffset.UtcNow))
             {
-                return new ObjectResult(new { error = "Signups are closed for this run" })
-                { StatusCode = 409 };
+                return Problem.Conflict(
+                    req.HttpContext,
+                    "signups-closed",
+                    "Signups are closed for this run.");
             }
 
             // 4c. Visibility check for GUILD runs — mirrors runs-signup.ts.
@@ -136,14 +150,16 @@ public class RunsSignupFunction(
                     && run.CreatorGuildId.ToString() == callerGuildId;
 
                 if (!isCreator && !isGuildMember)
-                    return new NotFoundObjectResult(new { error = "Run not found" });
+                    return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
                 var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
                 if (!canSignup)
                 {
                     AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "failure", "guild rank denied"));
-                    return new ObjectResult(new { error = "Guild signup is not enabled for your rank" })
-                    { StatusCode = 403 };
+                    return Problem.Forbidden(
+                        req.HttpContext,
+                        "guild-rank-denied",
+                        "Guild signup is not enabled for your rank.");
                 }
             }
 
@@ -208,8 +224,10 @@ public class RunsSignupFunction(
         }
 
         // All retry attempts exhausted.
-        return new ObjectResult(new { error = "Concurrent modification, please retry" })
-        { StatusCode = 409 };
+        return Problem.Conflict(
+            req.HttpContext,
+            "concurrent-modification",
+            "Concurrent modification, please retry.");
     }
 
     // ------------------------------------------------------------------
