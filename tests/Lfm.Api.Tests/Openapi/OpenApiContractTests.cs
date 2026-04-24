@@ -68,4 +68,57 @@ public class OpenApiContractTests
         Assert.Contains("/api/health", result.Document.Paths.Keys);
         Assert.Contains("/api/health/ready", result.Document.Paths.Keys);
     }
+
+    [Theory]
+    [InlineData("/api/me")]
+    [InlineData("/api/guild")]
+    [InlineData("/api/guild/admin")]
+    [InlineData("/api/runs")]
+    [InlineData("/api/runs/{id}")]
+    [InlineData("/api/runs/{id}/signup")]
+    [InlineData("/api/raider/character")]
+    [InlineData("/api/raider/characters/{id}")]
+    [InlineData("/api/raider/characters/{id}/enrich")]
+    [InlineData("/api/battlenet/login")]
+    [InlineData("/api/battlenet/callback")]
+    [InlineData("/api/battlenet/logout")]
+    [InlineData("/api/battlenet/characters")]
+    [InlineData("/api/battlenet/characters/refresh")]
+    [InlineData("/api/battlenet/character-portraits")]
+    [InlineData("/api/wow/reference/expansions")]
+    [InlineData("/api/wow/reference/instances")]
+    [InlineData("/api/wow/reference/specializations")]
+    [InlineData("/api/wow/reference/refresh")]
+    [InlineData("/api/admin/runs/migrate-schema")]
+    [InlineData("/api/privacy-contact/email")]
+    public async Task Spec_documents_public_endpoint(string path)
+    {
+        var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
+
+        Assert.NotNull(result.Document!.Paths);
+        Assert.True(
+            result.Document.Paths.ContainsKey(path),
+            $"openapi.yaml should document {path} — runtime handler exists but the contract omits it.");
+    }
+
+    [Fact]
+    public async Task Spec_declares_session_cookie_security_scheme()
+    {
+        var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
+
+        var schemes = result.Document!.Components?.SecuritySchemes;
+        Assert.NotNull(schemes);
+        Assert.True(schemes!.ContainsKey("sessionCookie"));
+    }
+
+    [Fact]
+    public async Task Spec_defines_ProblemDetails_schema()
+    {
+        var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
+
+        var schemas = result.Document!.Components?.Schemas;
+        Assert.NotNull(schemas);
+        Assert.True(schemas!.ContainsKey("ProblemDetails"),
+            "openapi.yaml must define ProblemDetails — every error response references it.");
+    }
 }
