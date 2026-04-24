@@ -46,7 +46,10 @@ public class PrivacyContactFunctionTests
 
         var result = fn.GetEmail(new DefaultHttpContext().Request);
 
-        Assert.IsType<NotFoundResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#privacy-email-unconfigured", problem.Type);
     }
 
     [Fact]
@@ -56,6 +59,9 @@ public class PrivacyContactFunctionTests
 
         var result = fn.GetEmail(new DefaultHttpContext().Request);
 
-        Assert.IsType<NotFoundResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#privacy-email-unconfigured", problem.Type);
     }
 }

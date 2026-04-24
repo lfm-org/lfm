@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
+using Lfm.Api.Helpers;
 
 namespace Lfm.Api.Functions;
 
@@ -21,7 +22,7 @@ public class PrivacyContactFunction(IConfiguration config)
     {
         var email = config["PRIVACY_EMAIL"];
         if (string.IsNullOrEmpty(email))
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "privacy-email-unconfigured", "Privacy contact email is not configured for this deployment.");
 
         return new OkObjectResult(new { email });
     }
