@@ -109,7 +109,10 @@ public sealed record RaiderDocument(
     // characters: stored selected character details (populated by raider-character flow).
     IReadOnlyList<StoredSelectedCharacter>? Characters = null,
     // portraitCache: map of "{region}-{realm}-{name}" → portrait URL (populated by portrait refresh).
-    IReadOnlyDictionary<string, string>? PortraitCache = null);
+    IReadOnlyDictionary<string, string>? PortraitCache = null,
+    // Cosmos _etag — populated by the repository on read, used by PATCH /me to
+    // honor client-supplied If-Match headers for optimistic concurrency.
+    [property: JsonPropertyName("_etag")] string? ETag = null);
 
 // ---------------------------------------------------------------------------
 // Blizzard character profile — response from /profile/wow/character/{realm}/{name}
@@ -152,8 +155,19 @@ public interface IRaidersRepository
 
     /// <summary>
     /// Upserts a raider document. Partition key is the document's BattleNetId.
+    /// Does not check the ETag — used by internal flows (login, character refresh,
+    /// portrait cache) that reconcile their own state.
     /// </summary>
     Task UpsertAsync(RaiderDocument raider, CancellationToken ct);
+
+    /// <summary>
+    /// Replaces a raider document under an optimistic-concurrency guard. When
+    /// Cosmos reports 412 Precondition Failed the repository surfaces
+    /// <see cref="ConcurrencyConflictException"/> so the caller can translate
+    /// to a client-visible 412 problem+json. Used by PATCH /api/me to honor
+    /// the caller's <c>If-Match</c> header.
+    /// </summary>
+    Task<RaiderDocument> ReplaceAsync(RaiderDocument raider, string ifMatchEtag, CancellationToken ct);
 
     /// <summary>
     /// Deletes the raider document identified by battleNetId (which is both the

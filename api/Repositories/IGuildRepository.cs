@@ -48,7 +48,10 @@ public sealed record GuildDocument(
     // avoid pulling in the full Blizzard roster type in this iteration.
     // The service layer deserialises it when needed.
     BlizzardGuildRosterRaw? BlizzardRosterRaw = null,
-    BlizzardGuildProfileRaw? BlizzardProfileRaw = null);
+    BlizzardGuildProfileRaw? BlizzardProfileRaw = null,
+    // Cosmos _etag — populated by the repository on read, used by PATCH /guild
+    // to honor client-supplied If-Match headers for optimistic concurrency.
+    [property: System.Text.Json.Serialization.JsonPropertyName("_etag")] string? ETag = null);
 
 /// <summary>
 /// Blizzard guild roster member character (minimal fields needed for rank matching).
@@ -103,6 +106,17 @@ public interface IGuildRepository
 
     /// <summary>
     /// Upserts a guild document. Partition key is the document's Id.
+    /// Does not check the ETag — used by internal flows (roster refresh, admin
+    /// override timestamps) that reconcile their own state.
     /// </summary>
     Task UpsertAsync(GuildDocument doc, CancellationToken ct);
+
+    /// <summary>
+    /// Replaces a guild document under an optimistic-concurrency guard. When
+    /// Cosmos reports 412 Precondition Failed the repository surfaces
+    /// <see cref="ConcurrencyConflictException"/> so the caller can translate
+    /// to a client-visible 412 problem+json. Used by PATCH /api/guild to
+    /// honor the caller's <c>If-Match</c> header.
+    /// </summary>
+    Task<GuildDocument> ReplaceAsync(GuildDocument doc, string ifMatchEtag, CancellationToken ct);
 }

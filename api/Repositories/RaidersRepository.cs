@@ -20,7 +20,7 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
                 battleNetId,
                 new PartitionKey(battleNetId),
                 cancellationToken: ct);
-            return response.Resource;
+            return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -34,6 +34,25 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
             raider,
             new PartitionKey(raider.BattleNetId),
             cancellationToken: ct);
+    }
+
+    public async Task<RaiderDocument> ReplaceAsync(RaiderDocument raider, string ifMatchEtag, CancellationToken ct)
+    {
+        try
+        {
+            var options = new ItemRequestOptions { IfMatchEtag = ifMatchEtag };
+            var response = await _container.ReplaceItemAsync(
+                raider,
+                raider.BattleNetId,
+                new PartitionKey(raider.BattleNetId),
+                options,
+                ct);
+            return response.Resource with { ETag = response.ETag };
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
+        {
+            throw new ConcurrencyConflictException(ex);
+        }
     }
 
     public async Task DeleteAsync(string battleNetId, CancellationToken ct)
