@@ -80,6 +80,8 @@ builder.Services.AddOptions<PrivacyContactOptions>()
     .Bind(builder.Configuration.GetSection(PrivacyContactOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<AuditOptions>()
+    .Bind(builder.Configuration.GetSection(AuditOptions.SectionName));
 builder.Services.AddOptions<RequestSizeLimitOptions>()
     .Bind(builder.Configuration.GetSection(RequestSizeLimitOptions.SectionName))
     .ValidateDataAnnotations()
@@ -174,6 +176,20 @@ builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Servic
 builder.Services.AddScoped<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
 
+// Audit-log actor hasher. If a salt is configured we HMAC-hash every
+// AuditActorId before it reaches Application Insights; otherwise (local
+// dev, tests) we fall back to logging the raw id. Selected here so the
+// singleton can be disposed with the process.
+builder.Services.AddSingleton<Lfm.Api.Services.IActorHasher>(sp =>
+{
+    var auditOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuditOptions>>().Value;
+    if (string.IsNullOrEmpty(auditOpts.HashSalt))
+    {
+        return new Lfm.Api.Services.IdentityActorHasher();
+    }
+    return new Lfm.Api.Services.HmacActorHasher(auditOpts.HashSalt);
+});
+
 // Shared Blizzard rate limiter: gates all outbound Blizzard API traffic at ~80 req/s
 // sustained to stay well under the 100 req/s upstream limit, with 200-slot queue.
 builder.Services.AddSingleton<Lfm.Api.Services.IBlizzardRateLimiter>(_ => new Lfm.Api.Services.BlizzardRateLimiter());
@@ -261,4 +277,13 @@ else
 
 builder.Services.AddSingleton<ISessionCipher, DataProtectionSessionCipher>();
 
-builder.Build().Run();
+var app = builder.Build();
+
+// Install the audit-log actor hasher before the host starts firing handlers.
+// The static AuditLog service picks up the DI-selected hasher (HMAC in any
+// deployed environment where AuditOptions.HashSalt is set, Identity in tests
+// and local dev) so every subsequent AuditLog.Emit call hashes the actor id.
+Lfm.Api.Audit.AuditLog.ConfigureHasher(
+    app.Services.GetRequiredService<Lfm.Api.Services.IActorHasher>());
+
+app.Run();
