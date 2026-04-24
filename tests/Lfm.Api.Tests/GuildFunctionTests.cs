@@ -140,11 +140,11 @@ public class GuildFunctionTests
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        var value = Assert.IsAssignableFrom<object>(notFound.Value);
-        var errorProp = value.GetType().GetProperty("error");
-        Assert.NotNull(errorProp);
-        Assert.Equal("Raider not found", errorProp!.GetValue(value));
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
+        Assert.Equal("Raider not found.", problem.Detail);
     }
 
     // ------------------------------------------------------------------
