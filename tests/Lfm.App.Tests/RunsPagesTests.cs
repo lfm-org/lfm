@@ -493,8 +493,8 @@ public class RunsPagesTests : ComponentTestBase
     public void EditRunPage_Renders_Loading_Ring_On_Mount()
     {
         var runsClient = new Mock<IRunsClient>();
-        var tcs = new TaskCompletionSource<RunDetailDto?>();
-        runsClient.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(tcs.Task);
+        var tcs = new TaskCompletionSource<RunDetailWithEtag?>();
+        runsClient.Setup(c => c.GetWithEtagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(tcs.Task);
         WireEditRunServices(runsClient);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
@@ -506,8 +506,8 @@ public class RunsPagesTests : ComponentTestBase
     public void EditRunPage_Renders_Form_After_Run_Loads()
     {
         var runsClient = new Mock<IRunsClient>();
-        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeDetail());
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
         WireEditRunServices(runsClient);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
@@ -522,8 +522,8 @@ public class RunsPagesTests : ComponentTestBase
         // Same rationale as CreateRunPage_DoesNotRenderExpansionSelector:
         // the edit form also scopes to the Current Season tier only.
         var runsClient = new Mock<IRunsClient>();
-        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeDetail());
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
         WireEditRunServices(runsClient, expansions: new List<ExpansionDto>
         {
             new(505, "The War Within"),
@@ -541,8 +541,8 @@ public class RunsPagesTests : ComponentTestBase
     public void EditRunPage_Shows_Error_When_Run_Not_Found()
     {
         var runsClient = new Mock<IRunsClient>();
-        runsClient.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((RunDetailDto?)null);
+        runsClient.Setup(c => c.GetWithEtagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDetailWithEtag?)null);
         WireEditRunServices(runsClient, instances: []);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "missing-id"));
@@ -563,11 +563,18 @@ public class RunsPagesTests : ComponentTestBase
         const string OriginalSignup = "2026-05-20T15:00:45.1234567Z";
 
         UpdateRunRequest? captured = null;
+        string? capturedIfMatch = null;
         var runsClient = new Mock<IRunsClient>();
-        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeDetail() with { StartTime = OriginalStart, SignupCloseTime = OriginalSignup });
-        runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<string, UpdateRunRequest, CancellationToken>((_, req, _) => captured = req)
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(
+                MakeDetail() with { StartTime = OriginalStart, SignupCloseTime = OriginalSignup },
+                "\"etag-v1\""));
+        runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, UpdateRunRequest, string, CancellationToken>((_, req, ifMatch, _) =>
+            {
+                captured = req;
+                capturedIfMatch = ifMatch;
+            })
             .ReturnsAsync((RunDetailDto?)null);
         WireEditRunServices(runsClient);
 
@@ -583,6 +590,9 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() => Assert.NotNull(captured));
         Assert.Equal(OriginalStart, captured!.StartTime);
         Assert.Equal(OriginalSignup, captured.SignupCloseTime);
+        // Save must echo the loaded ETag on If-Match so the server can reject
+        // stale updates with 412 instead of silently overwriting.
+        Assert.Equal("\"etag-v1\"", capturedIfMatch);
     }
 
     // RD-DIALOG-1 (#26): the delete confirmation renders as a native <dialog>
@@ -593,8 +603,8 @@ public class RunsPagesTests : ComponentTestBase
     public void EditRunPage_Delete_Button_Opens_Native_Dialog_Via_Interop()
     {
         var runsClient = new Mock<IRunsClient>();
-        runsClient.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeDetail());
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
         WireEditRunServices(runsClient, instances: []);
 
         var dialogModule = JSInterop.SetupModule("./js/dialog.js");

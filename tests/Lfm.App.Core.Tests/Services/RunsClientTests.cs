@@ -200,7 +200,7 @@ public class RunsClientTests
     }
 
     [Fact]
-    public async Task UpdateAsync_puts_request_body_to_run_path()
+    public async Task UpdateAsync_puts_request_body_and_if_match_header()
     {
         var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
         var request = new UpdateRunRequest(
@@ -213,12 +213,13 @@ public class RunsClientTests
             Difficulty: "HEROIC",
             Size: 25);
 
-        var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
+        var result = await client.UpdateAsync("run-1", request, "\"etag-v1\"", CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(HttpMethod.Put, handler.LastRequest!.Method);
         Assert.Equal("/api/runs/run-1", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
+        Assert.Equal("\"etag-v1\"", handler.LastRequest.Headers.IfMatch.Single().Tag);
     }
 
     [Fact]
@@ -227,7 +228,49 @@ public class RunsClientTests
         var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadRequest));
         var request = new UpdateRunRequest(null, null, null, null, null, null, null);
 
-        var result = await client.UpdateAsync("run-1", request, CancellationToken.None);
+        var result = await client.UpdateAsync("run-1", request, "\"etag-v1\"", CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_throws_StaleEtagException_on_412()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.PreconditionFailed));
+        var request = new UpdateRunRequest(null, null, null, null, null, null, null);
+
+        await Assert.ThrowsAsync<Lfm.App.Runs.StaleEtagException>(
+            () => client.UpdateAsync("run-1", request, "\"stale-etag\"", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetWithEtagAsync_captures_response_etag()
+    {
+        var detail = MakeDetail("run-1");
+        var handler = new StubHttpMessageHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = System.Net.Http.Json.JsonContent.Create(detail),
+            };
+            response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"cosmos-etag\"");
+            return response;
+        });
+        var (client, _) = MakeClient(handler);
+
+        var result = await client.GetWithEtagAsync("run-1", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("run-1", result!.Run.Id);
+        Assert.Equal("\"cosmos-etag\"", result.ETag);
+    }
+
+    [Fact]
+    public async Task GetWithEtagAsync_returns_null_when_server_returns_404()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
+
+        var result = await client.GetWithEtagAsync("missing", CancellationToken.None);
 
         Assert.Null(result);
     }

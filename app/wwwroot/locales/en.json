@@ -163,6 +163,7 @@
     "editRun.saveSuccess": "Run saved successfully.",
     "editRun.deleteFailed": "Failed to delete run. Please try again.",
     "editRun.error.notFound": "Run not found.",
+    "editRun.error.staleEtag": "This run was changed by someone else. Reload the page to see the latest details before saving.",
     "editRun.rosterSignedUp": "Roster ({0} signed up)",
     "editRun.noSignups": "No signups yet.",
     "editRun.columns.character": "Character",

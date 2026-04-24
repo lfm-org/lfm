@@ -150,6 +150,7 @@
     "editRun.saveSuccess": "Runi tallennettu.",
     "editRun.deleteFailed": "Runin poistaminen ep\u00e4onnistui. Yrit\u00e4 uudelleen.",
     "editRun.error.notFound": "Runia ei l\u00f6ytynyt.",
+    "editRun.error.staleEtag": "Joku muu muutti t\u00e4t\u00e4 runia. Lataa sivu uudelleen n\u00e4hd\u00e4ksesi uusimmat tiedot ennen tallennusta.",
     "editRun.rosterSignedUp": "Kokoonpano ({0} ilmoittautunut)",
     "editRun.noSignups": "Ei ilmoittautumisia viel\u00e4.",
     "editRun.columns.character": "Hahmo",
