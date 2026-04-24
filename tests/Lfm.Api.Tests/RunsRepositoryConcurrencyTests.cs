@@ -62,7 +62,7 @@ public class RunsRepositoryConcurrencyTests
         client.Setup(c => c.GetContainer("testdb", "runs")).Returns(container.Object);
 
         var opts = Microsoft.Extensions.Options.Options.Create(new CosmosOptions { Endpoint = "https://test.documents.azure.com", DatabaseName = "testdb" });
-        var repo = new RunsRepository(client.Object, opts);
+        var repo = new RunsRepository(client.Object, opts, Microsoft.Extensions.Logging.Abstractions.NullLogger<RunsRepository>.Instance);
 
         var run = MakeRunDoc(etag: "\"stale-etag\"");
 
@@ -79,6 +79,7 @@ public class RunsRepositoryConcurrencyTests
         var responseMock = new Mock<ItemResponse<RunDocument>>();
         responseMock.Setup(r => r.Resource).Returns(run);
         responseMock.Setup(r => r.ETag).Returns("\"new-etag\"");
+        responseMock.Setup(r => r.RequestCharge).Returns(3.14);
 
         var container = new Mock<Container>();
         container
@@ -94,7 +95,8 @@ public class RunsRepositoryConcurrencyTests
         client.Setup(c => c.GetContainer("testdb", "runs")).Returns(container.Object);
 
         var opts = Microsoft.Extensions.Options.Options.Create(new CosmosOptions { Endpoint = "https://test.documents.azure.com", DatabaseName = "testdb" });
-        var repo = new RunsRepository(client.Object, opts);
+        var logger = new TestLogger<RunsRepository>();
+        var repo = new RunsRepository(client.Object, opts, logger);
 
         var result = await repo.UpdateAsync(run, null, CancellationToken.None);
 
@@ -108,5 +110,14 @@ public class RunsRepositoryConcurrencyTests
                 It.Is<ItemRequestOptions>(o => o.IfMatchEtag == "\"my-etag\""),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        // Every Cosmos op must emit the four structured log fields so App
+        // Insights can aggregate RU-per-endpoint; regression guard for
+        // Slice 6.1.
+        Assert.Contains(logger.Entries, e =>
+            e.Properties.TryGetValue("CosmosOp", out var op) && (op?.ToString() == "replace")
+            && e.Properties.TryGetValue("CosmosContainer", out var container) && (container?.ToString() == "runs")
+            && e.Properties.TryGetValue("CosmosPartitionKey", out var pk) && (pk?.ToString() == "run-1")
+            && e.Properties.TryGetValue("CosmosRequestCharge", out var ru) && ((double)ru! == 3.14));
     }
 }

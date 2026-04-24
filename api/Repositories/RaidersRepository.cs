@@ -2,12 +2,13 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Lfm.Api.Options;
 
 namespace Lfm.Api.Repositories;
 
-public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOptions> cosmosOpts) : IRaidersRepository
+public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOptions> cosmosOpts, ILogger<RaidersRepository> logger) : IRaidersRepository
 {
     private const string ContainerName = "raiders";
     private readonly Container _container = client.GetContainer(cosmosOpts.Value.DatabaseName, ContainerName);
@@ -20,6 +21,7 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
                 battleNetId,
                 new PartitionKey(battleNetId),
                 cancellationToken: ct);
+            logger.LogRequestCharge(response, "read", ContainerName, battleNetId);
             return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -30,10 +32,11 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
 
     public async Task UpsertAsync(RaiderDocument raider, CancellationToken ct)
     {
-        await _container.UpsertItemAsync(
+        var response = await _container.UpsertItemAsync(
             raider,
             new PartitionKey(raider.BattleNetId),
             cancellationToken: ct);
+        logger.LogRequestCharge(response, "upsert", ContainerName, raider.BattleNetId);
     }
 
     public async Task<RaiderDocument> ReplaceAsync(RaiderDocument raider, string ifMatchEtag, CancellationToken ct)
@@ -47,6 +50,7 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
                 new PartitionKey(raider.BattleNetId),
                 options,
                 ct);
+            logger.LogRequestCharge(response, "replace", ContainerName, raider.BattleNetId);
             return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
@@ -59,10 +63,11 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
     {
         try
         {
-            await _container.DeleteItemAsync<RaiderDocument>(
+            var response = await _container.DeleteItemAsync<RaiderDocument>(
                 battleNetId,
                 new PartitionKey(battleNetId),
                 cancellationToken: ct);
+            logger.LogRequestCharge(response, "delete", ContainerName, battleNetId);
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -84,11 +89,14 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
             new QueryDefinition(query).WithParameter("@cutoff", cutoff));
 
         var results = new List<RaiderDocument>();
+        var totalRu = 0.0;
         while (feedIterator.HasMoreResults)
         {
             var page = await feedIterator.ReadNextAsync(ct);
+            totalRu += page.RequestCharge;
             results.AddRange(page);
         }
+        logger.LogRequestChargeTotal("list-expired", ContainerName, totalRu);
         return results;
     }
 }
