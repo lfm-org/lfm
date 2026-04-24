@@ -20,4 +20,15 @@ public class WowReferenceInstancesFunction(IInstancesRepository repo)
         var items = await repo.ListAsync(ct);
         return new OkObjectResult(items);
     }
+
+    /// <summary>
+    /// <c>/api/v1/wow/reference/instances</c> alias for <see cref="Run"/>.
+    /// See <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("wow-reference-instances-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/wow/reference/instances")] HttpRequest req,
+        CancellationToken ct)
+        => Run(req, ct);
 }

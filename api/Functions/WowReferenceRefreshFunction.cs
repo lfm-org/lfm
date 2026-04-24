@@ -127,6 +127,18 @@ public class WowReferenceRefreshFunction(
         return new EmptyResult();
     }
 
+    /// <summary>
+    /// <c>/api/v1/wow/reference/refresh</c> alias for <see cref="Run"/>.
+    /// See <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("wow-reference-refresh-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/wow/reference/refresh")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, ctx, ct);
+
     private static async Task WriteNdjsonLineAsync(HttpResponse response, object envelope, CancellationToken ct)
     {
         await JsonSerializer.SerializeAsync(response.Body, envelope, envelope.GetType(), JsonOptions, ct);
