@@ -36,9 +36,11 @@ public class MeDeleteFunctionTests
     {
         var runsRepo = new Mock<IRunsRepository>();
         var raidersRepo = new Mock<IRaidersRepository>();
+        var idempotency = new Mock<Lfm.Api.Services.IIdempotencyStore>();
         return new MeDeleteFunction(
             runsRepo.Object,
             raidersRepo.Object,
+            idempotency.Object,
             logger ?? new TestLogger<MeDeleteFunction>());
     }
 
@@ -62,7 +64,7 @@ public class MeDeleteFunctionTests
             .Returns(Task.CompletedTask);
 
         var logger = new TestLogger<MeDeleteFunction>();
-        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
+        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, new Mock<Lfm.Api.Services.IIdempotencyStore>().Object, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
@@ -91,7 +93,7 @@ public class MeDeleteFunctionTests
         raidersRepo
             .Setup(r => r.DeleteAsync("bnet-42", It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, logger);
+        var fn = new MeDeleteFunction(runsRepo.Object, raidersRepo.Object, new Mock<Lfm.Api.Services.IIdempotencyStore>().Object, logger);
         var ctx = MakeFunctionContext(principal);
 
         // Act
