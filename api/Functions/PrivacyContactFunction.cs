@@ -53,4 +53,13 @@ public class PrivacyContactFunction(IOptions<PrivacyContactOptions> options)
         return new OkObjectResult(new PrivacyEmailResponse(Local: local, Domain: domain, Email: email));
 #pragma warning restore CS0618
     }
+
+    /// <summary>
+    /// <c>/api/v1/privacy-contact/email</c> alias for <see cref="GetEmail"/>.
+    /// See <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("privacy-email-v1")]
+    public IActionResult GetEmailV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/privacy-contact/email")] HttpRequest req)
+        => GetEmail(req);
 }

@@ -87,6 +87,18 @@ public class MeUpdateFunction(IRaidersRepository repo)
     }
 
     /// <summary>
+    /// <c>/api/v1/me</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("me-update-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/me")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => Run(req, ctx, cancellationToken);
+
+    /// <summary>
     /// Returns the caller's <c>If-Match</c> ETag when present and non-wildcard.
     /// A <c>*</c> wildcard is treated as "no precondition" so SPA flows that
     /// haven't captured the ETag yet remain functional during migration.

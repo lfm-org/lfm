@@ -45,4 +45,16 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
             IsSiteAdmin: isAdmin,
             Locale: raider.Locale));
     }
+
+    /// <summary>
+    /// <c>/api/v1/me</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c> for the rollout plan.
+    /// </summary>
+    [Function("me-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/me")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => Run(req, ctx, cancellationToken);
 }
