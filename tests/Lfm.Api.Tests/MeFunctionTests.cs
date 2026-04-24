@@ -96,7 +96,10 @@ public class MeFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
         siteAdmin.Verify(s => s.IsAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
