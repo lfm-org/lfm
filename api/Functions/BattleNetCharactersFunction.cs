@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
@@ -44,7 +45,7 @@ public class BattleNetCharactersFunction(
 
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         if (!ShouldServeCachedAccountProfile(raider))
             return new NoContentResult();

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Options;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Options;
 
 namespace Lfm.Api.Functions;
@@ -24,7 +25,7 @@ public class E2ELoginFunction(ISessionCipher cipher, IOptions<AuthOptions> authO
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("E2E_TEST_MODE"), "true", StringComparison.OrdinalIgnoreCase))
         {
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "endpoint-disabled", "E2E test-only endpoint; enable via E2E_TEST_MODE=true.");
         }
 
         var auth = authOpts.Value;
