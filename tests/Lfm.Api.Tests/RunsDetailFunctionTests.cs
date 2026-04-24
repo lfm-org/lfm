@@ -99,6 +99,31 @@ public class RunsDetailFunctionTests
             Role: "HEALER");
 
     // ------------------------------------------------------------------
+    // v1 alias contract — /api/v1/runs/{id} is a thin delegation
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task RunV1_delegates_to_canonical_Run_handler()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+        var doc = MakeRunDoc(id: "run-1", visibility: "PUBLIC", etag: "\"v1-etag\"");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(doc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var request = new DefaultHttpContext().Request;
+        var result = await fn.RunV1(request, "run-1", ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("\"v1-etag\"", request.HttpContext.Response.Headers.ETag.ToString());
+    }
+
+    // ------------------------------------------------------------------
     // Test 1: Happy path — returns sanitized run detail for authenticated user
     // ------------------------------------------------------------------
 

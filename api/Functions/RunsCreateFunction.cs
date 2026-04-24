@@ -113,6 +113,18 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
         return new ObjectResult(MapToDto(created)) { StatusCode = 201 };
     }
 
+    /// <summary>
+    /// <c>/api/v1/runs</c> POST alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("runs-create-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/runs")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, ctx, ct);
+
     // ------------------------------------------------------------------
     // Document builder — mirrors buildRunDocument in runs-create.ts
     // ------------------------------------------------------------------
