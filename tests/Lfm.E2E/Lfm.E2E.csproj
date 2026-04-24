@@ -21,15 +21,15 @@
     <PackageReference Include="Deque.AxeCore.Playwright" Version="4.11.2" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
-    <PackageReference Include="WireMock.Net" Version="2.2.0" />
-    <!-- Pinned to close transitive OpenTelemetry advisories flowing in via
-         Testcontainers 4.11.0 (which depends on OpenTelemetry.* 1.14.0):
-         GHSA-g94r-2vxg-569j (OpenTelemetry.Api), GHSA-q834-8qmm-v933 and
-         GHSA-mr8r-92fq-pj8p (OpenTelemetry.Exporter.OpenTelemetryProtocol).
-         Direct references override the transitives so the advisories clear
-         regardless of Testcontainers' own refresh cadence. -->
-    <PackageReference Include="OpenTelemetry.Api" Version="1.15.3" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <!-- WireMock.Net.Minimal (not the WireMock.Net meta-package) because our
+         tests only use WireMock.Server / RequestBuilders / ResponseBuilders /
+         Settings — all in the core sub-package. The meta-package would also
+         bundle WireMock.Net.GraphQL / MimePart / OpenTelemetry / ProtoBuf,
+         each unused here. Dropping the OpenTelemetry bundle in particular
+         removes the transitive OTel chain (and the CVEs it carried), so the
+         previous direct pins on OpenTelemetry.Api and
+         OpenTelemetry.Exporter.OpenTelemetryProtocol are no longer required. -->
+    <PackageReference Include="WireMock.Net.Minimal" Version="2.2.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">
