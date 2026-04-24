@@ -75,6 +75,18 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
         return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
     }
 
+    /// <summary>
+    /// <c>/api/v1/guild</c> alias for <see cref="GuildGet"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("guild-get-v1")]
+    [RequireAuth]
+    public Task<IActionResult> GuildGetV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/guild")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => GuildGet(req, ctx, cancellationToken);
+
     // ------------------------------------------------------------------
     // PATCH /api/guild
     // ------------------------------------------------------------------
@@ -184,6 +196,18 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
 
         return new OkObjectResult(GuildMapper.MapToDto(persisted));
     }
+
+    /// <summary>
+    /// <c>/api/v1/guild</c> PATCH alias for <see cref="GuildUpdate"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("guild-update-v1")]
+    [RequireAuth]
+    public Task<IActionResult> GuildUpdateV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/guild")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => GuildUpdate(req, ctx, cancellationToken);
 
     /// <summary>
     /// Returns the caller's <c>If-Match</c> ETag when present and non-wildcard.

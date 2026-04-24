@@ -42,4 +42,16 @@ public class GuildAdminFunction(IGuildRepository guildRepo, ISiteAdminService si
 
         return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
     }
+
+    /// <summary>
+    /// <c>/api/v1/guild/admin</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("guild-admin-get-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/guild/admin")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => Run(req, ctx, cancellationToken);
 }
