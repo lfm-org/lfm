@@ -260,6 +260,8 @@ public class GuildFunctionTests
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, statusResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(statusResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-admin-only", problem.Type);
 
         // Guild document should never be read when caller is not admin.
         guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);

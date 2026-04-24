@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Me;
@@ -32,17 +33,24 @@ public class MeUpdateFunction(IRaidersRepository repo)
             cancellationToken: cancellationToken);
 
         if (body is null)
-            return new BadRequestObjectResult(new { error = "invalid body" });
+            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
 
         var validator = new UpdateMeRequestValidator();
         var validationResult = await validator.ValidateAsync(body, cancellationToken);
         if (!validationResult.IsValid)
-            return new BadRequestObjectResult(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        {
+            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = errors });
+        }
 
         // Read-modify-write: load existing doc then upsert with updated locale + TTL.
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var updated = raider with { Locale = body.Locale!, Ttl = TtlSeconds };
         await repo.UpsertAsync(updated, cancellationToken);
