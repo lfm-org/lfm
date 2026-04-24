@@ -29,7 +29,7 @@
          removes the transitive OTel chain (and the CVEs it carried), so the
          previous direct pins on OpenTelemetry.Api and
          OpenTelemetry.Exporter.OpenTelemetryProtocol are no longer required. -->
-    <PackageReference Include="WireMock.Net.Minimal" Version="2.2.0" />
+    <PackageReference Include="WireMock.Net.Minimal" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">
