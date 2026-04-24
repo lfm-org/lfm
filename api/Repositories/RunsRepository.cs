@@ -105,11 +105,14 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         return response.Resource;
     }
 
-    public async Task<RunDocument> UpdateAsync(RunDocument run, CancellationToken ct)
+    public async Task<RunDocument> UpdateAsync(RunDocument run, string? ifMatchEtag, CancellationToken ct)
     {
         try
         {
-            var options = new ItemRequestOptions { IfMatchEtag = run.ETag };
+            // An explicit ifMatchEtag (from a client If-Match header) always wins;
+            // fall back to the document's stored ETag for internal retry loops
+            // (e.g. RunsSignupFunction) that re-fetch the run each attempt.
+            var options = new ItemRequestOptions { IfMatchEtag = ifMatchEtag ?? run.ETag };
             var response = await _container.ReplaceItemAsync(
                 run,
                 run.Id,

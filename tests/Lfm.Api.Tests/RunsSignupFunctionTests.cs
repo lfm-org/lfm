@@ -150,7 +150,7 @@ public class RunsSignupFunctionTests
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRun);
 
         var raidersRepo = new Mock<IRaidersRepository>();
@@ -191,7 +191,7 @@ public class RunsSignupFunctionTests
         Assert.Single(dto.RunCharacters);
         Assert.True(dto.RunCharacters[0].IsCurrentUser);
 
-        fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ------------------------------------------------------------------
@@ -225,7 +225,7 @@ public class RunsSignupFunctionTests
         var problem = Assert.IsType<ProblemDetails>(notFound.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -264,7 +264,7 @@ public class RunsSignupFunctionTests
         var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
 
         Assert.Single(logger.Entries, e => e.IsAudit("signup.create", "failure", "guild rank denied"));
     }
@@ -334,7 +334,7 @@ public class RunsSignupFunctionTests
         var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#signups-closed", problem.Type);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -351,8 +351,8 @@ public class RunsSignupFunctionTests
         // sees a successful 200 with the persisted run state. The exact retry
         // count is a loop-structure detail and is not pinned here.
         var callCount = 0;
-        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
-            .Returns<RunDocument, CancellationToken>((doc, _) =>
+        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns<RunDocument, string?, CancellationToken>((doc, _, _) =>
             {
                 callCount++;
                 if (callCount == 1)
@@ -377,7 +377,7 @@ public class RunsSignupFunctionTests
     {
         var fx = MakeHappyPath();
 
-        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException());
 
         var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);

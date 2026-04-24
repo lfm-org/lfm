@@ -130,7 +130,7 @@ public class RunsCancelSignupFunctionTests
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRun);
 
         var fn = MakeFunction(runsRepo);
@@ -142,7 +142,7 @@ public class RunsCancelSignupFunctionTests
         var dto = Assert.IsType<RunDetailDto>(okResult.Value);
         Assert.Empty(dto.RunCharacters);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ------------------------------------------------------------------
@@ -169,7 +169,7 @@ public class RunsCancelSignupFunctionTests
         Assert.Equal(404, notFound.StatusCode);
         Assert.IsType<ProblemDetails>(notFound.Value);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -202,7 +202,7 @@ public class RunsCancelSignupFunctionTests
         var notFound = Assert.IsType<ObjectResult>(result);
         Assert.Equal(404, notFound.StatusCode);
         Assert.IsType<ProblemDetails>(notFound.Value);
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -224,7 +224,7 @@ public class RunsCancelSignupFunctionTests
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRun);
 
         var raidersRepo = new Mock<IRaidersRepository>();
@@ -240,7 +240,7 @@ public class RunsCancelSignupFunctionTests
         var dto = Assert.IsType<RunDetailDto>(okResult.Value);
         Assert.Empty(dto.RunCharacters);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ------------------------------------------------------------------
@@ -273,7 +273,7 @@ public class RunsCancelSignupFunctionTests
         var notFound = Assert.IsType<ObjectResult>(result);
         Assert.Equal(404, notFound.StatusCode);
         Assert.IsType<ProblemDetails>(notFound.Value);
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -292,7 +292,7 @@ public class RunsCancelSignupFunctionTests
         var runsRepo = new Mock<IRunsRepository>();
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRun);
 
         var logger = new TestLogger<RunsCancelSignupFunction>();

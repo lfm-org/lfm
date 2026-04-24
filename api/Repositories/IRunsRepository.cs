@@ -124,10 +124,18 @@ public interface IRunsRepository
 
     /// <summary>
     /// Replaces an existing run document in the "runs" container.
-    /// Returns the persisted document after the replace.
-    /// Mirrors <c>getRunsContainer().item(id, id).replace(updated)</c> in runs-update.ts.
+    ///
+    /// <para>
+    /// <paramref name="ifMatchEtag"/> is the optimistic-concurrency token. When
+    /// non-null it is passed as <c>IfMatchEtag</c> to Cosmos; when null the
+    /// repository falls back to <c>run.ETag</c>. Callers surfacing a client
+    /// <c>If-Match</c> header should pass it explicitly so that a stale token
+    /// produces a 412-flavoured <see cref="ConcurrencyConflictException"/> even
+    /// when the <paramref name="run"/> document was re-fetched between read
+    /// and write.
+    /// </para>
     /// </summary>
-    Task<RunDocument> UpdateAsync(RunDocument run, CancellationToken ct);
+    Task<RunDocument> UpdateAsync(RunDocument run, string? ifMatchEtag, CancellationToken ct);
 
     /// <summary>
     /// Deletes a run document by its id. Idempotent: if the document does not

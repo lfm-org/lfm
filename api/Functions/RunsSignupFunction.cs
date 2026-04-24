@@ -210,7 +210,9 @@ public class RunsSignupFunction(
             var updated = run with { RunCharacters = updatedCharacters };
             try
             {
-                var persisted = await runsRepo.UpdateAsync(updated, ct);
+                // Pass null so the repository falls back to run.ETag — this is an
+                // internal retry loop, not a client-driven If-Match flow.
+                var persisted = await runsRepo.UpdateAsync(updated, ifMatchEtag: null, ct);
 
                 AuditLog.Emit(logger, new AuditEvent("signup.create", principal.BattleNetId, id, "success", null));
 

@@ -66,7 +66,7 @@ public class RunsRepositoryConcurrencyTests
 
         var run = MakeRunDoc(etag: "\"stale-etag\"");
 
-        var act = () => repo.UpdateAsync(run, CancellationToken.None);
+        var act = () => repo.UpdateAsync(run, null, CancellationToken.None);
 
         await Assert.ThrowsAsync<ConcurrencyConflictException>(act);
     }
@@ -96,7 +96,7 @@ public class RunsRepositoryConcurrencyTests
         var opts = Microsoft.Extensions.Options.Options.Create(new CosmosOptions { Endpoint = "https://test.documents.azure.com", DatabaseName = "testdb" });
         var repo = new RunsRepository(client.Object, opts);
 
-        var result = await repo.UpdateAsync(run, CancellationToken.None);
+        var result = await repo.UpdateAsync(run, null, CancellationToken.None);
 
         Assert.Equal("\"new-etag\"", result.ETag);
 
