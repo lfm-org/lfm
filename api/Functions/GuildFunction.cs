@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -55,7 +56,7 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
         // session principal's GuildId is a legacy field that is no longer populated.
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var (guildId, _) = GuildResolver.FromRaider(raider);
 
@@ -64,7 +65,7 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
 
         var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
         if (guildDoc is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
         return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
     }
