@@ -5,12 +5,16 @@
 # so downstream AGPL operators and the first-party SPA can read it without
 # running the server. CI lints this file via .github/workflows/openapi-lint.yml.
 #
-# Coverage is rolled out iteratively: Slice 1.3 seeds the document with the
-# two health endpoints. Subsequent slices (3.3 onward) extend coverage to
-# /me, /guild, /runs, /raider, /wow/reference, and /admin. The
+# Coverage was seeded with the two health endpoints in Slice 1.3 and expanded
+# to the full public surface in Slice 3.3. The
 # Microsoft.Azure.Functions.Worker.Extensions.OpenApi package will be adopted
-# in development-only mode (gated on ASPNETCORE_ENVIRONMENT) so drift between
-# annotations and this static file fails CI rather than shipping quietly.
+# in development-only mode in a follow-up slice so drift between annotations
+# and this static file fails CI rather than shipping quietly.
+#
+# Response-body types reference shared/Lfm.Contracts records; the schemas
+# below model their on-the-wire JSON shape (camelCase at the top level).
+# Error paths all emit application/problem+json per RFC 9457 with type URIs
+# rooted at https://github.com/lfm-org/lfm/errors#<slug> per D0.1.
 
 openapi: 3.1.0
 info:
@@ -22,6 +26,11 @@ info:
     `api/openapi.yaml`; it is **not** served live from production. See the
     top-level `README.md` for the hybrid (generator-in-dev, static-in-prod)
     setup.
+
+    Authentication is a Battle.net OAuth 2.1 code flow that culminates in
+    an encrypted session cookie. All endpoints except `/api/battlenet/login`,
+    `/api/battlenet/callback`, `/api/health`, `/api/health/ready`, and
+    `/api/privacy-contact/email` require the session cookie.
   license:
     name: AGPL-3.0-or-later
     identifier: AGPL-3.0-or-later
@@ -38,8 +47,33 @@ servers:
 tags:
   - name: Health
     description: Liveness and readiness probes.
+  - name: Auth
+    description: Battle.net OAuth login / callback / logout.
+  - name: Me
+    description: Logged-in user's profile, locale, and account deletion.
+  - name: Guild
+    description: Guild settings and admin view.
+  - name: Runs
+    description: Raid / dungeon signup runs.
+  - name: Raider Characters
+    description: The logged-in user's selected characters and their enrichment.
+  - name: Battle.net Profile
+    description: Blizzard account profile and character portrait helpers.
+  - name: WoW Reference
+    description: Reference data (instances, specializations, expansions) seeded from Blizzard.
+  - name: Admin
+    description: Site-administrator-only endpoints.
+  - name: Privacy
+    description: Privacy-policy helper endpoints (contact email reveal).
+
+security:
+  - sessionCookie: []
 
 paths:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Health
+  # ─────────────────────────────────────────────────────────────────────────
+
   /api/health:
     get:
       tags: [Health]
@@ -49,6 +83,7 @@ paths:
         dependencies. Consumed by App Service Health Check on Premium /
         Dedicated plans to decide whether to recycle the instance.
       operationId: getHealth
+      security: []
       responses:
         '200':
           description: Live.
@@ -58,9 +93,7 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
               examples:
                 live:
-                  value:
-                    status: ok
-                    timestamp: '2026-04-24T00:00:00Z'
+                  value: { status: ok, timestamp: '2026-04-24T00:00:00Z' }
 
   /api/health/ready:
     get:
@@ -72,30 +105,760 @@ paths:
         monitors and deploy smoke tests; **not** by App Service Health Check
         (Cosmos being down should not recycle the app).
       operationId: getHealthReady
+      security: []
       responses:
         '200':
           description: Ready.
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
+              schema: { $ref: '#/components/schemas/HealthResponse' }
               examples:
                 ready:
-                  value:
-                    status: ready
-                    timestamp: '2026-04-24T00:00:00Z'
+                  value: { status: ready, timestamp: '2026-04-24T00:00:00Z' }
         '503':
           description: Not ready. Exception details are never returned; inspect Application Insights for cause.
           content:
             application/json:
+              schema: { $ref: '#/components/schemas/UnreadyResponse' }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Auth (Battle.net OAuth)
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/battlenet/login:
+    get:
+      tags: [Auth]
+      summary: Start Battle.net OAuth login.
+      description: |
+        Redirects the browser to the Battle.net authorization endpoint with
+        a cryptographic `state` cookie stored server-side for CSRF protection.
+      operationId: getBattleNetLogin
+      security: []
+      parameters:
+        - in: query
+          name: returnUrl
+          required: false
+          schema: { type: string }
+          description: Relative path to return to after login; must be same-origin.
+      responses:
+        '302':
+          description: Redirect to Battle.net.
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+
+  /api/battlenet/callback:
+    get:
+      tags: [Auth]
+      summary: Battle.net OAuth callback.
+      description: |
+        Receives the authorization code from Battle.net, exchanges it for a
+        Battle.net access token, loads the user profile, mints an encrypted
+        session cookie via ASP.NET Data Protection, and redirects to the SPA.
+      operationId: getBattleNetCallback
+      security: []
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema: { type: string }
+        - in: query
+          name: state
+          required: true
+          schema: { type: string }
+      responses:
+        '302':
+          description: Redirect to the SPA post-login landing page.
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+
+  /api/battlenet/logout:
+    get:
+      tags: [Auth]
+      summary: Clear the session cookie.
+      operationId: getBattleNetLogout
+      security: []
+      responses:
+        '302':
+          description: Redirect to the SPA home page with the session cookie cleared.
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Me
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/me:
+    get:
+      tags: [Me]
+      summary: Logged-in user's profile.
+      operationId: getMe
+      responses:
+        '200':
+          description: Me.
+          headers:
+            ETag:
+              description: Strong ETag mirroring the Cosmos `_etag`. Echo as `If-Match` on PATCH for optimistic concurrency.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+    patch:
+      tags: [Me]
+      summary: Update my locale.
+      description: |
+        Transitional contract: supplying an `If-Match` header with a concrete
+        ETag triggers optimistic concurrency (returns 412 on stale). A
+        wildcard `*` or a missing header falls back to blind upsert for one
+        release, after which `If-Match` becomes mandatory.
+      operationId: patchMe
+      parameters:
+        - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateMeRequest' }
+      responses:
+        '200':
+          description: Updated.
+          headers:
+            ETag:
+              description: New ETag after the update.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateMeResponse' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '412':
+          $ref: '#/components/responses/ProblemPreconditionFailed'
+    delete:
+      tags: [Me]
+      summary: Delete my account (GDPR Art. 17).
+      description: |
+        Hard-deletes the raider document and scrubs all runs the user has
+        created or signed up to. The session cookie is cleared on success.
+      operationId: deleteMe
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Privacy
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/privacy-contact/email:
+    get:
+      tags: [Privacy]
+      summary: Privacy contact email (click-to-reveal).
+      description: |
+        Returns the operator's privacy contact address on demand. The SPA
+        only calls this after the user presses a reveal button so the
+        address never appears in the static HTML. Rate-limited separately
+        from other read endpoints.
+      operationId: getPrivacyContactEmail
+      security: []
+      responses:
+        '200':
+          description: Configured address.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivacyEmailResponse' }
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '429':
+          $ref: '#/components/responses/ProblemTooManyRequests'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Guild
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/guild:
+    get:
+      tags: [Guild]
+      summary: Current user's guild home view.
+      description: |
+        Returns the guild document for the user's selected character's guild.
+        If the user has no guild-affiliated character, a `NoGuildDto` (200)
+        is returned instead of 404 — this is the graceful "no guild yet"
+        path surfaced by the SPA.
+      operationId: getGuild
+      responses:
+        '200':
+          description: Guild view (populated or `NoGuildDto`).
+          headers:
+            ETag:
+              description: Strong ETag mirroring the Cosmos `_etag` (absent on NoGuildDto).
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuildDto' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+    patch:
+      tags: [Guild]
+      summary: Update guild settings (admin only).
+      description: |
+        Updates timezone, locale, slogan, and rank permissions. Only callers
+        whose Blizzard roster rank is 0 (guild master) may write. Same
+        If-Match semantics as PATCH /api/me.
+      operationId: patchGuild
+      parameters:
+        - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateGuildRequest' }
+      responses:
+        '200':
+          description: Updated.
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuildDto' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '412':
+          $ref: '#/components/responses/ProblemPreconditionFailed'
+
+  /api/guild/admin:
+    get:
+      tags: [Guild]
+      summary: Guild admin view (raw roster + rank setup).
+      operationId: getGuildAdmin
+      responses:
+        '200':
+          description: Admin view.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Runs
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/runs:
+    get:
+      tags: [Runs]
+      summary: List runs visible to the caller.
+      description: |
+        Visibility: all PUBLIC runs, GUILD runs whose creator is in the
+        caller's guild, plus runs the caller created. One page per request,
+        capped server-side at 200 items.
+      operationId: listRuns
+      parameters:
+        - in: query
+          name: continuationToken
+          required: false
+          schema: { type: string }
+        - in: query
+          name: top
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200 }
+      responses:
+        '200':
+          description: One page of run summaries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunsListResponse' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+    post:
+      tags: [Runs]
+      summary: Create a run.
+      operationId: createRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRunRequest' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunDetailDto' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+
+  /api/runs/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Runs]
+      summary: Fetch a run by id.
+      operationId: getRun
+      responses:
+        '200':
+          description: Run.
+          headers:
+            ETag:
+              description: Strong ETag; echo as `If-Match` on PUT.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunDetailDto' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+    put:
+      tags: [Runs]
+      summary: Update a run.
+      description: |
+        Requires `If-Match` echoing the ETag from a prior GET. Missing →
+        428 Precondition Required; stale → 412 Precondition Failed.
+      operationId: putRun
+      parameters:
+        - $ref: '#/components/parameters/IfMatchRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRunRequest' }
+      responses:
+        '200':
+          description: Updated.
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunDetailDto' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+        '412':
+          $ref: '#/components/responses/ProblemPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ProblemPreconditionRequired'
+        '503':
+          $ref: '#/components/responses/ProblemServiceUnavailable'
+    delete:
+      tags: [Runs]
+      summary: Delete a run.
+      operationId: deleteRun
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
+  /api/runs/{id}/signup:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Runs]
+      summary: Sign up (or change signup) for a run.
+      operationId: signupToRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignupRequest' }
+      responses:
+        '200':
+          description: Signup recorded; response is the updated run.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunDetailDto' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+    delete:
+      tags: [Runs]
+      summary: Cancel my signup to a run.
+      operationId: cancelSignup
+      responses:
+        '200':
+          description: Signup removed; response is the updated run.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunDetailDto' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Raider Characters
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/raider/character:
+    post:
+      tags: [Raider Characters]
+      summary: Add a WoW character to my raider profile.
+      operationId: addRaiderCharacter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddCharacterRequest' }
+      responses:
+        '200':
+          description: Added.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AddCharacterResponse' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '429':
+          $ref: '#/components/responses/ProblemTooManyRequests'
+
+  /api/raider/characters/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Raider Characters]
+      summary: Mark one of my characters as the selected one.
+      operationId: selectRaiderCharacter
+      responses:
+        '200':
+          description: Selected.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateCharacterResponse' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
+  /api/raider/characters/{id}/enrich:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Raider Characters]
+      summary: Refresh a character's spec / class / portrait from Blizzard.
+      operationId: enrichRaiderCharacter
+      responses:
+        '200':
+          description: Updated character.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CharacterDto' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '429':
+          description: Blizzard API backoff; `Retry-After` header signals when to retry.
+          headers:
+            Retry-After:
+              schema: { type: integer }
+              description: Seconds the caller should wait before retrying.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Battle.net Profile
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/battlenet/characters:
+    get:
+      tags: [Battle.net Profile]
+      summary: Logged-in user's WoW characters.
+      description: |
+        Served from the embedded `accountProfileSummary` cache in the raider
+        document when the 15-minute cooldown has not expired. Returns 204
+        when the cache is empty or expired — caller should then POST to
+        `/api/battlenet/characters/refresh`.
+      operationId: getBattleNetCharacters
+      responses:
+        '200':
+          description: Cached characters.
+          content:
+            application/json:
               schema:
-                $ref: '#/components/schemas/UnreadyResponse'
-              examples:
-                unready:
-                  value:
-                    status: unready
+                type: array
+                items: { $ref: '#/components/schemas/CharacterDto' }
+        '204':
+          description: No cached data; caller should trigger a refresh.
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
+  /api/battlenet/characters/refresh:
+    post:
+      tags: [Battle.net Profile]
+      summary: Refresh the cached character list from Blizzard.
+      operationId: refreshBattleNetCharacters
+      responses:
+        '200':
+          description: Refreshed characters.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CharacterDto' }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '429':
+          $ref: '#/components/responses/ProblemTooManyRequests'
+
+  /api/battlenet/character-portraits:
+    post:
+      tags: [Battle.net Profile]
+      summary: Resolve portrait URLs for a batch of characters.
+      operationId: resolveCharacterPortraits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/CharacterPortraitRequest' }
+      responses:
+        '200':
+          description: URL map keyed by `{region}-{realm}-{name}`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PortraitResponse' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # WoW Reference
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/wow/reference/expansions:
+    get:
+      tags: [WoW Reference]
+      summary: Blizzard journal expansions (manifest).
+      operationId: listExpansions
+      responses:
+        '200':
+          description: Expansions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ExpansionDto' }
+
+  /api/wow/reference/instances:
+    get:
+      tags: [WoW Reference]
+      summary: Blizzard journal instances (manifest).
+      operationId: listInstances
+      responses:
+        '200':
+          description: Instances.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InstanceDto' }
+
+  /api/wow/reference/specializations:
+    get:
+      tags: [WoW Reference]
+      summary: WoW specializations (manifest).
+      operationId: listSpecializations
+      responses:
+        '200':
+          description: Specializations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SpecializationDto' }
+
+  /api/wow/reference/refresh:
+    post:
+      tags: [WoW Reference, Admin]
+      summary: Rebuild the reference-data manifests from Blizzard (admin only).
+      description: |
+        Streams NDJSON progress events (`application/x-ndjson`) — one JSON
+        object per line, flushed as the sync progresses. The final line is a
+        `done` envelope carrying the per-entity outcomes.
+      operationId: refreshWowReference
+      responses:
+        '200':
+          description: NDJSON stream of progress + done events.
+          content:
+            application/x-ndjson:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/WowReferenceRefreshProgressEnvelope'
+                  - $ref: '#/components/schemas/WowReferenceRefreshDoneEnvelope'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Admin
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/admin/runs/migrate-schema:
+    post:
+      tags: [Admin]
+      summary: Backfill typed mode fields on legacy run documents.
+      operationId: migrateRunsSchema
+      parameters:
+        - in: query
+          name: dryRun
+          required: false
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Migration result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scanned, migrated, dryRun]
+                properties:
+                  scanned: { type: integer }
+                  migrated: { type: integer }
+                  dryRun: { type: boolean }
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
 
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: |
+        Encrypted session payload issued by `/api/battlenet/callback`.
+        Protected by ASP.NET Data Protection with the key ring stored in
+        Azure Blob Storage and encrypted via Key Vault. The cookie is
+        HttpOnly, SameSite=Lax, and scoped to the API host.
+
+  parameters:
+    IfMatchRequired:
+      in: header
+      name: If-Match
+      required: true
+      schema: { type: string }
+      description: ETag from a prior GET. Missing → 428, stale → 412.
+    IfMatchOptional:
+      in: header
+      name: If-Match
+      required: false
+      schema: { type: string }
+      description: |
+        Optional ETag or `*`. Concrete ETag enables optimistic concurrency
+        (stale → 412). Wildcard `*` or missing header falls back to blind
+        upsert during the transition phase.
+
+  responses:
+    ProblemBadRequest:
+      description: Request body or parameters failed validation.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemUnauthorized:
+      description: Missing or invalid session cookie.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemForbidden:
+      description: Authenticated but not permitted for this resource.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemNotFound:
+      description: Resource does not exist or is not visible to the caller.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemConflict:
+      description: Resource state is incompatible with the request (e.g. editing closed).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemPreconditionFailed:
+      description: "`If-Match` did not match the current resource ETag."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemPreconditionRequired:
+      description: "Endpoint requires an `If-Match` header and none was supplied."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemTooManyRequests:
+      description: "Rate-limit tier exhausted; retry after the `Retry-After` interval."
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ProblemServiceUnavailable:
+      description: Downstream dependency unavailable.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+
   schemas:
     HealthResponse:
       type: object
@@ -103,27 +866,20 @@ components:
       properties:
         status:
           type: string
-          description: Liveness (`ok`) or readiness (`ready`) indicator.
           enum: [ok, ready]
         timestamp:
           type: string
           format: date-time
-          description: Server UTC timestamp at which the probe was evaluated.
       additionalProperties: false
 
     UnreadyResponse:
       type: object
       required: [status]
       properties:
-        status:
-          type: string
-          enum: [unready]
+        status: { type: string, enum: [unready] }
       additionalProperties: false
 
-    # RFC 9457 problem+json body emitted by every error response. Seeded here
-    # so slices 2.1 / 2.2 / 2.3 can reference it as endpoints are migrated
-    # from the legacy `{ error: string }` shape. Type URIs are rooted at
-    # https://github.com/lfm-org/lfm/errors#<slug> per D0.1.
+    # RFC 9457 problem+json body emitted by every error response.
     ProblemDetails:
       type: object
       description: RFC 9457 problem details (`application/problem+json`).
@@ -135,19 +891,314 @@ components:
           example: https://github.com/lfm-org/lfm/errors#run-not-found
         title:
           type: string
-          description: Human-readable summary of the problem type.
         status:
           type: integer
           minimum: 100
           maximum: 599
-          description: HTTP status code generated for this occurrence.
         detail:
           type: string
-          description: Human-readable explanation specific to this occurrence.
         instance:
           type: string
-          description: URI reference identifying the specific occurrence (typically the request path).
         traceId:
           type: string
-          description: W3C trace id from `Activity.Current` for correlation with Application Insights.
+          description: W3C trace id for correlation with Application Insights.
       additionalProperties: true
+
+    # ── Me ────────────────────────────────────────────────────────────────
+    MeResponse:
+      type: object
+      required: [battleNetId, isSiteAdmin]
+      properties:
+        battleNetId: { type: string }
+        guildName: { type: string, nullable: true }
+        selectedCharacterId: { type: string, nullable: true }
+        isSiteAdmin: { type: boolean }
+        locale: { type: string, nullable: true, enum: [en, fi, null] }
+
+    UpdateMeRequest:
+      type: object
+      required: [locale]
+      properties:
+        locale: { type: string, enum: [en, fi] }
+
+    UpdateMeResponse:
+      type: object
+      required: [locale]
+      properties:
+        locale: { type: string }
+
+    # ── Privacy ───────────────────────────────────────────────────────────
+    PrivacyEmailResponse:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    # ── Guild ─────────────────────────────────────────────────────────────
+    GuildDto:
+      type: object
+      description: |
+        Either a populated guild view or a `NoGuildDto` — the `guild` field
+        is null in the no-guild case.
+      properties:
+        guild:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/GuildInfoDto'
+        setup:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/GuildSetupDto'
+        rankPermissions:
+          type: array
+          items: { $ref: '#/components/schemas/GuildRankPermissionDto' }
+
+    GuildInfoDto:
+      type: object
+      required: [id, name, realmName]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slogan: { type: string, nullable: true }
+        realmName: { type: string }
+        factionName: { type: string, nullable: true }
+        memberCount: { type: integer, nullable: true }
+        rankCount: { type: integer, nullable: true }
+        crestEmblemUrl: { type: string, nullable: true }
+        crestBorderUrl: { type: string, nullable: true }
+
+    GuildSetupDto:
+      type: object
+      required: [isInitialized, requiresSetup, rankDataFresh, timezone, locale]
+      properties:
+        isInitialized: { type: boolean }
+        requiresSetup: { type: boolean }
+        rankDataFresh: { type: boolean }
+        timezone: { type: string }
+        locale: { type: string }
+
+    GuildRankPermissionDto:
+      type: object
+      required: [rank, canCreateGuildRuns, canSignupGuildRuns, canDeleteGuildRuns]
+      properties:
+        rank: { type: integer }
+        canCreateGuildRuns: { type: boolean }
+        canSignupGuildRuns: { type: boolean }
+        canDeleteGuildRuns: { type: boolean }
+
+    UpdateGuildRequest:
+      type: object
+      properties:
+        timezone: { type: string, nullable: true }
+        locale:
+          type: string
+          nullable: true
+          enum: [fi, en-gb, de, fr, es, sv, da, nb, null]
+        slogan: { type: string, nullable: true }
+        rankPermissions:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/GuildRankPermissionDto' }
+
+    # ── Runs ──────────────────────────────────────────────────────────────
+    RunCharacterDto:
+      type: object
+      required:
+        [characterName, characterRealm, characterClassId, characterClassName,
+         desiredAttendance, reviewedAttendance, isCurrentUser]
+      properties:
+        characterName: { type: string }
+        characterRealm: { type: string }
+        characterClassId: { type: integer }
+        characterClassName: { type: string }
+        desiredAttendance: { type: string, enum: [IN, OUT, BENCH, LATE, AWAY] }
+        reviewedAttendance: { type: string, enum: [IN, OUT, BENCH, LATE, AWAY] }
+        specName: { type: string, nullable: true }
+        role: { type: string, nullable: true, enum: [TANK, HEALER, DPS, null] }
+        isCurrentUser: { type: boolean }
+
+    RunSummaryDto:
+      type: object
+      required:
+        [id, startTime, signupCloseTime, description, visibility, creatorGuild,
+         runCharacters, difficulty, size]
+      properties:
+        id: { type: string }
+        startTime: { type: string, format: date-time }
+        signupCloseTime: { type: string, format: date-time }
+        description: { type: string }
+        visibility: { type: string, enum: [PUBLIC, GUILD] }
+        creatorGuild: { type: string }
+        instanceId: { type: integer, nullable: true }
+        instanceName: { type: string, nullable: true }
+        runCharacters:
+          type: array
+          items: { $ref: '#/components/schemas/RunCharacterDto' }
+        difficulty: { type: string, enum: [LFR, NORMAL, HEROIC, MYTHIC, MYTHIC_KEYSTONE, ''] }
+        size: { type: integer, minimum: 0 }
+        keystoneLevel: { type: integer, nullable: true }
+
+    RunDetailDto:
+      $ref: '#/components/schemas/RunSummaryDto'
+
+    RunsListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RunSummaryDto' }
+        continuationToken:
+          type: string
+          nullable: true
+
+    CreateRunRequest:
+      type: object
+      properties:
+        startTime: { type: string }
+        signupCloseTime: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        visibility: { type: string, enum: [PUBLIC, GUILD] }
+        instanceId: { type: integer, nullable: true }
+        instanceName: { type: string, nullable: true }
+        difficulty: { type: string, enum: [LFR, NORMAL, HEROIC, MYTHIC, MYTHIC_KEYSTONE] }
+        size: { type: integer, minimum: 0 }
+        keystoneLevel: { type: integer, nullable: true }
+
+    UpdateRunRequest:
+      type: object
+      description: Partial update; only supplied fields are applied.
+      properties:
+        startTime: { type: string, nullable: true }
+        signupCloseTime: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        visibility: { type: string, nullable: true, enum: [PUBLIC, GUILD, null] }
+        instanceId: { type: integer, nullable: true }
+        instanceName: { type: string, nullable: true }
+        difficulty: { type: string, nullable: true }
+        size: { type: integer, nullable: true }
+        keystoneLevel: { type: integer, nullable: true }
+
+    SignupRequest:
+      type: object
+      required: [characterId, desiredAttendance]
+      properties:
+        characterId: { type: string }
+        desiredAttendance: { type: string, enum: [IN, OUT, BENCH, LATE, AWAY] }
+        specId: { type: integer, nullable: true }
+
+    # ── Raider Characters ─────────────────────────────────────────────────
+    AddCharacterRequest:
+      type: object
+      required: [region, realm, name]
+      properties:
+        region: { type: string, enum: [eu, us, kr, tw, cn] }
+        realm: { type: string }
+        name: { type: string }
+
+    AddCharacterResponse:
+      type: object
+      required: [selectedCharacterId, character]
+      properties:
+        selectedCharacterId: { type: string }
+        character: { $ref: '#/components/schemas/CharacterDto' }
+
+    UpdateCharacterResponse:
+      type: object
+      required: [selectedCharacterId]
+      properties:
+        selectedCharacterId: { type: string }
+
+    # ── Battle.net Profile ────────────────────────────────────────────────
+    CharacterDto:
+      type: object
+      required: [name, realm, realmName, level, region]
+      properties:
+        name: { type: string }
+        realm: { type: string }
+        realmName: { type: string }
+        level: { type: integer }
+        region: { type: string }
+        classId: { type: integer, nullable: true }
+        className: { type: string, nullable: true }
+        portraitUrl: { type: string, nullable: true, format: uri }
+        activeSpecId: { type: integer, nullable: true }
+        specName: { type: string, nullable: true }
+
+    CharacterPortraitRequest:
+      type: object
+      required: [region, realm, name]
+      properties:
+        region: { type: string }
+        realm: { type: string }
+        name: { type: string }
+
+    PortraitResponse:
+      type: object
+      required: [portraits]
+      properties:
+        portraits:
+          type: object
+          additionalProperties: { type: string, format: uri }
+          description: Keyed by `{region}-{realm}-{name}` (lowercase).
+
+    # ── WoW Reference ─────────────────────────────────────────────────────
+    ExpansionDto:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    InstanceDto:
+      type: object
+      required: [id, instanceNumericId, name, modeKey, realm]
+      properties:
+        id: { type: string, description: 'Composite dropdown key `{instanceId}:{modeKey}`.' }
+        instanceNumericId: { type: integer }
+        name: { type: string }
+        modeKey: { type: string, description: 'Legacy `{Difficulty}:{Size}` composite.' }
+        realm: { type: string }
+        category: { type: string, nullable: true, enum: [RAID, DUNGEON, null] }
+        expansionId: { type: integer, nullable: true }
+        difficulty: { type: string, nullable: true }
+
+    SpecializationDto:
+      type: object
+      required: [id, name, classId, role]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        classId: { type: integer }
+        role: { type: string, enum: [TANK, HEALER, DPS] }
+        iconUrl: { type: string, nullable: true, format: uri }
+
+    WowReferenceRefreshProgressEnvelope:
+      type: object
+      required: [type, entity, phase, processed, total]
+      properties:
+        type: { type: string, enum: [progress] }
+        entity: { type: string, enum: [instances, specializations, expansions] }
+        phase: { type: string, enum: [start, progress, end] }
+        processed: { type: integer }
+        total: { type: integer }
+        current: { type: string, nullable: true }
+        status: { type: string, nullable: true }
+
+    WowReferenceRefreshDoneEnvelope:
+      type: object
+      required: [type, response]
+      properties:
+        type: { type: string, enum: [done] }
+        response:
+          type: object
+          required: [results]
+          properties:
+            results:
+              type: array
+              items:
+                type: object
+                required: [name, status]
+                properties:
+                  name: { type: string }
+                  status: { type: string }
