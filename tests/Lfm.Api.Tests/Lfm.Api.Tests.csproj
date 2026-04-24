@@ -24,6 +24,12 @@
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.7" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="coverlet.collector" Version="8.0.1" />
+    <!-- OpenAPI 3.1 contract lives at api/openapi.yaml; OpenApiContractTests
+         loads it at test-time and asserts zero diagnostic errors so the
+         existing verify CI gate fails on malformed spec. 3.x of the library
+         supports OpenAPI 3.1; YamlReader is the separate reader package. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="3.5.2" />
+    <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.5.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\api\Lfm.Api.csproj" />
@@ -32,5 +38,10 @@
     <None Include="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Ship api/openapi.yaml into the test output so OpenApiContractTests
+         can load it at runtime without hard-coding a repo-root-relative path. -->
+    <Content Include="..\..\api\openapi.yaml" Link="Contracts\openapi.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
