@@ -93,9 +93,11 @@ public class RunsCancelSignupFunction(
         var updatedCharacters = run.RunCharacters.ToList();
         updatedCharacters.RemoveAt(existingIndex);
 
-        // 6. Persist the updated run document.
+        // 6. Persist the updated run document. ifMatchEtag is null here — cancel
+        //    signup is not a client-driven If-Match flow; the repository falls back
+        //    to run.ETag for concurrency.
         var updated = run with { RunCharacters = updatedCharacters };
-        var persisted = await runsRepo.UpdateAsync(updated, ct);
+        var persisted = await runsRepo.UpdateAsync(updated, ifMatchEtag: null, ct);
 
         AuditLog.Emit(logger, new AuditEvent("signup.cancel", principal.BattleNetId, id, "success", null));
 

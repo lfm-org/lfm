@@ -57,6 +57,14 @@ public static class Problem
         => Create(context, StatusCodes.Status413PayloadTooLarge, "Payload Too Large", slug, detail);
 
     /// <summary>
+    /// RFC 6585 §3 — the origin server requires the request to be conditional.
+    /// Returned when a mutating request omits an expected <c>If-Match</c>
+    /// header on an endpoint that uses ETag-based optimistic concurrency.
+    /// </summary>
+    public static IActionResult PreconditionRequired(HttpContext context, string slug, string? detail = null)
+        => Create(context, StatusCodes.Status428PreconditionRequired, "Precondition Required", slug, detail);
+
+    /// <summary>
     /// 429 response with RFC 9110 <c>Retry-After</c> header when a duration
     /// is supplied. Callers that have a richer hint (e.g. shared rate-limiter
     /// pause budget) should pass <paramref name="retryAfterSeconds"/> so the
