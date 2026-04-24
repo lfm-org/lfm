@@ -166,6 +166,8 @@ public class BattleNetCharactersRefreshFunctionTests
         // Assert: 429 with a Retry-After header
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(429, statusResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(statusResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#characters-refresh-cooldown", problem.Type);
 
         Assert.False(string.IsNullOrEmpty(httpContext.Response.Headers["Retry-After"].ToString()));
 
