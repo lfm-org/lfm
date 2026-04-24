@@ -168,7 +168,9 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, problem.StatusCode);
+        Assert.IsType<ProblemDetails>(problem.Value);
 
         // Ordering contract: the run must be looked up before the raider.
         // If a future refactor reverses the order, this short-circuit test
@@ -211,7 +213,9 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, problem.StatusCode);
+        Assert.IsType<ProblemDetails>(problem.Value);
     }
 
     // ------------------------------------------------------------------
@@ -247,7 +251,9 @@ public class RunsDetailFunctionTests
             ctx,
             CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, problem.StatusCode);
+        Assert.IsType<ProblemDetails>(problem.Value);
     }
 
 }
