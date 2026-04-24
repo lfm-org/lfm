@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -42,7 +43,7 @@ public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raiders
         // 1. Load existing run.
         var existing = await repo.GetByIdAsync(id, ct);
         if (existing is null)
-            return new NotFoundObjectResult(new { error = "Run not found" });
+            return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
         // 2. Permission check — mirrors runs-delete.ts:
         //    Creator can always delete. Non-creator must be in the same guild with
@@ -54,7 +55,7 @@ public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raiders
             // principal.GuildId is a legacy session field and is no longer populated.
             var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
             if (raider is null)
-                return new NotFoundObjectResult(new { error = "Raider not found" });
+                return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
             var (guildId, _) = GuildResolver.FromRaider(raider);
 
@@ -63,16 +64,20 @@ public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raiders
                 || guildId != existing.CreatorGuildId.ToString())
             {
                 AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "failure", "not creator"));
-                return new ObjectResult(new { error = "Only the run creator can delete this run" })
-                { StatusCode = 403 };
+                return Problem.Forbidden(
+                    req.HttpContext,
+                    "run-delete-not-creator",
+                    "Only the run creator can delete this run.");
             }
 
             var canDelete = await guildPermissions.CanDeleteGuildRunsAsync(raider, ct);
             if (!canDelete)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "failure", "guild rank denied"));
-                return new ObjectResult(new { error = "Your guild rank does not have permission to delete guild runs" })
-                { StatusCode = 403 };
+                return Problem.Forbidden(
+                    req.HttpContext,
+                    "guild-rank-denied",
+                    "Your guild rank does not have permission to delete guild runs.");
             }
         }
 

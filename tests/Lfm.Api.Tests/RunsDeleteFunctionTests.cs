@@ -159,6 +159,8 @@ public class RunsDeleteFunctionTests
 
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 
@@ -188,7 +190,10 @@ public class RunsDeleteFunctionTests
 
         var result = await fn.Run(req, "missing-run", ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
 
         repo.Verify(r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
