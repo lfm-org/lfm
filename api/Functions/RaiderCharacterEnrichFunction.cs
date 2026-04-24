@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -37,22 +38,24 @@ public sealed class RaiderCharacterEnrichFunction(
         var firstDash = id.IndexOf('-');
         var lastDash = id.LastIndexOf('-');
         if (firstDash <= 0 || lastDash <= firstDash)
-            return new BadRequestObjectResult(new { error = "Invalid character id" });
+            return Problem.BadRequest(req.HttpContext, "invalid-character-id", "Invalid character id.");
         var region = id[..firstDash].ToLowerInvariant();
         var realm = id[(firstDash + 1)..lastDash].ToLowerInvariant();
         var lowerName = id[(lastDash + 1)..].ToLowerInvariant();
 
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         if (!RaiderCharacterAddFunction.IsCharacterOwnedByAccount(id, region, raider.AccountProfileSummary))
         {
             logger.LogWarning(
                 "Ownership check failed for {BattleNetId} on character {CharacterId}",
                 principal.BattleNetId, id);
-            return new ObjectResult(new { error = "Character not found in your Battle.net account" })
-            { StatusCode = 403 };
+            return Problem.Forbidden(
+                req.HttpContext,
+                "character-not-in-bnet-account",
+                "Character not found in your Battle.net account.");
         }
 
         var existing = raider.Characters?.FirstOrDefault(c => c.Id == id);
@@ -67,8 +70,10 @@ public sealed class RaiderCharacterEnrichFunction(
         {
             var accessToken = principal.AccessToken;
             if (string.IsNullOrEmpty(accessToken))
-                return new ObjectResult(new { error = "Session does not contain an access token. Please log out and log in again." })
-                { StatusCode = 401 };
+                return Problem.Unauthorized(
+                    req.HttpContext,
+                    "missing-access-token",
+                    "Session does not contain an access token. Please log out and log in again.");
 
             BlizzardCharacterProfileResponse? profile = null;
             BlizzardCharacterSpecializationsResponse? specs = null;
@@ -84,15 +89,24 @@ public sealed class RaiderCharacterEnrichFunction(
             }
             catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
             {
-                return new ObjectResult(new { error = "Upstream rate-limited" }) { StatusCode = 429 };
+                return Problem.TooManyRequests(
+                    req.HttpContext,
+                    "upstream-rate-limited",
+                    "Upstream rate-limited.");
             }
             catch (HttpRequestException ex) when ((int?)ex.StatusCode == 404)
             {
-                return new NotFoundObjectResult(new { error = "Character not found on Blizzard" });
+                return Problem.NotFound(
+                    req.HttpContext,
+                    "character-not-found-on-blizzard",
+                    "Character not found on Blizzard.");
             }
             catch (HttpRequestException)
             {
-                return new ObjectResult(new { error = "Failed to fetch character from Blizzard" }) { StatusCode = 502 };
+                return Problem.UpstreamFailed(
+                    req.HttpContext,
+                    "blizzard-upstream-failed",
+                    "Failed to fetch character from Blizzard.");
             }
 
             var nowIso = DateTimeOffset.UtcNow.ToString("O");
