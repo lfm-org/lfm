@@ -62,4 +62,14 @@ public class BattleNetLogoutFunction(
         // Redirect to the home page.
         return new RedirectResult(_blizzardOpts.AppBaseUrl, permanent: false);
     }
+
+    /// <summary>
+    /// <c>/api/v1/battlenet/logout</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("battlenet-logout-v1")]
+    public IActionResult RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/battlenet/logout")] HttpRequest req,
+        FunctionContext ctx)
+        => Run(req, ctx);
 }
