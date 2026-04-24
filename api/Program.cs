@@ -77,6 +77,10 @@ builder.Services.AddOptions<RequestSizeLimitOptions>()
     .Bind(builder.Configuration.GetSection(RequestSizeLimitOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<IdempotencyOptions>()
+    .Bind(builder.Configuration.GetSection(IdempotencyOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddCors(options =>
 {
@@ -160,6 +164,7 @@ builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Reposit
 builder.Services.AddScoped<Lfm.Api.Repositories.IGuildRepository, Lfm.Api.Repositories.GuildRepository>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services.KeyVaultSecretResolver>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
+builder.Services.AddScoped<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
 
 // Shared Blizzard rate limiter: gates all outbound Blizzard API traffic at ~80 req/s
