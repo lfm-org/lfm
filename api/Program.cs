@@ -19,6 +19,8 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 builder.UseMiddleware<Lfm.Api.Middleware.CorsMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.SecurityHeadersMiddleware>();
+// Reject over-sized payloads before auth + handler work runs on them.
+builder.UseMiddleware<Lfm.Api.Middleware.RequestSizeLimitMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.RateLimitMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuditMiddleware>();
 builder.UseMiddleware<Lfm.Api.Middleware.AuthMiddleware>();
@@ -71,6 +73,10 @@ builder.Services.AddOptions<RateLimitOptions>()
     .Bind(builder.Configuration.GetSection(RateLimitOptions.SectionName));
 builder.Services.AddOptions<AgplOptions>()
     .Bind(builder.Configuration.GetSection(AgplOptions.SectionName));
+builder.Services.AddOptions<RequestSizeLimitOptions>()
+    .Bind(builder.Configuration.GetSection(RequestSizeLimitOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddCors(options =>
 {
