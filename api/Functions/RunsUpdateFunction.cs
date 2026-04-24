@@ -279,6 +279,19 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         return new OkObjectResult(MapToDto(persisted, principal.BattleNetId));
     }
 
+    /// <summary>
+    /// <c>/api/v1/runs/{id}</c> PUT alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("runs-update-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/runs/{id}")] HttpRequest req,
+        string id,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, id, ctx, ct);
+
     // ------------------------------------------------------------------
     // Mapping helper — projects the stored RunDocument to its wire DTO.
     // ------------------------------------------------------------------
