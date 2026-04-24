@@ -44,15 +44,17 @@ public class RaiderCharacterFunction(IRaidersRepository repo, ILogger<RaiderChar
         // 1. Load raider document.
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         // 2. Verify character ownership — the character must already be stored in the
         //    raider document's characters list. Mirrors:
         //    if (!isCharacterOwnedByAccount(...)) return errorResponse(403, ...)
         var ownedCharacter = raider.Characters?.FirstOrDefault(c => c.Id == id);
         if (ownedCharacter is null)
-            return new ObjectResult(new { error = "Character not found in your profile" })
-            { StatusCode = 403 };
+            return Problem.Forbidden(
+                req.HttpContext,
+                "character-not-on-profile",
+                "Character not found in your profile.");
 
         // 3. Update selectedCharacterId and persist.
         try

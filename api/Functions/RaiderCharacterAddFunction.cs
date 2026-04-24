@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -59,18 +60,26 @@ public class RaiderCharacterAddFunction(
             body = await JsonSerializer.DeserializeAsync<AddCharacterRequest>(
                 req.Body, JsonOptions, cancellationToken: ct);
             if (body is null)
-                return new BadRequestObjectResult(new { error = "Invalid request body" });
+                return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            return new BadRequestObjectResult(new { error = ex.Message });
+            // Never echo JsonException.Message — it can disclose offset/line/path
+            // detail from the caller's payload that is not useful to the user.
+            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
 
         var validator = new AddCharacterRequestValidator();
         var validationResult = await validator.ValidateAsync(body, ct);
         if (!validationResult.IsValid)
-            return new BadRequestObjectResult(
-                new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        {
+            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = errors });
+        }
 
         // 2. Lowercase region/realm/name for id / ownership / storage.
         //    (Validator does not lowercase inputs — see plan, Task 3 carry-forward.)
@@ -82,7 +91,7 @@ public class RaiderCharacterAddFunction(
         // 3. Load the raider document.
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         // 4. Ownership check against the cached account profile summary.
         if (!IsCharacterOwnedByAccount(characterId, region, raider.AccountProfileSummary))
@@ -90,8 +99,10 @@ public class RaiderCharacterAddFunction(
             logger.LogWarning(
                 "Ownership check failed for {BattleNetId} on character {CharacterId}",
                 principal.BattleNetId, characterId);
-            return new ObjectResult(new { error = "Character not found in your Battle.net account" })
-            { StatusCode = 403 };
+            return Problem.Forbidden(
+                req.HttpContext,
+                "character-not-in-bnet-account",
+                "Character not found in your Battle.net account.");
         }
 
         // 5. Plan which tiers are stale; reuse the cached record if everything is fresh.
@@ -108,8 +119,10 @@ public class RaiderCharacterAddFunction(
             // 6. Fetch only stale tiers from Blizzard.  Access token must be present.
             var accessToken = principal.AccessToken;
             if (string.IsNullOrEmpty(accessToken))
-                return new ObjectResult(new { error = "Session does not contain an access token. Please log out and log in again." })
-                { StatusCode = 401 };
+                return Problem.Unauthorized(
+                    req.HttpContext,
+                    "missing-access-token",
+                    "Session does not contain an access token. Please log out and log in again.");
 
             BlizzardCharacterProfileResponse? profile = null;
             BlizzardCharacterSpecializationsResponse? specs = null;
@@ -125,8 +138,10 @@ public class RaiderCharacterAddFunction(
             }
             catch (HttpRequestException)
             {
-                return new ObjectResult(new { error = "Failed to fetch character from Blizzard" })
-                { StatusCode = 502 };
+                return Problem.UpstreamFailed(
+                    req.HttpContext,
+                    "blizzard-upstream-failed",
+                    "Failed to fetch character from Blizzard.");
             }
 
             var now = DateTimeOffset.UtcNow.ToString("O");
