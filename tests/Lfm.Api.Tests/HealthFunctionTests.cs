@@ -47,6 +47,37 @@ public class HealthFunctionTests
         Assert.True(body.Timestamp <= after);
     }
 
+    [Fact]
+    public void LiveV1_returns_the_same_response_as_Live()
+    {
+        // Alias contract: the /api/v1/health handler is a thin delegation to
+        // the canonical Live() method. If a future refactor extracts logic
+        // into only the legacy entry point, this test catches the drift.
+        var (fn, _) = CreateReadyFunction();
+
+        var result = fn.LiveV1(new DefaultHttpContext().Request);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var body = Assert.IsType<HealthResponse>(ok.Value);
+        Assert.Equal("ok", body.Status);
+    }
+
+    [Fact]
+    public async Task ReadyV1_returns_the_same_response_as_Ready()
+    {
+        var (fn, mockDb) = CreateReadyFunction();
+        mockDb.Setup(d => d.ReadAsync(It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DatabaseResponse)null!);
+
+        var result = await fn.ReadyV1(new DefaultHttpContext().Request, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var body = Assert.IsType<HealthResponse>(ok.Value);
+        Assert.Equal("ready", body.Status);
+    }
+
     private static (HealthFunction fn, Mock<Database> mockDb) CreateReadyFunction()
     {
         var mockDb = new Mock<Database>();
