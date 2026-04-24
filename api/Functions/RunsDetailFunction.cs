@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -39,7 +40,7 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
 
         var run = await repo.GetByIdAsync(id, ct);
         if (run is null)
-            return new NotFoundObjectResult(new { error = "Run not found" });
+            return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
         // Visibility check — mirrors runs-detail.ts:
         //   if (resource.visibility === "GUILD" && !isCreator && !isGuildMember)
@@ -53,7 +54,7 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
             // (principal.GuildId is a legacy session field that is no longer populated).
             var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
             if (raider is null)
-                return new NotFoundObjectResult(new { error = "Raider not found" });
+                return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
             var (guildId, _) = GuildResolver.FromRaider(raider);
 
@@ -62,7 +63,7 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
                 && run.CreatorGuildId.ToString() == guildId;
 
             if (!isCreator && !isGuildMember)
-                return new NotFoundObjectResult(new { error = "Run not found" });
+                return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
         }
 
         return new OkObjectResult(Sanitize(run, principal.BattleNetId));

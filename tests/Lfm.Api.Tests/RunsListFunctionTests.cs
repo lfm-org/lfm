@@ -160,11 +160,11 @@ public class RunsListFunctionTests
 
         var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.NotNull(notFound.Value);
-        var errorProp = notFound.Value!.GetType().GetProperty("error");
-        Assert.NotNull(errorProp);
-        Assert.Equal("Raider not found", errorProp!.GetValue(notFound.Value));
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
+        Assert.Equal("Raider not found.", problem.Detail);
     }
 
     // ------------------------------------------------------------------
