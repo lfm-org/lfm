@@ -42,7 +42,7 @@ public class MeClientTests
         Assert.Equal("Stormchasers", result.GuildName);
         Assert.Equal("en", result.Locale);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
-        Assert.Equal("/api/me", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/me", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class MeClientTests
         Assert.NotNull(result);
         Assert.Equal("fi", result!.Locale);
         Assert.Equal(HttpMethod.Patch, handler.LastRequest!.Method);
-        Assert.Equal("/api/me", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/me", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 
@@ -146,7 +146,7 @@ public class MeClientTests
 
         Assert.True(result);
         Assert.Equal(HttpMethod.Delete, handler.LastRequest!.Method);
-        Assert.Equal("/api/me", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/me", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class MeClientTests
 
         Assert.True(result);
         Assert.Equal(HttpMethod.Put, handler.LastRequest!.Method);
-        Assert.Equal("/api/raider/characters/eu-silvermoon-arthas", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/raider/characters/eu-silvermoon-arthas", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public class MeClientTests
         Assert.Equal("Sourgeezer", result!.Name);
         Assert.Equal("silvermoon", result.Realm);
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
-        Assert.Equal("/api/raider/characters/eu-silvermoon-sourgeezer/enrich", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/raider/characters/eu-silvermoon-sourgeezer/enrich", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]

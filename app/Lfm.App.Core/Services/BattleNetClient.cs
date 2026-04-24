@@ -20,7 +20,7 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.GetAsync("api/battlenet/characters", ct);
+            var response = await http.GetAsync("api/v1/battlenet/characters", ct);
             if (response.StatusCode == HttpStatusCode.NoContent)
                 return new CharactersFetchResult.NeedsRefresh();
             if (!response.IsSuccessStatusCode)
@@ -41,7 +41,7 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.PostAsync("api/battlenet/characters/refresh", null, ct);
+            var response = await http.PostAsync("api/v1/battlenet/characters/refresh", null, ct);
             if (!response.IsSuccessStatusCode)
                 return null;
             return await response.Content.ReadFromJsonAsync<List<CharacterDto>>(JsonOptions, ct);
@@ -59,7 +59,7 @@ public sealed class BattleNetClient(IHttpClientFactory factory) : IBattleNetClie
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.PostAsJsonAsync("api/battlenet/character-portraits", requests, ct);
+            var response = await http.PostAsJsonAsync("api/v1/battlenet/character-portraits", requests, ct);
             if (!response.IsSuccessStatusCode)
                 return null;
             var result = await response.Content.ReadFromJsonAsync<PortraitResponse>(JsonOptions, ct);
