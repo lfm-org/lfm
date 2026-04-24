@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lfm.Api.Audit;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -41,7 +42,7 @@ public class RunsMigrateSchemaFunction(
         var principal = ctx.GetPrincipal();
 
         if (!await siteAdmin.IsAdminAsync(principal.BattleNetId, ct))
-            return new ObjectResult(new { error = "Forbidden" }) { StatusCode = 403 };
+            return Problem.Forbidden(req.HttpContext, "admin-only", "Site administrator access required.");
 
         var dryRun = string.Equals(
             req.Query["dryRun"].ToString(),

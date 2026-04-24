@@ -65,6 +65,8 @@ public class RunsMigrateSchemaFunctionTests
 
         var forbidden = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, forbidden.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(forbidden.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#admin-only", problem.Type);
         runs.Verify(r => r.MigrateSchemaAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
