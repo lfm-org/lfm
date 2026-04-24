@@ -78,4 +78,16 @@ public class BattleNetCharacterPortraitsFunction(
         var response = await portraitService.ResolveAsync(raider, requests, accessToken, cancellationToken);
         return new OkObjectResult(response);
     }
+
+    /// <summary>
+    /// <c>/api/v1/battlenet/character-portraits</c> alias for <see cref="Run"/>.
+    /// See <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("battlenet-character-portraits-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/battlenet/character-portraits")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => Run(req, ctx, cancellationToken);
 }

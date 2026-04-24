@@ -70,4 +70,17 @@ public class RaiderCharacterFunction(IRaidersRepository repo, ILogger<RaiderChar
         // 4. Return updated selection.
         return new OkObjectResult(new UpdateCharacterResponse(SelectedCharacterId: id));
     }
+
+    /// <summary>
+    /// <c>/api/v1/raider/characters/{id}</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("raider-character-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/raider/characters/{id}")] HttpRequest req,
+        string id,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, id, ctx, ct);
 }

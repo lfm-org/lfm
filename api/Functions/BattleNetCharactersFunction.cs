@@ -57,6 +57,18 @@ public class BattleNetCharactersFunction(
         return new OkObjectResult(characters);
     }
 
+    /// <summary>
+    /// <c>/api/v1/battlenet/characters</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("battlenet-characters-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/battlenet/characters")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => Run(req, ctx, cancellationToken);
+
     // ---------------------------------------------------------------------------
     // Internal helpers — internal for unit-test access
     // ---------------------------------------------------------------------------

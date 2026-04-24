@@ -139,6 +139,16 @@ public class BattleNetCallbackFunction(
         return new RedirectResult(destination, permanent: false);
     }
 
+    /// <summary>
+    /// <c>/api/v1/battlenet/callback</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("battlenet-callback-v1")]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/battlenet/callback")] HttpRequest req,
+        CancellationToken cancellationToken)
+        => Run(req, cancellationToken);
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------

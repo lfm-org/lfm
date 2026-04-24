@@ -55,6 +55,16 @@ public class BattleNetLoginFunction(IBlizzardOAuthClient oauthClient)
         return new RedirectResult(authUrl, permanent: false);
     }
 
+    /// <summary>
+    /// <c>/api/v1/battlenet/login</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("battlenet-login-v1")]
+    public IActionResult RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/battlenet/login")] HttpRequest req,
+        CancellationToken cancellationToken)
+        => Run(req, cancellationToken);
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------

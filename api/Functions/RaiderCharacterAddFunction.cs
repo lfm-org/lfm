@@ -177,6 +177,18 @@ public class RaiderCharacterAddFunction(
             Character: dto));
     }
 
+    /// <summary>
+    /// <c>/api/v1/raider/character</c> alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("raider-character-add-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/raider/character")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, ctx, ct);
+
     // ---------------------------------------------------------------------------
     // Internal helpers — internal for unit-test access
     // ---------------------------------------------------------------------------
