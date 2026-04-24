@@ -126,8 +126,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         // DefaultAzureCredential — no shared key in app settings. Container
         // name defaults to "wow" in StorageOptions.
         { name: 'Storage__BlobServiceUri', value: storageAccountRef.properties.primaryEndpoints.blob }
-        // Site
-        { name: 'PRIVACY_EMAIL', value: privacyEmail }
+        // Site — privacy contact email, bound to PrivacyContactOptions.Email
+        // in the Functions app via the Options pattern (config key
+        // `PrivacyContact:Email`; env mapping uses `__` as separator).
+        { name: 'PrivacyContact__Email', value: privacyEmail }
       ]
     }
   }

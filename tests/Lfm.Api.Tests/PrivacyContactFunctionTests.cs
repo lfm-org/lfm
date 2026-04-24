@@ -1,48 +1,42 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Lfm.Api.Functions;
+using Lfm.Api.Options;
+using Lfm.Contracts.Privacy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Lfm.Api.Functions;
 using Xunit;
+using MSOptions = Microsoft.Extensions.Options.Options;
 
 namespace Lfm.Api.Tests;
 
 public class PrivacyContactFunctionTests
 {
-    private static IConfiguration Config(string? email = null)
-    {
-        var data = new Dictionary<string, string?>();
-        if (email is not null)
-        {
-            data["PRIVACY_EMAIL"] = email;
-        }
-        return new ConfigurationBuilder().AddInMemoryCollection(data).Build();
-    }
+    private static PrivacyContactFunction MakeFunction(string? email = null)
+        => new(MSOptions.Create(new PrivacyContactOptions { Email = email ?? string.Empty }));
 
     [Fact]
-    public void GetEmail_returns_200_with_email_when_configured()
+    public void GetEmail_returns_200_with_split_fields_when_configured()
     {
-        var fn = new PrivacyContactFunction(Config("privacy@example.com"));
+        var fn = MakeFunction("privacy@example.com");
 
         var result = fn.GetEmail(new DefaultHttpContext().Request);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(200, ok.StatusCode);
-
-        // Reflection access into the anonymous-type response body. The "email"
-        // property name here matches the wire contract — response shape is
-        // { "email": "..." } per PrivacyContactFunction.GetEmail. If the
-        // property ever gets renamed or wrapped in a DTO, update here.
-        var emailProp = ok.Value!.GetType().GetProperty("email")!.GetValue(ok.Value);
-        Assert.Equal("privacy@example.com", emailProp);
+        var body = Assert.IsType<PrivacyEmailResponse>(ok.Value);
+        Assert.Equal("privacy", body.Local);
+        Assert.Equal("example.com", body.Domain);
+#pragma warning disable CS0618 // Transitional field assertion — removed in a later release.
+        Assert.Equal("privacy@example.com", body.Email);
+#pragma warning restore CS0618
     }
 
     [Fact]
     public void GetEmail_returns_404_when_not_configured()
     {
-        var fn = new PrivacyContactFunction(Config(email: null));
+        var fn = MakeFunction(email: null);
 
         var result = fn.GetEmail(new DefaultHttpContext().Request);
 
@@ -55,7 +49,7 @@ public class PrivacyContactFunctionTests
     [Fact]
     public void GetEmail_returns_404_when_configured_value_is_empty()
     {
-        var fn = new PrivacyContactFunction(Config(string.Empty));
+        var fn = MakeFunction(string.Empty);
 
         var result = fn.GetEmail(new DefaultHttpContext().Request);
 
@@ -63,5 +57,19 @@ public class PrivacyContactFunctionTests
         Assert.Equal(404, notFound.StatusCode);
         var problem = Assert.IsType<ProblemDetails>(notFound.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#privacy-email-unconfigured", problem.Type);
+    }
+
+    [Fact]
+    public void GetEmail_returns_404_when_address_is_malformed()
+    {
+        // The Options validator normally rejects at startup, but a defensive
+        // branch in the handler covers the case where validation is skipped
+        // (tests, local settings) so a half-parsed address never leaks.
+        var fn = MakeFunction("no-at-sign");
+
+        var result = fn.GetEmail(new DefaultHttpContext().Request);
+
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
     }
 }
