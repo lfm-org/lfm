@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
@@ -29,15 +30,15 @@ public class GuildAdminFunction(IGuildRepository guildRepo, ISiteAdminService si
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
         if (!await siteAdmin.IsAdminAsync(principal.BattleNetId, cancellationToken))
-            return new ObjectResult(new { error = "Forbidden" }) { StatusCode = 403 };
+            return Problem.Forbidden(req.HttpContext, "admin-only", "Site administrator access required.");
 
         var guildId = req.Query["guildId"].FirstOrDefault();
         if (string.IsNullOrWhiteSpace(guildId))
-            return new BadRequestObjectResult(new { error = "guildId query parameter is required" });
+            return Problem.BadRequest(req.HttpContext, "missing-parameter", "guildId query parameter is required.");
 
         var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
         if (guildDoc is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
         return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
     }
