@@ -242,6 +242,7 @@
     "notFound.body": "Sorry, the content you are looking for does not exist.",
 
     "footer.privacyPolicy": "Privacy Notice",
+    "footer.source": "Source",
     "nav.toggleMenu": "Toggle navigation menu",
 
     "theme.switchToLight": "Switch to light mode",
