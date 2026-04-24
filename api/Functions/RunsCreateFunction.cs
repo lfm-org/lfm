@@ -57,20 +57,26 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             cancellationToken: ct);
 
         if (body is null)
-            return new BadRequestObjectResult(new { error = "invalid body" });
+            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
 
         var validator = new CreateRunRequestValidator();
         var validationResult = await validator.ValidateAsync(body, ct);
         if (!validationResult.IsValid)
-            return new BadRequestObjectResult(
-                new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        {
+            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = errors });
+        }
 
         // Load the raider once and derive guild info from the selected character.
         // principal.GuildId / GuildName are legacy session fields that are no
         // longer populated in production.
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var (guildId, guildName) = GuildResolver.FromRaider(raider);
 
@@ -80,15 +86,19 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
         if (body.Visibility == "GUILD")
         {
             if (guildId is null)
-                return new BadRequestObjectResult(
-                    new { error = "A guild run requires an active character in a guild" });
+                return Problem.BadRequest(
+                    req.HttpContext,
+                    "guild-required",
+                    "A guild run requires an active character in a guild.");
 
             var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
             if (!canCreate)
             {
                 AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", "guild rank denied"));
-                return new ObjectResult(new { error = "Guild run creation is not enabled for your rank" })
-                { StatusCode = 403 };
+                return Problem.Forbidden(
+                    req.HttpContext,
+                    "guild-rank-denied",
+                    "Guild run creation is not enabled for your rank.");
             }
         }
 

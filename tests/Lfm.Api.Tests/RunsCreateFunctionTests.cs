@@ -178,7 +178,11 @@ public class RunsCreateFunctionTests
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#validation-failed", problem.Type);
+        Assert.True(problem.Extensions.ContainsKey("errors"));
 
         // Cosmos should never be called
         repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -221,6 +225,8 @@ public class RunsCreateFunctionTests
 
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
 
         repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 

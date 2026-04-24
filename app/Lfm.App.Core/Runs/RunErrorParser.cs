@@ -11,10 +11,10 @@ namespace Lfm.App.Runs;
 /// </summary>
 public enum RunErrorKind
 {
-    /// <summary>Field-level validation error (HTTP 400 with {errors: [...]}).</summary>
+    /// <summary>Field-level validation error (HTTP 400 with problem+json).</summary>
     Validation,
 
-    /// <summary>Guild rank denied (HTTP 403 with the specific rank-denied body).</summary>
+    /// <summary>Guild rank denied (HTTP 403 with the guild-rank-denied problem type).</summary>
     GuildRankDenied,
 
     /// <summary>Any other HTTP or transport failure (5xx, network, timeout).</summary>
@@ -37,13 +37,17 @@ public sealed record RunError(RunErrorKind Kind, IReadOnlyList<string> Messages)
 /// next to the offending control (validation) or under the visibility row
 /// (rank denied) or as a toast (network). Pure; the HTTP body is read by
 /// the caller (async) and passed as a string.
+///
+/// The server emits RFC 9457 <c>application/problem+json</c> responses on
+/// error paths; the parser reads:
+///   - <c>errors</c> (top-level array of strings): validation messages
+///   - <c>detail</c>: human-readable error text
+///   - <c>type</c>: stable URI used for classification (rank-denied detection)
+/// Type URIs are rooted at <c>https://github.com/lfm-org/lfm/errors#slug</c>.
 /// </summary>
 public static class RunErrorParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
+    private const string GuildRankDeniedTypeUri = "https://github.com/lfm-org/lfm/errors#guild-rank-denied";
 
     public static RunError Parse(HttpStatusCode status, string? body)
     {
@@ -69,9 +73,11 @@ public static class RunErrorParser
 
         try
         {
-            // Server shape from CreateRunRequestValidator / UpdateRunRequestValidator:
-            //   { errors: [ "msg1", "msg2", ... ] }
-            // or a single error { error: "msg" } for guards.
+            // Server shape (problem+json from CreateRunRequestValidator /
+            // UpdateRunRequestValidator):
+            //   { type, title, status, detail, errors: [ "msg1", "msg2", ... ] }
+            // or a single message:
+            //   { type, title, status, detail: "msg" }
             using var doc = JsonDocument.Parse(body);
             if (doc.RootElement.TryGetProperty("errors", out var errs) && errs.ValueKind == JsonValueKind.Array)
             {
@@ -83,9 +89,9 @@ public static class RunErrorParser
                 return new RunError(RunErrorKind.Validation, list);
             }
 
-            if (doc.RootElement.TryGetProperty("error", out var single) && single.ValueKind == JsonValueKind.String)
+            if (doc.RootElement.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
             {
-                return new RunError(RunErrorKind.Validation, [single.GetString() ?? ""]);
+                return new RunError(RunErrorKind.Validation, [detail.GetString() ?? ""]);
             }
         }
         catch (JsonException)
@@ -98,23 +104,35 @@ public static class RunErrorParser
 
     private static RunError ParseForbidden(string? body)
     {
-        // The RunsCreateFunction returns:
-        //   { error: "Guild run creation is not enabled for your rank" }
-        // on rank-denied. Recognise that specifically so the form can surface
-        // it inline under the visibility control rather than as a toast.
+        // The server returns problem+json with type = GuildRankDeniedTypeUri
+        // and a human-readable detail message when a GUILD run is refused due
+        // to the caller's rank permission. Recognise that specifically so the
+        // form surfaces it inline under the visibility control rather than as
+        // a toast.
         if (!string.IsNullOrWhiteSpace(body))
         {
             try
             {
                 using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("error", out var err)
-                    && err.ValueKind == JsonValueKind.String)
+                var type = doc.RootElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
+                    ? t.GetString()
+                    : null;
+                var detail = doc.RootElement.TryGetProperty("detail", out var d) && d.ValueKind == JsonValueKind.String
+                    ? d.GetString()
+                    : null;
+
+                if (string.Equals(type, GuildRankDeniedTypeUri, StringComparison.Ordinal))
                 {
-                    var msg = err.GetString() ?? "";
-                    if (msg.Contains("rank", StringComparison.OrdinalIgnoreCase))
-                        return new RunError(RunErrorKind.GuildRankDenied, [msg]);
-                    return new RunError(RunErrorKind.GuildRankDenied, [msg]);
+                    return new RunError(
+                        RunErrorKind.GuildRankDenied,
+                        [detail ?? "Guild run creation is not enabled for your rank."]);
                 }
+
+                // Problem body without the expected type URI — still treat as
+                // rank-denied since the HTTP status matched ParseForbidden, but
+                // prefer the server-supplied detail when present.
+                if (!string.IsNullOrEmpty(detail))
+                    return new RunError(RunErrorKind.GuildRankDenied, [detail!]);
             }
             catch (JsonException) { /* fall through */ }
         }
