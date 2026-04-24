@@ -20,6 +20,7 @@ namespace Lfm.Api.Functions;
 public sealed class RaiderCharacterEnrichFunction(
     IRaidersRepository repo,
     IBlizzardProfileClient profileClient,
+    IBlizzardRateLimiter rateLimiter,
     ILogger<RaiderCharacterEnrichFunction> logger)
 {
     [Function("raider-character-enrich")]
@@ -89,10 +90,19 @@ public sealed class RaiderCharacterEnrichFunction(
             }
             catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
             {
+                // Surface the shared rate-limiter's pause budget as RFC 9110
+                // Retry-After so clients schedule the retry instead of
+                // guessing. Ceiling to the next whole second — a sub-second
+                // Retry-After is out of spec and would round down to 0.
+                var pause = rateLimiter.RemainingPause;
+                var retryAfterSeconds = pause is TimeSpan p
+                    ? (int)Math.Ceiling(p.TotalSeconds)
+                    : (int?)null;
                 return Problem.TooManyRequests(
                     req.HttpContext,
                     "upstream-rate-limited",
-                    "Upstream rate-limited.");
+                    "Upstream rate-limited.",
+                    retryAfterSeconds);
             }
             catch (HttpRequestException ex) when ((int?)ex.StatusCode == 404)
             {
