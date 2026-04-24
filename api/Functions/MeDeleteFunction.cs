@@ -50,4 +50,16 @@ public class MeDeleteFunction(
         // TS returns status 200 with { deleted: true }.
         return new OkObjectResult(new { deleted = true });
     }
+
+    /// <summary>
+    /// <c>/api/v1/me</c> DELETE alias for <see cref="Run"/>. See
+    /// <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("me-delete-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/me")] HttpRequest req,
+        FunctionContext ctx,
+        CancellationToken cancellationToken)
+        => Run(req, ctx, cancellationToken);
 }

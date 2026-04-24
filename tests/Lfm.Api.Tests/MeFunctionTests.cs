@@ -104,6 +104,43 @@ public class MeFunctionTests
     }
 
     [Fact]
+    public async Task RunV1_delegates_to_canonical_Run_handler()
+    {
+        // Alias contract: /api/v1/me is a thin delegation; if a future
+        // refactor drifts the two paths this test fails fast.
+        var principal = new SessionPrincipal(
+            BattleNetId: "bnet-1",
+            BattleTag: "Player#1234",
+            GuildId: null,
+            GuildName: null,
+            IssuedAt: DateTimeOffset.UtcNow,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+        var raider = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: "char-1",
+            Locale: "en");
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var fn = new MeFunction(repo.Object, siteAdmin.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.RunV1(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var me = Assert.IsType<MeResponse>(ok.Value);
+        Assert.Equal("bnet-1", me.BattleNetId);
+    }
+
+    [Fact]
     public async Task Response_carries_etag_header_mirroring_cosmos_etag()
     {
         var principal = new SessionPrincipal(
