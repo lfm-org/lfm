@@ -27,6 +27,25 @@ builder.UseMiddleware<Lfm.Api.Middleware.AuthPolicyMiddleware>();
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 builder.Services.ConfigureFunctionsApplicationInsights();
 
+// RFC 9457 problem+json — registers IProblemDetailsService + a customizer that
+// enriches every problem response with the current W3C trace id so downstream
+// debugging has a join key from the client-visible body to Application Insights.
+// Explicit handler-layer construction lives in Lfm.Api.Helpers.Problem; this
+// registration makes the service available for future UseExceptionHandler /
+// UseStatusCodePages integration and for any future code path that leans on
+// the framework's automatic problem formatter.
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = ctx =>
+    {
+        var traceId = System.Diagnostics.Activity.Current?.TraceId.ToString();
+        if (!string.IsNullOrEmpty(traceId))
+        {
+            ctx.ProblemDetails.Extensions.TryAdd("traceId", traceId);
+        }
+    };
+});
+
 // Options
 builder.Services.AddOptions<CosmosOptions>()
     .Bind(builder.Configuration.GetSection(CosmosOptions.SectionName))
