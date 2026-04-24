@@ -135,4 +135,17 @@ public sealed class RaiderCharacterEnrichFunction(
 
         return new OkObjectResult(RaiderCharacterAddFunction.MapToCharacterDto(stored));
     }
+
+    /// <summary>
+    /// <c>/api/v1/raider/characters/{id}/enrich</c> alias for <see cref="Run"/>.
+    /// See <c>docs/api-versioning.md</c>.
+    /// </summary>
+    [Function("raider-character-enrich-v1")]
+    [RequireAuth]
+    public Task<IActionResult> RunV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/raider/characters/{id}/enrich")] HttpRequest req,
+        string id,
+        FunctionContext ctx,
+        CancellationToken ct)
+        => Run(req, id, ctx, ct);
 }
