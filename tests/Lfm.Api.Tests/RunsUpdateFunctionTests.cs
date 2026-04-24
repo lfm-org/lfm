@@ -70,12 +70,16 @@ public class RunsUpdateFunctionTests
         return m;
     }
 
-    private static HttpRequest MakePutRequest(object body)
+    private const string DefaultTestEtag = "\"test-etag\"";
+
+    private static HttpRequest MakePutRequest(object body, string? ifMatch = DefaultTestEtag)
     {
         var json = JsonSerializer.Serialize(body);
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
         httpContext.Request.ContentType = "application/json";
+        if (ifMatch is not null)
+            httpContext.Request.Headers["If-Match"] = ifMatch;
         return httpContext.Request;
     }
 
@@ -142,7 +146,7 @@ public class RunsUpdateFunctionTests
         var repo = new Mock<IRunsRepository>();
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
-        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedDoc);
 
         var permissions = new Mock<IGuildPermissions>();
@@ -161,7 +165,7 @@ public class RunsUpdateFunctionTests
         Assert.IsType<RunDetailDto>(okResult.Value);
 
         // Cosmos UpdateAsync was called once
-        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ------------------------------------------------------------------
@@ -196,7 +200,7 @@ public class RunsUpdateFunctionTests
         Assert.Equal("https://github.com/lfm-org/lfm/errors#raider-not-found", problem.Type);
         Assert.Equal("Raider not found.", problem.Detail);
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -226,7 +230,7 @@ public class RunsUpdateFunctionTests
         Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
 
         // Cosmos UpdateAsync must never be called
-        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -259,7 +263,7 @@ public class RunsUpdateFunctionTests
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, objectResult.StatusCode);
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
 
         Assert.Single(
             logger.Entries,
@@ -308,7 +312,7 @@ public class RunsUpdateFunctionTests
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(409, objectResult.StatusCode);
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -328,7 +332,7 @@ public class RunsUpdateFunctionTests
         var repo = new Mock<IRunsRepository>();
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
-        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedDoc);
 
         var permissions = new Mock<IGuildPermissions>();
@@ -375,6 +379,7 @@ public class RunsUpdateFunctionTests
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{not valid json"));
         httpContext.Request.ContentType = "application/json";
+        httpContext.Request.Headers["If-Match"] = DefaultTestEtag;
 
         var result = await fn.Run(httpContext.Request, "run-1", ctx, CancellationToken.None);
 
@@ -384,7 +389,7 @@ public class RunsUpdateFunctionTests
         Assert.Equal("https://github.com/lfm-org/lfm/errors#invalid-body", problem.Type);
         Assert.Equal("Request body is invalid or missing.", problem.Detail);
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -444,7 +449,7 @@ public class RunsUpdateFunctionTests
         var repo = new Mock<IRunsRepository>();
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
-        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updated);
 
         var permissions = new Mock<IGuildPermissions>();
@@ -467,5 +472,148 @@ public class RunsUpdateFunctionTests
         var peerRow = dto.RunCharacters.Single(c => c.CharacterName == "Peerpriest");
         Assert.True(ownRow.IsCurrentUser);
         Assert.False(peerRow.IsCurrentUser);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 8: Missing If-Match header — returns 428 Precondition Required
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_428_when_if_match_header_is_missing()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+
+        var repo = new Mock<IRunsRepository>();
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+
+        var fn = MakeFunction(repo, permissions, instancesRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest(new { description = "x" }, ifMatch: null),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(428, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#if-match-required", problem.Type);
+
+        // The handler must short-circuit before any repo work.
+        repo.Verify(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 9: Stale If-Match — returns 412 Precondition Failed and logs audit
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_412_when_if_match_is_stale()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+        var logger = new TestLogger<RunsUpdateFunction>();
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException());
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo, logger: logger);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest(new { description = "Updated" }, ifMatch: "\"stale-etag\""),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(412, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#if-match-stale", problem.Type);
+
+        Assert.Single(logger.Entries, e => e.IsAudit("run.update", "failure", "if-match stale"));
+    }
+
+    // ------------------------------------------------------------------
+    // Test 10: Happy path echoes the persisted ETag back on the response
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_echoes_new_etag_on_successful_update()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+        var updatedDoc = (existing with { Description = "Updated description" }) with { ETag = "\"new-etag\"" };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedDoc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var request = MakePutRequest(new { description = "Updated description" });
+        await fn.Run(request, "run-1", ctx, CancellationToken.None);
+
+        Assert.Equal("\"new-etag\"", request.HttpContext.Response.Headers.ETag.ToString());
+    }
+
+    // ------------------------------------------------------------------
+    // Test 11: Repo receives the client's If-Match header verbatim
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_forwards_client_if_match_header_to_repository()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+        var updatedDoc = existing with { Description = "Updated description" };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), "\"client-etag\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedDoc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest(new { description = "Updated description" }, ifMatch: "\"client-etag\""),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), "\"client-etag\"", It.IsAny<CancellationToken>()), Times.Once);
     }
 }

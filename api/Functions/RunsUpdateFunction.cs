@@ -53,6 +53,20 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
     {
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
+        // 0. Require an If-Match header carrying the ETag from the previous
+        //    GET /api/runs/{id}. Optimistic concurrency guard — rejects the
+        //    "two tabs, stale form" case with RFC 9110 428 Precondition
+        //    Required before any work.
+        if (!req.Headers.TryGetValue("If-Match", out var ifMatchValues)
+            || string.IsNullOrWhiteSpace(ifMatchValues.ToString()))
+        {
+            return Problem.PreconditionRequired(
+                req.HttpContext,
+                "if-match-required",
+                "This resource requires an If-Match header echoing the ETag from a prior GET.");
+        }
+        var ifMatchEtag = ifMatchValues.ToString();
+
         // 1. Load existing run.
         var existing = await repo.GetByIdAsync(id, ct);
         if (existing is null)
@@ -239,10 +253,28 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                 : existing.CreatorGuildId,
         };
 
-        // 9. Replace in Cosmos.
-        var persisted = await repo.UpdateAsync(updated, ct);
+        // 9. Replace in Cosmos. A stale If-Match surfaces as ConcurrencyConflict
+        //    from the repo — map it to 412 Precondition Failed so the client can
+        //    reload and retry.
+        RunDocument persisted;
+        try
+        {
+            persisted = await repo.UpdateAsync(updated, ifMatchEtag, ct);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "if-match stale"));
+            return Problem.PreconditionFailed(
+                req.HttpContext,
+                "if-match-stale",
+                "The run was modified since you loaded it. Reload and try again.");
+        }
 
         AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "success", null));
+
+        // Echo the new ETag so a follow-up PUT without reloading still works.
+        if (!string.IsNullOrEmpty(persisted.ETag))
+            req.HttpContext.Response.Headers.ETag = persisted.ETag;
 
         return new OkObjectResult(MapToDto(persisted, principal.BattleNetId));
     }

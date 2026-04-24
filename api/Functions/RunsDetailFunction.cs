@@ -66,6 +66,13 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
                 return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
         }
 
+        // Emit the Cosmos _etag as a strong HTTP ETag so callers can send it back
+        // on PUT /api/runs/{id} as an If-Match header for optimistic concurrency.
+        // The Cosmos _etag is already a double-quoted opaque string, e.g.
+        // "\"abc123\"" — use it verbatim.
+        if (!string.IsNullOrEmpty(run.ETag))
+            req.HttpContext.Response.Headers.ETag = run.ETag;
+
         return new OkObjectResult(Sanitize(run, principal.BattleNetId));
     }
 
