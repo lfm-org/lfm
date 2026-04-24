@@ -29,6 +29,17 @@ public class HealthFunction(CosmosClient cosmos, IOptions<CosmosOptions> cosmosO
     }
 
     /// <summary>
+    /// <c>/api/v1/health</c> alias for <see cref="Live"/>. See
+    /// <c>docs/api-versioning.md</c> — <c>/v1/</c> is the new canonical prefix;
+    /// the unprefixed route is retained for one release so existing SPA bundles
+    /// keep working during the deploy window.
+    /// </summary>
+    [Function("health-v1")]
+    public IActionResult LiveV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/health")] HttpRequest req)
+        => Live(req);
+
+    /// <summary>
     /// Readiness probe — validates that this instance can talk to Cosmos.
     /// Response contract:
     ///   - 200 OK with <see cref="HealthResponse"/> (status="ready") on success.
@@ -57,6 +68,15 @@ public class HealthFunction(CosmosClient cosmos, IOptions<CosmosOptions> cosmosO
             };
         }
     }
+
+    /// <summary>
+    /// <c>/api/v1/health/ready</c> alias for <see cref="Ready"/>.
+    /// </summary>
+    [Function("health-ready-v1")]
+    public Task<IActionResult> ReadyV1(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/health/ready")] HttpRequest req,
+        CancellationToken ct)
+        => Ready(req, ct);
 
     internal static HealthResponse Build() => new("ok", DateTimeOffset.UtcNow);
 }
