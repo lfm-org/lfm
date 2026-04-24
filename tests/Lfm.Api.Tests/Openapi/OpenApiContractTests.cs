@@ -65,32 +65,32 @@ public class OpenApiContractTests
         var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
 
         Assert.NotNull(result.Document!.Paths);
-        Assert.Contains("/api/health", result.Document.Paths.Keys);
-        Assert.Contains("/api/health/ready", result.Document.Paths.Keys);
+        Assert.Contains("/api/v1/health", result.Document.Paths.Keys);
+        Assert.Contains("/api/v1/health/ready", result.Document.Paths.Keys);
     }
 
     [Theory]
-    [InlineData("/api/me")]
-    [InlineData("/api/guild")]
-    [InlineData("/api/guild/admin")]
-    [InlineData("/api/runs")]
-    [InlineData("/api/runs/{id}")]
-    [InlineData("/api/runs/{id}/signup")]
-    [InlineData("/api/raider/character")]
-    [InlineData("/api/raider/characters/{id}")]
-    [InlineData("/api/raider/characters/{id}/enrich")]
-    [InlineData("/api/battlenet/login")]
-    [InlineData("/api/battlenet/callback")]
-    [InlineData("/api/battlenet/logout")]
-    [InlineData("/api/battlenet/characters")]
-    [InlineData("/api/battlenet/characters/refresh")]
-    [InlineData("/api/battlenet/character-portraits")]
-    [InlineData("/api/wow/reference/expansions")]
-    [InlineData("/api/wow/reference/instances")]
-    [InlineData("/api/wow/reference/specializations")]
-    [InlineData("/api/wow/reference/refresh")]
-    [InlineData("/api/admin/runs/migrate-schema")]
-    [InlineData("/api/privacy-contact/email")]
+    [InlineData("/api/v1/me")]
+    [InlineData("/api/v1/guild")]
+    [InlineData("/api/v1/guild/admin")]
+    [InlineData("/api/v1/runs")]
+    [InlineData("/api/v1/runs/{id}")]
+    [InlineData("/api/v1/runs/{id}/signup")]
+    [InlineData("/api/v1/raider/character")]
+    [InlineData("/api/v1/raider/characters/{id}")]
+    [InlineData("/api/v1/raider/characters/{id}/enrich")]
+    [InlineData("/api/v1/battlenet/login")]
+    [InlineData("/api/v1/battlenet/callback")]
+    [InlineData("/api/v1/battlenet/logout")]
+    [InlineData("/api/v1/battlenet/characters")]
+    [InlineData("/api/v1/battlenet/characters/refresh")]
+    [InlineData("/api/v1/battlenet/character-portraits")]
+    [InlineData("/api/v1/wow/reference/expansions")]
+    [InlineData("/api/v1/wow/reference/instances")]
+    [InlineData("/api/v1/wow/reference/specializations")]
+    [InlineData("/api/v1/wow/reference/refresh")]
+    [InlineData("/api/v1/admin/runs/migrate-schema")]
+    [InlineData("/api/v1/privacy-contact/email")]
     public async Task Spec_documents_public_endpoint(string path)
     {
         var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
