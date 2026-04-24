@@ -27,7 +27,18 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.PatchAsJsonAsync("api/me", request, ct);
+            // Transitional: send If-Match: * so the server knows the caller is
+            // aware of the ETag contract but does not yet round-trip the
+            // server-issued value. A future slice will capture the ETag on the
+            // preceding GET /api/me and echo it here for full optimistic
+            // concurrency. `*` matches any non-deleted resource per RFC 9110.
+            using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/me")
+            {
+                Content = JsonContent.Create(request),
+            };
+            patch.Headers.TryAddWithoutValidation("If-Match", "*");
+
+            var response = await http.SendAsync(patch, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<UpdateMeResponse>(cancellationToken: ct);
         }

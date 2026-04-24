@@ -112,4 +112,20 @@ public class GuildClientTests
 
         Assert.Null(result);
     }
+
+    [Fact]
+    public async Task UpdateAsync_sends_wildcard_if_match_header()
+    {
+        // Contract: the API requires callers to declare awareness of the
+        // ETag contract. Until this client round-trips the server-issued
+        // ETag, it sends `*` to claim the current server state without
+        // checking a specific version.
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeGuildDto("Stormchasers")));
+        var request = new UpdateGuildRequest("Europe/Helsinki", "fi", "slogan", null);
+
+        await client.UpdateAsync(request, CancellationToken.None);
+
+        Assert.True(handler.LastRequest!.Headers.TryGetValues("If-Match", out var ifMatch));
+        Assert.Equal("*", ifMatch!.Single());
+    }
 }
