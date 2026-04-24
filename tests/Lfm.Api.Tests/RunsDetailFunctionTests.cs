@@ -61,7 +61,8 @@ public class RunsDetailFunctionTests
         string visibility = "PUBLIC",
         string? creatorBattleNetId = null,
         int? creatorGuildId = null,
-        List<RunCharacterEntry>? runCharacters = null) =>
+        List<RunCharacterEntry>? runCharacters = null,
+        string? etag = null) =>
         new RunDocument(
             Id: id,
             StartTime: "2025-06-01T19:00:00Z",
@@ -76,7 +77,8 @@ public class RunsDetailFunctionTests
             CreatorBattleNetId: creatorBattleNetId,
             CreatedAt: "2025-05-01T00:00:00Z",
             Ttl: -1,
-            RunCharacters: runCharacters ?? []);
+            RunCharacters: runCharacters ?? [],
+            ETag: etag);
 
     private static RunCharacterEntry MakeCharacterEntry(string raiderBattleNetId = "bnet-1") =>
         new RunCharacterEntry(
@@ -256,4 +258,31 @@ public class RunsDetailFunctionTests
         Assert.IsType<ProblemDetails>(problem.Value);
     }
 
+    // ------------------------------------------------------------------
+    // Test 5: Response carries ETag header mirroring the stored _etag
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_emits_etag_header_on_success()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+        var doc = MakeRunDoc(
+            id: "run-1",
+            visibility: "PUBLIC",
+            etag: "\"cosmos-etag-xyz\"");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(doc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var request = new DefaultHttpContext().Request;
+        var result = await fn.Run(request, "run-1", ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("\"cosmos-etag-xyz\"", request.HttpContext.Response.Headers.ETag.ToString());
+    }
 }
