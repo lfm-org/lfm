@@ -220,7 +220,10 @@ public class RunsSignupFunctionTests
         var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
         var result = await fn.Run(MakePostRequest(requestBody), "missing-run", ctx, CancellationToken.None);
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -258,6 +261,8 @@ public class RunsSignupFunctionTests
 
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
 
@@ -326,6 +331,8 @@ public class RunsSignupFunctionTests
 
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(409, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#signups-closed", problem.Type);
 
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -381,6 +388,8 @@ public class RunsSignupFunctionTests
         // structural detail that may legitimately change (e.g. policy library swap).
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(409, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#concurrent-modification", problem.Type);
     }
 
     // ------------------------------------------------------------------
@@ -407,15 +416,17 @@ public class RunsSignupFunctionTests
 
         var result = await fn.Run(httpContext.Request, "run-1", MakeFunctionContext(principal), CancellationToken.None);
 
-        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var bad = Assert.IsType<ObjectResult>(result);
         Assert.Equal(400, bad.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(bad.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#invalid-body", problem.Type);
 
         var json = JsonSerializer.Serialize(bad.Value);
         Assert.DoesNotContain("line", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("byte", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("path:", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("position", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Invalid request body", json);
+        Assert.Contains("Request body is invalid or missing.", json);
 
         // Repos must not have been touched for a parse failure.
         runsRepo.VerifyNoOtherCalls();
