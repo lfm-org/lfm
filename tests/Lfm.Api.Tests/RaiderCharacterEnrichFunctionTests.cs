@@ -96,6 +96,54 @@ public class RaiderCharacterEnrichFunctionTests
     }
 
     [Fact]
+    public async Task Returns_429_with_Retry_After_header_when_Blizzard_rate_limits()
+    {
+        var raider = MakeRaider(accountChars: [("stormreaver", "Shalena")]);
+        var repo = RepoReturning(raider);
+        var profileClient = new Mock<IBlizzardProfileClient>();
+        profileClient.Setup(p => p.GetCharacterProfileAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException(
+                "Too Many Requests", inner: null, statusCode: System.Net.HttpStatusCode.TooManyRequests));
+
+        var rateLimiter = new Mock<IBlizzardRateLimiter>();
+        rateLimiter.SetupGet(r => r.RemainingPause).Returns(TimeSpan.FromSeconds(7));
+
+        var fn = MakeFunction(repo.Object, profileClient.Object, rateLimiter.Object);
+        var request = MakeRequest();
+        var result = await fn.Run(request, CharId, MakeCtx(), CancellationToken.None);
+
+        var tooMany = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(429, tooMany.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(tooMany.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#upstream-rate-limited", problem.Type);
+        Assert.Equal("7", request.HttpContext.Response.Headers.RetryAfter.ToString());
+    }
+
+    [Fact]
+    public async Task Returns_429_without_Retry_After_when_limiter_reports_no_pause()
+    {
+        var raider = MakeRaider(accountChars: [("stormreaver", "Shalena")]);
+        var repo = RepoReturning(raider);
+        var profileClient = new Mock<IBlizzardProfileClient>();
+        profileClient.Setup(p => p.GetCharacterProfileAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException(
+                "Too Many Requests", inner: null, statusCode: System.Net.HttpStatusCode.TooManyRequests));
+
+        var rateLimiter = new Mock<IBlizzardRateLimiter>();
+        rateLimiter.SetupGet(r => r.RemainingPause).Returns((TimeSpan?)null);
+
+        var fn = MakeFunction(repo.Object, profileClient.Object, rateLimiter.Object);
+        var request = MakeRequest();
+        var result = await fn.Run(request, CharId, MakeCtx(), CancellationToken.None);
+
+        var tooMany = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(429, tooMany.StatusCode);
+        Assert.False(request.HttpContext.Response.Headers.ContainsKey("Retry-After"));
+    }
+
+    [Fact]
     public async Task Returns_404_when_Blizzard_returns_404()
     {
         var raider = MakeRaider(accountChars: [("stormreaver", "Shalena")]);
@@ -118,8 +166,14 @@ public class RaiderCharacterEnrichFunctionTests
 
     // ---- helpers ----
     private static RaiderCharacterEnrichFunction MakeFunction(
-        IRaidersRepository repo, IBlizzardProfileClient profile)
-        => new(repo, profile, NullLogger<RaiderCharacterEnrichFunction>.Instance);
+        IRaidersRepository repo,
+        IBlizzardProfileClient profile,
+        IBlizzardRateLimiter? rateLimiter = null)
+        => new(
+            repo,
+            profile,
+            rateLimiter ?? new Mock<IBlizzardRateLimiter>().Object,
+            NullLogger<RaiderCharacterEnrichFunction>.Instance);
 
     private static HttpRequest MakeRequest() => new DefaultHttpContext().Request;
 
