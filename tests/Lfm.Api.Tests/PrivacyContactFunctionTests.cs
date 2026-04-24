@@ -60,6 +60,20 @@ public class PrivacyContactFunctionTests
     }
 
     [Fact]
+    public void GetEmailV1_delegates_to_canonical_GetEmail_handler()
+    {
+        // Alias contract: /api/v1/privacy-contact/email is a thin delegation.
+        var fn = MakeFunction("privacy@example.com");
+
+        var result = fn.GetEmailV1(new DefaultHttpContext().Request);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var body = Assert.IsType<PrivacyEmailResponse>(ok.Value);
+        Assert.Equal("privacy", body.Local);
+        Assert.Equal("example.com", body.Domain);
+    }
+
+    [Fact]
     public void GetEmail_returns_404_when_address_is_malformed()
     {
         // The Options validator normally rejects at startup, but a defensive

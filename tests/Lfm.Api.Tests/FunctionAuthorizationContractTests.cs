@@ -43,6 +43,7 @@ public class FunctionAuthorizationContractTests
         "health-ready-v1",
         // Public privacy contact — the SPA reveals this only on user click.
         "privacy-email",
+        "privacy-email-v1",
         // Catch-all OPTIONS preflight handler — short-circuited by CorsMiddleware.
         "cors-preflight",
     };
