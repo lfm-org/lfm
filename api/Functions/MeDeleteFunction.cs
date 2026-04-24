@@ -9,10 +9,15 @@ using Lfm.Api.Audit;
 using Lfm.Api.Auth;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
+using Lfm.Api.Services;
 
 namespace Lfm.Api.Functions;
 
-public class MeDeleteFunction(IRunsRepository runsRepo, IRaidersRepository raidersRepo, ILogger<MeDeleteFunction> logger)
+public class MeDeleteFunction(
+    IRunsRepository runsRepo,
+    IRaidersRepository raidersRepo,
+    IIdempotencyStore idempotencyStore,
+    ILogger<MeDeleteFunction> logger)
 {
     [Function("me-delete")]
     [RequireAuth]
@@ -27,6 +32,18 @@ public class MeDeleteFunction(IRunsRepository runsRepo, IRaidersRepository raide
         // This ensures no run documents are left referencing a deleted raider.
         await runsRepo.ScrubRaiderAsync(principal.BattleNetId, cancellationToken);
         await raidersRepo.DeleteAsync(principal.BattleNetId, cancellationToken);
+
+        // GDPR: purge the idempotency replay cache for this actor so the cache
+        // cannot outlive the raider document it references. Best-effort — a
+        // failure here is logged but does not block the account-delete.
+        try
+        {
+            await idempotencyStore.PurgeForActorAsync(principal.BattleNetId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Idempotency purge failed for {BattleNetId}", principal.BattleNetId);
+        }
 
         AuditLog.Emit(logger, new AuditEvent("account.delete", principal.BattleNetId, principal.BattleNetId, "success", null));
 
