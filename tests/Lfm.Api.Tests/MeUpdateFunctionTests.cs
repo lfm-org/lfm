@@ -26,12 +26,14 @@ public class MeUpdateFunctionTests
         return ctx.Object;
     }
 
-    private static HttpRequest MakeRequest(object body)
+    private static HttpRequest MakeRequest(object body, string? ifMatch = null)
     {
         var json = JsonSerializer.Serialize(body);
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
         httpContext.Request.ContentType = "application/json";
+        if (ifMatch is not null)
+            httpContext.Request.Headers["If-Match"] = ifMatch;
         return httpContext.Request;
     }
 
@@ -95,4 +97,90 @@ public class MeUpdateFunctionTests
         repo.Verify(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Uses_ReplaceAsync_and_echoes_etag_when_if_match_is_specific()
+    {
+        var principal = MakePrincipal();
+        var existing = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: null,
+            Locale: "en",
+            ETag: "\"etag-v1\"");
+        var replaced = existing with { Locale = "fi", ETag = "\"etag-v2\"" };
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), "\"etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(replaced);
+
+        var fn = new MeUpdateFunction(repo.Object);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeRequest(new { locale = "fi" }, ifMatch: "\"etag-v1\"");
+
+        var result = await fn.Run(req, ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("\"etag-v2\"", req.HttpContext.Response.Headers.ETag.ToString());
+
+        repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), "\"etag-v1\"", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Returns_412_when_if_match_is_stale()
+    {
+        var principal = MakePrincipal();
+        var existing = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: null,
+            Locale: "en",
+            ETag: "\"etag-v1\"");
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException());
+
+        var fn = new MeUpdateFunction(repo.Object);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeRequest(new { locale = "fi" }, ifMatch: "\"etag-stale\"");
+
+        var result = await fn.Run(req, ctx, CancellationToken.None);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(412, objectResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#if-match-stale", problem.Type);
+    }
+
+    [Fact]
+    public async Task Wildcard_if_match_falls_back_to_blind_upsert()
+    {
+        var principal = MakePrincipal();
+        var existing = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: null,
+            Locale: "en");
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var fn = new MeUpdateFunction(repo.Object);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeRequest(new { locale = "fi" }, ifMatch: "*");
+
+        var result = await fn.Run(req, ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
