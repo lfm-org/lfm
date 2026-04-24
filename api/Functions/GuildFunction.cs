@@ -85,17 +85,17 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
 
         var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
-            return new NotFoundObjectResult(new { error = "Raider not found" });
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         var (guildId, _) = GuildResolver.FromRaider(raider);
         if (guildId is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
         var isAdmin = await guildPermissions.IsAdminAsync(raider, cancellationToken);
         if (!isAdmin)
         {
             AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, guildId, "failure", "forbidden"));
-            return new ObjectResult(new { error = "forbidden" }) { StatusCode = 403 };
+            return Problem.Forbidden(req.HttpContext, "guild-admin-only", "Guild admin access required.");
         }
 
         var body = await JsonSerializer.DeserializeAsync<UpdateGuildRequest>(
@@ -104,17 +104,23 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
             cancellationToken: cancellationToken);
 
         if (body is null)
-            return new BadRequestObjectResult(new { error = "invalid body" });
+            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
 
         var validator = new UpdateGuildRequestValidator();
         var validationResult = await validator.ValidateAsync(body, cancellationToken);
         if (!validationResult.IsValid)
-            return new BadRequestObjectResult(
-                new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        {
+            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = errors });
+        }
 
         var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
         if (guildDoc is null)
-            return new NotFoundResult();
+            return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
         var updatedSetup = guildDoc.Setup is not null
             ? guildDoc.Setup with

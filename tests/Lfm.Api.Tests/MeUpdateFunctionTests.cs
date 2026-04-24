@@ -88,7 +88,10 @@ public class MeUpdateFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#validation-failed", problem.Type);
         repo.Verify(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
