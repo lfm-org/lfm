@@ -205,7 +205,7 @@
         // implementation was silently eaten by HttpClient timeouts on cold
         // Functions starts and left the session alive (issue #53).
         var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
-        Nav.NavigateTo($"{apiBase}/api/battlenet/logout", forceLoad: true);
+        Nav.NavigateTo($"{apiBase}/api/v1/battlenet/logout", forceLoad: true);
     }
 
     public void Dispose()

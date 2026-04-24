@@ -19,6 +19,6 @@
     {
         var redirect = string.IsNullOrEmpty(Redirect) ? "/runs" : Redirect;
         var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
-        Nav.NavigateTo($"{apiBase}/api/battlenet/login?redirect={Uri.EscapeDataString(redirect)}", forceLoad: true);
+        Nav.NavigateTo($"{apiBase}/api/v1/battlenet/login?redirect={Uri.EscapeDataString(redirect)}", forceLoad: true);
     }
 }

@@ -74,7 +74,7 @@ paths:
   # Health
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/health:
+  /api/v1/health:
     get:
       tags: [Health]
       summary: Liveness probe.
@@ -95,7 +95,7 @@ paths:
                 live:
                   value: { status: ok, timestamp: '2026-04-24T00:00:00Z' }
 
-  /api/health/ready:
+  /api/v1/health/ready:
     get:
       tags: [Health]
       summary: Readiness probe.
@@ -125,7 +125,7 @@ paths:
   # Auth (Battle.net OAuth)
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/battlenet/login:
+  /api/v1/battlenet/login:
     get:
       tags: [Auth]
       summary: Start Battle.net OAuth login.
@@ -147,7 +147,7 @@ paths:
             Location:
               schema: { type: string, format: uri }
 
-  /api/battlenet/callback:
+  /api/v1/battlenet/callback:
     get:
       tags: [Auth]
       summary: Battle.net OAuth callback.
@@ -172,7 +172,7 @@ paths:
         '400':
           $ref: '#/components/responses/ProblemBadRequest'
 
-  /api/battlenet/logout:
+  /api/v1/battlenet/logout:
     get:
       tags: [Auth]
       summary: Clear the session cookie.
@@ -186,7 +186,7 @@ paths:
   # Me
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/me:
+  /api/v1/me:
     get:
       tags: [Me]
       summary: Logged-in user's profile.
@@ -256,7 +256,7 @@ paths:
   # Privacy
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/privacy-contact/email:
+  /api/v1/privacy-contact/email:
     get:
       tags: [Privacy]
       summary: Privacy contact email (click-to-reveal).
@@ -282,7 +282,7 @@ paths:
   # Guild
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/guild:
+  /api/v1/guild:
     get:
       tags: [Guild]
       summary: Current user's guild home view.
@@ -341,7 +341,7 @@ paths:
         '412':
           $ref: '#/components/responses/ProblemPreconditionFailed'
 
-  /api/guild/admin:
+  /api/v1/guild/admin:
     get:
       tags: [Guild]
       summary: Guild admin view (raw roster + rank setup).
@@ -363,7 +363,7 @@ paths:
   # Runs
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/runs:
+  /api/v1/runs:
     get:
       tags: [Runs]
       summary: List runs visible to the caller.
@@ -411,7 +411,7 @@ paths:
         '403':
           $ref: '#/components/responses/ProblemForbidden'
 
-  /api/runs/{id}:
+  /api/v1/runs/{id}:
     parameters:
       - in: path
         name: id
@@ -488,7 +488,7 @@ paths:
         '404':
           $ref: '#/components/responses/ProblemNotFound'
 
-  /api/runs/{id}/signup:
+  /api/v1/runs/{id}/signup:
     parameters:
       - in: path
         name: id
@@ -538,7 +538,7 @@ paths:
   # Raider Characters
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/raider/character:
+  /api/v1/raider/character:
     post:
       tags: [Raider Characters]
       summary: Add a WoW character to my raider profile.
@@ -561,7 +561,7 @@ paths:
         '429':
           $ref: '#/components/responses/ProblemTooManyRequests'
 
-  /api/raider/characters/{id}:
+  /api/v1/raider/characters/{id}:
     parameters:
       - in: path
         name: id
@@ -582,7 +582,7 @@ paths:
         '404':
           $ref: '#/components/responses/ProblemNotFound'
 
-  /api/raider/characters/{id}/enrich:
+  /api/v1/raider/characters/{id}/enrich:
     parameters:
       - in: path
         name: id
@@ -614,7 +614,7 @@ paths:
   # Battle.net Profile
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/battlenet/characters:
+  /api/v1/battlenet/characters:
     get:
       tags: [Battle.net Profile]
       summary: Logged-in user's WoW characters.
@@ -639,7 +639,7 @@ paths:
         '404':
           $ref: '#/components/responses/ProblemNotFound'
 
-  /api/battlenet/characters/refresh:
+  /api/v1/battlenet/characters/refresh:
     post:
       tags: [Battle.net Profile]
       summary: Refresh the cached character list from Blizzard.
@@ -657,7 +657,7 @@ paths:
         '429':
           $ref: '#/components/responses/ProblemTooManyRequests'
 
-  /api/battlenet/character-portraits:
+  /api/v1/battlenet/character-portraits:
     post:
       tags: [Battle.net Profile]
       summary: Resolve portrait URLs for a batch of characters.
@@ -684,7 +684,7 @@ paths:
   # WoW Reference
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/wow/reference/expansions:
+  /api/v1/wow/reference/expansions:
     get:
       tags: [WoW Reference]
       summary: Blizzard journal expansions (manifest).
@@ -698,7 +698,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/ExpansionDto' }
 
-  /api/wow/reference/instances:
+  /api/v1/wow/reference/instances:
     get:
       tags: [WoW Reference]
       summary: Blizzard journal instances (manifest).
@@ -712,7 +712,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/InstanceDto' }
 
-  /api/wow/reference/specializations:
+  /api/v1/wow/reference/specializations:
     get:
       tags: [WoW Reference]
       summary: WoW specializations (manifest).
@@ -726,7 +726,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/SpecializationDto' }
 
-  /api/wow/reference/refresh:
+  /api/v1/wow/reference/refresh:
     post:
       tags: [WoW Reference, Admin]
       summary: Rebuild the reference-data manifests from Blizzard (admin only).
@@ -753,7 +753,7 @@ paths:
   # Admin
   # ─────────────────────────────────────────────────────────────────────────
 
-  /api/admin/runs/migrate-schema:
+  /api/v1/admin/runs/migrate-schema:
     post:
       tags: [Admin]
       summary: Backfill typed mode fields on legacy run documents.

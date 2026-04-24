@@ -192,6 +192,25 @@ so handler annotations stay synchronised with `api/openapi.yaml`
 without exposing a Swagger UI or live-schema endpoint to production
 traffic.
 
+### Versioning and the /api/v1/ alias window
+
+`/api/v1/…` is the canonical HTTP surface from Phase 7 onward. The
+OpenAPI contract, the first-party SPA, and every new consumer target
+`/api/v1/…`.
+
+The original unprefixed routes (`/api/runs`, `/api/me`, etc.) are kept
+as **aliases** — each canonical handler carries a second
+`[Function("xxx-v1")]` declaration at `Route = "v1/…"` that delegates
+to the same method, so both route tables hit identical code. The
+alias is a migration aid: forks or older SPA bundles that predate the
+cut-over keep working during a deploy window. The legacy routes will
+be removed in a follow-up release once App Insights traffic on the
+unprefixed paths is effectively zero. See
+[`docs/api-versioning.md`](docs/api-versioning.md) for the rollout
+design, retirement criteria, and why two `[Function]` declarations
+beats middleware-level route rewriting for the Azure Functions
+isolated worker.
+
 ## Notes
 
 Use standard C# conventions: 4-space indentation. Run `dotnet format` before committing. Keep commits short and imperative.

@@ -35,7 +35,7 @@ public class ExpansionsClientTests
         Assert.Equal(68, result[0].Id);
         Assert.Equal("The War Within", result[1].Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
-        Assert.Equal("/api/wow/reference/expansions", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/wow/reference/expansions", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
