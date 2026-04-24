@@ -67,6 +67,11 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
         if (guildDoc is null)
             return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
+        // Emit the Cosmos _etag so the SPA can echo it as If-Match on PATCH /guild
+        // for optimistic concurrency.
+        if (!string.IsNullOrEmpty(guildDoc.ETag))
+            req.HttpContext.Response.Headers.ETag = guildDoc.ETag;
+
         return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
     }
 
@@ -147,10 +152,51 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
             RankPermissions = updatedRankPermissions,
         };
 
-        await guildRepo.UpsertAsync(updatedDoc, cancellationToken);
+        var ifMatchEtag = ResolveIfMatch(req);
+        GuildDocument persisted;
+        if (ifMatchEtag is null)
+        {
+            // Transitional: no If-Match supplied, fall back to blind upsert so
+            // existing SPA admin flows keep working while the client migrates.
+            await guildRepo.UpsertAsync(updatedDoc, cancellationToken);
+            persisted = updatedDoc;
+        }
+        else
+        {
+            try
+            {
+                persisted = await guildRepo.ReplaceAsync(updatedDoc, ifMatchEtag, cancellationToken);
+            }
+            catch (ConcurrencyConflictException)
+            {
+                AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, guildId, "failure", "if-match stale"));
+                return Problem.PreconditionFailed(
+                    req.HttpContext,
+                    "if-match-stale",
+                    "Guild settings were modified since loaded. Reload and try again.");
+            }
+        }
 
         AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, guildId, "success", null));
 
-        return new OkObjectResult(GuildMapper.MapToDto(updatedDoc));
+        if (!string.IsNullOrEmpty(persisted.ETag))
+            req.HttpContext.Response.Headers.ETag = persisted.ETag;
+
+        return new OkObjectResult(GuildMapper.MapToDto(persisted));
+    }
+
+    /// <summary>
+    /// Returns the caller's <c>If-Match</c> ETag when present and non-wildcard.
+    /// A <c>*</c> wildcard is treated as "no precondition" so SPA flows that
+    /// haven't captured the ETag yet remain functional during migration.
+    /// </summary>
+    private static string? ResolveIfMatch(HttpRequest req)
+    {
+        if (!req.Headers.TryGetValue("If-Match", out var values))
+            return null;
+        var value = values.ToString();
+        if (string.IsNullOrWhiteSpace(value) || value == "*")
+            return null;
+        return value;
     }
 }

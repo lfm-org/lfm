@@ -103,4 +103,39 @@ public class MeFunctionTests
         siteAdmin.Verify(s => s.IsAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Response_carries_etag_header_mirroring_cosmos_etag()
+    {
+        var principal = new SessionPrincipal(
+            BattleNetId: "bnet-1",
+            BattleTag: "Player#1234",
+            GuildId: null,
+            GuildName: null,
+            IssuedAt: DateTimeOffset.UtcNow,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+        var raider = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: null,
+            Locale: "en",
+            ETag: "\"cosmos-etag-abc\"");
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var fn = new MeFunction(repo.Object, siteAdmin.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var request = new DefaultHttpContext().Request;
+        var result = await fn.Run(request, ctx, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("\"cosmos-etag-abc\"", request.HttpContext.Response.Headers.ETag.ToString());
+    }
 }

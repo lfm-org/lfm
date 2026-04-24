@@ -32,6 +32,12 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
 
         var (_, guildName) = GuildResolver.FromRaider(raider);
 
+        // Emit the Cosmos _etag so the SPA can echo it as If-Match on PATCH /me
+        // for optimistic concurrency. Cosmos etags are already double-quoted
+        // opaque strings and can be mirrored verbatim.
+        if (!string.IsNullOrEmpty(raider.ETag))
+            req.HttpContext.Response.Headers.ETag = raider.ETag;
+
         return new OkObjectResult(new MeResponse(
             BattleNetId: principal.BattleNetId,
             GuildName: guildName,
