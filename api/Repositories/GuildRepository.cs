@@ -20,7 +20,7 @@ public sealed class GuildRepository(CosmosClient client, IOptions<CosmosOptions>
                 guildId,
                 new PartitionKey(guildId),
                 cancellationToken: ct);
-            return response.Resource;
+            return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -34,5 +34,24 @@ public sealed class GuildRepository(CosmosClient client, IOptions<CosmosOptions>
             doc,
             new PartitionKey(doc.Id),
             cancellationToken: ct);
+    }
+
+    public async Task<GuildDocument> ReplaceAsync(GuildDocument doc, string ifMatchEtag, CancellationToken ct)
+    {
+        try
+        {
+            var options = new ItemRequestOptions { IfMatchEtag = ifMatchEtag };
+            var response = await _container.ReplaceItemAsync(
+                doc,
+                doc.Id,
+                new PartitionKey(doc.Id),
+                options,
+                ct);
+            return response.Resource with { ETag = response.ETag };
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
+        {
+            throw new ConcurrencyConflictException(ex);
+        }
     }
 }
