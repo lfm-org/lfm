@@ -22,6 +22,14 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
     <PackageReference Include="WireMock.Net" Version="2.2.0" />
+    <!-- Pinned to close transitive OpenTelemetry advisories flowing in via
+         Testcontainers 4.11.0 (which depends on OpenTelemetry.* 1.14.0):
+         GHSA-g94r-2vxg-569j (OpenTelemetry.Api), GHSA-q834-8qmm-v933 and
+         GHSA-mr8r-92fq-pj8p (OpenTelemetry.Exporter.OpenTelemetryProtocol).
+         Direct references override the transitives so the advisories clear
+         regardless of Testcontainers' own refresh cadence. -->
+    <PackageReference Include="OpenTelemetry.Api" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">
