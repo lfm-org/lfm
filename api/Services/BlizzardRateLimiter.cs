@@ -38,5 +38,15 @@ public sealed class BlizzardRateLimiter : IBlizzardRateLimiter, IDisposable
         Interlocked.Exchange(ref _pauseUntilTicks, until.UtcTicks);
     }
 
+    public TimeSpan? RemainingPause
+    {
+        get
+        {
+            var pause = Interlocked.Read(ref _pauseUntilTicks);
+            var remaining = pause - DateTimeOffset.UtcNow.UtcTicks;
+            return remaining > 0 ? TimeSpan.FromTicks(remaining) : null;
+        }
+    }
+
     public void Dispose() => _limiter.Dispose();
 }
