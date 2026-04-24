@@ -2,13 +2,14 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Lfm.Api.Helpers;
 using Lfm.Api.Options;
 
 namespace Lfm.Api.Repositories;
 
-public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> cosmosOpts) : IRunsRepository
+public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> cosmosOpts, ILogger<RunsRepository> logger) : IRunsRepository
 {
     private const string ContainerName = "runs";
     private readonly Container _container = client.GetContainer(cosmosOpts.Value.DatabaseName, ContainerName);
@@ -74,6 +75,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
             return new RunsPage(Array.Empty<RunDocument>(), null);
 
         var response = await feedIterator.ReadNextAsync(ct);
+        logger.LogRequestChargeTotal("query-page", ContainerName, response.RequestCharge);
         var items = response.ToList();
         return new RunsPage(items, response.ContinuationToken);
     }
@@ -88,6 +90,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                 id,
                 new PartitionKey(id),
                 cancellationToken: ct);
+            logger.LogRequestCharge(response, "read", ContainerName, id);
             return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -102,6 +105,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
             run,
             new PartitionKey(run.Id),
             cancellationToken: ct);
+        logger.LogRequestCharge(response, "create", ContainerName, run.Id);
         return response.Resource;
     }
 
@@ -119,6 +123,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                 new PartitionKey(run.Id),
                 options,
                 ct);
+            logger.LogRequestCharge(response, "replace", ContainerName, run.Id);
             return response.Resource with { ETag = response.ETag };
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
@@ -131,10 +136,11 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
     {
         try
         {
-            await _container.DeleteItemAsync<RunDocument>(
+            var response = await _container.DeleteItemAsync<RunDocument>(
                 id,
                 new PartitionKey(id),
                 cancellationToken: ct);
+            logger.LogRequestCharge(response, "delete", ContainerName, id);
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -157,11 +163,14 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                 .WithParameter("@battleNetId", battleNetId));
 
         var runs = new List<RunDocument>();
+        var queryRu = 0.0;
         while (feedIterator.HasMoreResults)
         {
             var page = await feedIterator.ReadNextAsync(ct);
+            queryRu += page.RequestCharge;
             runs.AddRange(page);
         }
+        logger.LogRequestChargeTotal("scrub-query", ContainerName, queryRu);
 
         // Replace each modified run. TS uses Promise.all; sequential is fine at hobby scale.
         foreach (var run in runs)
@@ -169,11 +178,12 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
             var scrubbed = ScrubRunDocument(run, battleNetId);
             if (scrubbed.Modified)
             {
-                await _container.ReplaceItemAsync(
+                var response = await _container.ReplaceItemAsync(
                     scrubbed.Run,
                     run.Id,
                     new PartitionKey(run.Id),
                     cancellationToken: ct);
+                logger.LogRequestCharge(response, "scrub-replace", ContainerName, run.Id);
             }
         }
     }
@@ -187,9 +197,11 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
 
         var scanned = 0;
         var migrated = 0;
+        var totalRu = 0.0;
         while (feedIterator.HasMoreResults)
         {
             var page = await feedIterator.ReadNextAsync(ct);
+            totalRu += page.RequestCharge;
             foreach (var run in page)
             {
                 scanned++;
@@ -198,14 +210,16 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                 migrated++;
                 if (!dryRun)
                 {
-                    await _container.ReplaceItemAsync(
+                    var response = await _container.ReplaceItemAsync(
                         populated,
                         run.Id,
                         new PartitionKey(run.Id),
                         cancellationToken: ct);
+                    logger.LogRequestCharge(response, "migrate-replace", ContainerName, run.Id);
                 }
             }
         }
+        logger.LogRequestChargeTotal("migrate-scan", ContainerName, totalRu);
         return new RunMigrationResult(scanned, migrated, dryRun);
     }
 
