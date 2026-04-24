@@ -33,6 +33,22 @@
           "Microsoft.TestPlatform.TestHost": "18.4.0"
         }
       },
+      "Microsoft.OpenApi": {
+        "type": "Direct",
+        "requested": "[3.5.2, )",
+        "resolved": "3.5.2",
+        "contentHash": "AaNCVaa5lH1p+zkYySMYfsig1+UKZykqW8UPcEg60z+xch7wqAXAtBeLn9JZpf52zEaalcPa7SSA++Os53hBiw=="
+      },
+      "Microsoft.OpenApi.YamlReader": {
+        "type": "Direct",
+        "requested": "[3.5.2, )",
+        "resolved": "3.5.2",
+        "contentHash": "3b5Q0d+a2v7IBjOqvyylL9OudWa3m8U9lFp4LlDwQ6D6ZuiTbbZCjRDjQnBdFJdn3pqGhe0Xrf/Zj1VPvZHHEA==",
+        "dependencies": {
+          "Microsoft.OpenApi": "3.5.2",
+          "SharpYaml": "2.1.4"
+        }
+      },
       "Moq": {
         "type": "Direct",
         "requested": "[4.20.72, )",
@@ -878,6 +894,11 @@
           "Polly.Core": "8.4.2",
           "System.Threading.RateLimiting": "8.0.0"
         }
+      },
+      "SharpYaml": {
+        "type": "Transitive",
+        "resolved": "2.1.4",
+        "contentHash": "/iwULhVBpTjD4wPZhLU+eUWBanDvri/2AGx5YbaAj5kp9kXzhqUfJEy56H5Yi+c+OXsdm/oKD1aTKB24BFp8cw=="
       },
       "System.ClientModel": {
         "type": "Transitive",

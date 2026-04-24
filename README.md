@@ -174,6 +174,24 @@ These five variables are set in the `dotnet publish` step of `deploy-app.yml`. `
 - `tests/Lfm.E2E/`: Playwright .NET end-to-end tests
 - `infra/main.bicep`: main infrastructure entry point
 
+## API Contract
+
+The source-of-truth OpenAPI 3.1 contract for the API lives at
+[`api/openapi.yaml`](api/openapi.yaml). It is validated on every pull
+request by `OpenApiContractTests` in `tests/Lfm.Api.Tests/Openapi/`,
+which runs inside the existing `verify` CI gate — no separate lint
+workflow, no Node toolchain. The file is intended to be consumed
+directly by both the first-party SPA (type-generated clients) and
+downstream AGPL operators who fork and self-host (machine-readable
+contract without running the server).
+
+The API does **not** serve a live schema in production. A future slice
+will adopt `Microsoft.Azure.Functions.Worker.Extensions.OpenApi` in
+development-only mode (gated on `ASPNETCORE_ENVIRONMENT == Development`)
+so handler annotations stay synchronised with `api/openapi.yaml`
+without exposing a Swagger UI or live-schema endpoint to production
+traffic.
+
 ## Notes
 
 Use standard C# conventions: 4-space indentation. Run `dotnet format` before committing. Keep commits short and imperative.
