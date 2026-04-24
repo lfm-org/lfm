@@ -76,6 +76,10 @@ builder.Services.AddOptions<RateLimitOptions>()
     .Bind(builder.Configuration.GetSection(RateLimitOptions.SectionName));
 builder.Services.AddOptions<AgplOptions>()
     .Bind(builder.Configuration.GetSection(AgplOptions.SectionName));
+builder.Services.AddOptions<PrivacyContactOptions>()
+    .Bind(builder.Configuration.GetSection(PrivacyContactOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<RequestSizeLimitOptions>()
     .Bind(builder.Configuration.GetSection(RequestSizeLimitOptions.SectionName))
     .ValidateDataAnnotations()

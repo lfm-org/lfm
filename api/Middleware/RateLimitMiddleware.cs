@@ -21,12 +21,21 @@ public sealed class RateLimitMiddleware : IFunctionsWorkerMiddleware
     private static readonly HashSet<string> AuthFunctions =
         new(["battlenet-login", "battlenet-callback"], StringComparer.OrdinalIgnoreCase);
 
+    // Endpoints that should sit on a stricter tier than ordinary reads.
+    // privacy-email is the address-reveal probe behind the privacy page's
+    // click-to-reveal button — a single browser session legitimately calls it
+    // at most a handful of times per minute, so 5/min is headroom for real
+    // users and a brick wall for scrapers.
+    private static readonly HashSet<string> PrivacyFunctions =
+        new(["privacy-email"], StringComparer.OrdinalIgnoreCase);
+
     private static readonly HashSet<string> WriteMethods =
         new(["POST", "PUT", "PATCH", "DELETE"], StringComparer.OrdinalIgnoreCase);
 
     private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _authLimiters = new();
     private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _writeLimiters = new();
     private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _readLimiters = new();
+    private readonly ConcurrentDictionary<string, (SlidingWindowRateLimiter Limiter, DateTimeOffset LastAccessed)> _privacyLimiters = new();
 
     private long _callCount;
     private readonly RateLimitOptions _options;
@@ -64,10 +73,11 @@ public sealed class RateLimitMiddleware : IFunctionsWorkerMiddleware
 
         var functionName = context.FunctionDefinition.Name;
         var isAuth = AuthFunctions.Contains(functionName);
-        var isWrite = !isAuth && WriteMethods.Contains(method);
-        var isRead = !isAuth && !isWrite && string.Equals(method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase);
+        var isPrivacy = !isAuth && PrivacyFunctions.Contains(functionName);
+        var isWrite = !isAuth && !isPrivacy && WriteMethods.Contains(method);
+        var isRead = !isAuth && !isPrivacy && !isWrite && string.Equals(method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase);
 
-        if (!isAuth && !isWrite && !isRead)
+        if (!isAuth && !isPrivacy && !isWrite && !isRead)
         {
             await next(context);
             return;
@@ -80,13 +90,15 @@ public sealed class RateLimitMiddleware : IFunctionsWorkerMiddleware
             EvictStaleEntries(_authLimiters);
             EvictStaleEntries(_writeLimiters);
             EvictStaleEntries(_readLimiters);
+            EvictStaleEntries(_privacyLimiters);
         }
 
         var clientIp = GetClientIp(httpContext);
-        var (limiters, permitLimit) = (isAuth, isWrite) switch
+        var (limiters, permitLimit) = (isAuth, isPrivacy, isWrite) switch
         {
-            (true, _) => (_authLimiters, _options.AuthRequestsPerMinute),
-            (_, true) => (_writeLimiters, _options.WriteRequestsPerMinute),
+            (true, _, _) => (_authLimiters, _options.AuthRequestsPerMinute),
+            (_, true, _) => (_privacyLimiters, _options.PrivacyRequestsPerMinute),
+            (_, _, true) => (_writeLimiters, _options.WriteRequestsPerMinute),
             _ => (_readLimiters, _options.ReadRequestsPerMinute),
         };
 
