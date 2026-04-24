@@ -25,7 +25,7 @@ public sealed class WowReferenceAdminClient(IHttpClientFactory factory) : IWowRe
 
         // ResponseHeadersRead — return as soon as the headers arrive so we
         // can start reading NDJSON lines while the server is still producing them.
-        using var response = await http.PostAsync("api/wow/reference/refresh", content: null, ct);
+        using var response = await http.PostAsync("api/v1/wow/reference/refresh", content: null, ct);
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct);

@@ -35,7 +35,7 @@ public class InstancesClientTests
         Assert.Equal("1234:raid", result[0].Id);
         Assert.Equal("Operation: Mechagon", result[1].Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
-        Assert.Equal("/api/wow/reference/instances", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/wow/reference/instances", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]

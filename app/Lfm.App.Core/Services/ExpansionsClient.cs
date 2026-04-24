@@ -11,7 +11,7 @@ public sealed class ExpansionsClient(IHttpClientFactory factory) : IExpansionsCl
     public async Task<IReadOnlyList<ExpansionDto>> ListAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        var items = await http.GetFromJsonAsync<List<ExpansionDto>>("api/wow/reference/expansions", ct);
+        var items = await http.GetFromJsonAsync<List<ExpansionDto>>("api/v1/wow/reference/expansions", ct);
         return items ?? [];
     }
 }

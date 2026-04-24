@@ -18,20 +18,20 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         // consumes only the first page — a future "load more" feature will need
         // a ListAsync overload that exposes ContinuationToken.
         var http = factory.CreateClient("api");
-        var response = await http.GetFromJsonAsync<RunsListResponse>("api/runs", ct);
+        var response = await http.GetFromJsonAsync<RunsListResponse>("api/v1/runs", ct);
         return response?.Items ?? [];
     }
 
     public async Task<RunDetailDto?> GetAsync(string id, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        return await http.GetFromJsonAsync<RunDetailDto>($"api/runs/{Uri.EscapeDataString(id)}", ct);
+        return await http.GetFromJsonAsync<RunDetailDto>($"api/v1/runs/{Uri.EscapeDataString(id)}", ct);
     }
 
     public async Task<RunDetailWithEtag?> GetWithEtagAsync(string id, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        using var response = await http.GetAsync($"api/runs/{Uri.EscapeDataString(id)}", ct);
+        using var response = await http.GetAsync($"api/v1/runs/{Uri.EscapeDataString(id)}", ct);
         if (!response.IsSuccessStatusCode) return null;
 
         var dto = await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
@@ -44,7 +44,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
     public async Task<RunDetailDto?> CreateAsync(CreateRunRequest request, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        var response = await http.PostAsJsonAsync("api/runs", request, ct);
+        var response = await http.PostAsJsonAsync("api/v1/runs", request, ct);
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
     }
@@ -54,7 +54,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
     {
         var http = factory.CreateClient("api");
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Put, $"api/runs/{Uri.EscapeDataString(id)}")
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Put, $"api/v1/runs/{Uri.EscapeDataString(id)}")
         {
             Content = JsonContent.Create(request),
         };
@@ -78,14 +78,14 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
     public async Task<bool> DeleteAsync(string id, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        var response = await http.DeleteAsync($"api/runs/{Uri.EscapeDataString(id)}", ct);
+        var response = await http.DeleteAsync($"api/v1/runs/{Uri.EscapeDataString(id)}", ct);
         return response.IsSuccessStatusCode;
     }
 
     public async Task<RunDetailDto?> SignupAsync(string runId, SignupRequest request, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        var response = await http.PostAsJsonAsync($"api/runs/{Uri.EscapeDataString(runId)}/signup", request, ct);
+        var response = await http.PostAsJsonAsync($"api/v1/runs/{Uri.EscapeDataString(runId)}/signup", request, ct);
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
     }
@@ -93,7 +93,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
     public async Task<RunDetailDto?> CancelSignupAsync(string runId, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
-        var response = await http.DeleteAsync($"api/runs/{Uri.EscapeDataString(runId)}/signup", ct);
+        var response = await http.DeleteAsync($"api/v1/runs/{Uri.EscapeDataString(runId)}/signup", ct);
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
     }

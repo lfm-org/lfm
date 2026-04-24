@@ -48,7 +48,7 @@ public class BattleNetClientTests
         Assert.Equal(2, cached.Characters.Count);
         Assert.Equal("Char-A", cached.Characters[0].Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
-        Assert.Equal("/api/battlenet/characters", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/battlenet/characters", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class BattleNetClientTests
         var single = Assert.Single(result!);
         Assert.Equal("Refreshed", single.Name);
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
-        Assert.Equal("/api/battlenet/characters/refresh", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/battlenet/characters/refresh", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public class BattleNetClientTests
         Assert.Equal(2, result!.Count);
         Assert.Equal("https://render.example/p1.jpg", result["eu-silvermoon-sourgeezer"]);
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
-        Assert.Equal("/api/battlenet/character-portraits", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/battlenet/character-portraits", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.NotNull(handler.LastRequest.Content);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }

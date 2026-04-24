@@ -13,7 +13,7 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
         var http = factory.CreateClient("api");
         try
         {
-            return await http.GetFromJsonAsync<GuildDto>("api/guild", ct);
+            return await http.GetFromJsonAsync<GuildDto>("api/v1/guild", ct);
         }
         catch (HttpRequestException)
         {
@@ -30,7 +30,7 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
         // server-issued value. A future slice will capture the ETag on the
         // preceding GET /api/guild and echo it here for full optimistic
         // concurrency. `*` matches any non-deleted resource per RFC 9110.
-        using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/guild")
+        using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/v1/guild")
         {
             Content = JsonContent.Create(request),
         };

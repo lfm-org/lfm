@@ -31,7 +31,7 @@ public class AuthPagesTests : ComponentTestBase
         cut.Find("fluent-button").Click();
 
         var entry = Assert.Single(nav.History);
-        Assert.StartsWith("http://localhost:7071/api/battlenet/login", entry.Uri);
+        Assert.StartsWith("http://localhost:7071/api/v1/battlenet/login", entry.Uri);
         Assert.Contains("redirect=%2Fruns", entry.Uri);
         Assert.True(entry.Options.ForceLoad);
     }

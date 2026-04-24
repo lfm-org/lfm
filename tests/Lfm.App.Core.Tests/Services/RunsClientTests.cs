@@ -83,7 +83,7 @@ public class RunsClientTests
         Assert.Equal(2, result.Count);
         Assert.Equal("run-a", result[0].Id);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
-        Assert.Equal("/api/runs", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/runs", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class RunsClientTests
         await client.GetAsync("run with spaces/and?weird", CancellationToken.None);
 
         var path = handler.LastRequest!.RequestUri!.PathAndQuery;
-        Assert.StartsWith("/api/runs/", path);
+        Assert.StartsWith("/api/v1/runs/", path);
         Assert.Contains("%2F", path);
         Assert.DoesNotContain(" ", path);
         Assert.DoesNotContain("?weird", path);
@@ -149,7 +149,7 @@ public class RunsClientTests
 
         Assert.NotNull(result);
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
-        Assert.Equal("/api/runs", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/runs", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.NotNull(handler.LastRequest.Content);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
@@ -196,7 +196,7 @@ public class RunsClientTests
 
         Assert.NotNull(result);
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
-        Assert.Equal("/api/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public class RunsClientTests
 
         Assert.NotNull(result);
         Assert.Equal(HttpMethod.Put, handler.LastRequest!.Method);
-        Assert.Equal("/api/runs/run-1", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/runs/run-1", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
         Assert.Equal("\"etag-v1\"", handler.LastRequest.Headers.IfMatch.Single().Tag);
     }
@@ -285,7 +285,7 @@ public class RunsClientTests
         Assert.NotNull(result);
         Assert.Equal("run-1", result!.Id);
         Assert.Equal(HttpMethod.Delete, handler.LastRequest!.Method);
-        Assert.Equal("/api/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class RunsClientTests
         await client.CancelSignupAsync("run with spaces/and?weird", CancellationToken.None);
 
         var path = handler.LastRequest!.RequestUri!.PathAndQuery;
-        Assert.StartsWith("/api/runs/", path);
+        Assert.StartsWith("/api/v1/runs/", path);
         Assert.EndsWith("/signup", path);
         Assert.Contains("%2F", path);
         Assert.DoesNotContain(" ", path);

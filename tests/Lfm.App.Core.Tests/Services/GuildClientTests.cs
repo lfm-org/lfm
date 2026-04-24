@@ -56,7 +56,7 @@ public class GuildClientTests
         Assert.NotNull(result);
         Assert.Equal("Stormchasers", result!.Guild!.Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
-        Assert.Equal("/api/guild", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/guild", handler.LastRequest.RequestUri!.PathAndQuery);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class GuildClientTests
         Assert.NotNull(result);
         Assert.Equal("Stormchasers Reborn", result!.Guild!.Name);
         Assert.Equal(HttpMethod.Patch, handler.LastRequest!.Method);
-        Assert.Equal("/api/guild", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/v1/guild", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
     }
 

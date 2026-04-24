@@ -113,7 +113,7 @@
         try
         {
             var http = HttpFactory.CreateClient("api");
-            var result = await http.GetFromJsonAsync<Lfm.Contracts.Privacy.PrivacyEmailResponse>("api/privacy-contact/email");
+            var result = await http.GetFromJsonAsync<Lfm.Contracts.Privacy.PrivacyEmailResponse>("api/v1/privacy-contact/email");
             if (result is null || string.IsNullOrEmpty(result.Local) || string.IsNullOrEmpty(result.Domain))
             {
                 _state = RevealState.Error;

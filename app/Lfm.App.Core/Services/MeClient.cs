@@ -14,7 +14,7 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         var http = factory.CreateClient("api");
         try
         {
-            return await http.GetFromJsonAsync<MeResponse>("api/me", ct);
+            return await http.GetFromJsonAsync<MeResponse>("api/v1/me", ct);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
@@ -32,7 +32,7 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
             // server-issued value. A future slice will capture the ETag on the
             // preceding GET /api/me and echo it here for full optimistic
             // concurrency. `*` matches any non-deleted resource per RFC 9110.
-            using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/me")
+            using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/v1/me")
             {
                 Content = JsonContent.Create(request),
             };
@@ -53,7 +53,7 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.PutAsync($"api/raider/characters/{id}", content: null, ct);
+            var response = await http.PutAsync($"api/v1/raider/characters/{id}", content: null, ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
@@ -67,7 +67,7 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.DeleteAsync("api/me", ct);
+            var response = await http.DeleteAsync("api/v1/me", ct);
             return response.IsSuccessStatusCode;
         }
         catch (HttpRequestException)
@@ -81,7 +81,7 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         var http = factory.CreateClient("api");
         try
         {
-            var response = await http.PostAsync($"api/raider/characters/{id}/enrich", content: null, ct);
+            var response = await http.PostAsync($"api/v1/raider/characters/{id}/enrich", content: null, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<CharacterDto>(cancellationToken: ct);
         }
