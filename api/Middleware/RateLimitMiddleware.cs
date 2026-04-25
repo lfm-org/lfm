@@ -18,8 +18,17 @@ namespace Lfm.Api.Middleware;
 /// </summary>
 public sealed class RateLimitMiddleware : IFunctionsWorkerMiddleware
 {
+    // Both the unversioned route and the /api/v1/ alias must be classified
+    // identically — otherwise the v1 route falls through to the read tier and
+    // bypasses the strict auth-tier limit. The function ids here match the
+    // [Function("...")] attribute values in BattleNetLoginFunction and
+    // BattleNetCallbackFunction (the v1 alias methods register a separate
+    // function id with a "-v1" suffix).
     private static readonly HashSet<string> AuthFunctions =
-        new(["battlenet-login", "battlenet-callback"], StringComparer.OrdinalIgnoreCase);
+        new([
+            "battlenet-login", "battlenet-login-v1",
+            "battlenet-callback", "battlenet-callback-v1",
+        ], StringComparer.OrdinalIgnoreCase);
 
     // Endpoints that should sit on a stricter tier than ordinary reads.
     // privacy-email is the address-reveal probe behind the privacy page's
@@ -27,7 +36,7 @@ public sealed class RateLimitMiddleware : IFunctionsWorkerMiddleware
     // at most a handful of times per minute, so 5/min is headroom for real
     // users and a brick wall for scrapers.
     private static readonly HashSet<string> PrivacyFunctions =
-        new(["privacy-email"], StringComparer.OrdinalIgnoreCase);
+        new(["privacy-email", "privacy-email-v1"], StringComparer.OrdinalIgnoreCase);
 
     private static readonly HashSet<string> WriteMethods =
         new(["POST", "PUT", "PATCH", "DELETE"], StringComparer.OrdinalIgnoreCase);
