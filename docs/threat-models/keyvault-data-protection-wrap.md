@@ -66,7 +66,7 @@ Functions Instance          Azure Blob Storage           Azure Key Vault
 | **Tampering** | Attacker overwrites the blob containing the encrypted key ring XML to inject a known key. | Blob storage account has `allowSharedKeyAccess: false` (`infra/modules/storage.bicep:24`), so all writes go through RBAC; the only role grant is `Blob Data Owner` on the Functions MI. Key Vault `enablePurgeProtection: true` prevents deletion of the wrapping key. CanNotDelete lock prevents accidental KV removal. | Medium — the **same** `Blob Data Owner` role grant covers the DP key blob, the `AzureWebJobsStorage` runtime blobs, and the `wow` reference-data container. A compromised Functions MI can tamper with all three; there is no per-container blob RBAC scoping today. There is no blob integrity check (e.g. a KV-signed hash) beyond Key Vault wrapping. |
 | **Repudiation** | Attacker extracts a Data Protection key and later claims the session was forged by the application. | Key Vault diagnostic settings (`categoryGroup: audit`) stream every `wrapKey` / `unwrapKey` / secret-read call with caller identity to Log Analytics. | Low — KV audit log provides non-repudiation for KV operations; no log of which sessions were issued using which key. |
 | **Information disclosure** | Attacker reads the encrypted key ring blob and separately obtains the KV private key material to decrypt it offline. | KV key operations are server-side: the private RSA key never leaves Key Vault. The `unwrapKey` operation returns only the symmetric AES key. Standard SKU (software-protected at rest); no HSM. | Medium — standard SKU means the RSA private key is software-protected, not in an HSM. A sufficiently privileged Azure principal with `Key Vault Crypto Officer` or higher could export the key. |
-| **Information disclosure — secret blast radius** | The single `Key Vault Secrets User` role grant on the Functions MI now covers more than the `dataprotection` key: it also reads `site-admin-battle-net-ids` (via `KeyVaultSecretResolver` → `SiteAdminService`) and resolves `battlenet-client-id` / `battlenet-client-secret` (via `@Microsoft.KeyVault(...)` app-setting references). | Same RBAC role assignment governs all four; Azure RBAC does not support per-secret scoping under a single role. All four are intended to be read by the Functions MI. | Medium — a compromised Functions MI gains read access to **every current and future secret** in the vault, not just the wrapping key. New secrets added to this vault inherit the same exposure. |
+| **Information disclosure — secret blast radius** | The single `Key Vault Secrets User` role grant on the Functions MI now covers more than the `dataprotection` key: it also reads `site-admin-battle-net-ids` (via `KeyVaultSecretResolver` → `SiteAdminService`), resolves `battlenet-client-id` / `battlenet-client-secret` (via `@Microsoft.KeyVault(...)` app-setting references), and resolves `audit-hash-salt` for the audit-log HMAC. | Same RBAC role assignment governs all of them; Azure RBAC does not support per-secret scoping under a single role. All are intended to be read by the Functions MI. | Medium — a compromised Functions MI gains read access to **every current and future secret** in the vault, not just the wrapping key. New secrets added to this vault inherit the same exposure. |
 | **Denial of service** | Attacker revokes the Functions MI's Key Vault access or deletes/disables the `dataprotection` key, preventing session establishment. | CanNotDelete resource lock on the Key Vault. `enablePurgeProtection: true` prevents immediate permanent deletion. Key is configured for `wrapKey`/`unwrapKey` only. | Medium — a control-plane action (role assignment removal) could revoke access without triggering the lock. Existing in-memory key rings would continue to work until the Functions instance restarts. |
 | **Elevation of privilege** | Attacker obtains the in-memory Data Protection key (e.g., via memory dump, process injection) and uses it to forge session cookies for arbitrary users. | Key ring lives in process memory only after the `unwrapKey` call at startup/rotation; never persisted in cleartext. Functions is a managed PaaS service. `SetApplicationName("Lfm")` scopes the protector so keys are not usable across applications. Child protectors split purposes (`Lfm.Session.v1`, `Lfm.OAuth.LoginState.v1`). | High — once a Functions instance is running, the symmetric key is in memory. A sufficiently privileged attacker with remote code execution on the Functions host can extract it. This is the highest residual risk on this boundary. |
 
@@ -117,17 +117,18 @@ Functions Instance          Azure Blob Storage           Azure Key Vault
   scope. **One role assignment, vault-wide; per-secret scoping is not possible under
   RBAC.**
 
-## Known gap (not yet fixed in code or IaC)
+## Operator prerequisite (the gap is now in operator action, not Bicep)
 
 `AuditOptions.HashSalt` is bound from the `Audit` configuration section
-(`Program.cs:83-84`) but there is no `Audit__HashSalt` app-setting entry in
-`infra/modules/functions.bicep` and no `@Microsoft.KeyVault(...)` reference for it.
-Until that wiring is added, deployed environments fall back to
-`IdentityActorHasher` and emit plaintext `battleNetId` (PII) into App Insights. The
-fix is a Bicep change adding a Key Vault reference for `Audit__HashSalt`; it is
-**not** a documentation issue — flagged here so it is visible alongside the rest of
-the KV trust-boundary inventory. See `audit-log-pii-pipeline.md` (backlog) for the
-full pipeline view.
+(`Program.cs:83-84`) and wired via a `@Microsoft.KeyVault(...)` reference to
+the `audit-hash-salt` secret in `infra/modules/functions.bicep:134`. Bicep
+references the secret but does **not** create it — operators must populate
+`audit-hash-salt` (e.g., `openssl rand -base64 32`) in the Key Vault before
+the first deploy. Until the secret exists the Functions runtime resolves the
+app setting as empty and `IActorHasher` falls back to `IdentityActorHasher`
+— deployed environments will emit plaintext `battleNetId` (PII) into App
+Insights. See `docs/security-architecture.md` for the full deploy-prerequisite
+list. See `audit-log-pii-pipeline.md` (backlog) for the full pipeline view.
 
 ## Out of Scope
 
