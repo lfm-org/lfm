@@ -178,9 +178,19 @@ public class RunsSignupFunction(
                 ? run.RunCharacters[existingIndex].Id
                 : Guid.NewGuid().ToString();
 
+            // ReviewedAttendance defaults to "IN" for a brand-new signup. For an
+            // edit (existing entry present), the prior value is preserved so the
+            // run owner's review decision survives a self-edit. For a re-signup
+            // *after* a previous rejection (entry was removed by cancel, but the
+            // raider sits in the run's rejection list), the default flips to
+            // "OUT" — closes the cancel-then-resignup bypass documented in
+            // docs/threat-models/run-signup-peer-permission.md.
+            var rejected = run.RejectedRaiderBattleNetIds ?? [];
             var reviewedAttendance = existingIndex >= 0
                 ? run.RunCharacters[existingIndex].ReviewedAttendance
-                : "IN";
+                : rejected.Contains(principal.BattleNetId, StringComparer.Ordinal)
+                    ? "OUT"
+                    : "IN";
 
             var entry = new RunCharacterEntry(
                 Id: entryId,
