@@ -13,6 +13,12 @@ namespace Lfm.Api.Services;
 /// </summary>
 public sealed class BlizzardRateLimitHandler(IBlizzardRateLimiter limiter) : DelegatingHandler
 {
+    // Upper bound on the Retry-After we honour from upstream. A buggy or hostile
+    // 429 with Retry-After: 999999 would otherwise pause the shared limiter (and
+    // therefore every authenticated user's outbound traffic) for ~11 days. Real
+    // Blizzard throttle windows are seconds, not minutes; 60s is conservative.
+    internal static readonly TimeSpan MaxRetryAfter = TimeSpan.FromSeconds(60);
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken ct)
     {
@@ -30,6 +36,8 @@ public sealed class BlizzardRateLimitHandler(IBlizzardRateLimiter limiter) : Del
             var retryAfter = response.Headers.RetryAfter?.Delta
                 ?? (response.Headers.RetryAfter?.Date - DateTimeOffset.UtcNow)
                 ?? TimeSpan.FromSeconds(1);
+            if (retryAfter < TimeSpan.Zero) retryAfter = TimeSpan.FromSeconds(1);
+            if (retryAfter > MaxRetryAfter) retryAfter = MaxRetryAfter;
             limiter.PauseUntil(DateTimeOffset.UtcNow + retryAfter);
         }
         return response;
