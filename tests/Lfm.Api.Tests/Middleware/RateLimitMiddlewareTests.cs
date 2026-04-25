@@ -152,6 +152,58 @@ public class RateLimitMiddlewareTests
         Assert.NotEqual(429, writeHttp.Response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("battlenet-callback-v1")]
+    [InlineData("battlenet-login-v1")]
+    public async Task V1_auth_alias_uses_auth_bucket(string functionName)
+    {
+        // Regression for the unrate-limited v1 alias gap. The /api/v1/ aliases
+        // call the same handlers as the unversioned routes, so the strict
+        // auth-tier limit must apply to them too. If the alias falls through to
+        // the read tier, this test fails.
+        var options = DefaultOptions();
+        options.AuthRequestsPerMinute = 1;
+        options.ReadRequestsPerMinute = 100;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        var (ctx1, _) = CreateContext(functionName, "GET");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        var (ctx2, httpCtx2) = CreateContext(functionName, "GET");
+        httpCtx2.Response.Body = new MemoryStream();
+        var nextCalled = false;
+
+        await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
+
+        Assert.False(nextCalled);
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task V1_privacy_alias_uses_privacy_bucket()
+    {
+        // Same regression for /api/v1/privacy-contact/email — must use the
+        // strict privacy tier, not fall through to ReadRequestsPerMinute.
+        var options = DefaultOptions();
+        options.PrivacyRequestsPerMinute = 1;
+        options.ReadRequestsPerMinute = 100;
+        var opts = MsOptions.Create(options);
+        var middleware = new RateLimitMiddleware(opts);
+
+        var (ctx1, _) = CreateContext("privacy-email-v1", "GET");
+        await middleware.Invoke(ctx1.Object, _ => Task.CompletedTask);
+
+        var (ctx2, httpCtx2) = CreateContext("privacy-email-v1", "GET");
+        httpCtx2.Response.Body = new MemoryStream();
+        var nextCalled = false;
+
+        await middleware.Invoke(ctx2.Object, _ => { nextCalled = true; return Task.CompletedTask; });
+
+        Assert.False(nextCalled);
+        Assert.Equal(429, httpCtx2.Response.StatusCode);
+    }
+
     [Fact]
     public async Task Write_endpoint_uses_write_bucket()
     {
