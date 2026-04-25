@@ -130,6 +130,13 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         // in the Functions app via the Options pattern (config key
         // `PrivacyContact:Email`; env mapping uses `__` as separator).
         { name: 'PrivacyContact__Email', value: privacyEmail }
+        // AuditOptions (section: Audit). Without this, IActorHasher falls
+        // back to IdentityActorHasher and emits plaintext battleNetId
+        // (PII) into Application Insights. The "audit-hash-salt" secret
+        // must exist in Key Vault before deploy — see
+        // docs/threat-models/audit-log-pii-pipeline.md (backlog) and
+        // api/Options/AuditOptions.cs.
+        { name: 'Audit__HashSalt', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=audit-hash-salt)' }
       ]
     }
   }
