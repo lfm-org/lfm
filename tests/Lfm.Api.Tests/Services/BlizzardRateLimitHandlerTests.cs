@@ -72,4 +72,58 @@ public class BlizzardRateLimitHandlerTests
 
         limiter.Verify(l => l.PauseUntil(It.Is<DateTimeOffset>(d => d > DateTimeOffset.UtcNow)), Times.Once);
     }
+
+    [Fact]
+    public async Task Send_clamps_oversized_Retry_After_to_MaxRetryAfter()
+    {
+        // Adversarial / buggy upstream: Retry-After far beyond any plausible window.
+        // The handler must clamp to MaxRetryAfter so the shared limiter does not
+        // pause every authenticated user's outbound traffic for hours/days.
+        var limiter = new Mock<IBlizzardRateLimiter>();
+        limiter.Setup(l => l.AcquireAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new BlizzardLease(IsAcquired: true));
+
+        var upstream429 = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+        upstream429.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(999_999));
+
+        var inner = new StubHandler(upstream429);
+        var handler = new BlizzardRateLimitHandler(limiter.Object) { InnerHandler = inner };
+        var client = new HttpClient(handler);
+
+        var before = DateTimeOffset.UtcNow;
+        await client.GetAsync("https://eu.api.blizzard.com/foo");
+
+        // The PauseUntil argument must not exceed `before + MaxRetryAfter` (plus
+        // a small clock-tolerance margin). 5 minutes is generous and still rejects
+        // the unbounded case (~11 days) by a wide margin.
+        limiter.Verify(l => l.PauseUntil(It.Is<DateTimeOffset>(
+            d => d <= before + BlizzardRateLimitHandler.MaxRetryAfter + TimeSpan.FromMinutes(5))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Send_floors_negative_Retry_After_to_one_second()
+    {
+        // Retry-After Date in the past resolves to a negative TimeSpan; should be
+        // floored to 1s rather than producing a PauseUntil <= now (which would
+        // be a no-op or even rewind the limiter clock).
+        var limiter = new Mock<IBlizzardRateLimiter>();
+        limiter.Setup(l => l.AcquireAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new BlizzardLease(IsAcquired: true));
+
+        var upstream429 = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+        upstream429.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(
+            DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5));
+
+        var inner = new StubHandler(upstream429);
+        var handler = new BlizzardRateLimitHandler(limiter.Object) { InnerHandler = inner };
+        var client = new HttpClient(handler);
+
+        var before = DateTimeOffset.UtcNow;
+        await client.GetAsync("https://eu.api.blizzard.com/foo");
+
+        limiter.Verify(l => l.PauseUntil(It.Is<DateTimeOffset>(
+            d => d > before)),
+            Times.Once);
+    }
 }
