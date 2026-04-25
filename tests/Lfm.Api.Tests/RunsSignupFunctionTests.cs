@@ -433,4 +433,76 @@ public class RunsSignupFunctionTests
         raidersRepo.VerifyNoOtherCalls();
         permissions.VerifyNoOtherCalls();
     }
+
+    // ------------------------------------------------------------------
+    // Tests N+1/N+2: rejected-raider list defends the cancel-then-resignup
+    //   bypass documented in docs/threat-models/run-signup-peer-permission.md.
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_defaults_reviewedAttendance_to_OUT_when_raider_in_rejection_list()
+    {
+        // The run owner has previously rejected this raider. The raider had
+        // cancelled the prior signup (so existingIndex < 0 here), but the
+        // RejectedRaiderBattleNetIds list still names them — re-signup must
+        // *not* silently flip back to "IN".
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var run = MakeRunDoc() with { RejectedRaiderBattleNetIds = ["bnet-user"] };
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        RunDocument? captured = null;
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<RunDocument, string?, CancellationToken>((r, _, _) => captured = r)
+            .ReturnsAsync((RunDocument r, string? _, CancellationToken _) => r);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var fn = MakeFunction(runsRepo, raidersRepo, new Mock<IGuildPermissions>());
+        var body = new { characterId = "char-1", desiredAttendance = "IN", specId = (int?)null };
+        var result = await fn.Run(MakePostRequest(body), "run-1", MakeFunctionContext(principal), CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(captured);
+        var entry = Assert.Single(captured!.RunCharacters);
+        Assert.Equal("OUT", entry.ReviewedAttendance);
+    }
+
+    [Fact]
+    public async Task Run_defaults_reviewedAttendance_to_IN_when_raider_not_in_rejection_list()
+    {
+        // Negative case: a raider who has *not* been rejected gets the normal
+        // "IN" default on a fresh signup. Guards against the inverted-condition
+        // mutant where every signup would silently land as "OUT".
+        var principal = MakePrincipal(battleNetId: "bnet-user");
+        var run = MakeRunDoc() with { RejectedRaiderBattleNetIds = ["someone-else"] };
+        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+
+        var runsRepo = new Mock<IRunsRepository>();
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        RunDocument? captured = null;
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<RunDocument, string?, CancellationToken>((r, _, _) => captured = r)
+            .ReturnsAsync((RunDocument r, string? _, CancellationToken _) => r);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var fn = MakeFunction(runsRepo, raidersRepo, new Mock<IGuildPermissions>());
+        var body = new { characterId = "char-1", desiredAttendance = "IN", specId = (int?)null };
+        var result = await fn.Run(MakePostRequest(body), "run-1", MakeFunctionContext(principal), CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(captured);
+        var entry = Assert.Single(captured!.RunCharacters);
+        Assert.Equal("IN", entry.ReviewedAttendance);
+    }
 }
