@@ -13,6 +13,8 @@ The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub 
 | 3 | Technology Security (MI + RBAC) | `Technology Usage` | [`id-view-technology-security.png`](renders/id-view-technology-security.png) |
 | 4 | Deployment Topology (single-environment) | `Migration` | [`id-view-migration.png`](renders/id-view-migration.png) |
 | 5 | Capability Map (FORWARD-ONLY scaffold) | `Capability Map` | [`id-view-capability-map.png`](renders/id-view-capability-map.png) |
+| 6 | Mythic+ Run Signup — Business Process Cooperation | `Business Process Cooperation` | [`id-view-business-processes.png`](renders/id-view-business-processes.png) |
+| 7 | Sign up for run — Service Realization (Process-rooted) | `Service Realization` | [`id-view-service-realization.png`](renders/id-view-service-realization.png) |
 
 ### 1. Application Cooperation
 
@@ -43,6 +45,18 @@ CI/CD release path lifted from [`.github/workflows/`](../../.github/workflows/).
 ![Capability Map](renders/id-view-capability-map.png)
 
 Three-row realisation chain for the architect to iterate on: real **Application Services** (lifted from `api/Functions/*`) → forward-only **Business Services** (suggestive labels inferred from the API surface) → forward-only **Strategy Capabilities** (architect to validate or rename). The three Capabilities ("Find a group for Mythic+", "Guild roster management", "Personal character portfolio") are placeholders — they have not been validated against business stakeholders and are likely incomplete (no Account / Authentication capability is stubbed yet, no Stakeholders or Drivers / Goals tie back to Motivation).
+
+### 6. Mythic+ Run Signup — Business Process Cooperation (FORWARD-ONLY)
+
+![Business Process Cooperation](renders/id-view-business-processes.png)
+
+§9.7 Business Process Cooperation view of the user-driven "Sign up for Mythic+ run" flow. **Active structure** (top): a `Mythic+ Player` Business Actor Assigned to every user-driven Behaviour. **Behaviour** (middle, left-to-right Triggering chain): an entry `Player wants to run a key` Business Event → `Browse open runs` (realised by `RunsListFunction`) → `Inspect run detail` (`RunsDetailFunction`) → `Sign up for run` (`RunsSignupFunction`) → terminal `Signup confirmed` Business Event; an alt-path Flow from `Sign up for run` to `Cancel signup` (`RunsCancelSignupFunction`). **Passive structure** (bottom): `Run` and `Signup` Business Objects, Accessed by the Behaviour steps that read or write them. Every Process / Event / Object carries `(FORWARD-ONLY)` in its display name — LFM has no Durable Functions orchestrators or Logic Apps, so this chain is architect-authored rather than lifted (per architecture-design `references/procedures/lifting-rules-process.md`). Names and chain shape have **not** been validated against business stakeholders.
+
+### 7. Sign up for run — Service Realization (Process-rooted)
+
+![Service Realization](renders/id-view-service-realization.png)
+
+§9.3 Service Realization view, Process-rooted modality. The Business Process `Sign up for run` (top, FORWARD-ONLY) drills down through `Mythic+ Runs` Application Service → `Lfm.Api` Application Component → `Azure Function App` Technology Node, with `Azure Cosmos DB account` serving the Function App on the data plane. Per the §9.3 Blazor idiom, the user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface; the UI Component carries a Realisation edge to the Business Process. This view satisfies the AD-B-6 / AD-B-7 / AD-B-8 / AD-B-9 / AD-B-10 between-view invariants for the §9.7 Business Process Cooperation view (sibling).
 
 ## Forward-only scope
 
