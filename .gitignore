@@ -57,8 +57,9 @@ node_modules/
 .claude/*
 !.claude/settings.json
 
-# OpenAI Codes project settings and memory
-.codex/
+# OpenAI Codex project settings and memory
+.codex/*
+!.codex/hooks.json
 
 # Git worktrees
 .worktrees/
