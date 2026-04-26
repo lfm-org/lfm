@@ -165,6 +165,27 @@
       <documentation xml:lang="en">Liveness and readiness probes for the Function App. Source: api/Functions/HealthFunction.cs, PrivacyContactFunction.cs.</documentation>
     </element>
 
+    <!-- UI Application Components + Application Interfaces (architect-authored per
+         the §9.3 Service Realization Blazor idiom — UI Component <name> = the Blazor
+         page component's repo-relative file path; Application Interface <name> = the
+         page's @page route. Used by §9.3 Process-rooted views to show the UI entry
+         point of user-driven Business Processes. -->
+
+    <element identifier="id-uicomp-runs-page" xsi:type="ApplicationComponent">
+      <name xml:lang="en">app/Pages/RunsPage.razor</name>
+      <documentation xml:lang="en">Blazor page component — renders the open-runs list at /runs and the per-run detail (with signup affordance) at /runs/{RunId}. Source: app/Pages/RunsPage.razor.</documentation>
+    </element>
+
+    <element identifier="id-uiapi-runs-route" xsi:type="ApplicationInterface">
+      <name xml:lang="en">/runs</name>
+      <documentation xml:lang="en">Blazor `@page "/runs"` route on RunsPage.razor — list view of open Mythic+ runs.</documentation>
+    </element>
+
+    <element identifier="id-uiapi-run-detail-route" xsi:type="ApplicationInterface">
+      <name xml:lang="en">/runs/{RunId}</name>
+      <documentation xml:lang="en">Blazor `@page "/runs/{RunId}"` route on RunsPage.razor — detail view of a single run; carries the signup affordance for user-driven Sign up for run.</documentation>
+    </element>
+
     <!-- =============================================================================
          TECHNOLOGY LAYER (lifted)
          Source: infra/main.bicep, infra/modules/{cosmos,storage,functions,keyvault,
@@ -410,6 +431,62 @@
     </element>
 
     <!-- =============================================================================
+         FORWARD-ONLY — Business Process Cooperation (architect-authored)
+         Source posture: LFM has no Durable Functions orchestrators or Logic Apps,
+         so Process / Event / Interaction elements are FORWARD-ONLY (not
+         LIFT-CANDIDATE) per reference §7.2. The architect-authored chain models
+         the user-facing "Sign up for Mythic+ run" flow inferred from the API
+         surface (api/Functions/Runs*Function.cs) and Blazor pages
+         (app/Pages/RunsPage.razor at /runs and /runs/{RunId}). Names and chain
+         shape have not been validated against business stakeholders.
+         ============================================================================= -->
+
+    <element identifier="id-actor-player" xsi:type="BusinessActor">
+      <name xml:lang="en">Mythic+ Player (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. A WoW player using LFM to find a group for a Mythic+ run. Inferred from the public LFM use-case surface; not validated against business stakeholders.</documentation>
+    </element>
+
+    <element identifier="id-be-wants-key" xsi:type="BusinessEvent">
+      <name xml:lang="en">Player wants to run a key (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. Entry Event for the run-signup chain — the player decides they want to do a Mythic+ run. Out-of-band; no system trigger.</documentation>
+    </element>
+
+    <element identifier="id-bp-browse-runs" xsi:type="BusinessProcess">
+      <name xml:lang="en">Browse open runs (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. The player loads /runs and reviews the list of currently-open Mythic+ runs. Realised by the Mythic+ Runs application service (RunsListFunction).</documentation>
+    </element>
+
+    <element identifier="id-bp-inspect-run" xsi:type="BusinessProcess">
+      <name xml:lang="en">Inspect run detail (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. The player drills into /runs/{RunId} to read the run's specifics (key level, dungeon, scheduled time, party so far, leader notes). Realised by the Mythic+ Runs application service (RunsDetailFunction).</documentation>
+    </element>
+
+    <element identifier="id-bp-signup-run" xsi:type="BusinessProcess">
+      <name xml:lang="en">Sign up for run (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. The player picks a character + role and submits a signup. Realised by the Mythic+ Runs application service (RunsSignupFunction). User-driven — the §9.3 drill-down shows the UI entry point at /runs/{RunId}.</documentation>
+    </element>
+
+    <element identifier="id-bp-cancel-signup" xsi:type="BusinessProcess">
+      <name xml:lang="en">Cancel signup (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. Alternative path — the player removes themselves from the run. Realised by the Mythic+ Runs application service (RunsCancelSignupFunction).</documentation>
+    </element>
+
+    <element identifier="id-be-signup-confirmed" xsi:type="BusinessEvent">
+      <name xml:lang="en">Signup confirmed (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. Terminal outcome of the signup chain — the run leader sees the signup, the player has secured a slot.</documentation>
+    </element>
+
+    <element identifier="id-bobj-run" xsi:type="BusinessObject">
+      <name xml:lang="en">Run (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. Business representation of a Mythic+ run (key level, dungeon, scheduled time, party slots). Realised by the Cosmos `runs` container.</documentation>
+    </element>
+
+    <element identifier="id-bobj-signup" xsi:type="BusinessObject">
+      <name xml:lang="en">Signup (FORWARD-ONLY)</name>
+      <documentation xml:lang="en">FORWARD-ONLY stub. Business representation of a player's signup to a run — character, role, status. Embedded inside the Run document in the Cosmos `runs` container.</documentation>
+    </element>
+
+    <!-- =============================================================================
          FORWARD-ONLY — this layer was not extracted from source
          The architect must fill in: Motivation
          The skill inferred suggestive placeholders from Application element labels
@@ -578,6 +655,58 @@
     <relationship identifier="id-rel-driver-infl-goal" source="id-driver-mythic-plus-friction" target="id-goal-easy-signup" xsi:type="Influence"/>
     <relationship identifier="id-rel-cap-real-goal-easy" source="id-cap-find-group-for-mythic" target="id-goal-easy-signup" xsi:type="Realization"/>
 
+    <!-- =============================================================================
+         Business Process Cooperation chain (FORWARD-ONLY, architect-authored)
+         §9.7 layout: Behaviour left-to-right along Triggering chain; Active above
+         (Player Assigned to every Behaviour); Passive below (Run / Signup
+         Accessed by Behaviour). §9.3 Service Realization (Process-rooted)
+         drills from each Business Process down through Mythic+ Runs application
+         service into Lfm.Api, with the UI entry point on /runs/{RunId}.
+         ============================================================================= -->
+
+    <!-- Triggering chain: entry Event → 3 user-driven Processes → terminal Event -->
+    <relationship identifier="id-rel-be-wants-trig-browse" source="id-be-wants-key" target="id-bp-browse-runs" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-bp-browse-trig-inspect" source="id-bp-browse-runs" target="id-bp-inspect-run" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-bp-inspect-trig-signup" source="id-bp-inspect-run" target="id-bp-signup-run" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-bp-signup-trig-confirmed" source="id-bp-signup-run" target="id-be-signup-confirmed" xsi:type="Triggering"/>
+
+    <!-- Alternative path: Flow (conditional divergence) from Sign up to Cancel signup -->
+    <relationship identifier="id-rel-bp-signup-flow-cancel" source="id-bp-signup-run" target="id-bp-cancel-signup" xsi:type="Flow"/>
+
+    <!-- Active structure: Player Assigned to every user-driven Behaviour (§9.7 AD-B-2) -->
+    <relationship identifier="id-rel-player-asg-browse" source="id-actor-player" target="id-bp-browse-runs" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-player-asg-inspect" source="id-actor-player" target="id-bp-inspect-run" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-player-asg-signup" source="id-actor-player" target="id-bp-signup-run" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-player-asg-cancel" source="id-actor-player" target="id-bp-cancel-signup" xsi:type="Assignment"/>
+
+    <!-- Passive structure: Behaviours Access Business Objects (§9.7 AD-B-3) -->
+    <relationship identifier="id-rel-bp-browse-acc-run" source="id-bp-browse-runs" target="id-bobj-run" xsi:type="Access" accessType="Read"/>
+    <relationship identifier="id-rel-bp-inspect-acc-run" source="id-bp-inspect-run" target="id-bobj-run" xsi:type="Access" accessType="Read"/>
+    <relationship identifier="id-rel-bp-signup-acc-run" source="id-bp-signup-run" target="id-bobj-run" xsi:type="Access" accessType="ReadWrite"/>
+    <relationship identifier="id-rel-bp-signup-acc-signup" source="id-bp-signup-run" target="id-bobj-signup" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-rel-bp-cancel-acc-signup" source="id-bp-cancel-signup" target="id-bobj-signup" xsi:type="Access" accessType="Write"/>
+
+    <!-- Cross-layer: Mythic+ Runs application service realises every Business Process
+         in the chain (§9.3 AD-B-6 / AD-B-9 satisfied) -->
+    <relationship identifier="id-rel-svc-runs-real-bp-browse" source="id-svc-runs" target="id-bp-browse-runs" xsi:type="Realization"/>
+    <relationship identifier="id-rel-svc-runs-real-bp-inspect" source="id-svc-runs" target="id-bp-inspect-run" xsi:type="Realization"/>
+    <relationship identifier="id-rel-svc-runs-real-bp-signup" source="id-svc-runs" target="id-bp-signup-run" xsi:type="Realization"/>
+    <relationship identifier="id-rel-svc-runs-real-bp-cancel" source="id-svc-runs" target="id-bp-cancel-signup" xsi:type="Realization"/>
+
+    <!-- UI Application Component composes its routes (Composition); UI Component
+         realises the user-driven Business Processes per the §9.3 Blazor idiom
+         (AD-B-10 satisfied for Sign up for run) -->
+    <relationship identifier="id-rel-runs-page-comp-list-route" source="id-uicomp-runs-page" target="id-uiapi-runs-route" xsi:type="Composition"/>
+    <relationship identifier="id-rel-runs-page-comp-detail-route" source="id-uicomp-runs-page" target="id-uiapi-run-detail-route" xsi:type="Composition"/>
+    <relationship identifier="id-rel-runs-page-real-bp-browse" source="id-uicomp-runs-page" target="id-bp-browse-runs" xsi:type="Realization"/>
+    <relationship identifier="id-rel-runs-page-real-bp-inspect" source="id-uicomp-runs-page" target="id-bp-inspect-run" xsi:type="Realization"/>
+    <relationship identifier="id-rel-runs-page-real-bp-signup" source="id-uicomp-runs-page" target="id-bp-signup-run" xsi:type="Realization"/>
+
+    <!-- Run business object is realised by the Cosmos `runs` Artifact (cross-layer
+         link from Business Layer Object to Technology Layer Artifact) -->
+    <relationship identifier="id-rel-cosmos-runs-real-bobj-run" source="id-art-cosmos-runs" target="id-bobj-run" xsi:type="Realization"/>
+    <relationship identifier="id-rel-cosmos-runs-real-bobj-signup" source="id-art-cosmos-runs" target="id-bobj-signup" xsi:type="Realization"/>
+
   </relationships>
 
   <organizations>
@@ -604,6 +733,9 @@
       <item identifierRef="id-svc-bnet-chars"/>
       <item identifierRef="id-svc-wow-reference"/>
       <item identifierRef="id-svc-health"/>
+      <item identifierRef="id-uicomp-runs-page"/>
+      <item identifierRef="id-uiapi-runs-route"/>
+      <item identifierRef="id-uiapi-run-detail-route"/>
       <item identifierRef="id-grp-lfm-internal"/>
       <item identifierRef="id-grp-blizzard-external"/>
     </item>
@@ -660,6 +792,15 @@
       <item identifierRef="id-bsvc-account"/>
       <item identifierRef="id-driver-mythic-plus-friction"/>
       <item identifierRef="id-goal-easy-signup"/>
+      <item identifierRef="id-actor-player"/>
+      <item identifierRef="id-be-wants-key"/>
+      <item identifierRef="id-bp-browse-runs"/>
+      <item identifierRef="id-bp-inspect-run"/>
+      <item identifierRef="id-bp-signup-run"/>
+      <item identifierRef="id-bp-cancel-signup"/>
+      <item identifierRef="id-be-signup-confirmed"/>
+      <item identifierRef="id-bobj-run"/>
+      <item identifierRef="id-bobj-signup"/>
     </item>
     <item>
       <label xml:lang="en">Views</label>
@@ -668,6 +809,8 @@
       <item identifierRef="id-view-technology-security"/>
       <item identifierRef="id-view-migration"/>
       <item identifierRef="id-view-capability-map"/>
+      <item identifierRef="id-view-business-processes"/>
+      <item identifierRef="id-view-service-realization"/>
     </item>
   </organizations>
 
@@ -878,6 +1021,96 @@
         <connection identifier="id-conn-v4-7" relationshipRef="id-rel-svc-bnet-real-bsvc" source="id-node-v4-svc-bnet" target="id-node-v4-bsvc-charmgmt" xsi:type="Relationship">
           <bendpoint x="1060" y="540"/>
           <bendpoint x="800" y="540"/>
+        </connection>
+
+      </view>
+
+      <view identifier="id-view-business-processes" xsi:type="Diagram" viewpoint="Business Process Cooperation">
+        <name xml:lang="en">View: Mythic+ Run Signup — Business Process Cooperation</name>
+        <documentation xml:lang="en">FORWARD-ONLY — architect-authored. Business Layer process-flow for the user-driven "Sign up for Mythic+ run" use case. Layout follows the §9.7 specialisation: Active structure (Mythic+ Player Actor) above, Behaviour (Triggering chain Event → Browse → Inspect → Sign up → confirmed; Flow alt-path to Cancel signup) middle, Passive structure (Run / Signup Business Objects) below. Every Behaviour element carries `(FORWARD-ONLY)` in its display name; names and the chain shape are inferred from the API surface (api/Functions/Runs*Function.cs) and the Blazor pages (app/Pages/RunsPage.razor at /runs and /runs/{RunId}) — they have not been validated against business stakeholders. The drill-down into Application + Technology realising each step is the §9.3 Service Realization view (sibling).</documentation>
+
+        <!-- Active row (top): Player Actor — banner-style, top-left -->
+        <node identifier="id-node-bpc-player" elementRef="id-actor-player" xsi:type="Element" x="40" y="40" w="160" h="64"/>
+
+        <!-- Behaviour row: 5-step Triggering chain at y=160 plus an alt-path step at y=280 -->
+        <node identifier="id-node-bpc-wants" elementRef="id-be-wants-key" xsi:type="Element" x="40" y="160" w="180" h="64"/>
+        <node identifier="id-node-bpc-browse" elementRef="id-bp-browse-runs" xsi:type="Element" x="260" y="160" w="180" h="64"/>
+        <node identifier="id-node-bpc-inspect" elementRef="id-bp-inspect-run" xsi:type="Element" x="480" y="160" w="180" h="64"/>
+        <node identifier="id-node-bpc-signup" elementRef="id-bp-signup-run" xsi:type="Element" x="700" y="160" w="180" h="64"/>
+        <node identifier="id-node-bpc-confirmed" elementRef="id-be-signup-confirmed" xsi:type="Element" x="920" y="160" w="180" h="64"/>
+        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="700" y="280" w="180" h="64"/>
+
+        <!-- Passive row (bottom): Business Objects at y=400 -->
+        <node identifier="id-node-bpc-run" elementRef="id-bobj-run" xsi:type="Element" x="260" y="400" w="140" h="64"/>
+        <node identifier="id-node-bpc-signup-obj" elementRef="id-bobj-signup" xsi:type="Element" x="720" y="400" w="140" h="64"/>
+
+        <!-- Triggering chain (left-to-right Behaviour spine) -->
+        <connection identifier="id-conn-bpc-1" relationshipRef="id-rel-be-wants-trig-browse" source="id-node-bpc-wants" target="id-node-bpc-browse" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-2" relationshipRef="id-rel-bp-browse-trig-inspect" source="id-node-bpc-browse" target="id-node-bpc-inspect" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-3" relationshipRef="id-rel-bp-inspect-trig-signup" source="id-node-bpc-inspect" target="id-node-bpc-signup" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-4" relationshipRef="id-rel-bp-signup-trig-confirmed" source="id-node-bpc-signup" target="id-node-bpc-confirmed" xsi:type="Relationship"/>
+
+        <!-- Alt-path Flow: Sign up → Cancel signup (downward) -->
+        <connection identifier="id-conn-bpc-5" relationshipRef="id-rel-bp-signup-flow-cancel" source="id-node-bpc-signup" target="id-node-bpc-cancel" xsi:type="Relationship"/>
+
+        <!-- Active structure: Player Assigned to user-driven Behaviours -->
+        <connection identifier="id-conn-bpc-asg-1" relationshipRef="id-rel-player-asg-browse" source="id-node-bpc-player" target="id-node-bpc-browse" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-asg-2" relationshipRef="id-rel-player-asg-inspect" source="id-node-bpc-player" target="id-node-bpc-inspect" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-asg-3" relationshipRef="id-rel-player-asg-signup" source="id-node-bpc-player" target="id-node-bpc-signup" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-asg-4" relationshipRef="id-rel-player-asg-cancel" source="id-node-bpc-player" target="id-node-bpc-cancel" xsi:type="Relationship">
+          <!-- Route around Sign up to reach Cancel without spearing through the Sign up node -->
+          <bendpoint x="120" y="380"/>
+          <bendpoint x="690" y="380"/>
+        </connection>
+
+        <!-- Passive structure: Behaviours Access Business Objects -->
+        <connection identifier="id-conn-bpc-acc-1" relationshipRef="id-rel-bp-browse-acc-run" source="id-node-bpc-browse" target="id-node-bpc-run" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-acc-2" relationshipRef="id-rel-bp-inspect-acc-run" source="id-node-bpc-inspect" target="id-node-bpc-run" xsi:type="Relationship">
+          <!-- Route the Inspect→Run access via the left side so it doesn't overlap Browse→Run -->
+          <bendpoint x="570" y="370"/>
+          <bendpoint x="380" y="370"/>
+        </connection>
+        <connection identifier="id-conn-bpc-acc-3" relationshipRef="id-rel-bp-signup-acc-run" source="id-node-bpc-signup" target="id-node-bpc-run" xsi:type="Relationship">
+          <bendpoint x="790" y="370"/>
+          <bendpoint x="380" y="370"/>
+        </connection>
+        <connection identifier="id-conn-bpc-acc-4" relationshipRef="id-rel-bp-signup-acc-signup" source="id-node-bpc-signup" target="id-node-bpc-signup-obj" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-acc-5" relationshipRef="id-rel-bp-cancel-acc-signup" source="id-node-bpc-cancel" target="id-node-bpc-signup-obj" xsi:type="Relationship"/>
+
+      </view>
+
+      <view identifier="id-view-service-realization" xsi:type="Diagram" viewpoint="Service Realization">
+        <name xml:lang="en">View: Sign up for run — Service Realization (Process-rooted)</name>
+        <documentation xml:lang="en">FORWARD-ONLY (Business Layer top) drilling into a real Application + Technology realisation chain for "Sign up for Mythic+ run". Process-rooted §9.3 modality: the Business Process at the top is realised by an Application Service (Mythic+ Runs) which is itself realised by an Application Component (Lfm.Api) Assigned to a Technology Node (Azure Function App), with Cosmos DB as a data-plane Serving relationship. The user-driven entry point (per §9.3 AD-B-10 + Blazor idiom) is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface; the UI Component carries a Realisation edge to the Business Process. Architect's task: validate the framing of the Business Process and the Realisation chain.</documentation>
+
+        <!-- Business Layer (top) -->
+        <node identifier="id-node-sr-bp" elementRef="id-bp-signup-run" xsi:type="Element" x="280" y="40" w="240" h="64"/>
+
+        <!-- Application Layer — UI side (left) and API side (right) -->
+        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="120">
+          <!-- UI Application Interface nested inside its UI Component (Composition hidden per AD-L7) -->
+          <node identifier="id-node-sr-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="200" w="200" h="64"/>
+        </node>
+        <node identifier="id-node-sr-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="64"/>
+        <node identifier="id-node-sr-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="64"/>
+
+        <!-- Technology Layer (bottom): Function App hosts Lfm.Api; Cosmos serves Function App -->
+        <node identifier="id-node-sr-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="380" y="460" w="180" h="80"/>
+        <node identifier="id-node-sr-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="620" y="460" w="180" h="64"/>
+
+        <!-- Realisation chain: AppService realises BusinessProcess -->
+        <connection identifier="id-conn-sr-1" relationshipRef="id-rel-svc-runs-real-bp-signup" source="id-node-sr-svc" target="id-node-sr-bp" xsi:type="Relationship"/>
+        <!-- AppComponent realises AppService (existing edge id-rel-api-real-runs) -->
+        <connection identifier="id-conn-sr-2" relationshipRef="id-rel-api-real-runs" source="id-node-sr-api" target="id-node-sr-svc" xsi:type="Relationship"/>
+        <!-- Function App Assigned to AppComponent (existing edge id-rel-funcapp-assign-api) -->
+        <connection identifier="id-conn-sr-3" relationshipRef="id-rel-funcapp-assign-api" source="id-node-sr-funcapp" target="id-node-sr-api" xsi:type="Relationship"/>
+        <!-- Cosmos Serves Function App (existing edge id-rel-cosmos-serves-funcapp) -->
+        <connection identifier="id-conn-sr-4" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-sr-cosmos" target="id-node-sr-funcapp" xsi:type="Relationship"/>
+        <!-- UI Application Component realises the user-driven Business Process (Blazor idiom) -->
+        <connection identifier="id-conn-sr-5" relationshipRef="id-rel-runs-page-real-bp-signup" source="id-node-sr-uicomp" target="id-node-sr-bp" xsi:type="Relationship">
+          <!-- Route around the Application Service column -->
+          <bendpoint x="160" y="130"/>
+          <bendpoint x="400" y="130"/>
         </connection>
 
       </view>
