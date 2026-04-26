@@ -19,7 +19,7 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 2. Work in `claude/<short-slug>` via `git switch -c`. Always use `git -C` with absolute paths.
 3. Keep changesets small: commits ≤ 5 files / ≤ 250 lines; branches ≤ 30 files / ≤ 900 lines vs `main`. Thresholds guide planning, not design. Commit partial finishes; split into subtasks if exceeding.
 4. Merge strategy: rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
-5. Before claiming complete: `superpowers:verification-before-completion`. Non-trivial tasks: `superpowers:requesting-code-review` before merging.
+5. Before claiming complete: `superpowers:verification-before-completion`. Non-trivial tasks: `superpowers:requesting-code-review` before merging. For documentation-only changes that cannot affect build output, targeted documentation verification is sufficient; state when the full build is intentionally skipped.
 6. Commit messages: short, imperative — e.g. `Fix docker`, `Add runs route`.
 7. PR descriptions: explain the change, list env/schema changes, include screenshots for UI work.
 8. No `Co-Authored-By` trailers. AI usage acknowledged in `README.md`.
@@ -52,7 +52,8 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 If `scripts/pre-push` is installed as a git hook (see Mandatory Git Workflow item 12), the format / build / vulnerable-package commands below run automatically on `git push`. Otherwise run them manually before claiming work complete.
 
-- Run `dotnet build lfm.sln -c Release` before claiming work complete.
+- Run `dotnet build lfm.sln -c Release` before claiming work complete for code, project, dependency, configuration, infrastructure, or generated-asset changes.
+- Documentation-only changes that cannot affect build output may use targeted verification instead: review the changed files and run `git diff --check` against the changed documentation. State that the full build was intentionally skipped because the change is docs-only.
 - Per-project tests: `dotnet test tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Tests/Lfm.App.Tests.csproj -c Release` / `dotnet test tests/Lfm.App.Core.Tests/Lfm.App.Core.Tests.csproj -c Release`.
 - Format check: `dotnet format lfm.sln --verify-no-changes --no-restore --severity error`. **Run `dotnet format lfm.sln` before committing C# changes** — CI format check fails on whitespace.
 - Bundle size check: `./scripts/check-bundle-size.sh ./publish/app/wwwroot 5` (after publish).
