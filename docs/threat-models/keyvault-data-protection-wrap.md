@@ -117,18 +117,19 @@ Functions Instance          Azure Blob Storage           Azure Key Vault
   scope. **One role assignment, vault-wide; per-secret scoping is not possible under
   RBAC.**
 
-## Operator prerequisite (the gap is now in operator action, not Bicep)
+## Audit-hash-salt secret
 
 `AuditOptions.HashSalt` is bound from the `Audit` configuration section
 (`Program.cs:83-84`) and wired via a `@Microsoft.KeyVault(...)` reference to
 the `audit-hash-salt` secret in `infra/modules/functions.bicep:134`. Bicep
 references the secret but does **not** create it — operators must populate
-`audit-hash-salt` (e.g., `openssl rand -base64 32`) in the Key Vault before
-the first deploy. Until the secret exists the Functions runtime resolves the
-app setting as empty and `IActorHasher` falls back to `IdentityActorHasher`
-— deployed environments will emit plaintext `battleNetId` (PII) into App
-Insights. See `docs/security-architecture.md` for the full deploy-prerequisite
-list. See `audit-log-pii-pipeline.md` (backlog) for the full pipeline view.
+`audit-hash-salt` (`openssl rand -base64 32`) before the Functions app can
+resolve the reference. The secret is populated in production today; if it
+is ever cleared or the reference fails to resolve, `IActorHasher` falls
+back to `IdentityActorHasher` and deployed environments emit plaintext
+`battleNetId` (PII) into App Insights — fail-open. See
+`docs/security-architecture.md` for the full deploy-prerequisite list and
+`audit-log-pii-pipeline.md` (backlog) for the full pipeline view.
 
 ## Out of Scope
 
