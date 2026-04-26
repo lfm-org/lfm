@@ -9,8 +9,8 @@ The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub 
 | # | View | Viewpoint | Render |
 |---|---|---|---|
 | 1 | Application Cooperation | `Application Cooperation` | [`id-view-app-cooperation.png`](renders/id-view-app-cooperation.png) |
-| 2 | Technology Realisation (Hosting + Data Plane) | `Technology` | [`id-view-technology.png`](renders/id-view-technology.png) |
-| 3 | Technology Security (MI + RBAC) | `Technology` | [`id-view-technology-security.png`](renders/id-view-technology-security.png) |
+| 2 | Technology Realisation (Hosting + Data Plane) | `Technology Usage` | [`id-view-technology.png`](renders/id-view-technology.png) |
+| 3 | Technology Security (MI + RBAC) | `Technology Usage` | [`id-view-technology-security.png`](renders/id-view-technology-security.png) |
 | 4 | Deployment Topology (single-environment) | `Migration` | [`id-view-migration.png`](renders/id-view-migration.png) |
 | 5 | Capability Map (FORWARD-ONLY scaffold) | `Capability Map` | [`id-view-capability-map.png`](renders/id-view-capability-map.png) |
 
