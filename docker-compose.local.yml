@@ -2,6 +2,14 @@ services:
   cosmosdb:
     # Tag: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview@sha256:ed28d92b38aff69ccb4dbf439c584449f06432619f3415f429c09e4097cbe577
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 3g
+    cpus: "2.0"
+    pids_limit: 512
     entrypoint:
       - /bin/bash
       - -lc
@@ -9,6 +17,8 @@ services:
         printf '%s' "$COSMOS_KEY_CONTENT" > /tmp/cosmos.key
         export KEY_FILE=/tmp/cosmos.key
         exec /home/cosmosdev/docker_entrypoint.sh
+    tmpfs:
+      - /tmp
     ports:
       - "${COSMOS_PORT:-8081}:8081"
       - "${COSMOS_EXPLORER_PORT:-1234}:1234"
@@ -20,7 +30,17 @@ services:
   azurite:
     # Tag: mcr.microsoft.com/azure-storage/azurite:latest
     image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: "0.5"
+    pids_limit: 128
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+    tmpfs:
+      - /tmp
     ports:
       - "${AZURITE_BLOB_PORT:-10000}:10000"
     volumes:
@@ -30,30 +50,46 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    mem_limit: 1g
+    cpus: "1.0"
+    pids_limit: 256
     depends_on:
       - cosmosdb
       - azurite
+    tmpfs:
+      - /tmp
     environment:
-      TEST_MODE: ${TEST_MODE:-false}
-      COSMOS_ENDPOINT: ${COSMOS_ENDPOINT}
-      COSMOS_KEY: ${COSMOS_KEY}
-      COSMOS_DATABASE: ${COSMOS_DATABASE}
       AzureWebJobsStorage: ${AzureWebJobsStorage}
-      BLOB_STORAGE_URL: ${BLOB_STORAGE_URL}
-      PUBLIC_BLOB_STORAGE_URL: ${PUBLIC_BLOB_STORAGE_URL}
-      APP_BASE_URL: ${APP_BASE_URL}
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
-      BATTLE_NET_COOKIE_SECURE: ${BATTLE_NET_COOKIE_SECURE}
-      BATTLE_NET_REDIRECT_URI: ${BATTLE_NET_REDIRECT_URI}
-      BATTLE_NET_REGION: ${BATTLE_NET_REGION}
-      LFM_CLIENT_ID: ${LFM_CLIENT_ID}
-      LFM_CLIENT_SECRET: ${LFM_CLIENT_SECRET}
-      SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY}
-      HMAC_SECRET: ${HMAC_SECRET}
-      KEY_VAULT_URL: ${KEY_VAULT_URL}
-      PRIVACY_EMAIL: ${PRIVACY_EMAIL:-privacy@example.com}
+      Cosmos__Endpoint: ${Cosmos__Endpoint}
+      Cosmos__AuthKey: ${Cosmos__AuthKey}
+      Cosmos__DatabaseName: ${Cosmos__DatabaseName}
+      Cosmos__ConnectionMode: ${Cosmos__ConnectionMode:-Gateway}
+      Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:-http://localhost:5138}
+      Blizzard__ClientId: ${Blizzard__ClientId}
+      Blizzard__ClientSecret: ${Blizzard__ClientSecret}
+      Blizzard__Region: ${Blizzard__Region:-eu}
+      Blizzard__RedirectUri: ${Blizzard__RedirectUri:-http://localhost:7071/api/battlenet/callback}
+      Blizzard__AppBaseUrl: ${Blizzard__AppBaseUrl:-http://localhost:5138}
+      Storage__BlobConnectionString: ${Storage__BlobConnectionString}
+      Auth__CookieName: ${Auth__CookieName:-battlenet_token}
+      Auth__CookieMaxAgeHours: ${Auth__CookieMaxAgeHours:-24}
+      Auth__KeyVaultUrl: ${Auth__KeyVaultUrl}
+      PrivacyContact__Email: ${PrivacyContact__Email:-privacy@example.com}
+      Audit__HashSalt: ${Audit__HashSalt}
     ports:
       - "${FUNCTIONS_PORT:-7071}:80"
+    volumes:
+      - functions-data:/home/data
+      - functions-logfiles:/home/LogFiles
 
 volumes:
   azurite-data:
+  functions-data:
+  functions-logfiles:

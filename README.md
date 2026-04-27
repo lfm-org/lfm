@@ -29,24 +29,24 @@ Edit `.env` and fill in the required values. See the table below for details.
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `LFM_CLIENT_ID` | Yes | Blizzard OAuth client ID |
-| `LFM_CLIENT_SECRET` | Yes | Blizzard OAuth client secret |
-| `HMAC_SECRET` | Yes | 64 hex chars. Generate: `openssl rand -hex 32` |
-| `SESSION_ENCRYPTION_KEY` | Yes | 64 hex chars. Generate: `openssl rand -hex 32` |
+| `Blizzard__ClientId` | Yes | Blizzard OAuth client ID |
+| `Blizzard__ClientSecret` | Yes | Blizzard OAuth client secret |
+| `Blizzard__Region` | Default ok | `eu` |
+| `Blizzard__RedirectUri` | Default ok | `http://localhost:7071/api/battlenet/callback` |
+| `Blizzard__AppBaseUrl` | Default ok | `http://localhost:5138` (Blazor dev server port, no trailing slash) |
+| `Cors__AllowedOrigins__0` | Default ok | `http://localhost:5138` |
 | `COSMOS_KEY_CONTENT` | Yes | Cosmos emulator master key (base64). Generate: `openssl rand -base64 32` |
-| `COSMOS_ENDPOINT` | Yes | `http://127.0.0.1:8081` for the local emulator |
-| `COSMOS_KEY` | Yes | Must match the key derived from `COSMOS_KEY_CONTENT` |
-| `AzureWebJobsStorage` | Yes | Azurite connection string: `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;` |
-| `BLOB_STORAGE_URL` | Yes | `http://127.0.0.1:10000/devstoreaccount1` |
-| `PUBLIC_BLOB_STORAGE_URL` | Yes | Same as `BLOB_STORAGE_URL` for local |
-| `APP_BASE_URL` | Default ok | `http://localhost:5138` (Blazor dev server port) |
-| `BATTLE_NET_REDIRECT_URI` | Default ok | `http://localhost:7071/api/battlenet/callback` |
-| `BATTLE_NET_REGION` | Default ok | `eu` |
-| `BATTLE_NET_COOKIE_SECURE` | Default ok | `false` for local dev |
-| `COOKIE_DOMAIN` | Default ok | `localhost` |
-| `COSMOS_DATABASE` | Default ok | `lfm` |
-| `KEY_VAULT_URL` | No | Leave empty for local dev |
-| `TEST_MODE` | Default ok | `false` |
+| `Cosmos__Endpoint` | Default ok | `http://cosmosdb:8081` for the compose network |
+| `Cosmos__AuthKey` | Yes | Must match the key derived from `COSMOS_KEY_CONTENT` |
+| `Cosmos__DatabaseName` | Default ok | `lfm` |
+| `Cosmos__ConnectionMode` | Default ok | `Gateway` for the Linux emulator |
+| `AzureWebJobsStorage` | Yes | Azurite connection string: `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;` |
+| `Storage__BlobConnectionString` | Yes | Same Azurite connection string as `AzureWebJobsStorage` |
+| `Auth__CookieName` | Default ok | `battlenet_token` |
+| `Auth__CookieMaxAgeHours` | Default ok | `24` |
+| `Auth__KeyVaultUrl` | No | Leave empty for local dev |
+| `PrivacyContact__Email` | Default ok | Privacy contact returned by the API |
+| `Audit__HashSalt` | No | Empty logs plaintext actor IDs locally; set a base64 salt outside local dev |
 
 ### 3. Start local stack
 
@@ -133,7 +133,6 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 |----------|---------|
 | `API_HOSTNAME` | API custom domain |
 | `FRONTEND_HOSTNAME` | Frontend custom domain |
-| `COOKIE_DOMAIN` | Cookie domain (parent domain with dot prefix) |
 
 **Application:**
 
