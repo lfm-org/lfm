@@ -86,7 +86,7 @@ scripts/archi-render.sh             # regenerate every view to .cache/archi-view
 cp .cache/archi-views/lfm/*.png docs/architecture/renders/
 ```
 
-The script writes to `.cache/archi-views/<stem>/` (gitignored); copy the outputs over `docs/architecture/renders/` to update the committed snapshots. Requirements: an `Archi` binary at `$HOME/.local/bin/Archi` (override via `$ARCHI_BIN`), `xmllint`, and an `$DISPLAY` (use `xvfb-run` on pure Wayland without Xwayland). The script is concurrent-safe and exits non-zero on any failure (XML well-formedness, Archi import, missing PNGs).
+The script writes to `.cache/archi-views/<stem>/` (gitignored) by default; copy the outputs over `docs/architecture/renders/` to update the committed snapshots. Requirements: an `Archi` binary at `$HOME/.local/bin/Archi` (override via `--archi-bin`, `$ARCHI_BIN`, or a config file), `xmllint`, `realpath`, and an `$DISPLAY` (use `xvfb-run` on pure Wayland without Xwayland). The transient cache root and output root are configurable with `--cache-root` / `$ARCHI_RENDER_CACHE_ROOT` and `--output-root` / `$ARCHI_RENDER_OUTPUT_ROOT`; an optional `--config` file may set `ARCHI_BIN`, `ARCHI_RENDER_CACHE_ROOT`, `ARCHI_RENDER_OUTPUT_ROOT`, and `ARCHI_RENDER_OEF_FILE`. Precedence is config file, then CLI argument, then environment variable, then default. The script is concurrent-safe and exits non-zero on any failure (XML well-formedness, Archi import, missing PNGs).
 
 When `*.oef.xml` changes, regenerate and commit the corresponding files in [`renders/`](renders/) as part of the same architecture update; update this README whenever the view inventory, names, or source provenance changes.
 
