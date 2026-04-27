@@ -15,18 +15,19 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 
 ## Mandatory Git Workflow
 
-1. Start every task with a clean workspace; stop and alert if not clean.
-2. Work in `agents/<short-slug>` via `git switch -c`. Always use `git -C` with absolute paths.
-3. Keep changesets small: commits ≤ 5 files / ≤ 250 lines; branches ≤ 30 files / ≤ 900 lines vs `main`. Thresholds guide planning, not design. Commit partial finishes; split into subtasks if exceeding.
-4. Merge strategy: rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
-5. Before claiming complete: `superpowers:verification-before-completion`. Non-trivial tasks: `superpowers:requesting-code-review` before merging. For documentation-only changes that cannot affect build output, targeted documentation verification is sufficient; state when the full build is intentionally skipped.
-6. Commit messages: short, imperative — e.g. `Fix docker`, `Add runs route`.
-7. PR descriptions: explain the change, list env/schema changes, include screenshots for UI work.
-8. No `Co-Authored-By` trailers. AI usage acknowledged in `README.md`.
-9. Document guidance changes in the same task's guidance files.
-10. **Pre-commit hook** (`scripts/pre-commit`) blocks `.env`, `.pem`, `.key`, etc. Install via `scripts/pre-commit`. Opt-in — the authoritative secret-scanning layer is the CI gitleaks job in `.github/workflows/secrets-scan.yml`, which runs on every PR and is chained into `deploy.yml` via `needs:`.
-11. **Worktrees** live in `.worktrees/` at the repo root. Use `superpowers:using-git-worktrees` when available; otherwise `git worktree add .worktrees/<slug>`. Never create worktrees as sibling directories in `~/repos/`.
-12. **Pre-push hook** (`scripts/pre-push`) automates the commands from the Verification section below. Opt-in — install via `cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push`.
+1. **Start clean:** Run `git -C <repo-root> status --short --branch` before edits. If the workspace is dirty, stop and alert.
+2. **Git path:** Always run git commands as `git -C <repo-root>` with an absolute path.
+3. **Branch:** Never implement on `main`/`master`. Before edits, work in `agents/<short-slug>` via `git switch -c`.
+4. **Worktrees:** Use an isolated worktree for implementation tasks. Worktrees live in repo-root `.worktrees/`; use `superpowers:using-git-worktrees` when available, otherwise `git worktree add .worktrees/<slug>`. Never create worktrees as sibling directories in `~/repos/`.
+5. **Size:** Keep changesets small: commits ≤ 5 files / ≤ 250 lines; branches ≤ 30 files / ≤ 900 lines vs `main`. Thresholds guide planning, not design; commit partial finishes and split into subtasks before exceeding them.
+6. **Verify:** Before claiming complete, use `superpowers:verification-before-completion` and run the relevant Verification commands below. Documentation-only changes that cannot affect build output may use targeted documentation verification; state when the full build is intentionally skipped.
+7. **Review:** Non-trivial tasks require `superpowers:requesting-code-review` before merging.
+8. **Merge:** Merge strategy is rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
+9. **Commits:** Commit messages are short and imperative, e.g. `Fix docker`, `Add runs route`.
+10. **PRs:** PR descriptions explain the change, list env/schema changes, and include screenshots for UI work.
+11. **Attribution:** No `Co-Authored-By` trailers. AI usage is acknowledged in `README.md`.
+12. **Guidance:** Document guidance changes in the same task's guidance files.
+13. **Hooks/secrets:** `scripts/pre-commit` blocks `.env`, `.pem`, `.key`, etc.; install via `scripts/pre-commit`. `scripts/pre-push` automates Verification commands; install via `cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push`. Hooks are opt-in; CI gitleaks in `.github/workflows/secrets-scan.yml` is authoritative and is chained into `deploy.yml` via `needs:`.
 
 ## Configuration & Secrets
 
@@ -50,7 +51,7 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 
 ## Verification
 
-If `scripts/pre-push` is installed as a git hook (see Mandatory Git Workflow item 12), the format / build / vulnerable-package commands below run automatically on `git push`. Otherwise run them manually before claiming work complete.
+If `scripts/pre-push` is installed as a git hook (see Mandatory Git Workflow), the format / build / vulnerable-package commands below run automatically on `git push`. Otherwise run them manually before claiming work complete.
 
 - Run `dotnet build lfm.sln -c Release` before claiming work complete for code, project, dependency, configuration, infrastructure, or generated-asset changes.
 - Documentation-only changes that cannot affect build output may use targeted verification instead: review the changed files and run `git diff --check` against the changed documentation. State that the full build was intentionally skipped because the change is docs-only.
