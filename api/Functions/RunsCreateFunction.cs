@@ -12,6 +12,7 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Validation;
 using Lfm.Contracts.Runs;
 
 namespace Lfm.Api.Functions;
@@ -110,7 +111,7 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
 
         AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, runId, "success", null));
 
-        return new ObjectResult(MapToDto(created)) { StatusCode = 201 };
+        return new ObjectResult(RunResponseMapper.ToDetail(created, principal.BattleNetId)) { StatusCode = 201 };
     }
 
     /// <summary>
@@ -181,25 +182,4 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
             KeystoneLevel: body.KeystoneLevel);
     }
 
-    // ------------------------------------------------------------------
-    // Mapping helper — projects the stored RunDocument to its wire DTO.
-    // ------------------------------------------------------------------
-
-    private static RunDetailDto MapToDto(RunDocument doc)
-    {
-        var (difficulty, size) = RunModeResolver.Resolve(doc.Difficulty, doc.Size, doc.ModeKey);
-        return new RunDetailDto(
-            Id: doc.Id,
-            StartTime: doc.StartTime,
-            SignupCloseTime: doc.SignupCloseTime,
-            Description: doc.Description,
-            Visibility: doc.Visibility,
-            CreatorGuild: doc.CreatorGuild,
-            InstanceId: doc.InstanceId,
-            InstanceName: doc.InstanceName,
-            RunCharacters: [],
-            Difficulty: difficulty,
-            Size: size,
-            KeystoneLevel: doc.KeystoneLevel);
-    }
 }

@@ -56,7 +56,7 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
             : await repo.ListForUserAsync(principal.BattleNetId, top, continuationToken, ct);
 
         var dtos = page.Items
-            .Select(r => Sanitize(r, principal.BattleNetId))
+            .Select(r => RunResponseMapper.ToSummary(r, principal.BattleNetId))
             .ToList();
 
         return new OkObjectResult(new RunsListResponse(dtos, page.ContinuationToken));
@@ -91,41 +91,4 @@ public class RunsListFunction(IRunsRepository repo, IRaidersRepository raidersRe
         return string.IsNullOrEmpty(value) ? null : value;
     }
 
-    // ------------------------------------------------------------------
-    // Sanitizer — mirrors sanitizeRunDocumentForResponse in
-    // functions/src/lib/runResponseSanitizer.ts
-    // ------------------------------------------------------------------
-
-    private static RunSummaryDto Sanitize(RunDocument run, string currentBattleNetId)
-    {
-        var (difficulty, size) = Helpers.RunModeResolver.Resolve(run.Difficulty, run.Size, run.ModeKey);
-        return new RunSummaryDto(
-            Id: run.Id,
-            StartTime: run.StartTime,
-            SignupCloseTime: run.SignupCloseTime,
-            Description: run.Description,
-            Visibility: run.Visibility,
-            CreatorGuild: run.CreatorGuild,
-            InstanceId: run.InstanceId,
-            InstanceName: run.InstanceName,
-            RunCharacters: run.RunCharacters
-                .Select(c => SanitizeCharacter(c, currentBattleNetId))
-                .ToList(),
-            Difficulty: difficulty,
-            Size: size,
-            KeystoneLevel: run.KeystoneLevel);
-    }
-
-    private static RunCharacterDto SanitizeCharacter(
-        RunCharacterEntry character, string currentBattleNetId) =>
-        new RunCharacterDto(
-            CharacterName: character.CharacterName,
-            CharacterRealm: character.CharacterRealm,
-            CharacterClassId: character.CharacterClassId,
-            CharacterClassName: character.CharacterClassName,
-            DesiredAttendance: character.DesiredAttendance,
-            ReviewedAttendance: character.ReviewedAttendance,
-            SpecName: character.SpecName,
-            Role: character.Role,
-            IsCurrentUser: character.RaiderBattleNetId == currentBattleNetId);
 }

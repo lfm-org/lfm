@@ -57,8 +57,6 @@ public class RunsCancelSignupFunction(
         //      return errorResponse(404, "Run not found");
         if (run.Visibility == "GUILD")
         {
-            var isCreator = run.CreatorBattleNetId == principal.BattleNetId;
-
             // Derive the caller's guild from the raider's selected character.
             var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
             if (raider is null)
@@ -66,11 +64,7 @@ public class RunsCancelSignupFunction(
 
             var (guildId, _) = GuildResolver.FromRaider(raider);
 
-            var isGuildMember = guildId is not null
-                && run.CreatorGuildId is not null
-                && run.CreatorGuildId.ToString() == guildId;
-
-            if (!isCreator && !isGuildMember)
+            if (!RunAccessPolicy.CanView(run, principal.BattleNetId, guildId))
                 return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
         }
 
@@ -102,7 +96,7 @@ public class RunsCancelSignupFunction(
         AuditLog.Emit(logger, new AuditEvent("signup.cancel", principal.BattleNetId, id, "success", null));
 
         // 7. Return sanitized run — mirrors sanitizeRunDocumentForResponse.
-        return new OkObjectResult(Sanitize(persisted, principal.BattleNetId));
+        return new OkObjectResult(RunResponseMapper.ToDetail(persisted, principal.BattleNetId));
     }
 
     /// <summary>
@@ -118,37 +112,4 @@ public class RunsCancelSignupFunction(
         CancellationToken ct)
         => Run(req, id, ctx, ct);
 
-    // ------------------------------------------------------------------
-    // Sanitizer — mirrors sanitizeRunDocumentForResponse in
-    // functions/src/lib/runResponseSanitizer.ts
-    // ------------------------------------------------------------------
-
-    private static RunDetailDto Sanitize(RunDocument run, string currentBattleNetId)
-    {
-        var (difficulty, size) = Helpers.RunModeResolver.Resolve(run.Difficulty, run.Size, run.ModeKey);
-        return new RunDetailDto(
-            Id: run.Id,
-            StartTime: run.StartTime,
-            SignupCloseTime: run.SignupCloseTime,
-            Description: run.Description,
-            Visibility: run.Visibility,
-            CreatorGuild: run.CreatorGuild,
-            InstanceId: run.InstanceId,
-            InstanceName: run.InstanceName,
-            Difficulty: difficulty,
-            Size: size,
-            KeystoneLevel: run.KeystoneLevel,
-            RunCharacters: run.RunCharacters
-                .Select(c => new RunCharacterDto(
-                    CharacterName: c.CharacterName,
-                    CharacterRealm: c.CharacterRealm,
-                    CharacterClassId: c.CharacterClassId,
-                    CharacterClassName: c.CharacterClassName,
-                    DesiredAttendance: c.DesiredAttendance,
-                    ReviewedAttendance: c.ReviewedAttendance,
-                    SpecName: c.SpecName,
-                    Role: c.Role,
-                    IsCurrentUser: c.RaiderBattleNetId == currentBattleNetId))
-                .ToList());
-    }
 }

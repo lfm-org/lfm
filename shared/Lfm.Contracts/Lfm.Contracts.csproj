@@ -6,7 +6,4 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Lfm.Contracts</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="12.1.1" />
-  </ItemGroup>
 </Project>
