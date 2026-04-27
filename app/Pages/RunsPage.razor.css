@@ -162,6 +162,41 @@
     font-weight: 600;
 }
 
+/* Signup controls */
+.run-signup-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding-block: 0.75rem;
+    border-block: 1px solid var(--neutral-stroke-rest);
+}
+
+.run-signup-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--neutral-foreground-rest);
+}
+
+.run-signup-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+    align-items: end;
+}
+
+@media (min-width: 48em) {
+    .run-signup-form {
+        grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.7fr) auto;
+    }
+}
+
+.run-signup-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Roster sections */
 .roster-section-title {
     text-transform: uppercase;

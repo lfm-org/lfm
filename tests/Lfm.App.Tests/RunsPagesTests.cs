@@ -6,9 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
 using Lfm.App.Services;
+using Lfm.Contracts.Characters;
 using Lfm.Contracts.Expansions;
 using Lfm.Contracts.Guild;
 using Lfm.Contracts.Instances;
+using Lfm.Contracts.Me;
 using Lfm.Contracts.Runs;
 using Xunit;
 
@@ -156,7 +158,8 @@ public class RunsPagesTests : ComponentTestBase
         string className = "Mage",
         string? role = "DPS",
         string attendance = "IN",
-        string? spec = "Arcane") =>
+        string? spec = "Arcane",
+        bool isCurrentUser = false) =>
         new(
             CharacterName: name,
             CharacterRealm: "Test Realm",
@@ -166,10 +169,109 @@ public class RunsPagesTests : ComponentTestBase
             ReviewedAttendance: attendance,
             SpecName: spec,
             Role: role,
-            IsCurrentUser: false);
+            IsCurrentUser: isCurrentUser);
 
     private static RunDetailDto MakeDetailWithRoster(IReadOnlyList<RunCharacterDto> characters) =>
         MakeDetail() with { RunCharacters = characters };
+
+    private static CharacterDto MakeAppCharacter(
+        string name = "Aelrin",
+        string realm = "silvermoon",
+        int? activeSpecId = 257) =>
+        new(
+            Name: name,
+            Realm: realm,
+            RealmName: "Silvermoon",
+            Level: 80,
+            Region: "eu",
+            ClassId: 5,
+            ClassName: "Priest",
+            PortraitUrl: null,
+            ActiveSpecId: activeSpecId,
+            SpecName: "Holy");
+
+    private void WireSignupSupport(
+        IReadOnlyList<CharacterDto>? characters = null,
+        string? selectedCharacterId = "eu-silvermoon-aelrin")
+    {
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(characters ?? new List<CharacterDto> { MakeAppCharacter() }));
+        Services.AddSingleton(battleNet.Object);
+
+        var me = new Mock<IMeClient>();
+        me.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeResponse("bnet-1", null, selectedCharacterId, false, "en"));
+        Services.AddSingleton(me.Object);
+    }
+
+    [Fact]
+    public void RunsPage_Signup_Submits_Selected_Character_And_Updates_Roster()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        client.Setup(c => c.SignupAsync("run-1", It.IsAny<SignupRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Aelrin", classId: 5, className: "Priest", role: "HEALER", spec: "Holy", isCurrentUser: true),
+            }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport();
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.signup.action"), cut.Markup));
+
+        var signupButton = cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.action"), StringComparison.Ordinal));
+        signupButton.Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.SignupAsync(
+                "run-1",
+                It.Is<SignupRequest>(r =>
+                    r.CharacterId == "eu-silvermoon-aelrin" &&
+                    r.DesiredAttendance == "IN" &&
+                    r.SpecId == 257),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+        cut.WaitForAssertion(() => Assert.Contains("Aelrin", cut.Markup));
+    }
+
+    [Fact]
+    public void RunsPage_CancelSignup_Removes_Current_User_Signup()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Aelrin", classId: 5, className: "Priest", role: "HEALER", spec: "Holy", isCurrentUser: true),
+            }));
+        client.Setup(c => c.CancelSignupAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        Services.AddSingleton(client.Object);
+        WireSignupSupport();
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.signup.cancel"), cut.Markup));
+
+        var cancelButton = cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.cancel"), StringComparison.Ordinal));
+        cancelButton.Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.CancelSignupAsync("run-1", It.IsAny<CancellationToken>()), Times.Once));
+        cut.WaitForAssertion(() =>
+            Assert.DoesNotContain(Loc("runs.signup.cancel"), cut.Markup));
+    }
 
     [Fact]
     public void RunsPage_RoleColumns_SplitAttendingCharactersByRole()

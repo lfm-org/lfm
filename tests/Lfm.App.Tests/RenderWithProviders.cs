@@ -6,6 +6,9 @@ using System.Text.Json;
 using Bunit;
 using Lfm.App.i18n;
 using Lfm.App.Services;
+using Lfm.Contracts.Characters;
+using Lfm.Contracts.Me;
+using Lfm.Contracts.Runs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -37,6 +40,8 @@ public abstract class ComponentTestBase : BunitContext
 
         Services.AddSingleton<ILocaleService, LocaleService>();
         Services.AddSingleton<IStringLocalizer>(_localizer);
+        Services.AddSingleton<IMeClient, DefaultMeClient>();
+        Services.AddSingleton<IBattleNetClient, DefaultBattleNetClient>();
     }
 
     /// <summary>
@@ -59,6 +64,38 @@ public abstract class ComponentTestBase : BunitContext
         var localeService = Services.GetRequiredService<ILocaleService>();
         localeService.SetLocale(locale);
     }
+}
+
+internal sealed class DefaultMeClient : IMeClient
+{
+    public Task<MeResponse?> GetAsync(CancellationToken ct) =>
+        Task.FromResult<MeResponse?>(null);
+
+    public Task<UpdateMeResponse?> UpdateAsync(UpdateMeRequest request, CancellationToken ct) =>
+        Task.FromResult<UpdateMeResponse?>(null);
+
+    public Task<bool> SelectCharacterAsync(string id, CancellationToken ct) =>
+        Task.FromResult(false);
+
+    public Task<bool> DeleteAsync(CancellationToken ct) =>
+        Task.FromResult(false);
+
+    public Task<CharacterDto?> EnrichCharacterAsync(string id, CancellationToken ct) =>
+        Task.FromResult<CharacterDto?>(null);
+}
+
+internal sealed class DefaultBattleNetClient : IBattleNetClient
+{
+    public Task<CharactersFetchResult> GetCharactersAsync(CancellationToken ct) =>
+        Task.FromResult<CharactersFetchResult>(new CharactersFetchResult.Cached([]));
+
+    public Task<IReadOnlyList<CharacterDto>?> RefreshCharactersAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<CharacterDto>?>([]);
+
+    public Task<IDictionary<string, string>?> GetPortraitsAsync(
+        IEnumerable<CharacterPortraitRequest> requests,
+        CancellationToken ct) =>
+        Task.FromResult<IDictionary<string, string>?>(new Dictionary<string, string>());
 }
 
 /// <summary>

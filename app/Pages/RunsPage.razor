@@ -4,7 +4,10 @@
 @using Lfm.App.Components
 @using Lfm.App.Runs
 @using Lfm.App.Services
+@using Lfm.Contracts.Characters
 @using Lfm.Contracts.Runs
+@inject IBattleNetClient BattleNetClient
+@inject IMeClient MeClient
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
@@ -121,9 +124,81 @@
                                 </FluentStack>
 
                                 @{
+                                    var currentSignup = selectedRun.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
                                     var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
                                     var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
                                 }
+
+                                <div class="run-signup-panel" aria-labelledby="run-signup-heading">
+                                    <h3 id="run-signup-heading" class="run-signup-title">@Loc["runs.signup.title"]</h3>
+
+                                    @if (!string.IsNullOrEmpty(_signupError))
+                                    {
+                                        <FluentMessageBar Intent="MessageIntent.Error">@_signupError</FluentMessageBar>
+                                    }
+
+                                    @if (currentSignup is not null)
+                                    {
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" Style="align-items:center">
+                                            <FluentLabel>@Loc["runs.signup.signedUpAs", currentSignup.CharacterName]</FluentLabel>
+                                            <FluentButton Appearance="Appearance.Outline"
+                                                          OnClick="@CancelSignup"
+                                                          Disabled="@(_signupSubmitting || _cancelSubmitting)">
+                                                @Loc["runs.signup.cancel"]
+                                            </FluentButton>
+                                        </FluentStack>
+                                    }
+                                    else if (IsSignupClosed(selectedRun.SignupCloseTime))
+                                    {
+                                        <FluentMessageBar Intent="MessageIntent.Warning">@Loc["runs.signup.closed"]</FluentMessageBar>
+                                    }
+                                    else if (_signupOptionsLoading)
+                                    {
+                                        <div class="run-signup-status" role="status" aria-live="polite">
+                                            <FluentProgressRing Style="width:20px;height:20px" />
+                                            <span>@Loc["common.loading"]</span>
+                                        </div>
+                                    }
+                                    else if (_signupCharacters.Count == 0)
+                                    {
+                                        <FluentMessageBar Intent="MessageIntent.Info">@Loc["runs.signup.noCharacters"]</FluentMessageBar>
+                                    }
+                                    else
+                                    {
+                                        <div class="run-signup-form">
+                                            <FluentSelect Id="signup-character-select"
+                                                          Label="@Loc["runs.signup.character"]"
+                                                          TOption="string"
+                                                          Value="@(_selectedSignupCharacterId ?? string.Empty)"
+                                                          ValueChanged="@OnSignupCharacterChanged"
+                                                          Disabled="@_signupSubmitting">
+                                                @foreach (var character in _signupCharacters)
+                                                {
+                                                    var characterId = CharacterId(character);
+                                                    <FluentOption TOption="string" Value="@characterId">@CharacterLabel(character)</FluentOption>
+                                                }
+                                            </FluentSelect>
+
+                                            <FluentSelect Id="signup-attendance-select"
+                                                          Label="@Loc["runs.signup.attendance"]"
+                                                          TOption="string"
+                                                          Value="@_selectedAttendance"
+                                                          ValueChanged="@OnSignupAttendanceChanged"
+                                                          Disabled="@_signupSubmitting">
+                                                @foreach (var option in SignupAttendanceOptions)
+                                                {
+                                                    <FluentOption TOption="string" Value="@option.Value">@Loc[option.LocKey]</FluentOption>
+                                                }
+                                            </FluentSelect>
+
+                                            <FluentButton Appearance="Appearance.Accent"
+                                                          OnClick="@SubmitSignup"
+                                                          Disabled="@(_signupSubmitting || string.IsNullOrEmpty(_selectedSignupCharacterId))">
+                                                @Loc["runs.signup.action"]
+                                            </FluentButton>
+                                        </div>
+                                    }
+                                </div>
 
                                 @if (selectedRun.RunCharacters.Count == 0)
                                 {
@@ -185,6 +260,23 @@
     private bool _showPast;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
+    private IReadOnlyList<CharacterDto> _signupCharacters = [];
+    private bool _signupOptionsLoaded;
+    private bool _signupOptionsLoading;
+    private string? _selectedSignupCharacterId;
+    private string _selectedAttendance = "IN";
+    private string? _signupError;
+    private bool _signupSubmitting;
+    private bool _cancelSubmitting;
+
+    private static readonly IReadOnlyList<(string Value, string LocKey)> SignupAttendanceOptions =
+    [
+        ("IN", "runs.attendance.in"),
+        ("LATE", "runs.attendance.late"),
+        ("BENCH", "runs.attendance.bench"),
+        ("AWAY", "runs.attendance.away"),
+        ("OUT", "runs.attendance.out"),
+    ];
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
@@ -265,13 +357,197 @@
     {
         try
         {
-            selectedRun = await RunsClient.GetAsync(id, CancellationToken.None);
+            var detail = await RunsClient.GetAsync(id, CancellationToken.None);
+            if (detail is null)
+            {
+                selectedRun = null;
+                return;
+            }
+
+            ApplyRunDetail(detail);
+            _signupError = null;
+            if (!HasCurrentUserSignup(detail) && !IsSignupClosed(detail.SignupCloseTime))
+            {
+                await EnsureSignupOptionsLoaded();
+            }
         }
         catch
         {
             selectedRun = null;
         }
     }
+
+    private async Task EnsureSignupOptionsLoaded()
+    {
+        if (_signupOptionsLoaded || _signupOptionsLoading)
+            return;
+
+        _signupOptionsLoading = true;
+        _signupError = null;
+        StateHasChanged();
+        try
+        {
+            var meTask = MeClient.GetAsync(CancellationToken.None);
+            var charactersResult = await BattleNetClient.GetCharactersAsync(CancellationToken.None);
+            var me = await meTask;
+
+            if (charactersResult is CharactersFetchResult.Cached cached)
+            {
+                _signupCharacters = cached.Characters;
+                _signupOptionsLoaded = true;
+                SelectDefaultSignupCharacter(me?.SelectedCharacterId);
+            }
+            else
+            {
+                _signupCharacters = [];
+                _signupOptionsLoaded = true;
+                _signupError = charactersResult is CharactersFetchResult.NeedsRefresh
+                    ? Loc["runs.signup.charactersNeedRefresh"].Value
+                    : Loc["runs.signup.charactersLoadFailed"].Value;
+            }
+        }
+        catch
+        {
+            _signupCharacters = [];
+            _signupError = Loc["runs.signup.charactersLoadFailed"].Value;
+        }
+        finally
+        {
+            _signupOptionsLoading = false;
+        }
+    }
+
+    private void SelectDefaultSignupCharacter(string? selectedCharacterId)
+    {
+        if (_signupCharacters.Count == 0)
+        {
+            _selectedSignupCharacterId = null;
+            return;
+        }
+
+        _selectedSignupCharacterId = !string.IsNullOrEmpty(selectedCharacterId)
+                                     && _signupCharacters.Any(c => CharacterId(c) == selectedCharacterId)
+            ? selectedCharacterId
+            : CharacterId(_signupCharacters[0]);
+    }
+
+    private void OnSignupCharacterChanged(string value)
+    {
+        _selectedSignupCharacterId = value;
+    }
+
+    private void OnSignupAttendanceChanged(string value)
+    {
+        if (SignupAttendanceOptions.Any(o => o.Value == value))
+            _selectedAttendance = value;
+    }
+
+    private async Task SubmitSignup()
+    {
+        if (selectedRun is null || _signupSubmitting || string.IsNullOrEmpty(_selectedSignupCharacterId))
+            return;
+
+        _signupSubmitting = true;
+        _signupError = null;
+        try
+        {
+            var character = _signupCharacters.FirstOrDefault(c => CharacterId(c) == _selectedSignupCharacterId);
+            var enriched = await TryEnrichSignupCharacter(_selectedSignupCharacterId);
+            character = enriched ?? character;
+
+            var request = new SignupRequest(_selectedSignupCharacterId, _selectedAttendance, character?.ActiveSpecId);
+            var updated = await RunsClient.SignupAsync(selectedRun.Id, request, CancellationToken.None);
+            if (updated is null)
+            {
+                _signupError = Loc["runs.signup.failed"].Value;
+                return;
+            }
+
+            ApplyRunDetail(updated);
+        }
+        catch
+        {
+            _signupError = Loc["runs.signup.failed"].Value;
+        }
+        finally
+        {
+            _signupSubmitting = false;
+        }
+    }
+
+    private async Task<CharacterDto?> TryEnrichSignupCharacter(string characterId)
+    {
+        try
+        {
+            return await MeClient.EnrichCharacterAsync(characterId, CancellationToken.None);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task CancelSignup()
+    {
+        if (selectedRun is null || _cancelSubmitting)
+            return;
+
+        _cancelSubmitting = true;
+        _signupError = null;
+        try
+        {
+            var updated = await RunsClient.CancelSignupAsync(selectedRun.Id, CancellationToken.None);
+            if (updated is null)
+            {
+                _signupError = Loc["runs.signup.cancelFailed"].Value;
+                return;
+            }
+
+            ApplyRunDetail(updated);
+            if (!IsSignupClosed(updated.SignupCloseTime))
+            {
+                await EnsureSignupOptionsLoaded();
+            }
+        }
+        catch
+        {
+            _signupError = Loc["runs.signup.cancelFailed"].Value;
+        }
+        finally
+        {
+            _cancelSubmitting = false;
+        }
+    }
+
+    private void ApplyRunDetail(RunDetailDto detail)
+    {
+        selectedRun = detail;
+        if (state is not LoadingState<IReadOnlyList<RunSummaryDto>>.Success s)
+            return;
+
+        var updated = s.Value
+            .Select(run => run.Id == detail.Id ? ToSummary(detail) : run)
+            .ToList();
+        state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(updated);
+    }
+
+    private static RunSummaryDto ToSummary(RunDetailDto detail) =>
+        new(
+            Id: detail.Id,
+            StartTime: detail.StartTime,
+            SignupCloseTime: detail.SignupCloseTime,
+            Description: detail.Description,
+            Visibility: detail.Visibility,
+            CreatorGuild: detail.CreatorGuild,
+            InstanceId: detail.InstanceId,
+            InstanceName: detail.InstanceName,
+            RunCharacters: detail.RunCharacters,
+            Difficulty: detail.Difficulty,
+            Size: detail.Size,
+            KeystoneLevel: detail.KeystoneLevel);
+
+    private static bool HasCurrentUserSignup(RunDetailDto detail) =>
+        detail.RunCharacters.Any(c => c.IsCurrentUser);
 
     private void TogglePast() => _showPast = !_showPast;
 
@@ -350,5 +626,16 @@
     {
         if (string.IsNullOrEmpty(signupCloseTime)) return false;
         return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
+    }
+
+    private static string CharacterId(CharacterDto character) =>
+        $"{character.Region.ToLowerInvariant()}-{character.Realm.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
+
+    private static string CharacterLabel(CharacterDto character)
+    {
+        var label = $"{character.Name} - {character.RealmName}";
+        return string.IsNullOrWhiteSpace(character.SpecName)
+            ? label
+            : $"{label} ({character.SpecName})";
     }
 }
