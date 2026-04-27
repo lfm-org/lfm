@@ -7,12 +7,15 @@
   refreshed 2026-04-26 to align with the 0.8.0 skill update (canonical §9.4 viewpoint
   string "Technology Usage", §6.1a metadata block, dc:creator skill+version).
   reviewed 2026-04-27 with souroldgeezer-design:architecture-design 0.9.2 to satisfy
-  the process-view emission contract and add the missing Motivation view.
+  the process-view emission contract and add the missing Motivation view; refreshed with
+  0.9.3 to align Function App hosting-plan documentation with committed Y1 Dynamic Bicep,
+  add the Cosmos SQL database Artifact from infra/modules/cosmos.bicep, and include
+  Data Protection-specific RBAC assignments from infra/modules/dataprotection.bicep.
   Layout coordinates pre-date the 0.8.0 Sugiyama-v1 engine — no §6.4a banding marker
   is asserted; AD-L* findings soft-grade to `info` per §6.4a until Build re-runs.
   Sources lifted:
     Application Layer            : lfm.sln, api/*.csproj, app/*.csproj, shared/*.csproj,
-                                   api/host.json, api/Program.cs, app/wwwroot/staticwebapp.config.json
+                                   api/host.json, api/Program.cs, app/wwwroot/staticwebapp.config.json.template
     Technology Layer             : infra/main.bicep + infra/modules/*.bicep
     Implementation & Migration   : .github/workflows/*.yml
   Forward-only (architect fills in):
@@ -31,7 +34,7 @@
     <schema>http://purl.org/dc/elements/1.1/</schema>
     <schemaversion>1.1</schemaversion>
     <dc:title>LFM — Architecture Model</dc:title>
-    <dc:creator>architecture-design 0.9.2</dc:creator>
+    <dc:creator>architecture-design 0.9.3</dc:creator>
     <dc:date>2026-04-27</dc:date>
     <dc:description>LFM application architecture — Application, Technology, and Implementation &amp; Migration layers extracted from source; Business, Motivation, and Strategy stubbed forward-only.</dc:description>
   </metadata>
@@ -41,7 +44,7 @@
          APPLICATION LAYER (lifted)
          Sources: lfm.sln, api/Lfm.Api.csproj, app/Lfm.App.csproj,
                   app/Lfm.App.Core/Lfm.App.Core.csproj, shared/Lfm.Contracts/Lfm.Contracts.csproj,
-                  api/Program.cs, api/Functions/*.cs, app/wwwroot/staticwebapp.config.json
+                  api/Program.cs, api/Functions/*.cs, app/wwwroot/staticwebapp.config.json.template
          ============================================================================= -->
 
     <!-- Application Components (Active structure) -->
@@ -78,7 +81,7 @@
 
     <element identifier="id-blizzard-cdn" xsi:type="ApplicationComponent">
       <name xml:lang="en">Blizzard Render CDN</name>
-      <documentation xml:lang="en">External — render.worldofwarcraft.com character avatar / item icon CDN. Consumed directly by the SPA browser (allow-listed in CSP img-src). Source: app/wwwroot/staticwebapp.config.json (Content-Security-Policy).</documentation>
+      <documentation xml:lang="en">External — render.worldofwarcraft.com character avatar / item icon CDN. Consumed directly by the SPA browser (allow-listed in CSP img-src). Source: app/wwwroot/staticwebapp.config.json.template (Content-Security-Policy).</documentation>
     </element>
 
     <!-- Trust-boundary Groupings — used in the Application Cooperation view to draw the LFM-vs-Blizzard boundary explicitly -->
@@ -102,7 +105,7 @@
 
     <element identifier="id-iface-rest-api" xsi:type="ApplicationInterface">
       <name xml:lang="en">REST API (/api/*)</name>
-      <documentation xml:lang="en">HTTP/JSON API surface exposed by Lfm.Api with route prefix /api (api/host.json). Aggregates 30+ endpoint functions: me, me-update, me-delete, guild-get, guild-update, guild-admin-get, runs-create/list/detail/update/delete/signup/cancel-signup, raider-character/-add/-enrich, raider-cleanup, battlenet-login/-callback/-logout/-characters/-characters-refresh/-character-portraits, wow-reference-instances/-expansions/-specializations/-refresh, privacy-email, health/-ready, plus -v1 aliases on each. Source: api/Functions/*.cs.</documentation>
+      <documentation xml:lang="en">HTTP/JSON API surface exposed by Lfm.Api with route prefix /api (api/host.json). Aggregates 30+ endpoint functions: me, me-update, me-delete, guild-get, guild-update, guild-admin-get, runs-create/list/detail/update/delete/signup/cancel-signup, raider-character/-add/-enrich, raider-cleanup, battlenet-login/-callback/-logout/-characters/-characters-refresh/-character-portraits, wow-reference-instances/-expansions/-specializations/-refresh, privacy-email, health/-ready, cors-preflight catch-all OPTIONS, plus -v1 aliases where applicable. Source: api/Functions/*.cs.</documentation>
     </element>
 
     <element identifier="id-iface-bnet-oauth" xsi:type="ApplicationInterface">
@@ -122,7 +125,7 @@
 
     <element identifier="id-iface-wow-render" xsi:type="ApplicationInterface">
       <name xml:lang="en">Character render images</name>
-      <documentation xml:lang="en">Static image URLs at https://render.worldofwarcraft.com/. Fetched directly by the SPA browser (allow-listed in CSP img-src). Source: app/wwwroot/staticwebapp.config.json.</documentation>
+      <documentation xml:lang="en">Static image URLs at https://render.worldofwarcraft.com/. Fetched directly by the SPA browser (allow-listed in CSP img-src). Source: app/wwwroot/staticwebapp.config.json.template.</documentation>
     </element>
 
     <!-- Application Services (realised by Lfm.Api) -->
@@ -206,7 +209,7 @@
 
     <element identifier="id-sysw-app-service-plan" xsi:type="Node">
       <name xml:lang="en">App Service Plan</name>
-      <documentation xml:lang="en">Microsoft.Web/serverfarms — compute substrate for the Function App (Flex Consumption FC1 per CLAUDE.md cost guidance). Source: infra/modules/functions.bicep (hostingPlan).</documentation>
+      <documentation xml:lang="en">Microsoft.Web/serverfarms — compute substrate for the Function App. Current committed Bicep uses Y1 Dynamic (Linux Consumption); deploy-infra.yml carries a one-time cleanup path for earlier Flex Consumption resources. Source: infra/modules/functions.bicep (hostingPlan), .github/workflows/deploy-infra.yml.</documentation>
     </element>
 
     <element identifier="id-sysw-functions-runtime" xsi:type="SystemSoftware">
@@ -246,10 +249,15 @@
 
     <element identifier="id-tech-funcapp-mi" xsi:type="TechnologyService">
       <name xml:lang="en">Function App MI (system-assigned)</name>
-      <documentation xml:lang="en">System-assigned managed identity on the Function App (`identity: { type: 'SystemAssigned' }`). Holds the data-plane RBAC role assignments that authorise every outbound call from Lfm.Api: Key Vault Secrets User on the Vault, SQL Role 00000000-...-00000002 (Cosmos DB Built-in Data Contributor) on the Cosmos account, Storage Blob Data Owner / Queue Data Contributor / Table Data Contributor on the Storage account, and Monitoring Metrics Publisher on App Insights (required because Application Insights has DisableLocalAuth=true). Source: infra/modules/functions.bicep (kvRoleAssignment, cosmosRoleAssignment, storageBlobRole, storageQueueRole, storageTableRole, appInsightsRoleAssignment).</documentation>
+      <documentation xml:lang="en">System-assigned managed identity on the Function App (`identity: { type: 'SystemAssigned' }`). Holds the data-plane RBAC role assignments that authorise every outbound call from Lfm.Api: Key Vault Secrets User on the Vault, SQL Role 00000000-...-00000002 (Cosmos DB Built-in Data Contributor) on the Cosmos account, Storage Blob Data Owner / Queue Data Contributor / Table Data Contributor on the Storage account, Monitoring Metrics Publisher on App Insights (required because Application Insights has DisableLocalAuth=true), plus Data Protection-specific Key Vault Crypto User and Storage Blob Data Contributor grants. Source: infra/modules/functions.bicep (kvRoleAssignment, cosmosRoleAssignment, storageBlobRole, storageQueueRole, storageTableRole, appInsightsRoleAssignment), infra/modules/dataprotection.bicep (kvCryptoUserRoleAssignment, storageBlobContributorRoleAssignment).</documentation>
     </element>
 
     <!-- Artifacts (Passive structure) -->
+
+    <element identifier="id-art-cosmos-database" xsi:type="Artifact">
+      <name xml:lang="en">Cosmos SQL database</name>
+      <documentation xml:lang="en">Parameterized Cosmos DB SQL database (`databaseName`, supplied from the deploy workflow's COSMOS_DATABASE repo variable). Parent for all dynamic-data containers. Source: infra/modules/cosmos.bicep (database), infra/main.bicep.</documentation>
+    </element>
 
     <element identifier="id-art-cosmos-raiders" xsi:type="Artifact">
       <name xml:lang="en">Cosmos container: raiders</name>
@@ -550,10 +558,11 @@
 
     <!-- Technology Layer: Nodes compose their Artifacts -->
 
-    <relationship identifier="id-rel-cosmos-comp-raiders" source="id-node-cosmos" target="id-art-cosmos-raiders" xsi:type="Composition"/>
-    <relationship identifier="id-rel-cosmos-comp-runs" source="id-node-cosmos" target="id-art-cosmos-runs" xsi:type="Composition"/>
-    <relationship identifier="id-rel-cosmos-comp-guilds" source="id-node-cosmos" target="id-art-cosmos-guilds" xsi:type="Composition"/>
-    <relationship identifier="id-rel-cosmos-comp-idempotency" source="id-node-cosmos" target="id-art-cosmos-idempotency" xsi:type="Composition"/>
+    <relationship identifier="id-rel-cosmos-comp-database" source="id-node-cosmos" target="id-art-cosmos-database" xsi:type="Composition"/>
+    <relationship identifier="id-rel-cosmos-comp-raiders" source="id-art-cosmos-database" target="id-art-cosmos-raiders" xsi:type="Composition"/>
+    <relationship identifier="id-rel-cosmos-comp-runs" source="id-art-cosmos-database" target="id-art-cosmos-runs" xsi:type="Composition"/>
+    <relationship identifier="id-rel-cosmos-comp-guilds" source="id-art-cosmos-database" target="id-art-cosmos-guilds" xsi:type="Composition"/>
+    <relationship identifier="id-rel-cosmos-comp-idempotency" source="id-art-cosmos-database" target="id-art-cosmos-idempotency" xsi:type="Composition"/>
     <relationship identifier="id-rel-storage-comp-wow" source="id-node-storage" target="id-art-blob-wow" xsi:type="Composition"/>
     <relationship identifier="id-rel-storage-comp-dp" source="id-node-storage" target="id-art-blob-dp" xsi:type="Composition"/>
     <relationship identifier="id-rel-storage-comp-deployment" source="id-node-storage" target="id-art-blob-deployment" xsi:type="Composition"/>
@@ -755,6 +764,7 @@
       <item identifierRef="id-node-log-analytics"/>
       <item identifierRef="id-node-action-group"/>
       <item identifierRef="id-tech-funcapp-mi"/>
+      <item identifierRef="id-art-cosmos-database"/>
       <item identifierRef="id-art-cosmos-raiders"/>
       <item identifierRef="id-art-cosmos-runs"/>
       <item identifierRef="id-art-cosmos-guilds"/>
@@ -918,7 +928,7 @@
 
       <view identifier="id-view-technology-security" xsi:type="Diagram" viewpoint="Technology Usage">
         <name xml:lang="en">View: Technology Security (Managed Identity + Data-plane RBAC)</name>
-        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because App Insights has DisableLocalAuth=true. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the **only** authentication path. Reading this view: every Access edge from MI represents a role-assignment that must exist for the corresponding outbound call to succeed; remove the role and Lfm.Api silently fails with 401/403 on first use.</documentation>
+        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because App Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the **only** authentication path. Reading this view: every Access edge from MI represents a role-assignment that must exist for the corresponding outbound call to succeed; remove the role and Lfm.Api silently fails with 401/403 on first use.</documentation>
 
         <!-- Function App container (left), with MI nested as the visually-dominant child (the MI is the actual subject of this view; FA is the carrier) -->
         <node identifier="id-node-v2s-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="60" y="770" w="220" h="190">
