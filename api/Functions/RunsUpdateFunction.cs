@@ -12,6 +12,7 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Validation;
 using Lfm.Contracts.Runs;
 
 namespace Lfm.Api.Functions;
@@ -84,12 +85,10 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         // 3. Permission check — mirrors runs-update.ts:
         //    Creator can always edit. Non-creator must be in the same guild with
         //    canCreateGuildRuns permission.
-        var isCreator = existing.CreatorBattleNetId == principal.BattleNetId;
+        var isCreator = RunAccessPolicy.IsCreator(existing, principal.BattleNetId);
         if (!isCreator)
         {
-            if (existing.Visibility != "GUILD"
-                || existing.CreatorGuildId is null
-                || guildId != existing.CreatorGuildId.ToString())
+            if (!RunAccessPolicy.IsGuildPeer(existing, principal.BattleNetId, guildId))
             {
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "not creator"));
                 return Problem.Forbidden(
@@ -276,7 +275,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         if (!string.IsNullOrEmpty(persisted.ETag))
             req.HttpContext.Response.Headers.ETag = persisted.ETag;
 
-        return new OkObjectResult(MapToDto(persisted, principal.BattleNetId));
+        return new OkObjectResult(RunResponseMapper.ToDetail(persisted, principal.BattleNetId));
     }
 
     /// <summary>
@@ -292,36 +291,4 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         CancellationToken ct)
         => Run(req, id, ctx, ct);
 
-    // ------------------------------------------------------------------
-    // Mapping helper — projects the stored RunDocument to its wire DTO.
-    // ------------------------------------------------------------------
-
-    private static RunDetailDto MapToDto(RunDocument doc, string currentBattleNetId)
-    {
-        var (difficulty, size) = RunModeResolver.Resolve(doc.Difficulty, doc.Size, doc.ModeKey);
-        return new RunDetailDto(
-            Id: doc.Id,
-            StartTime: doc.StartTime,
-            SignupCloseTime: doc.SignupCloseTime,
-            Description: doc.Description,
-            Visibility: doc.Visibility,
-            CreatorGuild: doc.CreatorGuild,
-            InstanceId: doc.InstanceId,
-            InstanceName: doc.InstanceName,
-            Difficulty: difficulty,
-            Size: size,
-            KeystoneLevel: doc.KeystoneLevel,
-            RunCharacters: doc.RunCharacters
-                .Select(c => new RunCharacterDto(
-                    CharacterName: c.CharacterName,
-                    CharacterRealm: c.CharacterRealm,
-                    CharacterClassId: c.CharacterClassId,
-                    CharacterClassName: c.CharacterClassName,
-                    DesiredAttendance: c.DesiredAttendance,
-                    ReviewedAttendance: c.ReviewedAttendance,
-                    SpecName: c.SpecName,
-                    Role: c.Role,
-                    IsCurrentUser: c.RaiderBattleNetId == currentBattleNetId))
-                .ToList());
-    }
 }

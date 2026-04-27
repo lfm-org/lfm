@@ -7,6 +7,7 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Validation;
 using Lfm.Contracts.Characters;
 using Lfm.Contracts.Raiders;
 using Microsoft.AspNetCore.Http;

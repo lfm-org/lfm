@@ -38,11 +38,6 @@
           "Microsoft.Extensions.Options": "10.0.7"
         }
       },
-      "FluentValidation": {
-        "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "EPpkIe1yh1a0OXyC100oOA8WMbZvqUu5plwhvYcb7oSELfyUZzfxV48BLhvs3kKo4NwG7MGLNgy1RJiYtT8Dpw=="
-      },
       "Microsoft.AspNetCore.Authorization": {
         "type": "Transitive",
         "resolved": "10.0.7",
@@ -181,10 +176,7 @@
         "contentHash": "D5M0Jr551iTgwkZMN9rm0pSkgNLj5quUWQUmQPMZh7k/bnvZTnXRGfE2KuvXf1EEjt/ofD9yw9IumpgdP9QCnw=="
       },
       "lfm.contracts": {
-        "type": "Project",
-        "dependencies": {
-          "FluentValidation": "[12.1.1, )"
-        }
+        "type": "Project"
       }
     }
   }
