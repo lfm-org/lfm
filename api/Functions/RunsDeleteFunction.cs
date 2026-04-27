@@ -48,7 +48,7 @@ public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raiders
         // 2. Permission check — mirrors runs-delete.ts:
         //    Creator can always delete. Non-creator must be in the same guild with
         //    canDeleteGuildRuns permission.
-        var isCreator = existing.CreatorBattleNetId == principal.BattleNetId;
+        var isCreator = RunAccessPolicy.IsCreator(existing, principal.BattleNetId);
         if (!isCreator)
         {
             // Load the raider and derive guild info from the selected character.
@@ -59,9 +59,7 @@ public class RunsDeleteFunction(IRunsRepository repo, IRaidersRepository raiders
 
             var (guildId, _) = GuildResolver.FromRaider(raider);
 
-            if (existing.Visibility != "GUILD"
-                || existing.CreatorGuildId is null
-                || guildId != existing.CreatorGuildId.ToString())
+            if (!RunAccessPolicy.IsGuildPeer(existing, principal.BattleNetId, guildId))
             {
                 AuditLog.Emit(logger, new AuditEvent("run.delete", principal.BattleNetId, id, "failure", "not creator"));
                 return Problem.Forbidden(
