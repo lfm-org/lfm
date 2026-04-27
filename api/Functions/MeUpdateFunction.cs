@@ -9,6 +9,7 @@ using Lfm.Api.Auth;
 using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
+using Lfm.Api.Validation;
 using Lfm.Contracts.Me;
 
 namespace Lfm.Api.Functions;
