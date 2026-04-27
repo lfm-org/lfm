@@ -248,7 +248,7 @@
     </element>
 
     <element identifier="id-tech-funcapp-mi" xsi:type="TechnologyService">
-      <name xml:lang="en">Function App MI (system-assigned)</name>
+      <name xml:lang="en">Function App MI</name>
       <documentation xml:lang="en">System-assigned managed identity on the Function App (`identity: { type: 'SystemAssigned' }`). Holds the data-plane RBAC role assignments that authorise every outbound call from Lfm.Api: Key Vault Secrets User on the Vault, SQL Role 00000000-...-00000002 (Cosmos DB Built-in Data Contributor) on the Cosmos account, Storage Blob Data Owner / Queue Data Contributor / Table Data Contributor on the Storage account, Monitoring Metrics Publisher on App Insights (required because Application Insights has DisableLocalAuth=true), plus Data Protection-specific Key Vault Crypto User and Storage Blob Data Contributor grants. Source: infra/modules/functions.bicep (kvRoleAssignment, cosmosRoleAssignment, storageBlobRole, storageQueueRole, storageTableRole, appInsightsRoleAssignment), infra/modules/dataprotection.bicep (kvCryptoUserRoleAssignment, storageBlobContributorRoleAssignment).</documentation>
     </element>
 
@@ -290,7 +290,7 @@
     </element>
 
     <element identifier="id-art-blob-deployment" xsi:type="Artifact">
-      <name xml:lang="en">Blob container: deployment</name>
+      <name xml:lang="en">Blob container: deployments</name>
       <documentation xml:lang="en">Functions deployment package staging (linked via WEBSITE_RUN_FROM_PACKAGE). Source: infra/modules/storage.bicep (deploymentContainer).</documentation>
     </element>
 
@@ -362,7 +362,7 @@
     <!-- Deliverables produced by the Work Packages -->
 
     <element identifier="id-deliv-bicep" xsi:type="Deliverable">
-      <name xml:lang="en">Infrastructure deployment (Bicep)</name>
+      <name xml:lang="en">Bicep infrastructure</name>
       <documentation xml:lang="en">Output of Deploy Infrastructure — the deployed resource group containing all Technology Layer nodes. Source: infra/main.bicep applied via .github/workflows/deploy-infra.yml.</documentation>
     </element>
 
@@ -379,13 +379,28 @@
     <!-- Plateaus (target environments) -->
 
     <element identifier="id-plat-dev" xsi:type="Plateau">
-      <name xml:lang="en">Dev (FORWARD-ONLY)</name>
+      <name xml:lang="en">Dev</name>
       <documentation xml:lang="en">FORWARD-ONLY stub — a Dev environment does not currently exist in this repo. The `deploy.yml` / `deploy-infra.yml` / `deploy-app.yml` workflows tag every deployment with `environment=production` and there are no environment-aware GitHub variables for any other target. Architect to confirm whether a Dev plateau will be introduced or whether this stub should be removed.</documentation>
     </element>
 
     <element identifier="id-plat-staging" xsi:type="Plateau">
-      <name xml:lang="en">Staging (FORWARD-ONLY)</name>
+      <name xml:lang="en">Staging</name>
       <documentation xml:lang="en">FORWARD-ONLY stub — a Staging environment does not currently exist in this repo. See Dev plateau for context.</documentation>
+    </element>
+
+    <element identifier="id-plat-repository-baseline" xsi:type="Plateau">
+      <name xml:lang="en">Repository baseline</name>
+      <documentation xml:lang="en">Baseline Plateau for the Migration view: committed source, Bicep, and workflow definitions before the production deploy applies them.</documentation>
+    </element>
+
+    <element identifier="id-gap-release-to-production" xsi:type="Gap">
+      <name xml:lang="en">Release to production</name>
+      <documentation xml:lang="en">Migration Gap closed by the deploy workflows when current source and infrastructure definitions become the Production Plateau.</documentation>
+    </element>
+
+    <element identifier="id-event-deploy-production" xsi:type="ImplementationEvent">
+      <name xml:lang="en">Deploy to Production</name>
+      <documentation xml:lang="en">Implementation Event representing a successful production deployment after Deploy Infrastructure and Deploy App complete.</documentation>
     </element>
 
     <element identifier="id-plat-production" xsi:type="Plateau">
@@ -400,17 +415,17 @@
          ============================================================================= -->
 
     <element identifier="id-cap-find-group-for-mythic" xsi:type="Capability">
-      <name xml:lang="en">Find a group for Mythic+ (FORWARD-ONLY)</name>
+      <name xml:lang="en">Find a group for Mythic+</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from runs / signup application services. Architect to confirm framing.</documentation>
     </element>
 
     <element identifier="id-cap-guild-roster-mgmt" xsi:type="Capability">
-      <name xml:lang="en">Guild roster management (FORWARD-ONLY)</name>
+      <name xml:lang="en">Guild roster management</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from guild application services. Architect to confirm framing.</documentation>
     </element>
 
     <element identifier="id-cap-character-portfolio" xsi:type="Capability">
-      <name xml:lang="en">Personal character portfolio (FORWARD-ONLY)</name>
+      <name xml:lang="en">Personal character portfolio</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from raider-character + battlenet-characters services. Architect to confirm framing.</documentation>
     </element>
 
@@ -421,22 +436,22 @@
          ============================================================================= -->
 
     <element identifier="id-bsvc-find-group" xsi:type="BusinessService">
-      <name xml:lang="en">Group-finding service (FORWARD-ONLY)</name>
+      <name xml:lang="en">Group-finding service</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from id-svc-runs. Architect to confirm framing and add the realising Business Process / Function.</documentation>
     </element>
 
     <element identifier="id-bsvc-guild-roster" xsi:type="BusinessService">
-      <name xml:lang="en">Guild roster service (FORWARD-ONLY)</name>
+      <name xml:lang="en">Guild roster service</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from id-svc-guild. Architect to confirm framing.</documentation>
     </element>
 
     <element identifier="id-bsvc-character-mgmt" xsi:type="BusinessService">
-      <name xml:lang="en">Character-management service (FORWARD-ONLY)</name>
+      <name xml:lang="en">Character-management service</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from id-svc-raiders + id-svc-bnet-chars. Architect to confirm framing.</documentation>
     </element>
 
     <element identifier="id-bsvc-account" xsi:type="BusinessService">
-      <name xml:lang="en">Account-management service (FORWARD-ONLY)</name>
+      <name xml:lang="en">Account-management service</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from id-svc-me + id-svc-auth. Architect to confirm framing.</documentation>
     </element>
 
@@ -452,47 +467,47 @@
          ============================================================================= -->
 
     <element identifier="id-actor-player" xsi:type="BusinessActor">
-      <name xml:lang="en">Mythic+ Player (FORWARD-ONLY)</name>
+      <name xml:lang="en">Mythic+ Player</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. A WoW player using LFM to find a group for a Mythic+ run. Inferred from the public LFM use-case surface; not validated against business stakeholders.</documentation>
     </element>
 
     <element identifier="id-be-wants-key" xsi:type="BusinessEvent">
-      <name xml:lang="en">Player wants to run a key (FORWARD-ONLY)</name>
+      <name xml:lang="en">Player wants to run a key</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Entry Event for the run-signup chain — the player decides they want to do a Mythic+ run. Out-of-band; no system trigger.</documentation>
     </element>
 
     <element identifier="id-bp-browse-runs" xsi:type="BusinessProcess">
-      <name xml:lang="en">Browse open runs (FORWARD-ONLY)</name>
+      <name xml:lang="en">Browse open runs</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. The player loads /runs and reviews the list of currently-open Mythic+ runs. Realised by the Mythic+ Runs application service (RunsListFunction).</documentation>
     </element>
 
     <element identifier="id-bp-inspect-run" xsi:type="BusinessProcess">
-      <name xml:lang="en">Inspect run detail (FORWARD-ONLY)</name>
+      <name xml:lang="en">Inspect run detail</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. The player drills into /runs/{RunId} to read the run's specifics (key level, dungeon, scheduled time, party so far, leader notes). Realised by the Mythic+ Runs application service (RunsDetailFunction).</documentation>
     </element>
 
     <element identifier="id-bp-signup-run" xsi:type="BusinessProcess">
-      <name xml:lang="en">Sign up for run (FORWARD-ONLY)</name>
+      <name xml:lang="en">Sign up for run</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. The player picks a character + role and submits a signup. Realised by the Mythic+ Runs application service (RunsSignupFunction). User-driven — the §9.3 drill-down shows the UI entry point at /runs/{RunId}.</documentation>
     </element>
 
     <element identifier="id-bp-cancel-signup" xsi:type="BusinessProcess">
-      <name xml:lang="en">Cancel signup (FORWARD-ONLY)</name>
+      <name xml:lang="en">Cancel signup</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Alternative path — the player removes themselves from the run. Realised by the Mythic+ Runs application service (RunsCancelSignupFunction).</documentation>
     </element>
 
     <element identifier="id-be-signup-confirmed" xsi:type="BusinessEvent">
-      <name xml:lang="en">Signup confirmed (FORWARD-ONLY)</name>
+      <name xml:lang="en">Signup confirmed</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Terminal outcome of the signup chain — the run leader sees the signup, the player has secured a slot.</documentation>
     </element>
 
     <element identifier="id-bobj-run" xsi:type="BusinessObject">
-      <name xml:lang="en">Run (FORWARD-ONLY)</name>
+      <name xml:lang="en">Run</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Business representation of a Mythic+ run (key level, dungeon, scheduled time, party slots). Realised by the Cosmos `runs` container.</documentation>
     </element>
 
     <element identifier="id-bobj-signup" xsi:type="BusinessObject">
-      <name xml:lang="en">Signup (FORWARD-ONLY)</name>
+      <name xml:lang="en">Signup</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Business representation of a player's signup to a run — character, role, status. Embedded inside the Run document in the Cosmos `runs` container.</documentation>
     </element>
 
@@ -503,13 +518,18 @@
          ============================================================================= -->
 
     <element identifier="id-driver-mythic-plus-friction" xsi:type="Driver">
-      <name xml:lang="en">Mythic+ group-finding friction (FORWARD-ONLY)</name>
+      <name xml:lang="en">Mythic+ group-finding friction</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from the existence of a Mythic+ group-finding application surface. Architect to confirm or replace with the real driver.</documentation>
     </element>
 
     <element identifier="id-goal-easy-signup" xsi:type="Goal">
-      <name xml:lang="en">Frictionless raid signup (FORWARD-ONLY)</name>
+      <name xml:lang="en">Frictionless raid signup</name>
       <documentation xml:lang="en">FORWARD-ONLY stub. Inferred from runs-signup / runs-cancel-signup endpoints. Architect to confirm.</documentation>
+    </element>
+
+    <element identifier="id-req-run-signup-entrypoint" xsi:type="Requirement">
+      <name xml:lang="en">Expose run signup entry point</name>
+      <documentation xml:lang="en">FORWARD-ONLY requirement stub tying the run-signup goal to an architectural decision: keep a discoverable UI route and API-backed application service for viewing a run and submitting or cancelling a signup.</documentation>
     </element>
 
   </elements>
@@ -573,12 +593,12 @@
     <relationship identifier="id-rel-swa-assign-app" source="id-node-swa" target="id-lfm-app" xsi:type="Assignment"/>
     <relationship identifier="id-rel-funcapp-assign-api" source="id-node-function-app" target="id-lfm-api" xsi:type="Assignment"/>
 
-    <!-- Technology Layer: Node-to-Node serving / data flow -->
+    <!-- Technology Layer: Node-to-Node serving relationships -->
 
     <relationship identifier="id-rel-cosmos-serves-funcapp" source="id-node-cosmos" target="id-node-function-app" xsi:type="Serving"/>
     <relationship identifier="id-rel-storage-serves-funcapp" source="id-node-storage" target="id-node-function-app" xsi:type="Serving"/>
     <relationship identifier="id-rel-kv-serves-funcapp" source="id-node-keyvault" target="id-node-function-app" xsi:type="Serving"/>
-    <relationship identifier="id-rel-funcapp-flow-ai" source="id-node-function-app" target="id-node-app-insights" xsi:type="Flow"/>
+    <relationship identifier="id-rel-ai-serves-funcapp" source="id-node-app-insights" target="id-node-function-app" xsi:type="Serving"/>
     <relationship identifier="id-rel-la-agg-ai" source="id-node-log-analytics" target="id-node-app-insights" xsi:type="Aggregation"/>
     <relationship identifier="id-rel-ai-serves-actiongroup" source="id-node-app-insights" target="id-node-action-group" xsi:type="Serving"/>
 
@@ -605,6 +625,11 @@
 
     <relationship identifier="id-rel-deploy-infra-real-prod" source="id-wp-deploy-infra" target="id-plat-production" xsi:type="Realization"/>
     <relationship identifier="id-rel-deploy-app-real-prod" source="id-wp-deploy-app" target="id-plat-production" xsi:type="Realization"/>
+    <relationship identifier="id-rel-plat-baseline-trig-release-gap" source="id-plat-repository-baseline" target="id-gap-release-to-production" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-release-gap-trig-prod-event" source="id-gap-release-to-production" target="id-event-deploy-production" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-prod-event-trig-prod" source="id-event-deploy-production" target="id-plat-production" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-deploy-infra-trig-prod-event" source="id-wp-deploy-infra" target="id-event-deploy-production" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-deploy-app-trig-prod-event" source="id-wp-deploy-app" target="id-event-deploy-production" xsi:type="Triggering"/>
 
     <!-- Implementation &amp; Migration: Deliverables realise the runtime elements -->
 
@@ -629,25 +654,21 @@
     <relationship identifier="id-rel-grp-wow-api" source="id-grp-blizzard-external" target="id-blizzard-wow-api" xsi:type="Composition"/>
     <relationship identifier="id-rel-grp-cdn" source="id-grp-blizzard-external" target="id-blizzard-cdn" xsi:type="Composition"/>
 
-    <!-- Function App's system-assigned MI is composed into the Function App Node and Accesses every data-plane resource via RBAC role assignments -->
+    <!-- Function App's system-assigned MI is composed into the Function App Node; resource access is authorised by RBAC role assignments documented on the MI element. -->
 
     <relationship identifier="id-rel-fa-comp-mi" source="id-node-function-app" target="id-tech-funcapp-mi" xsi:type="Composition"/>
-    <relationship identifier="id-rel-mi-access-cosmos" source="id-tech-funcapp-mi" target="id-node-cosmos" xsi:type="Access" accessType="ReadWrite"/>
-    <relationship identifier="id-rel-mi-access-storage" source="id-tech-funcapp-mi" target="id-node-storage" xsi:type="Access" accessType="ReadWrite"/>
-    <relationship identifier="id-rel-mi-access-kv" source="id-tech-funcapp-mi" target="id-node-keyvault" xsi:type="Access" accessType="Read"/>
-    <relationship identifier="id-rel-mi-access-ai" source="id-tech-funcapp-mi" target="id-node-app-insights" xsi:type="Access" accessType="Write"/>
 
-    <!-- Diagnostic settings — every stateful Tech Node forwards diagnostic logs to Log Analytics per its Bicep module -->
+    <!-- Diagnostic settings — Log Analytics serves as the central sink for each resource's diagnostics. -->
 
-    <relationship identifier="id-rel-cosmos-flow-la" source="id-node-cosmos" target="id-node-log-analytics" xsi:type="Flow"/>
-    <relationship identifier="id-rel-storage-flow-la" source="id-node-storage" target="id-node-log-analytics" xsi:type="Flow"/>
-    <relationship identifier="id-rel-kv-flow-la" source="id-node-keyvault" target="id-node-log-analytics" xsi:type="Flow"/>
-    <relationship identifier="id-rel-swa-flow-la" source="id-node-swa" target="id-node-log-analytics" xsi:type="Flow"/>
-    <relationship identifier="id-rel-fa-flow-la" source="id-node-function-app" target="id-node-log-analytics" xsi:type="Flow"/>
+    <relationship identifier="id-rel-la-serves-cosmos" source="id-node-log-analytics" target="id-node-cosmos" xsi:type="Serving"/>
+    <relationship identifier="id-rel-la-serves-storage" source="id-node-log-analytics" target="id-node-storage" xsi:type="Serving"/>
+    <relationship identifier="id-rel-la-serves-kv" source="id-node-log-analytics" target="id-node-keyvault" xsi:type="Serving"/>
+    <relationship identifier="id-rel-la-serves-swa" source="id-node-log-analytics" target="id-node-swa" xsi:type="Serving"/>
+    <relationship identifier="id-rel-la-serves-funcapp" source="id-node-log-analytics" target="id-node-function-app" xsi:type="Serving"/>
 
-    <!-- Action Group is triggered by metric alerts on the Cosmos account -->
+    <!-- Action Group serves the Cosmos account by handling throttle-alert notifications. -->
 
-    <relationship identifier="id-rel-cosmos-trig-ag" source="id-node-cosmos" target="id-node-action-group" xsi:type="Triggering"/>
+    <relationship identifier="id-rel-actiongroup-serves-cosmos" source="id-node-action-group" target="id-node-cosmos" xsi:type="Serving"/>
 
     <!-- =============================================================================
          FORWARD-ONLY relationships — wire the suggested stubs together so a future
@@ -665,6 +686,7 @@
     <relationship identifier="id-rel-svc-auth-real-bsvc" source="id-svc-auth" target="id-bsvc-account" xsi:type="Realization"/>
     <relationship identifier="id-rel-driver-infl-goal" source="id-driver-mythic-plus-friction" target="id-goal-easy-signup" xsi:type="Influence"/>
     <relationship identifier="id-rel-cap-real-goal-easy" source="id-cap-find-group-for-mythic" target="id-goal-easy-signup" xsi:type="Realization"/>
+    <relationship identifier="id-rel-req-real-goal-easy" source="id-req-run-signup-entrypoint" target="id-goal-easy-signup" xsi:type="Realization"/>
 
     <!-- =============================================================================
          Business Process Cooperation chain (FORWARD-ONLY, architect-authored)
@@ -792,6 +814,9 @@
       <item identifierRef="id-deliv-spa"/>
       <item identifierRef="id-plat-dev"/>
       <item identifierRef="id-plat-staging"/>
+      <item identifierRef="id-plat-repository-baseline"/>
+      <item identifierRef="id-gap-release-to-production"/>
+      <item identifierRef="id-event-deploy-production"/>
       <item identifierRef="id-plat-production"/>
     </item>
     <item>
@@ -805,6 +830,7 @@
       <item identifierRef="id-bsvc-account"/>
       <item identifierRef="id-driver-mythic-plus-friction"/>
       <item identifierRef="id-goal-easy-signup"/>
+      <item identifierRef="id-req-run-signup-entrypoint"/>
       <item identifierRef="id-actor-player"/>
       <item identifierRef="id-be-wants-key"/>
       <item identifierRef="id-bp-browse-runs"/>
@@ -897,7 +923,7 @@
 
       <view identifier="id-view-technology" xsi:type="Diagram" viewpoint="Technology Usage">
         <name xml:lang="en">View: Technology Realisation (Hosting + Data Plane)</name>
-        <documentation xml:lang="en">Azure Technology Layer hosting + data-plane overview. Static Web Apps hosts Lfm.App; Function App hosts Lfm.Api; the data plane is Cosmos DB (Free Tier, single-region) + Storage (Standard_LRS) + Key Vault; the workspace-based observability stack (Log Analytics aggregates Application Insights) receives telemetry from the Function App. **The data-plane RBAC story (system-assigned MI, role assignments, Access edges) is in the Technology Security view (sibling).** Diagnostic settings (Cosmos / Storage / KV / SWA / Function App → Log Analytics) and the Action Group + Cosmos throttle alert are tracked in &lt;relationships&gt; but reserved for an Observability detail view. App-Service Plan SKU and runtime version are in &lt;elements&gt; documentation. Region is `vars.AZURE_LOCATION` from the deploy workflow — single-region, no failover.</documentation>
+        <documentation xml:lang="en">Azure Technology Layer hosting + data-plane overview. Static Web Apps hosts Lfm.App; Function App hosts Lfm.Api; the data plane is Cosmos DB (Free Tier, single-region) + Storage (Standard_LRS) + Key Vault; the workspace-based observability stack (Log Analytics aggregates Application Insights) receives telemetry from the Function App. **The data-plane RBAC story (system-assigned MI, role assignments, Serving dependencies into Function App) is in the Technology Security view (sibling).** Diagnostic settings (Cosmos / Storage / KV / SWA / Function App → Log Analytics) and the Action Group + Cosmos throttle alert are tracked in &lt;relationships&gt; but reserved for an Observability detail view. App-Service Plan SKU and runtime version are in &lt;elements&gt; documentation. Region is `vars.AZURE_LOCATION` from the deploy workflow — single-region, no failover.</documentation>
 
         <!-- Application band — pushed to the bottom of [520,720] so Assignment edges are short -->
         <node identifier="id-node-v2-app" elementRef="id-lfm-app" xsi:type="Element" x="60" y="620" w="160" h="80"/>
@@ -918,7 +944,7 @@
         <connection identifier="id-conn-v2-3" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2-cosmos" target="id-node-v2-funcapp" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-4" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2-storage" target="id-node-v2-funcapp" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-5" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2-kv" target="id-node-v2-funcapp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-6" relationshipRef="id-rel-funcapp-flow-ai" source="id-node-v2-funcapp" target="id-node-v2-ai" xsi:type="Relationship">
+        <connection identifier="id-conn-v2-6" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2-ai" target="id-node-v2-funcapp" xsi:type="Relationship">
           <bendpoint x="420" y="760"/>
           <bendpoint x="700" y="760"/>
         </connection>
@@ -928,7 +954,7 @@
 
       <view identifier="id-view-technology-security" xsi:type="Diagram" viewpoint="Technology Usage">
         <name xml:lang="en">View: Technology Security (Managed Identity + Data-plane RBAC)</name>
-        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because App Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the **only** authentication path. Reading this view: every Access edge from MI represents a role-assignment that must exist for the corresponding outbound call to succeed; remove the role and Lfm.Api silently fails with 401/403 on first use.</documentation>
+        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because Application Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the only authentication path. Reading this view: each Serving edge into the Function App is a runtime dependency whose access is authorised by the nested MI's documented role assignments.</documentation>
 
         <!-- Function App container (left), with MI nested as the visually-dominant child (the MI is the actual subject of this view; FA is the carrier) -->
         <node identifier="id-node-v2s-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="60" y="770" w="220" h="190">
@@ -943,20 +969,20 @@
         <!-- Application Insights for the Monitoring Metrics Publisher RBAC story -->
         <node identifier="id-node-v2s-ai" elementRef="id-node-app-insights" xsi:type="Element" x="580" y="770" w="200" h="60"/>
 
-        <!-- Connections — Composition (FA→MI) hidden via nesting; Access edges from MI to each resource it has been granted RBAC on. MI center y≈870, route via x=290 channel between FA and storage column. -->
-        <connection identifier="id-conn-v2s-1" relationshipRef="id-rel-mi-access-cosmos" source="id-node-v2s-mi" target="id-node-v2s-cosmos" xsi:type="Relationship">
+        <!-- Connections — Composition (FA→MI) hidden via nesting; Serving edges show the Function App dependencies that the MI's RBAC grants authorise. -->
+        <connection identifier="id-conn-v2s-1" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2s-cosmos" target="id-node-v2s-funcapp" xsi:type="Relationship">
           <bendpoint x="290" y="870"/>
           <bendpoint x="290" y="800"/>
         </connection>
-        <connection identifier="id-conn-v2s-2" relationshipRef="id-rel-mi-access-storage" source="id-node-v2s-mi" target="id-node-v2s-storage" xsi:type="Relationship">
+        <connection identifier="id-conn-v2s-2" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2s-storage" target="id-node-v2s-funcapp" xsi:type="Relationship">
           <bendpoint x="290" y="870"/>
           <bendpoint x="290" y="860"/>
         </connection>
-        <connection identifier="id-conn-v2s-3" relationshipRef="id-rel-mi-access-kv" source="id-node-v2s-mi" target="id-node-v2s-kv" xsi:type="Relationship">
+        <connection identifier="id-conn-v2s-3" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2s-kv" target="id-node-v2s-funcapp" xsi:type="Relationship">
           <bendpoint x="290" y="870"/>
           <bendpoint x="290" y="920"/>
         </connection>
-        <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-mi-access-ai" source="id-node-v2s-mi" target="id-node-v2s-ai" xsi:type="Relationship">
+        <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2s-ai" target="id-node-v2s-funcapp" xsi:type="Relationship">
           <bendpoint x="290" y="870"/>
           <bendpoint x="290" y="760"/>
           <bendpoint x="680" y="760"/>
@@ -965,8 +991,8 @@
       </view>
 
       <view identifier="id-view-migration" xsi:type="Diagram" viewpoint="Migration">
-        <name xml:lang="en">View: Deployment Topology (single-environment)</name>
-        <documentation xml:lang="en">Single-environment release path lifted from `.github/workflows/`. LFM deploys to **one** environment ("production"); deploy.yml has no environment input and tags every resource `environment=production`. The Deploy orchestrator aggregates Deploy Infrastructure (Bicep what-if + apply), Deploy App-Build (Functions zip + Blazor wwwroot bundle), and Deploy App (uploads to Function App + SWA). Build → Deploy App is Triggering (build artifacts feed deploy). Both Deploy Infrastructure and Deploy App realise the Production Plateau (the resource group + deployed apps that constitute the live system). Deliverables are aggregated by Production. Dev / Staging Plateaus exist as `FORWARD-ONLY` stubs in &lt;elements&gt; for future multi-environment work but are not drawn here — the current architecture is single-environment. CI / E2E / Secret Scanning / Analyze Infrastructure / License Compliance / Stryker / Dependabot are tracked but not visualised; they gate PRs, they do not realise the Plateau.</documentation>
+        <name xml:lang="en">View: Production Release Migration</name>
+        <documentation xml:lang="en">Single-environment Migration view lifted from `.github/workflows/`. LFM deploys to one environment ("production"); deploy.yml has no environment input and tags every resource `environment=production`. The release path shows a Repository baseline Plateau, the Release to production Gap, and the Deploy to Production Implementation Event that reaches the Production Plateau. The Deploy orchestrator aggregates Deploy Infrastructure (Bicep what-if + apply), Deploy App-Build (Functions zip + Blazor wwwroot bundle), and Deploy App (uploads to Function App + SWA). Dev / Staging Plateaus exist as FORWARD-ONLY stubs in &lt;elements&gt; for future multi-environment work but are not drawn here — the current architecture is single-environment.</documentation>
 
         <!-- Row 0: Deploy orchestrator centered above its 3 children so Aggregation fans down without crossing the children -->
         <node identifier="id-node-v3-deploy" elementRef="id-wp-deploy" xsi:type="Element" x="1500" y="20" w="220" h="60"/>
@@ -981,8 +1007,11 @@
         <node identifier="id-node-v3-deliv-fn" elementRef="id-deliv-functions" xsi:type="Element" x="1500" y="280" w="220" h="80"/>
         <node identifier="id-node-v3-deliv-spa" elementRef="id-deliv-spa" xsi:type="Element" x="1760" y="280" w="220" h="80"/>
 
-        <!-- Row 3: Production Plateau — single, centered under the deliverables it aggregates -->
-        <node identifier="id-node-v3-plat-prod" elementRef="id-plat-production" xsi:type="Element" x="1240" y="440" w="740" h="120"/>
+        <!-- Row 3: Migration axis — baseline Plateau → release Gap → Production Plateau -->
+        <node identifier="id-node-v3-plat-baseline" elementRef="id-plat-repository-baseline" xsi:type="Element" x="960" y="440" w="220" h="120"/>
+        <node identifier="id-node-v3-gap-release" elementRef="id-gap-release-to-production" xsi:type="Element" x="1220" y="460" w="180" h="80"/>
+        <node identifier="id-node-v3-event-prod" elementRef="id-event-deploy-production" xsi:type="Element" x="1000" y="300" w="200" h="80"/>
+        <node identifier="id-node-v3-plat-prod" elementRef="id-plat-production" xsi:type="Element" x="1440" y="440" w="740" h="120"/>
 
         <!-- Connections -->
         <connection identifier="id-conn-v3-1" relationshipRef="id-rel-deploy-agg-infra" source="id-node-v3-deploy" target="id-node-v3-deploy-infra" xsi:type="Relationship"/>
@@ -1004,6 +1033,23 @@
           <!-- Route to the RIGHT of the SPA deliverable column. -->
           <bendpoint x="2000" y="180"/>
           <bendpoint x="2000" y="420"/>
+        </connection>
+        <connection identifier="id-conn-v3-13" relationshipRef="id-rel-plat-baseline-trig-release-gap" source="id-node-v3-plat-baseline" target="id-node-v3-gap-release" xsi:type="Relationship"/>
+        <connection identifier="id-conn-v3-14" relationshipRef="id-rel-release-gap-trig-prod-event" source="id-node-v3-gap-release" target="id-node-v3-event-prod" xsi:type="Relationship">
+          <bendpoint x="1310" y="420"/>
+          <bendpoint x="1100" y="420"/>
+        </connection>
+        <connection identifier="id-conn-v3-15" relationshipRef="id-rel-prod-event-trig-prod" source="id-node-v3-event-prod" target="id-node-v3-plat-prod" xsi:type="Relationship">
+          <bendpoint x="1100" y="420"/>
+          <bendpoint x="1810" y="420"/>
+        </connection>
+        <connection identifier="id-conn-v3-16" relationshipRef="id-rel-deploy-infra-trig-prod-event" source="id-node-v3-deploy-infra" target="id-node-v3-event-prod" xsi:type="Relationship">
+          <bendpoint x="1340" y="260"/>
+          <bendpoint x="1100" y="260"/>
+        </connection>
+        <connection identifier="id-conn-v3-17" relationshipRef="id-rel-deploy-app-trig-prod-event" source="id-node-v3-deploy-app" target="id-node-v3-event-prod" xsi:type="Relationship">
+          <bendpoint x="1870" y="260"/>
+          <bendpoint x="1100" y="260"/>
         </connection>
 
       </view>
@@ -1048,13 +1094,15 @@
 
         <node identifier="id-node-mot-driver" elementRef="id-driver-mythic-plus-friction" xsi:type="Element" x="40" y="40" w="260" h="70"/>
         <node identifier="id-node-mot-goal" elementRef="id-goal-easy-signup" xsi:type="Element" x="380" y="40" w="240" h="70"/>
+        <node identifier="id-node-mot-req" elementRef="id-req-run-signup-entrypoint" xsi:type="Element" x="700" y="40" w="260" h="70"/>
 
         <connection identifier="id-conn-mot-1" relationshipRef="id-rel-driver-infl-goal" source="id-node-mot-driver" target="id-node-mot-goal" xsi:type="Relationship"/>
+        <connection identifier="id-conn-mot-2" relationshipRef="id-rel-req-real-goal-easy" source="id-node-mot-req" target="id-node-mot-goal" xsi:type="Relationship"/>
       </view>
 
       <view identifier="id-view-business-processes" xsi:type="Diagram" viewpoint="Business Process Cooperation">
         <name xml:lang="en">View: Mythic+ Run Signup — Business Process Cooperation</name>
-        <documentation xml:lang="en">FORWARD-ONLY — architect-authored. Business Layer process-flow for the user-driven "Sign up for Mythic+ run" use case. Layout follows the §9.7 specialisation: Active structure (Mythic+ Player Actor) above, Behaviour (Triggering chain Event → Browse → Inspect → Sign up → confirmed; Flow alt-path to Cancel signup) middle, Passive structure (Run / Signup Business Objects) below. Every Behaviour element carries `(FORWARD-ONLY)` in its display name; names and the chain shape are inferred from the API surface (api/Functions/Runs*Function.cs) and the Blazor pages (app/Pages/RunsPage.razor at /runs and /runs/{RunId}) — they have not been validated against business stakeholders. The drill-down into Application + Technology realising each step is represented by sibling §9.3 Service Realization views.</documentation>
+        <documentation xml:lang="en">FORWARD-ONLY — architect-authored. Business Layer process-flow for the user-driven "Sign up for Mythic+ run" use case. Layout follows the §9.7 specialisation: Active structure (Mythic+ Player Actor) above, Behaviour (Triggering chain Event → Browse → Inspect → Sign up → confirmed; Flow alt-path to Cancel signup) middle, Passive structure (Run / Signup Business Objects) below. FORWARD-ONLY status is kept in element documentation rather than visible labels; names and the chain shape are inferred from the API surface (api/Functions/Runs*Function.cs) and the Blazor pages (app/Pages/RunsPage.razor at /runs and /runs/{RunId}) — they have not been validated against business stakeholders. The drill-down into Application + Technology realising each step is represented by sibling §9.3 Service Realization views.</documentation>
 
         <!-- Active row (top): Player Actor — banner-style, top-left -->
         <node identifier="id-node-bpc-player" elementRef="id-actor-player" xsi:type="Element" x="40" y="40" w="160" h="70"/>
