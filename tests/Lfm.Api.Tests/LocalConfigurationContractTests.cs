@@ -8,6 +8,20 @@ namespace Lfm.Api.Tests;
 
 public sealed class LocalConfigurationContractTests
 {
+    public static TheoryData<string> RuntimeOptionKeyData => ToTheoryData(RuntimeOptionKeys);
+
+    public static TheoryData<string> LegacyFlatKeyData => ToTheoryData(LegacyFlatKeys);
+
+    public static TheoryData<string> DockerIgnoreRequiredPatternData => ToTheoryData(DockerIgnoreRequiredPatterns);
+
+    public static TheoryData<string, string, string, string> ComposeServiceHardeningData =>
+        new()
+        {
+            { "cosmosdb", "3g", "2.0", "512" },
+            { "azurite", "512m", "0.5", "128" },
+            { "functions", "1g", "1.0", "256" },
+        };
+
     private static readonly string[] RuntimeOptionKeys =
     [
         "Blizzard__ClientId",
@@ -65,65 +79,67 @@ public sealed class LocalConfigurationContractTests
         ".azure/",
     ];
 
-    private static readonly string[] ComposeServices =
-    [
-        "cosmosdb",
-        "azurite",
-        "functions",
-    ];
-
-    [Fact]
-    public void Example_env_documents_section_style_runtime_options()
+    [Theory]
+    [MemberData(nameof(RuntimeOptionKeyData))]
+    public void Example_env_documents_section_style_runtime_option(string key)
     {
         var keys = ReadEnvKeys(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "example.env"));
 
-        foreach (var key in RuntimeOptionKeys)
-        {
-            Assert.Contains(key, keys);
-        }
-
-        foreach (var key in LegacyFlatKeys)
-        {
-            Assert.DoesNotContain(key, keys);
-        }
+        Assert.Contains(key, keys);
     }
 
-    [Fact]
-    public void Docker_compose_functions_environment_uses_section_style_runtime_options()
+    [Theory]
+    [MemberData(nameof(LegacyFlatKeyData))]
+    public void Example_env_omits_legacy_flat_runtime_option(string key)
+    {
+        var keys = ReadEnvKeys(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "example.env"));
+
+        Assert.DoesNotContain(key, keys);
+    }
+
+    [Theory]
+    [MemberData(nameof(RuntimeOptionKeyData))]
+    public void Docker_compose_functions_environment_uses_section_style_runtime_option(string key)
     {
         var keys = ReadComposeFunctionsEnvironmentKeys(
             Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
 
-        foreach (var key in RuntimeOptionKeys)
-        {
-            Assert.Contains(key, keys);
-        }
-
-        foreach (var key in LegacyFlatKeys)
-        {
-            Assert.DoesNotContain(key, keys);
-        }
+        Assert.Contains(key, keys);
     }
 
-    [Fact]
-    public void Readme_local_configuration_table_documents_section_style_runtime_options()
+    [Theory]
+    [MemberData(nameof(LegacyFlatKeyData))]
+    public void Docker_compose_functions_environment_omits_legacy_flat_runtime_option(string key)
+    {
+        var keys = ReadComposeFunctionsEnvironmentKeys(
+            Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
+
+        Assert.DoesNotContain(key, keys);
+    }
+
+    [Theory]
+    [MemberData(nameof(RuntimeOptionKeyData))]
+    public void Readme_local_configuration_table_documents_section_style_runtime_option(string key)
     {
         var readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "README.md"));
         var localSection = ExtractBetween(readme, "### 2. Configure environment", "### 3. Start local stack");
 
-        foreach (var key in RuntimeOptionKeys)
-        {
-            Assert.Contains($"`{key}`", localSection);
-        }
-
-        foreach (var key in LegacyFlatKeys)
-        {
-            Assert.DoesNotContain($"`{key}`", localSection);
-        }
+        Assert.Contains($"`{key}`", localSection);
     }
 
-    [Fact]
-    public void Dockerignore_excludes_secret_material_from_compose_build_context()
+    [Theory]
+    [MemberData(nameof(LegacyFlatKeyData))]
+    public void Readme_local_configuration_table_omits_legacy_flat_runtime_option(string key)
+    {
+        var readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "README.md"));
+        var localSection = ExtractBetween(readme, "### 2. Configure environment", "### 3. Start local stack");
+
+        Assert.DoesNotContain($"`{key}`", localSection);
+    }
+
+    [Theory]
+    [MemberData(nameof(DockerIgnoreRequiredPatternData))]
+    public void Dockerignore_excludes_secret_material_from_compose_build_context(string pattern)
     {
         var path = Path.Combine(FindRepositoryRoot(), ".dockerignore");
 
@@ -134,30 +150,28 @@ public sealed class LocalConfigurationContractTests
             .Where(line => line.Length > 0 && !line.StartsWith('#'))
             .ToHashSet(StringComparer.Ordinal);
 
-        foreach (var pattern in DockerIgnoreRequiredPatterns)
-        {
-            Assert.Contains(pattern, patterns);
-        }
+        Assert.Contains(pattern, patterns);
     }
 
-    [Fact]
-    public void Docker_compose_services_declare_container_hardening_controls()
+    [Theory]
+    [MemberData(nameof(ComposeServiceHardeningData))]
+    public void Docker_compose_service_declares_container_hardening_controls(
+        string service,
+        string memLimit,
+        string cpus,
+        string pidsLimit)
     {
         var compose = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
+        var block = ExtractYamlBlock(compose, $"  {service}:");
 
-        foreach (var service in ComposeServices)
-        {
-            var block = ExtractYamlBlock(compose, $"  {service}:");
-
-            Assert.Contains("    read_only: true", block);
-            Assert.Contains("    security_opt:", block);
-            Assert.Contains("      - no-new-privileges:true", block);
-            Assert.Contains("    cap_drop:", block);
-            Assert.Contains("      - ALL", block);
-            Assert.Contains("    mem_limit:", block);
-            Assert.Contains("    cpus:", block);
-            Assert.Contains("    pids_limit:", block);
-        }
+        Assert.Contains("    read_only: true", block);
+        Assert.Contains("    security_opt:", block);
+        Assert.Contains("      - no-new-privileges:true", block);
+        Assert.Contains("    cap_drop:", block);
+        Assert.Contains("      - ALL", block);
+        Assert.Contains($"    mem_limit: {memLimit}", block);
+        Assert.Contains($"    cpus: \"{cpus}\"", block);
+        Assert.Contains($"    pids_limit: {pidsLimit}", block);
     }
 
     private static string FindRepositoryRoot()
@@ -258,5 +272,17 @@ public sealed class LocalConfigurationContractTests
         }
 
         return value[start..(start + startMarker.Length + nextSibling.Index)];
+    }
+
+    private static TheoryData<string> ToTheoryData(IEnumerable<string> values)
+    {
+        var data = new TheoryData<string>();
+
+        foreach (var value in values)
+        {
+            data.Add(value);
+        }
+
+        return data;
     }
 }
