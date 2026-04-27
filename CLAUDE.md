@@ -16,7 +16,7 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 ## Mandatory Git Workflow
 
 1. Start every task with a clean workspace; stop and alert if not clean.
-2. Work in `claude/<short-slug>` via `git switch -c`. Always use `git -C` with absolute paths.
+2. Work in `agents/<short-slug>` via `git switch -c`. Always use `git -C` with absolute paths.
 3. Keep changesets small: commits ≤ 5 files / ≤ 250 lines; branches ≤ 30 files / ≤ 900 lines vs `main`. Thresholds guide planning, not design. Commit partial finishes; split into subtasks if exceeding.
 4. Merge strategy: rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
 5. Before claiming complete: `superpowers:verification-before-completion`. Non-trivial tasks: `superpowers:requesting-code-review` before merging. For documentation-only changes that cannot affect build output, targeted documentation verification is sufficient; state when the full build is intentionally skipped.
