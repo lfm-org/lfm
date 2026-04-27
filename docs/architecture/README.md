@@ -2,7 +2,9 @@
 
 ArchiMate® 3.2 model of the LFM application — Blazor WebAssembly SPA + Azure Functions API + Cosmos / Storage / Key Vault on a single-environment Azure deployment. The canonical source is [`lfm.oef.xml`](lfm.oef.xml), serialised in The Open Group **Model Exchange File Format** (OEF) so it loads in Archi, BiZZdesign, Sparx EA, and any ArchiMate-conformant tool.
 
-The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub Actions workflows (Application + Technology + Implementation & Migration layers). Strategy, Business, and Motivation elements are stubbed `FORWARD-ONLY` — they exist as placeholders for the architect to fill in; their names are inferred from the application surface and have not been validated against business stakeholders.
+The model was rebuilt on 2026-04-27 with `souroldgeezer-design:architecture-design` 0.11.1 from the repository's .NET solution, Bicep IaC, and GitHub Actions workflows (Application + Technology + Implementation & Migration layers). It carries the `propid-archi-model-banded=v2` marker for the current Sugiyama-v1 layout contract. Strategy, Business, and Motivation elements are stubbed `FORWARD-ONLY` — they exist as placeholders for the architect to fill in; their names are inferred from the application surface and have not been validated against business stakeholders.
+
+The previous canonical OEF was preserved as [`backups/lfm.oef.2026-04-27.xml`](backups/lfm.oef.2026-04-27.xml) before this rebuild.
 
 ## Views
 
@@ -137,4 +139,4 @@ When `*.oef.xml` changes, regenerate and commit the corresponding files in [`ren
 | Implementation & Migration | [`.github/workflows/`](../../.github/workflows/) (12 workflows: ci, deploy, deploy-infra, deploy-app-build, deploy-app, e2e, analyze-infra, secrets-scan, license-compliance, dep-license-check, stryker-nightly, dependabot-auto-merge) |
 | Strategy / Business / Motivation | **FORWARD-ONLY** — architect-authored placeholders |
 
-Re-extracting the model is a clean operation: delete `lfm.oef.xml` and re-run the `souroldgeezer-design:architecture-design` skill in Extract mode. Hand edits made in Archi survive re-extraction when the OEF is round-tripped.
+Re-extracting the model is a clean operation: back up `lfm.oef.xml`, replace it by re-running the `souroldgeezer-design:architecture-design` skill in Extract mode, regenerate `renders/`, and refresh this README. Hand edits made in Archi survive merge-style re-extraction when the OEF is round-tripped; a full rebuild intentionally starts from the current source and emits fresh layout coordinates.
