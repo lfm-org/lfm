@@ -938,15 +938,21 @@
         <node identifier="id-node-v2-ai" elementRef="id-node-app-insights" xsi:type="Element" x="700" y="780" w="180" h="80"/>
         <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="700" y="870" w="180" h="80"/>
 
-        <!-- Connections — Assignment for hosting; Serving for data-plane consumption; Flow for telemetry; Aggregation for the workspace-AI relationship -->
+        <!-- Connections — Assignment for hosting; Serving for data-plane consumption; Aggregation for the workspace-AI relationship -->
         <connection identifier="id-conn-v2-1" relationshipRef="id-rel-swa-assign-app" source="id-node-v2-swa" target="id-node-v2-app" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-2" relationshipRef="id-rel-funcapp-assign-api" source="id-node-v2-funcapp" target="id-node-v2-api" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-3" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2-cosmos" target="id-node-v2-funcapp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-4" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2-storage" target="id-node-v2-funcapp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-5" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2-kv" target="id-node-v2-funcapp" xsi:type="Relationship"/>
+        <connection identifier="id-conn-v2-3" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2-cosmos" target="id-node-v2-funcapp" xsi:type="Relationship">
+          <bendpoint x="430" y="800"/>
+        </connection>
+        <connection identifier="id-conn-v2-4" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2-storage" target="id-node-v2-funcapp" xsi:type="Relationship">
+          <bendpoint x="430" y="860"/>
+        </connection>
+        <connection identifier="id-conn-v2-5" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2-kv" target="id-node-v2-funcapp" xsi:type="Relationship">
+          <bendpoint x="430" y="920"/>
+        </connection>
         <connection identifier="id-conn-v2-6" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2-ai" target="id-node-v2-funcapp" xsi:type="Relationship">
-          <bendpoint x="420" y="760"/>
-          <bendpoint x="700" y="760"/>
+          <bendpoint x="790" y="740"/>
+          <bendpoint x="330" y="740"/>
         </connection>
         <connection identifier="id-conn-v2-7" relationshipRef="id-rel-la-agg-ai" source="id-node-v2-la" target="id-node-v2-ai" xsi:type="Relationship"/>
 
@@ -971,21 +977,17 @@
 
         <!-- Connections — Composition (FA→MI) hidden via nesting; Serving edges show the Function App dependencies that the MI's RBAC grants authorise. -->
         <connection identifier="id-conn-v2s-1" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2s-cosmos" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="290" y="870"/>
-          <bendpoint x="290" y="800"/>
+          <bendpoint x="300" y="800"/>
         </connection>
         <connection identifier="id-conn-v2s-2" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2s-storage" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="290" y="870"/>
-          <bendpoint x="290" y="860"/>
+          <bendpoint x="300" y="860"/>
         </connection>
         <connection identifier="id-conn-v2s-3" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2s-kv" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="290" y="870"/>
-          <bendpoint x="290" y="920"/>
+          <bendpoint x="300" y="920"/>
         </connection>
         <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2s-ai" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="290" y="870"/>
-          <bendpoint x="290" y="760"/>
           <bendpoint x="680" y="760"/>
+          <bendpoint x="280" y="760"/>
         </connection>
 
       </view>
