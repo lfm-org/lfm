@@ -152,7 +152,8 @@ StrykerOutput/
 
 # .NET local settings (secrets)
 api/local.settings.json
-app/wwwroot/appsettings.Development.json
+api/appsettings.*.json
+app/wwwroot/appsettings.*.json
 
 # Chrome local installation
 .chrome/
