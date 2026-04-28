@@ -926,7 +926,7 @@
         </connection>
         <connection identifier="id-conn-v1-5" relationshipRef="id-rel-bnet-oauth-serves-api" source="id-node-v1-iface-oauth" target="id-node-v1-api" xsi:type="Relationship">
           <bendpoint x="830" y="150"/>
-          <bendpoint x="670" y="150"/>
+          <bendpoint x="800" y="150"/>
         </connection>
         <connection identifier="id-conn-v1-6" relationshipRef="id-rel-wow-profile-serves-api" source="id-node-v1-iface-profile" target="id-node-v1-api" xsi:type="Relationship">
           <bendpoint x="1270" y="360"/>
@@ -1134,20 +1134,20 @@
         <name xml:lang="en">View: Mythic+ Run Signup — Business Process Cooperation</name>
         <documentation xml:lang="en">FORWARD-ONLY — architect-authored. Business Layer process-flow for the user-driven "Sign up for Mythic+ run" use case. Layout follows the §9.7 specialisation: Active structure (Mythic+ Player Actor) above, Behaviour (Triggering chain Event → Browse → Inspect → Sign up → confirmed; Flow alt-path to Cancel signup) middle, Passive structure (Run / Signup Business Objects) below. FORWARD-ONLY status is kept in element documentation rather than visible labels; names and the chain shape are inferred from the API surface (api/Functions/Runs*Function.cs) and the Blazor pages (app/Pages/RunsPage.razor at /runs and /runs/{RunId}) — they have not been validated against business stakeholders. The drill-down into Application + Technology realising each step is represented by sibling §9.3 Service Realization views.</documentation>
 
-        <!-- Active row (top): Player Actor — banner-style, top-left -->
-        <node identifier="id-node-bpc-player" elementRef="id-actor-player" xsi:type="Element" x="40" y="40" w="160" h="70"/>
+        <!-- Active row (top): Player Actor — banner-style header for clean vertical Assignment lanes -->
+        <node identifier="id-node-bpc-player" elementRef="id-actor-player" xsi:type="Element" x="40" y="40" w="1420" h="80"/>
 
-        <!-- Behaviour row: 5-step Triggering chain plus an alt-path step, with top and bottom routing lanes kept clear -->
-        <node identifier="id-node-bpc-wants" elementRef="id-be-wants-key" xsi:type="Element" x="40" y="180" w="180" h="70"/>
-        <node identifier="id-node-bpc-browse" elementRef="id-bp-browse-runs" xsi:type="Element" x="260" y="180" w="180" h="70"/>
-        <node identifier="id-node-bpc-inspect" elementRef="id-bp-inspect-run" xsi:type="Element" x="480" y="180" w="180" h="70"/>
-        <node identifier="id-node-bpc-signup" elementRef="id-bp-signup-run" xsi:type="Element" x="700" y="180" w="180" h="70"/>
-        <node identifier="id-node-bpc-confirmed" elementRef="id-be-signup-confirmed" xsi:type="Element" x="920" y="180" w="180" h="70"/>
-        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="700" y="320" w="180" h="70"/>
+        <!-- Behaviour row: 5-step Triggering chain plus an alt-path step, with wider gutters and clear routing lanes -->
+        <node identifier="id-node-bpc-wants" elementRef="id-be-wants-key" xsi:type="Element" x="40" y="220" w="200" h="80"/>
+        <node identifier="id-node-bpc-browse" elementRef="id-bp-browse-runs" xsi:type="Element" x="300" y="220" w="200" h="80"/>
+        <node identifier="id-node-bpc-inspect" elementRef="id-bp-inspect-run" xsi:type="Element" x="560" y="220" w="200" h="80"/>
+        <node identifier="id-node-bpc-signup" elementRef="id-bp-signup-run" xsi:type="Element" x="820" y="220" w="200" h="80"/>
+        <node identifier="id-node-bpc-confirmed" elementRef="id-be-signup-confirmed" xsi:type="Element" x="1080" y="220" w="200" h="80"/>
+        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="820" y="410" w="200" h="80"/>
 
         <!-- Passive row (bottom): Business Objects -->
-        <node identifier="id-node-bpc-run" elementRef="id-bobj-run" xsi:type="Element" x="260" y="500" w="140" h="70"/>
-        <node identifier="id-node-bpc-signup-obj" elementRef="id-bobj-signup" xsi:type="Element" x="720" y="500" w="140" h="70"/>
+        <node identifier="id-node-bpc-run" elementRef="id-bobj-run" xsi:type="Element" x="570" y="690" w="180" h="80"/>
+        <node identifier="id-node-bpc-signup-obj" elementRef="id-bobj-signup" xsi:type="Element" x="830" y="690" w="180" h="80"/>
 
         <!-- Triggering chain (left-to-right Behaviour spine) -->
         <connection identifier="id-conn-bpc-1" relationshipRef="id-rel-be-wants-trig-browse" source="id-node-bpc-wants" target="id-node-bpc-browse" xsi:type="Relationship"/>
@@ -1160,40 +1160,42 @@
 
         <!-- Active structure: Player Assigned to user-driven Behaviours -->
         <connection identifier="id-conn-bpc-asg-1" relationshipRef="id-rel-player-asg-browse" source="id-node-bpc-player" target="id-node-bpc-browse" xsi:type="Relationship">
-          <bendpoint x="350" y="130"/>
-          <bendpoint x="350" y="220"/>
+          <bendpoint x="400" y="150"/>
+          <bendpoint x="400" y="190"/>
         </connection>
         <connection identifier="id-conn-bpc-asg-2" relationshipRef="id-rel-player-asg-inspect" source="id-node-bpc-player" target="id-node-bpc-inspect" xsi:type="Relationship">
-          <bendpoint x="570" y="130"/>
-          <bendpoint x="570" y="220"/>
+          <bendpoint x="660" y="150"/>
+          <bendpoint x="660" y="190"/>
         </connection>
         <connection identifier="id-conn-bpc-asg-3" relationshipRef="id-rel-player-asg-signup" source="id-node-bpc-player" target="id-node-bpc-signup" xsi:type="Relationship">
-          <bendpoint x="790" y="130"/>
-          <bendpoint x="790" y="220"/>
+          <bendpoint x="920" y="150"/>
+          <bendpoint x="920" y="190"/>
         </connection>
         <connection identifier="id-conn-bpc-asg-4" relationshipRef="id-rel-player-asg-cancel" source="id-node-bpc-player" target="id-node-bpc-cancel" xsi:type="Relationship">
-          <bendpoint x="1130" y="130"/>
-          <bendpoint x="1130" y="360"/>
-          <bendpoint x="790" y="360"/>
+          <bendpoint x="1360" y="150"/>
+          <bendpoint x="1360" y="450"/>
+          <bendpoint x="1040" y="450"/>
         </connection>
 
         <!-- Passive structure: Behaviours Access Business Objects -->
-        <connection identifier="id-conn-bpc-acc-1" relationshipRef="id-rel-bp-browse-acc-run" source="id-node-bpc-browse" target="id-node-bpc-run" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-acc-1" relationshipRef="id-rel-bp-browse-acc-run" source="id-node-bpc-browse" target="id-node-bpc-run" xsi:type="Relationship">
+          <bendpoint x="400" y="610"/>
+          <bendpoint x="660" y="610"/>
+        </connection>
         <connection identifier="id-conn-bpc-acc-2" relationshipRef="id-rel-bp-inspect-acc-run" source="id-node-bpc-inspect" target="id-node-bpc-run" xsi:type="Relationship">
-          <bendpoint x="570" y="450"/>
-          <bendpoint x="330" y="450"/>
+          <bendpoint x="660" y="610"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-3" relationshipRef="id-rel-bp-signup-acc-run" source="id-node-bpc-signup" target="id-node-bpc-run" xsi:type="Relationship">
-          <bendpoint x="790" y="270"/>
-          <bendpoint x="1130" y="270"/>
-          <bendpoint x="1130" y="450"/>
-          <bendpoint x="330" y="450"/>
+          <bendpoint x="920" y="340"/>
+          <bendpoint x="1360" y="340"/>
+          <bendpoint x="1360" y="610"/>
+          <bendpoint x="660" y="610"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-4" relationshipRef="id-rel-bp-signup-acc-signup" source="id-node-bpc-signup" target="id-node-bpc-signup-obj" xsi:type="Relationship">
-          <bendpoint x="790" y="270"/>
-          <bendpoint x="1130" y="270"/>
-          <bendpoint x="1130" y="540"/>
-          <bendpoint x="790" y="540"/>
+          <bendpoint x="920" y="360"/>
+          <bendpoint x="1380" y="360"/>
+          <bendpoint x="1380" y="620"/>
+          <bendpoint x="920" y="620"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-5" relationshipRef="id-rel-bp-cancel-acc-signup" source="id-node-bpc-cancel" target="id-node-bpc-signup-obj" xsi:type="Relationship"/>
 
@@ -1204,26 +1206,26 @@
         <documentation xml:lang="en">Cooperation view: id-view-business-processes. FORWARD-ONLY (Business Layer top) drilling into the real Application + Technology realisation chain for "Browse open runs". The user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs` Application Interface.</documentation>
 
         <!-- Business Layer (top) -->
-        <node identifier="id-node-sr-browse-bp" elementRef="id-bp-browse-runs" xsi:type="Element" x="280" y="40" w="240" h="70"/>
+        <node identifier="id-node-sr-browse-bp" elementRef="id-bp-browse-runs" xsi:type="Element" x="440" y="40" w="280" h="80"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-browse-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
-          <node identifier="id-node-sr-browse-uiroute" elementRef="id-uiapi-runs-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
+        <node identifier="id-node-sr-browse-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="250" w="300" h="250">
+          <node identifier="id-node-sr-browse-uiroute" elementRef="id-uiapi-runs-route" xsi:type="Element" x="70" y="410" w="240" h="70"/>
         </node>
-        <node identifier="id-node-sr-browse-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
-        <node identifier="id-node-sr-browse-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
+        <node identifier="id-node-sr-browse-svc" elementRef="id-svc-runs" xsi:type="Element" x="470" y="240" w="220" h="80"/>
+        <node identifier="id-node-sr-browse-api" elementRef="id-lfm-api" xsi:type="Element" x="470" y="430" w="220" h="80"/>
 
         <!-- Technology Layer (bottom) -->
-        <node identifier="id-node-sr-browse-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="380" y="460" w="180" h="80"/>
-        <node identifier="id-node-sr-browse-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="620" y="460" w="180" h="70"/>
+        <node identifier="id-node-sr-browse-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="470" y="640" w="220" h="100"/>
+        <node identifier="id-node-sr-browse-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="780" y="650" w="220" h="80"/>
 
         <connection identifier="id-conn-sr-browse-1" relationshipRef="id-rel-svc-runs-real-bp-browse" source="id-node-sr-browse-svc" target="id-node-sr-browse-bp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-browse-2" relationshipRef="id-rel-api-real-runs" source="id-node-sr-browse-api" target="id-node-sr-browse-svc" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-browse-3" relationshipRef="id-rel-funcapp-assign-api" source="id-node-sr-browse-funcapp" target="id-node-sr-browse-api" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-browse-4" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-sr-browse-cosmos" target="id-node-sr-browse-funcapp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-browse-5" relationshipRef="id-rel-runs-page-real-bp-browse" source="id-node-sr-browse-uicomp" target="id-node-sr-browse-bp" xsi:type="Relationship">
-          <bendpoint x="160" y="130"/>
-          <bendpoint x="400" y="130"/>
+          <bendpoint x="190" y="170"/>
+          <bendpoint x="580" y="170"/>
         </connection>
       </view>
 
@@ -1232,26 +1234,26 @@
         <documentation xml:lang="en">Cooperation view: id-view-business-processes. FORWARD-ONLY (Business Layer top) drilling into the real Application + Technology realisation chain for "Inspect run detail". The user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface.</documentation>
 
         <!-- Business Layer (top) -->
-        <node identifier="id-node-sr-inspect-bp" elementRef="id-bp-inspect-run" xsi:type="Element" x="280" y="40" w="240" h="70"/>
+        <node identifier="id-node-sr-inspect-bp" elementRef="id-bp-inspect-run" xsi:type="Element" x="440" y="40" w="280" h="80"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-inspect-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
-          <node identifier="id-node-sr-inspect-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
+        <node identifier="id-node-sr-inspect-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="250" w="300" h="250">
+          <node identifier="id-node-sr-inspect-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="70" y="410" w="240" h="70"/>
         </node>
-        <node identifier="id-node-sr-inspect-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
-        <node identifier="id-node-sr-inspect-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
+        <node identifier="id-node-sr-inspect-svc" elementRef="id-svc-runs" xsi:type="Element" x="470" y="240" w="220" h="80"/>
+        <node identifier="id-node-sr-inspect-api" elementRef="id-lfm-api" xsi:type="Element" x="470" y="430" w="220" h="80"/>
 
         <!-- Technology Layer (bottom) -->
-        <node identifier="id-node-sr-inspect-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="380" y="460" w="180" h="80"/>
-        <node identifier="id-node-sr-inspect-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="620" y="460" w="180" h="70"/>
+        <node identifier="id-node-sr-inspect-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="470" y="640" w="220" h="100"/>
+        <node identifier="id-node-sr-inspect-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="780" y="650" w="220" h="80"/>
 
         <connection identifier="id-conn-sr-inspect-1" relationshipRef="id-rel-svc-runs-real-bp-inspect" source="id-node-sr-inspect-svc" target="id-node-sr-inspect-bp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-inspect-2" relationshipRef="id-rel-api-real-runs" source="id-node-sr-inspect-api" target="id-node-sr-inspect-svc" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-inspect-3" relationshipRef="id-rel-funcapp-assign-api" source="id-node-sr-inspect-funcapp" target="id-node-sr-inspect-api" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-inspect-4" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-sr-inspect-cosmos" target="id-node-sr-inspect-funcapp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-inspect-5" relationshipRef="id-rel-runs-page-real-bp-inspect" source="id-node-sr-inspect-uicomp" target="id-node-sr-inspect-bp" xsi:type="Relationship">
-          <bendpoint x="160" y="130"/>
-          <bendpoint x="400" y="130"/>
+          <bendpoint x="190" y="170"/>
+          <bendpoint x="580" y="170"/>
         </connection>
       </view>
 
@@ -1260,19 +1262,19 @@
         <documentation xml:lang="en">Cooperation view: id-view-business-processes. FORWARD-ONLY (Business Layer top) drilling into a real Application + Technology realisation chain for "Sign up for Mythic+ run". Process-rooted §9.3 modality: the Business Process at the top is realised by an Application Service (Mythic+ Runs) which is itself realised by an Application Component (Lfm.Api) Assigned to a Technology Node (Azure Function App), with Cosmos DB as a data-plane Serving relationship. The user-driven entry point (per §9.3 AD-B-10 + Blazor idiom) is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface; the UI Component carries a Realisation edge to the Business Process. Architect's task: validate the framing of the Business Process and the Realisation chain.</documentation>
 
         <!-- Business Layer (top) -->
-        <node identifier="id-node-sr-bp" elementRef="id-bp-signup-run" xsi:type="Element" x="280" y="40" w="240" h="70"/>
+        <node identifier="id-node-sr-bp" elementRef="id-bp-signup-run" xsi:type="Element" x="440" y="40" w="280" h="80"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
+        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="250" w="300" h="250">
           <!-- UI Application Interface nested inside its UI Component (Composition hidden per AD-L7) -->
-          <node identifier="id-node-sr-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
+          <node identifier="id-node-sr-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="70" y="410" w="240" h="70"/>
         </node>
-        <node identifier="id-node-sr-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
-        <node identifier="id-node-sr-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
+        <node identifier="id-node-sr-svc" elementRef="id-svc-runs" xsi:type="Element" x="470" y="240" w="220" h="80"/>
+        <node identifier="id-node-sr-api" elementRef="id-lfm-api" xsi:type="Element" x="470" y="430" w="220" h="80"/>
 
         <!-- Technology Layer (bottom): Function App hosts Lfm.Api; Cosmos serves Function App -->
-        <node identifier="id-node-sr-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="380" y="460" w="180" h="80"/>
-        <node identifier="id-node-sr-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="620" y="460" w="180" h="70"/>
+        <node identifier="id-node-sr-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="470" y="640" w="220" h="100"/>
+        <node identifier="id-node-sr-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="780" y="650" w="220" h="80"/>
 
         <!-- Realisation chain: AppService realises BusinessProcess -->
         <connection identifier="id-conn-sr-1" relationshipRef="id-rel-svc-runs-real-bp-signup" source="id-node-sr-svc" target="id-node-sr-bp" xsi:type="Relationship"/>
@@ -1285,8 +1287,8 @@
         <!-- UI Application Component realises the user-driven Business Process (Blazor idiom) -->
         <connection identifier="id-conn-sr-5" relationshipRef="id-rel-runs-page-real-bp-signup" source="id-node-sr-uicomp" target="id-node-sr-bp" xsi:type="Relationship">
           <!-- Route around the Application Service column -->
-          <bendpoint x="160" y="130"/>
-          <bendpoint x="400" y="130"/>
+          <bendpoint x="190" y="170"/>
+          <bendpoint x="580" y="170"/>
         </connection>
 
       </view>
@@ -1296,26 +1298,26 @@
         <documentation xml:lang="en">Cooperation view: id-view-business-processes. FORWARD-ONLY (Business Layer top) drilling into the real Application + Technology realisation chain for "Cancel signup". The user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface.</documentation>
 
         <!-- Business Layer (top) -->
-        <node identifier="id-node-sr-cancel-bp" elementRef="id-bp-cancel-signup" xsi:type="Element" x="280" y="40" w="240" h="70"/>
+        <node identifier="id-node-sr-cancel-bp" elementRef="id-bp-cancel-signup" xsi:type="Element" x="440" y="40" w="280" h="80"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-cancel-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
-          <node identifier="id-node-sr-cancel-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
+        <node identifier="id-node-sr-cancel-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="250" w="300" h="250">
+          <node identifier="id-node-sr-cancel-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="70" y="410" w="240" h="70"/>
         </node>
-        <node identifier="id-node-sr-cancel-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
-        <node identifier="id-node-sr-cancel-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
+        <node identifier="id-node-sr-cancel-svc" elementRef="id-svc-runs" xsi:type="Element" x="470" y="240" w="220" h="80"/>
+        <node identifier="id-node-sr-cancel-api" elementRef="id-lfm-api" xsi:type="Element" x="470" y="430" w="220" h="80"/>
 
         <!-- Technology Layer (bottom) -->
-        <node identifier="id-node-sr-cancel-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="380" y="460" w="180" h="80"/>
-        <node identifier="id-node-sr-cancel-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="620" y="460" w="180" h="70"/>
+        <node identifier="id-node-sr-cancel-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="470" y="640" w="220" h="100"/>
+        <node identifier="id-node-sr-cancel-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="780" y="650" w="220" h="80"/>
 
         <connection identifier="id-conn-sr-cancel-1" relationshipRef="id-rel-svc-runs-real-bp-cancel" source="id-node-sr-cancel-svc" target="id-node-sr-cancel-bp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-cancel-2" relationshipRef="id-rel-api-real-runs" source="id-node-sr-cancel-api" target="id-node-sr-cancel-svc" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-cancel-3" relationshipRef="id-rel-funcapp-assign-api" source="id-node-sr-cancel-funcapp" target="id-node-sr-cancel-api" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-cancel-4" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-sr-cancel-cosmos" target="id-node-sr-cancel-funcapp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-cancel-5" relationshipRef="id-rel-runs-page-real-bp-cancel" source="id-node-sr-cancel-uicomp" target="id-node-sr-cancel-bp" xsi:type="Relationship">
-          <bendpoint x="160" y="130"/>
-          <bendpoint x="400" y="130"/>
+          <bendpoint x="190" y="170"/>
+          <bendpoint x="580" y="170"/>
         </connection>
       </view>
 
