@@ -869,59 +869,79 @@
         <documentation xml:lang="en">Application Layer overview with explicit trust boundary. The LFM (internal) Grouping holds the four code projects we own and operate (Lfm.App, Lfm.App.Core, Lfm.Api, Lfm.Contracts); Lfm.Contracts is the shared wire-DTO library used by all three. The Blizzard (external) Grouping holds the third-party services we consume (Battle.net OAuth identity provider, World of Warcraft Profile + Game Data APIs); we have no operational control over them. Each Application Interface is nested inside its owning Component (Composition edges hidden per AD-L7); the only Serving edges drawn cross the boundaries that matter — Lfm.App.Core into Lfm.App, REST API into Lfm.App, Battle.net OAuth into Lfm.Api, and the two WoW APIs into Lfm.Api. Lfm.Contracts' shared use is shown by Composition into the Grouping (members are inferred to wire through it).</documentation>
 
         <!-- LFM (internal) Grouping container — wraps the 4 LFM components -->
-        <node identifier="id-node-v1-grp-lfm" elementRef="id-grp-lfm-internal" xsi:type="Element" x="40" y="520" w="700" h="200">
+        <node identifier="id-node-v1-grp-lfm" elementRef="id-grp-lfm-internal" xsi:type="Element" x="40" y="40" w="760" h="280">
 
           <!-- Lfm.App.Core (left) -->
-          <node identifier="id-node-v1-core" elementRef="id-lfm-app-core" xsi:type="Element" x="60" y="540" w="140" h="80"/>
+          <node identifier="id-node-v1-core" elementRef="id-lfm-app-core" xsi:type="Element" x="70" y="70" w="180" h="70"/>
 
           <!-- Lfm.Contracts (left, below App.Core) — shared DTO library -->
-          <node identifier="id-node-v1-contracts" elementRef="id-lfm-contracts" xsi:type="Element" x="60" y="630" w="140" h="80"/>
+          <node identifier="id-node-v1-contracts" elementRef="id-lfm-contracts" xsi:type="Element" x="70" y="220" w="180" h="70"/>
 
           <!-- Lfm.App container with its SPA UI nested -->
-          <node identifier="id-node-v1-app" elementRef="id-lfm-app" xsi:type="Element" x="220" y="540" w="220" h="170">
-            <node identifier="id-node-v1-iface-spa" elementRef="id-iface-spa-ui" xsi:type="Element" x="240" y="620" w="180" h="80"/>
+          <node identifier="id-node-v1-app" elementRef="id-lfm-app" xsi:type="Element" x="310" y="70" w="220" h="220">
+            <node identifier="id-node-v1-iface-spa" elementRef="id-iface-spa-ui" xsi:type="Element" x="330" y="210" w="180" h="60"/>
           </node>
 
           <!-- Lfm.Api container with its REST API nested -->
-          <node identifier="id-node-v1-api" elementRef="id-lfm-api" xsi:type="Element" x="480" y="540" w="240" h="170">
-            <node identifier="id-node-v1-iface-rest" elementRef="id-iface-rest-api" xsi:type="Element" x="500" y="620" w="200" h="80"/>
+          <node identifier="id-node-v1-api" elementRef="id-lfm-api" xsi:type="Element" x="560" y="70" w="220" h="220">
+            <node identifier="id-node-v1-iface-rest" elementRef="id-iface-rest-api" xsi:type="Element" x="580" y="210" w="180" h="60"/>
           </node>
 
         </node>
 
         <!-- Blizzard (external) Grouping container — wraps the 2 external service Components -->
-        <node identifier="id-node-v1-grp-bnet" elementRef="id-grp-blizzard-external" xsi:type="Element" x="780" y="520" w="640" h="200">
+        <node identifier="id-node-v1-grp-bnet" elementRef="id-grp-blizzard-external" xsi:type="Element" x="860" y="40" w="720" h="280">
 
           <!-- Blizzard Battle.net (compact, top-aligned) — OAuth interface is a thin band -->
-          <node identifier="id-node-v1-bnet" elementRef="id-blizzard-bnet" xsi:type="Element" x="800" y="540" w="200" h="80">
-            <node identifier="id-node-v1-iface-oauth" elementRef="id-iface-bnet-oauth" xsi:type="Element" x="820" y="560" w="160" h="60"/>
+          <node identifier="id-node-v1-bnet" elementRef="id-blizzard-bnet" xsi:type="Element" x="890" y="70" w="220" h="110">
+            <node identifier="id-node-v1-iface-oauth" elementRef="id-iface-bnet-oauth" xsi:type="Element" x="910" y="120" w="180" h="50"/>
           </node>
 
           <!-- Blizzard WoW API container with both its read-only interfaces nested -->
-          <node identifier="id-node-v1-wow-api" elementRef="id-blizzard-wow-api" xsi:type="Element" x="1020" y="540" w="380" h="170">
-            <node identifier="id-node-v1-iface-profile" elementRef="id-iface-wow-profile" xsi:type="Element" x="1040" y="620" w="170" h="80"/>
-            <node identifier="id-node-v1-iface-game-data" elementRef="id-iface-wow-game-data" xsi:type="Element" x="1220" y="620" w="170" h="80"/>
+          <node identifier="id-node-v1-wow-api" elementRef="id-blizzard-wow-api" xsi:type="Element" x="1160" y="70" w="380" h="220">
+            <node identifier="id-node-v1-iface-profile" elementRef="id-iface-wow-profile" xsi:type="Element" x="1180" y="210" w="170" h="60"/>
+            <node identifier="id-node-v1-iface-game-data" elementRef="id-iface-wow-game-data" xsi:type="Element" x="1360" y="210" w="170" h="60"/>
           </node>
 
         </node>
 
         <!-- Connections — only Serving across LFM-internal boundaries and across the trust boundary (Composition into Grouping hidden via nesting per AD-L7) -->
-        <connection identifier="id-conn-v1-1" relationshipRef="id-rel-core-serves-app" source="id-node-v1-core" target="id-node-v1-app" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v1-2" relationshipRef="id-rel-contracts-serves-app" source="id-node-v1-contracts" target="id-node-v1-app" xsi:type="Relationship"/>
+        <connection identifier="id-conn-v1-1" relationshipRef="id-rel-core-serves-app" source="id-node-v1-core" target="id-node-v1-app" xsi:type="Relationship">
+          <bendpoint x="290" y="100"/>
+          <bendpoint x="290" y="180"/>
+        </connection>
+        <connection identifier="id-conn-v1-2" relationshipRef="id-rel-contracts-serves-app" source="id-node-v1-contracts" target="id-node-v1-app" xsi:type="Relationship">
+          <bendpoint x="290" y="250"/>
+          <bendpoint x="290" y="180"/>
+        </connection>
         <connection identifier="id-conn-v1-3" relationshipRef="id-rel-contracts-serves-api" source="id-node-v1-contracts" target="id-node-v1-api" xsi:type="Relationship">
-          <!-- Route ABOVE the Lfm.App container so the arrow doesn't graze its bottom edge. -->
-          <bendpoint x="210" y="530"/>
-          <bendpoint x="460" y="530"/>
+          <bendpoint x="270" y="300"/>
+          <bendpoint x="540" y="300"/>
+          <bendpoint x="540" y="180"/>
         </connection>
-        <connection identifier="id-conn-v1-4" relationshipRef="id-rel-rest-serves-app" source="id-node-v1-iface-rest" target="id-node-v1-app" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v1-5" relationshipRef="id-rel-bnet-oauth-serves-api" source="id-node-v1-iface-oauth" target="id-node-v1-api" xsi:type="Relationship"/>
+        <connection identifier="id-conn-v1-4" relationshipRef="id-rel-rest-serves-app" source="id-node-v1-iface-rest" target="id-node-v1-app" xsi:type="Relationship">
+          <bendpoint x="670" y="340"/>
+          <bendpoint x="290" y="340"/>
+          <bendpoint x="290" y="180"/>
+        </connection>
+        <connection identifier="id-conn-v1-5" relationshipRef="id-rel-bnet-oauth-serves-api" source="id-node-v1-iface-oauth" target="id-node-v1-api" xsi:type="Relationship">
+          <bendpoint x="830" y="150"/>
+          <bendpoint x="670" y="150"/>
+        </connection>
         <connection identifier="id-conn-v1-6" relationshipRef="id-rel-wow-profile-serves-api" source="id-node-v1-iface-profile" target="id-node-v1-api" xsi:type="Relationship">
-          <!-- Route Profile arrow at y=600 so it doesn't visually merge with the Game Data arrow at y=660. -->
-          <bendpoint x="1020" y="600"/>
-          <bendpoint x="730" y="600"/>
+          <bendpoint x="1270" y="360"/>
+          <bendpoint x="550" y="360"/>
+          <bendpoint x="550" y="180"/>
         </connection>
-        <connection identifier="id-conn-v1-7" relationshipRef="id-rel-wow-game-data-serves-api" source="id-node-v1-iface-game-data" target="id-node-v1-api" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v1-8" relationshipRef="id-rel-contracts-serves-core" source="id-node-v1-contracts" target="id-node-v1-core" xsi:type="Relationship"/>
+        <connection identifier="id-conn-v1-7" relationshipRef="id-rel-wow-game-data-serves-api" source="id-node-v1-iface-game-data" target="id-node-v1-api" xsi:type="Relationship">
+          <bendpoint x="1450" y="380"/>
+          <bendpoint x="540" y="380"/>
+          <bendpoint x="540" y="180"/>
+        </connection>
+        <connection identifier="id-conn-v1-8" relationshipRef="id-rel-contracts-serves-core" source="id-node-v1-contracts" target="id-node-v1-core" xsi:type="Relationship">
+          <bendpoint x="50" y="260"/>
+          <bendpoint x="50" y="100"/>
+        </connection>
 
       </view>
 
@@ -929,34 +949,34 @@
         <name xml:lang="en">View: Technology Realisation (Hosting + Data Plane)</name>
         <documentation xml:lang="en">Azure Technology Layer hosting + data-plane overview. Static Web Apps hosts Lfm.App; Function App hosts Lfm.Api; the data plane is Cosmos DB (Free Tier, single-region) + Storage (Standard_LRS) + Key Vault; the workspace-based observability stack (Log Analytics aggregates Application Insights) receives telemetry from the Function App. **The data-plane RBAC story (system-assigned MI, role assignments, Serving dependencies into Function App) is in the Technology Security view (sibling).** Diagnostic settings (Cosmos / Storage / KV / SWA / Function App → Log Analytics) and the Action Group + Cosmos throttle alert are tracked in &lt;relationships&gt; but reserved for an Observability detail view. App-Service Plan SKU and runtime version are in &lt;elements&gt; documentation. Region is `vars.AZURE_LOCATION` from the deploy workflow — single-region, no failover.</documentation>
 
-        <!-- Application band — pushed to the bottom of [520,720] so Assignment edges are short -->
-        <node identifier="id-node-v2-app" elementRef="id-lfm-app" xsi:type="Element" x="60" y="620" w="160" h="80"/>
-        <node identifier="id-node-v2-api" elementRef="id-lfm-api" xsi:type="Element" x="240" y="620" w="180" h="80"/>
+        <!-- Application row — placed above the hosting nodes so Assignment edges stay short and vertical -->
+        <node identifier="id-node-v2-app" elementRef="id-lfm-app" xsi:type="Element" x="40" y="40" w="160" h="80"/>
+        <node identifier="id-node-v2-api" elementRef="id-lfm-api" xsi:type="Element" x="220" y="40" w="180" h="80"/>
 
         <!-- Technology band — Hosting Nodes left, data Nodes stacked vertically beside Function App so Serving arrows don't overlap, observability right -->
-        <node identifier="id-node-v2-swa" elementRef="id-node-swa" xsi:type="Element" x="60" y="780" w="160" h="180"/>
-        <node identifier="id-node-v2-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="240" y="780" w="180" h="180"/>
-        <node identifier="id-node-v2-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="440" y="770" w="220" h="60"/>
-        <node identifier="id-node-v2-storage" elementRef="id-node-storage" xsi:type="Element" x="440" y="830" w="220" h="60"/>
-        <node identifier="id-node-v2-kv" elementRef="id-node-keyvault" xsi:type="Element" x="440" y="890" w="220" h="60"/>
-        <node identifier="id-node-v2-ai" elementRef="id-node-app-insights" xsi:type="Element" x="700" y="780" w="180" h="80"/>
-        <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="700" y="870" w="180" h="80"/>
+        <node identifier="id-node-v2-swa" elementRef="id-node-swa" xsi:type="Element" x="40" y="200" w="160" h="180"/>
+        <node identifier="id-node-v2-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="220" y="200" w="180" h="180"/>
+        <node identifier="id-node-v2-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="420" y="190" w="220" h="60"/>
+        <node identifier="id-node-v2-storage" elementRef="id-node-storage" xsi:type="Element" x="420" y="250" w="220" h="60"/>
+        <node identifier="id-node-v2-kv" elementRef="id-node-keyvault" xsi:type="Element" x="420" y="310" w="220" h="60"/>
+        <node identifier="id-node-v2-ai" elementRef="id-node-app-insights" xsi:type="Element" x="680" y="200" w="180" h="80"/>
+        <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="680" y="290" w="180" h="80"/>
 
         <!-- Connections — Assignment for hosting; Serving for data-plane consumption; Aggregation for the workspace-AI relationship -->
         <connection identifier="id-conn-v2-1" relationshipRef="id-rel-swa-assign-app" source="id-node-v2-swa" target="id-node-v2-app" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-2" relationshipRef="id-rel-funcapp-assign-api" source="id-node-v2-funcapp" target="id-node-v2-api" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-3" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2-cosmos" target="id-node-v2-funcapp" xsi:type="Relationship">
-          <bendpoint x="430" y="800"/>
+          <bendpoint x="410" y="220"/>
         </connection>
         <connection identifier="id-conn-v2-4" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2-storage" target="id-node-v2-funcapp" xsi:type="Relationship">
-          <bendpoint x="430" y="860"/>
+          <bendpoint x="410" y="280"/>
         </connection>
         <connection identifier="id-conn-v2-5" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2-kv" target="id-node-v2-funcapp" xsi:type="Relationship">
-          <bendpoint x="430" y="920"/>
+          <bendpoint x="410" y="340"/>
         </connection>
         <connection identifier="id-conn-v2-6" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2-ai" target="id-node-v2-funcapp" xsi:type="Relationship">
-          <bendpoint x="790" y="740"/>
-          <bendpoint x="330" y="740"/>
+          <bendpoint x="770" y="160"/>
+          <bendpoint x="310" y="160"/>
         </connection>
         <connection identifier="id-conn-v2-7" relationshipRef="id-rel-la-agg-ai" source="id-node-v2-la" target="id-node-v2-ai" xsi:type="Relationship"/>
 
@@ -964,34 +984,38 @@
 
       <view identifier="id-view-technology-security" xsi:type="Diagram" viewpoint="Technology Usage">
         <name xml:lang="en">View: Technology Security (Managed Identity + Data-plane RBAC)</name>
-        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because Application Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the only authentication path. Reading this view: each Serving edge into the Function App is a runtime dependency whose access is authorised by the nested MI's documented role assignments.</documentation>
+        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because Application Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the only authentication path. Reading this view: each Serving edge into the Function App is a runtime dependency whose access is authorised by the Function App MI's documented role assignments.</documentation>
 
-        <!-- Function App container (left), with MI nested as the visually-dominant child (the MI is the actual subject of this view; FA is the carrier) -->
-        <node identifier="id-node-v2s-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="60" y="770" w="220" h="190">
-          <node identifier="id-node-v2s-mi" elementRef="id-tech-funcapp-mi" xsi:type="Element" x="70" y="800" w="200" h="140"/>
-        </node>
+        <!-- Function App + managed identity, separated so RBAC dependency edges do not run through the MI label. -->
+        <node identifier="id-node-v2s-mi" elementRef="id-tech-funcapp-mi" xsi:type="Element" x="40" y="40" w="220" h="70"/>
+        <node identifier="id-node-v2s-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="40" y="140" w="220" h="100"/>
 
         <!-- Data-plane Nodes stacked vertically to the right of Function App -->
-        <node identifier="id-node-v2s-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="320" y="770" w="220" h="60"/>
-        <node identifier="id-node-v2s-storage" elementRef="id-node-storage" xsi:type="Element" x="320" y="830" w="220" h="60"/>
-        <node identifier="id-node-v2s-kv" elementRef="id-node-keyvault" xsi:type="Element" x="320" y="890" w="220" h="60"/>
+        <node identifier="id-node-v2s-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="320" y="60" w="220" h="60"/>
+        <node identifier="id-node-v2s-storage" elementRef="id-node-storage" xsi:type="Element" x="320" y="140" w="220" h="60"/>
+        <node identifier="id-node-v2s-kv" elementRef="id-node-keyvault" xsi:type="Element" x="320" y="220" w="220" h="60"/>
 
         <!-- Application Insights for the Monitoring Metrics Publisher RBAC story -->
-        <node identifier="id-node-v2s-ai" elementRef="id-node-app-insights" xsi:type="Element" x="580" y="770" w="200" h="60"/>
+        <node identifier="id-node-v2s-ai" elementRef="id-node-app-insights" xsi:type="Element" x="600" y="60" w="200" h="60"/>
 
-        <!-- Connections — Composition (FA→MI) hidden via nesting; Serving edges show the Function App dependencies that the MI's RBAC grants authorise. -->
+        <!-- Connections — Composition identifies the MI carried by the Function App; Serving edges show RBAC-authorized runtime dependencies. -->
+        <connection identifier="id-conn-v2s-0" relationshipRef="id-rel-fa-comp-mi" source="id-node-v2s-funcapp" target="id-node-v2s-mi" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2s-1" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2s-cosmos" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="300" y="800"/>
+          <bendpoint x="280" y="90"/>
+          <bendpoint x="280" y="190"/>
         </connection>
         <connection identifier="id-conn-v2s-2" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2s-storage" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="300" y="860"/>
+          <bendpoint x="280" y="170"/>
+          <bendpoint x="280" y="190"/>
         </connection>
         <connection identifier="id-conn-v2s-3" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2s-kv" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="300" y="920"/>
+          <bendpoint x="280" y="250"/>
+          <bendpoint x="280" y="190"/>
         </connection>
         <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2s-ai" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="680" y="760"/>
-          <bendpoint x="280" y="760"/>
+          <bendpoint x="700" y="310"/>
+          <bendpoint x="280" y="310"/>
+          <bendpoint x="280" y="190"/>
         </connection>
 
       </view>
@@ -1001,23 +1025,23 @@
         <documentation xml:lang="en">Single-environment Migration view lifted from `.github/workflows/`. LFM deploys to one environment ("production"); deploy.yml has no environment input and tags every resource `environment=production`. The release path shows a Repository baseline Plateau, the Release to production Gap, and the Deploy to Production Implementation Event that reaches the Production Plateau. The Deploy orchestrator aggregates Deploy Infrastructure (Bicep what-if + apply), Deploy App-Build (Functions zip + Blazor wwwroot bundle), and Deploy App (uploads to Function App + SWA). Dev / Staging Plateaus exist as FORWARD-ONLY stubs in &lt;elements&gt; for future multi-environment work but are not drawn here — the current architecture is single-environment.</documentation>
 
         <!-- Row 0: Deploy orchestrator centered above its 3 children so Aggregation fans down without crossing the children -->
-        <node identifier="id-node-v3-deploy" elementRef="id-wp-deploy" xsi:type="Element" x="1500" y="20" w="220" h="60"/>
+        <node identifier="id-node-v3-deploy" elementRef="id-wp-deploy" xsi:type="Element" x="580" y="40" w="220" h="60"/>
 
         <!-- Row 1: 3 children — Deploy Infrastructure / Build / Deploy App -->
-        <node identifier="id-node-v3-deploy-infra" elementRef="id-wp-deploy-infra" xsi:type="Element" x="1240" y="140" w="220" h="80"/>
-        <node identifier="id-node-v3-deploy-build" elementRef="id-wp-deploy-app-build" xsi:type="Element" x="1500" y="140" w="220" h="80"/>
-        <node identifier="id-node-v3-deploy-app" elementRef="id-wp-deploy-app" xsi:type="Element" x="1760" y="140" w="220" h="80"/>
+        <node identifier="id-node-v3-deploy-infra" elementRef="id-wp-deploy-infra" xsi:type="Element" x="320" y="160" w="220" h="80"/>
+        <node identifier="id-node-v3-deploy-build" elementRef="id-wp-deploy-app-build" xsi:type="Element" x="580" y="160" w="220" h="80"/>
+        <node identifier="id-node-v3-deploy-app" elementRef="id-wp-deploy-app" xsi:type="Element" x="840" y="160" w="220" h="80"/>
 
         <!-- Row 2: Deliverables produced by the build packages, vertically aligned with their realising WP -->
-        <node identifier="id-node-v3-deliv-bicep" elementRef="id-deliv-bicep" xsi:type="Element" x="1240" y="280" w="220" h="80"/>
-        <node identifier="id-node-v3-deliv-fn" elementRef="id-deliv-functions" xsi:type="Element" x="1500" y="280" w="220" h="80"/>
-        <node identifier="id-node-v3-deliv-spa" elementRef="id-deliv-spa" xsi:type="Element" x="1760" y="280" w="220" h="80"/>
+        <node identifier="id-node-v3-deliv-bicep" elementRef="id-deliv-bicep" xsi:type="Element" x="320" y="300" w="220" h="80"/>
+        <node identifier="id-node-v3-deliv-fn" elementRef="id-deliv-functions" xsi:type="Element" x="580" y="300" w="220" h="80"/>
+        <node identifier="id-node-v3-deliv-spa" elementRef="id-deliv-spa" xsi:type="Element" x="840" y="300" w="220" h="80"/>
 
         <!-- Row 3: Migration axis — baseline Plateau → release Gap → Production Plateau -->
-        <node identifier="id-node-v3-plat-baseline" elementRef="id-plat-repository-baseline" xsi:type="Element" x="960" y="440" w="220" h="120"/>
-        <node identifier="id-node-v3-gap-release" elementRef="id-gap-release-to-production" xsi:type="Element" x="1220" y="460" w="180" h="80"/>
-        <node identifier="id-node-v3-event-prod" elementRef="id-event-deploy-production" xsi:type="Element" x="1000" y="300" w="200" h="80"/>
-        <node identifier="id-node-v3-plat-prod" elementRef="id-plat-production" xsi:type="Element" x="1440" y="440" w="740" h="120"/>
+        <node identifier="id-node-v3-plat-baseline" elementRef="id-plat-repository-baseline" xsi:type="Element" x="40" y="460" w="220" h="120"/>
+        <node identifier="id-node-v3-gap-release" elementRef="id-gap-release-to-production" xsi:type="Element" x="300" y="480" w="180" h="80"/>
+        <node identifier="id-node-v3-event-prod" elementRef="id-event-deploy-production" xsi:type="Element" x="80" y="320" w="200" h="80"/>
+        <node identifier="id-node-v3-plat-prod" elementRef="id-plat-production" xsi:type="Element" x="520" y="460" w="740" h="120"/>
 
         <!-- Connections -->
         <connection identifier="id-conn-v3-1" relationshipRef="id-rel-deploy-agg-infra" source="id-node-v3-deploy" target="id-node-v3-deploy-infra" xsi:type="Relationship"/>
@@ -1032,30 +1056,30 @@
         <connection identifier="id-conn-v3-10" relationshipRef="id-rel-prod-agg-spa" source="id-node-v3-plat-prod" target="id-node-v3-deliv-spa" xsi:type="Relationship"/>
         <connection identifier="id-conn-v3-11" relationshipRef="id-rel-deploy-infra-real-prod" source="id-node-v3-deploy-infra" target="id-node-v3-plat-prod" xsi:type="Relationship">
           <!-- Route to the LEFT of the Bicep deliverable column so the arrow doesn't spear through Bicep. -->
-          <bendpoint x="1220" y="180"/>
-          <bendpoint x="1220" y="420"/>
+          <bendpoint x="300" y="200"/>
+          <bendpoint x="300" y="440"/>
         </connection>
         <connection identifier="id-conn-v3-12" relationshipRef="id-rel-deploy-app-real-prod" source="id-node-v3-deploy-app" target="id-node-v3-plat-prod" xsi:type="Relationship">
           <!-- Route to the RIGHT of the SPA deliverable column. -->
-          <bendpoint x="2000" y="180"/>
-          <bendpoint x="2000" y="420"/>
+          <bendpoint x="1080" y="200"/>
+          <bendpoint x="1080" y="440"/>
         </connection>
         <connection identifier="id-conn-v3-13" relationshipRef="id-rel-plat-baseline-trig-release-gap" source="id-node-v3-plat-baseline" target="id-node-v3-gap-release" xsi:type="Relationship"/>
         <connection identifier="id-conn-v3-14" relationshipRef="id-rel-release-gap-trig-prod-event" source="id-node-v3-gap-release" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="1310" y="420"/>
-          <bendpoint x="1100" y="420"/>
+          <bendpoint x="390" y="440"/>
+          <bendpoint x="180" y="440"/>
         </connection>
         <connection identifier="id-conn-v3-15" relationshipRef="id-rel-prod-event-trig-prod" source="id-node-v3-event-prod" target="id-node-v3-plat-prod" xsi:type="Relationship">
-          <bendpoint x="1100" y="420"/>
-          <bendpoint x="1810" y="420"/>
+          <bendpoint x="180" y="440"/>
+          <bendpoint x="890" y="440"/>
         </connection>
         <connection identifier="id-conn-v3-16" relationshipRef="id-rel-deploy-infra-trig-prod-event" source="id-node-v3-deploy-infra" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="1340" y="260"/>
-          <bendpoint x="1100" y="260"/>
+          <bendpoint x="420" y="280"/>
+          <bendpoint x="180" y="280"/>
         </connection>
         <connection identifier="id-conn-v3-17" relationshipRef="id-rel-deploy-app-trig-prod-event" source="id-node-v3-deploy-app" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="1870" y="260"/>
-          <bendpoint x="1100" y="260"/>
+          <bendpoint x="950" y="280"/>
+          <bendpoint x="180" y="280"/>
         </connection>
 
       </view>
@@ -1065,20 +1089,20 @@
         <documentation xml:lang="en">Strategy + Business + Application realisation scaffold to seed architect work. The three Strategy Capabilities ("Find a group for Mythic+", "Guild roster management", "Personal character portfolio") are FORWARD-ONLY suggestions inferred from the existing Application Service surface — they have not been validated against business stakeholders. Below each Capability sits a FORWARD-ONLY Business Service that realises it; below each Business Service sit the **real** Application Services from Lfm.Api that realise it. The chain is therefore: real ApplicationService (bottom, lifted from code) → forward-only BusinessService (middle, architect to confirm) → forward-only Capability (top, architect to confirm). Architect's task: validate or rename the Capabilities, validate or split the Business Services, then add Drivers / Goals / Outcomes / Stakeholders in the Motivation Layer to anchor the "why."</documentation>
 
         <!-- Strategy band y∈[40,240] — Capabilities -->
-        <node identifier="id-node-v4-cap-find" elementRef="id-cap-find-group-for-mythic" xsi:type="Element" x="80" y="80" w="240" h="100"/>
-        <node identifier="id-node-v4-cap-roster" elementRef="id-cap-guild-roster-mgmt" xsi:type="Element" x="380" y="80" w="240" h="100"/>
-        <node identifier="id-node-v4-cap-portfolio" elementRef="id-cap-character-portfolio" xsi:type="Element" x="680" y="80" w="240" h="100"/>
+        <node identifier="id-node-v4-cap-find" elementRef="id-cap-find-group-for-mythic" xsi:type="Element" x="40" y="40" w="240" h="100"/>
+        <node identifier="id-node-v4-cap-roster" elementRef="id-cap-guild-roster-mgmt" xsi:type="Element" x="340" y="40" w="240" h="100"/>
+        <node identifier="id-node-v4-cap-portfolio" elementRef="id-cap-character-portfolio" xsi:type="Element" x="640" y="40" w="240" h="100"/>
 
         <!-- Business band y∈[280,480] — Business Services (forward-only stubs) -->
-        <node identifier="id-node-v4-bsvc-find" elementRef="id-bsvc-find-group" xsi:type="Element" x="80" y="320" w="240" h="100"/>
-        <node identifier="id-node-v4-bsvc-roster" elementRef="id-bsvc-guild-roster" xsi:type="Element" x="380" y="320" w="240" h="100"/>
-        <node identifier="id-node-v4-bsvc-charmgmt" elementRef="id-bsvc-character-mgmt" xsi:type="Element" x="680" y="320" w="240" h="100"/>
+        <node identifier="id-node-v4-bsvc-find" elementRef="id-bsvc-find-group" xsi:type="Element" x="40" y="280" w="240" h="100"/>
+        <node identifier="id-node-v4-bsvc-roster" elementRef="id-bsvc-guild-roster" xsi:type="Element" x="340" y="280" w="240" h="100"/>
+        <node identifier="id-node-v4-bsvc-charmgmt" elementRef="id-bsvc-character-mgmt" xsi:type="Element" x="640" y="280" w="240" h="100"/>
 
         <!-- Application band y∈[520,720] — real Application Services lifted from api/Functions/* -->
-        <node identifier="id-node-v4-svc-runs" elementRef="id-svc-runs" xsi:type="Element" x="80" y="560" w="240" h="100"/>
-        <node identifier="id-node-v4-svc-guild" elementRef="id-svc-guild" xsi:type="Element" x="380" y="560" w="240" h="100"/>
-        <node identifier="id-node-v4-svc-raiders" elementRef="id-svc-raiders" xsi:type="Element" x="680" y="560" w="240" h="100"/>
-        <node identifier="id-node-v4-svc-bnet" elementRef="id-svc-bnet-chars" xsi:type="Element" x="940" y="560" w="240" h="100"/>
+        <node identifier="id-node-v4-svc-runs" elementRef="id-svc-runs" xsi:type="Element" x="40" y="520" w="240" h="100"/>
+        <node identifier="id-node-v4-svc-guild" elementRef="id-svc-guild" xsi:type="Element" x="340" y="520" w="240" h="100"/>
+        <node identifier="id-node-v4-svc-raiders" elementRef="id-svc-raiders" xsi:type="Element" x="640" y="520" w="240" h="100"/>
+        <node identifier="id-node-v4-svc-bnet" elementRef="id-svc-bnet-chars" xsi:type="Element" x="900" y="520" w="240" h="100"/>
 
         <!-- Realization arrows: AppService → BusinessService → Capability -->
         <connection identifier="id-conn-v4-1" relationshipRef="id-rel-bsvc-find-real-cap" source="id-node-v4-bsvc-find" target="id-node-v4-cap-find" xsi:type="Relationship"/>
@@ -1088,8 +1112,8 @@
         <connection identifier="id-conn-v4-5" relationshipRef="id-rel-svc-guild-real-bsvc" source="id-node-v4-svc-guild" target="id-node-v4-bsvc-roster" xsi:type="Relationship"/>
         <connection identifier="id-conn-v4-6" relationshipRef="id-rel-svc-raiders-real-bsvc" source="id-node-v4-svc-raiders" target="id-node-v4-bsvc-charmgmt" xsi:type="Relationship"/>
         <connection identifier="id-conn-v4-7" relationshipRef="id-rel-svc-bnet-real-bsvc" source="id-node-v4-svc-bnet" target="id-node-v4-bsvc-charmgmt" xsi:type="Relationship">
-          <bendpoint x="1060" y="540"/>
-          <bendpoint x="800" y="540"/>
+          <bendpoint x="1020" y="500"/>
+          <bendpoint x="760" y="500"/>
         </connection>
 
       </view>
@@ -1113,17 +1137,17 @@
         <!-- Active row (top): Player Actor — banner-style, top-left -->
         <node identifier="id-node-bpc-player" elementRef="id-actor-player" xsi:type="Element" x="40" y="40" w="160" h="70"/>
 
-        <!-- Behaviour row: 5-step Triggering chain at y=160 plus an alt-path step at y=280 -->
-        <node identifier="id-node-bpc-wants" elementRef="id-be-wants-key" xsi:type="Element" x="40" y="160" w="180" h="70"/>
-        <node identifier="id-node-bpc-browse" elementRef="id-bp-browse-runs" xsi:type="Element" x="260" y="160" w="180" h="70"/>
-        <node identifier="id-node-bpc-inspect" elementRef="id-bp-inspect-run" xsi:type="Element" x="480" y="160" w="180" h="70"/>
-        <node identifier="id-node-bpc-signup" elementRef="id-bp-signup-run" xsi:type="Element" x="700" y="160" w="180" h="70"/>
-        <node identifier="id-node-bpc-confirmed" elementRef="id-be-signup-confirmed" xsi:type="Element" x="920" y="160" w="180" h="70"/>
-        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="700" y="280" w="180" h="70"/>
+        <!-- Behaviour row: 5-step Triggering chain plus an alt-path step, with top and bottom routing lanes kept clear -->
+        <node identifier="id-node-bpc-wants" elementRef="id-be-wants-key" xsi:type="Element" x="40" y="180" w="180" h="70"/>
+        <node identifier="id-node-bpc-browse" elementRef="id-bp-browse-runs" xsi:type="Element" x="260" y="180" w="180" h="70"/>
+        <node identifier="id-node-bpc-inspect" elementRef="id-bp-inspect-run" xsi:type="Element" x="480" y="180" w="180" h="70"/>
+        <node identifier="id-node-bpc-signup" elementRef="id-bp-signup-run" xsi:type="Element" x="700" y="180" w="180" h="70"/>
+        <node identifier="id-node-bpc-confirmed" elementRef="id-be-signup-confirmed" xsi:type="Element" x="920" y="180" w="180" h="70"/>
+        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="700" y="320" w="180" h="70"/>
 
-        <!-- Passive row (bottom): Business Objects at y=400 -->
-        <node identifier="id-node-bpc-run" elementRef="id-bobj-run" xsi:type="Element" x="260" y="400" w="140" h="70"/>
-        <node identifier="id-node-bpc-signup-obj" elementRef="id-bobj-signup" xsi:type="Element" x="720" y="400" w="140" h="70"/>
+        <!-- Passive row (bottom): Business Objects -->
+        <node identifier="id-node-bpc-run" elementRef="id-bobj-run" xsi:type="Element" x="260" y="500" w="140" h="70"/>
+        <node identifier="id-node-bpc-signup-obj" elementRef="id-bobj-signup" xsi:type="Element" x="720" y="500" w="140" h="70"/>
 
         <!-- Triggering chain (left-to-right Behaviour spine) -->
         <connection identifier="id-conn-bpc-1" relationshipRef="id-rel-be-wants-trig-browse" source="id-node-bpc-wants" target="id-node-bpc-browse" xsi:type="Relationship"/>
@@ -1135,27 +1159,42 @@
         <connection identifier="id-conn-bpc-5" relationshipRef="id-rel-bp-signup-flow-cancel" source="id-node-bpc-signup" target="id-node-bpc-cancel" xsi:type="Relationship"/>
 
         <!-- Active structure: Player Assigned to user-driven Behaviours -->
-        <connection identifier="id-conn-bpc-asg-1" relationshipRef="id-rel-player-asg-browse" source="id-node-bpc-player" target="id-node-bpc-browse" xsi:type="Relationship"/>
-        <connection identifier="id-conn-bpc-asg-2" relationshipRef="id-rel-player-asg-inspect" source="id-node-bpc-player" target="id-node-bpc-inspect" xsi:type="Relationship"/>
-        <connection identifier="id-conn-bpc-asg-3" relationshipRef="id-rel-player-asg-signup" source="id-node-bpc-player" target="id-node-bpc-signup" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-asg-1" relationshipRef="id-rel-player-asg-browse" source="id-node-bpc-player" target="id-node-bpc-browse" xsi:type="Relationship">
+          <bendpoint x="350" y="130"/>
+          <bendpoint x="350" y="220"/>
+        </connection>
+        <connection identifier="id-conn-bpc-asg-2" relationshipRef="id-rel-player-asg-inspect" source="id-node-bpc-player" target="id-node-bpc-inspect" xsi:type="Relationship">
+          <bendpoint x="570" y="130"/>
+          <bendpoint x="570" y="220"/>
+        </connection>
+        <connection identifier="id-conn-bpc-asg-3" relationshipRef="id-rel-player-asg-signup" source="id-node-bpc-player" target="id-node-bpc-signup" xsi:type="Relationship">
+          <bendpoint x="790" y="130"/>
+          <bendpoint x="790" y="220"/>
+        </connection>
         <connection identifier="id-conn-bpc-asg-4" relationshipRef="id-rel-player-asg-cancel" source="id-node-bpc-player" target="id-node-bpc-cancel" xsi:type="Relationship">
-          <!-- Route around Sign up to reach Cancel without spearing through the Sign up node -->
-          <bendpoint x="120" y="380"/>
-          <bendpoint x="690" y="380"/>
+          <bendpoint x="1130" y="130"/>
+          <bendpoint x="1130" y="360"/>
+          <bendpoint x="790" y="360"/>
         </connection>
 
         <!-- Passive structure: Behaviours Access Business Objects -->
         <connection identifier="id-conn-bpc-acc-1" relationshipRef="id-rel-bp-browse-acc-run" source="id-node-bpc-browse" target="id-node-bpc-run" xsi:type="Relationship"/>
         <connection identifier="id-conn-bpc-acc-2" relationshipRef="id-rel-bp-inspect-acc-run" source="id-node-bpc-inspect" target="id-node-bpc-run" xsi:type="Relationship">
-          <!-- Route the Inspect→Run access via the left side so it doesn't overlap Browse→Run -->
-          <bendpoint x="570" y="370"/>
-          <bendpoint x="380" y="370"/>
+          <bendpoint x="570" y="450"/>
+          <bendpoint x="330" y="450"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-3" relationshipRef="id-rel-bp-signup-acc-run" source="id-node-bpc-signup" target="id-node-bpc-run" xsi:type="Relationship">
-          <bendpoint x="790" y="370"/>
-          <bendpoint x="380" y="370"/>
+          <bendpoint x="790" y="270"/>
+          <bendpoint x="1130" y="270"/>
+          <bendpoint x="1130" y="450"/>
+          <bendpoint x="330" y="450"/>
         </connection>
-        <connection identifier="id-conn-bpc-acc-4" relationshipRef="id-rel-bp-signup-acc-signup" source="id-node-bpc-signup" target="id-node-bpc-signup-obj" xsi:type="Relationship"/>
+        <connection identifier="id-conn-bpc-acc-4" relationshipRef="id-rel-bp-signup-acc-signup" source="id-node-bpc-signup" target="id-node-bpc-signup-obj" xsi:type="Relationship">
+          <bendpoint x="790" y="270"/>
+          <bendpoint x="1130" y="270"/>
+          <bendpoint x="1130" y="540"/>
+          <bendpoint x="790" y="540"/>
+        </connection>
         <connection identifier="id-conn-bpc-acc-5" relationshipRef="id-rel-bp-cancel-acc-signup" source="id-node-bpc-cancel" target="id-node-bpc-signup-obj" xsi:type="Relationship"/>
 
       </view>
@@ -1168,8 +1207,8 @@
         <node identifier="id-node-sr-browse-bp" elementRef="id-bp-browse-runs" xsi:type="Element" x="280" y="40" w="240" h="70"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-browse-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="120">
-          <node identifier="id-node-sr-browse-uiroute" elementRef="id-uiapi-runs-route" xsi:type="Element" x="60" y="200" w="200" h="70"/>
+        <node identifier="id-node-sr-browse-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
+          <node identifier="id-node-sr-browse-uiroute" elementRef="id-uiapi-runs-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
         </node>
         <node identifier="id-node-sr-browse-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
         <node identifier="id-node-sr-browse-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
@@ -1196,8 +1235,8 @@
         <node identifier="id-node-sr-inspect-bp" elementRef="id-bp-inspect-run" xsi:type="Element" x="280" y="40" w="240" h="70"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-inspect-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="120">
-          <node identifier="id-node-sr-inspect-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="200" w="200" h="70"/>
+        <node identifier="id-node-sr-inspect-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
+          <node identifier="id-node-sr-inspect-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
         </node>
         <node identifier="id-node-sr-inspect-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
         <node identifier="id-node-sr-inspect-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
@@ -1224,9 +1263,9 @@
         <node identifier="id-node-sr-bp" elementRef="id-bp-signup-run" xsi:type="Element" x="280" y="40" w="240" h="70"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="120">
+        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
           <!-- UI Application Interface nested inside its UI Component (Composition hidden per AD-L7) -->
-          <node identifier="id-node-sr-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="200" w="200" h="70"/>
+          <node identifier="id-node-sr-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
         </node>
         <node identifier="id-node-sr-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
         <node identifier="id-node-sr-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
@@ -1260,8 +1299,8 @@
         <node identifier="id-node-sr-cancel-bp" elementRef="id-bp-cancel-signup" xsi:type="Element" x="280" y="40" w="240" h="70"/>
 
         <!-- Application Layer — UI side (left) and API side (right) -->
-        <node identifier="id-node-sr-cancel-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="120">
-          <node identifier="id-node-sr-cancel-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="200" w="200" h="70"/>
+        <node identifier="id-node-sr-cancel-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="160" w="240" h="200">
+          <node identifier="id-node-sr-cancel-uiroute" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="60" y="290" w="200" h="60"/>
         </node>
         <node identifier="id-node-sr-cancel-svc" elementRef="id-svc-runs" xsi:type="Element" x="380" y="160" w="180" h="70"/>
         <node identifier="id-node-sr-cancel-api" elementRef="id-lfm-api" xsi:type="Element" x="380" y="320" w="180" h="70"/>
