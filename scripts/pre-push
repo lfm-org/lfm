@@ -7,6 +7,26 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+shell_scripts=(
+  scripts/archi-render.sh
+  scripts/check-bundle-size.sh
+  scripts/claude/stop-devsecops-audit.sh
+  scripts/claude/stop-responsive-audit.sh
+  scripts/claude/stop-test-audit.sh
+  scripts/install-codex-skills.sh
+  scripts/pre-commit
+  scripts/pre-push
+  scripts/run-tests-parallel.sh
+  scripts/wait-api-ready.sh
+)
+
+echo "[pre-push] Shell script lint..."
+if command -v shellcheck >/dev/null 2>&1; then
+  shellcheck "${shell_scripts[@]}"
+else
+  echo "[pre-push] shellcheck not found; skipping optional shell lint."
+fi
+
 echo "[pre-push] Format check..."
 dotnet format lfm.sln --verify-no-changes --no-restore --severity error
 

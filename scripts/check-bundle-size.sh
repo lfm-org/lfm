@@ -34,7 +34,7 @@ for asset in "${assets[@]}"; do
     size=$(brotli --quality=11 --stdout "$asset" | wc -c)
   fi
   total_bytes=$(( total_bytes + size ))
-  printf '%10d  %s\n' "$size" "${asset#$PUBLISH_DIR/}" >> "$tmp_breakdown"
+  printf '%10d  %s\n' "$size" "${asset#"$PUBLISH_DIR"/}" >> "$tmp_breakdown"
 done
 
 budget_bytes=$(( BUDGET_MB * 1024 * 1024 ))
