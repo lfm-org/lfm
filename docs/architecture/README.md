@@ -14,7 +14,7 @@ The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub 
 | 4 | Production Release Migration | `Migration` | [`id-view-migration.png`](renders/id-view-migration.png) |
 | 5 | Capability Map (FORWARD-ONLY scaffold) | `Capability Map` | [`id-view-capability-map.png`](renders/id-view-capability-map.png) |
 | 6 | Motivation (FORWARD-ONLY scaffold) | `Motivation` | [`id-view-motivation.png`](renders/id-view-motivation.png) |
-| 7 | Mythic+ Run Signup — Business Process Cooperation | `Business Process Cooperation` | [`id-view-business-processes.png`](renders/id-view-business-processes.png) |
+| 7 | Run Signup — Business Process Cooperation | `Business Process Cooperation` | [`id-view-business-processes.png`](renders/id-view-business-processes.png) |
 | 8 | Browse open runs — Service Realization (Process-rooted) | `Service Realization` | [`id-view-sr-browse-runs.png`](renders/id-view-sr-browse-runs.png) |
 | 9 | Inspect run detail — Service Realization (Process-rooted) | `Service Realization` | [`id-view-sr-inspect-run.png`](renders/id-view-sr-inspect-run.png) |
 | 10 | Sign up for run — Service Realization (Process-rooted) | `Service Realization` | [`id-view-service-realization.png`](renders/id-view-service-realization.png) |
@@ -48,43 +48,43 @@ CI/CD release path lifted from [`.github/workflows/`](../../.github/workflows/).
 
 ![Capability Map](renders/id-view-capability-map.png)
 
-Three-row realisation chain for the architect to iterate on: real **Application Services** (lifted from `api/Functions/*`) → forward-only **Business Services** (suggestive labels inferred from the API surface) → forward-only **Strategy Capabilities** (architect to validate or rename). The three Capabilities ("Find a group for Mythic+", "Guild roster management", "Personal character portfolio") are placeholders — they have not been validated against business stakeholders and are likely incomplete (no Account / Authentication capability is stubbed yet, no Stakeholders are modeled, and the Motivation layer is only a minimal run-signup seed rather than a full capability rationale).
+Three-row realisation chain for the architect to iterate on: real **Application Services** (lifted from `api/Functions/*`) → forward-only **Business Services** (suggestive labels inferred from the API surface) → forward-only **Strategy Capabilities** (architect to validate or rename). The three Capabilities ("Coordinate raid and dungeon runs", "Guild roster management", "Personal character portfolio") are placeholders — they have not been validated against business stakeholders and are likely incomplete (no Account / Authentication capability is stubbed yet, no Stakeholders are modeled, and the Motivation layer is only a minimal run-signup seed rather than a full capability rationale).
 
 ### 6. Motivation (FORWARD-ONLY scaffold)
 
 ![Motivation](renders/id-view-motivation.png)
 
-Forward-only seed for the "why" behind the run-signup capability. It connects the inferred `Mythic+ group-finding friction` Driver to the inferred `Frictionless raid signup` Goal and adds the `Expose run signup entry point` Requirement as the design constraint that realizes the goal. These elements are placeholders derived from the current product surface, not validated stakeholder intent; the architect should replace or refine them before using the view as governance evidence.
+Forward-only seed for the "why" behind the run-signup capability. It connects the inferred `Run coordination friction` Driver to the inferred `Low-friction run signup` Goal and adds the `Expose run signup entry point` Requirement as the design constraint that realizes the goal. These elements are placeholders derived from the current product surface, not validated stakeholder intent; the architect should replace or refine them before using the view as governance evidence.
 
-### 7. Mythic+ Run Signup — Business Process Cooperation (FORWARD-ONLY)
+### 7. Run Signup — Business Process Cooperation (FORWARD-ONLY)
 
 ![Business Process Cooperation](renders/id-view-business-processes.png)
 
-§9.7 Business Process Cooperation view of the user-driven "Sign up for Mythic+ run" flow. **Active structure** (top): a `Mythic+ Player` Business Actor Assigned to every user-driven Behaviour. **Behaviour** (middle, left-to-right Triggering chain): an entry `Player wants to run a key` Business Event → `Browse open runs` (realised by `RunsListFunction`) → `Inspect run detail` (`RunsDetailFunction`) → `Sign up for run` (`RunsSignupFunction`) → terminal `Signup confirmed` Business Event; an alt-path Flow from `Sign up for run` to `Cancel signup` (`RunsCancelSignupFunction`). **Passive structure** (bottom): `Run` and `Signup` Business Objects, Accessed by the Behaviour steps that read or write them. LFM has no Durable Functions orchestrators or Logic Apps, so this chain is architect-authored rather than lifted (per architecture-design `references/procedures/lifting-rules-process.md`); forward-only status is retained in element documentation rather than repeated in visible labels. Names and chain shape have **not** been validated against business stakeholders.
+§9.7 Business Process Cooperation view of the user-driven "Sign up for run" flow. **Active structure** (top): a `Player` Business Actor Assigned to every user-driven Behaviour. **Behaviour** (middle, left-to-right Triggering chain): an entry `Player wants to join a run` Business Event → `Browse open runs` (realised by `RunsListFunction`) → `Inspect run detail` (`RunsDetailFunction`) → `Sign up for run` (`RunsSignupFunction`) → terminal `Signup confirmed` Business Event; an alt-path Flow from `Sign up for run` to `Cancel signup` (`RunsCancelSignupFunction`). **Passive structure** (bottom): `Run` and `Signup` Business Objects, Accessed by the Behaviour steps that read or write them. LFM has no Durable Functions orchestrators or Logic Apps, so this chain is architect-authored rather than lifted (per architecture-design `references/procedures/lifting-rules-process.md`); forward-only status is retained in element documentation rather than repeated in visible labels. Names and chain shape have **not** been validated against business stakeholders.
 
 ### 8. Browse open runs — Service Realization (Process-rooted)
 
 ![Browse open runs Service Realization](renders/id-view-sr-browse-runs.png)
 
-§9.3 Service Realization drill-down for the `Browse open runs` Business Process. The forward-only Business Process is realised by the real `Mythic+ Runs` Application Service, implemented by `Lfm.Api`, hosted on `Azure Function App`, and served by `Azure Cosmos DB account` on the data plane. The user-driven entry point is the UI Application Component [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) exposing the `/runs` Application Interface.
+§9.3 Service Realization drill-down for the `Browse open runs` Business Process. The forward-only Business Process is realised by the real `Run Management` Application Service, implemented by `Lfm.Api`, hosted on `Azure Function App`, and served by `Azure Cosmos DB account` on the data plane. The user-driven entry point is the UI Application Component [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) exposing the `/runs` Application Interface.
 
 ### 9. Inspect run detail — Service Realization (Process-rooted)
 
 ![Inspect run detail Service Realization](renders/id-view-sr-inspect-run.png)
 
-§9.3 Service Realization drill-down for the `Inspect run detail` Business Process. The forward-only process is realised by the same real `Mythic+ Runs` Application Service and `Lfm.Api` component, hosted on `Azure Function App`, with `Azure Cosmos DB account` serving the run-detail read path. The user-driven entry point is [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) exposing the `/runs/{RunId}` Application Interface.
+§9.3 Service Realization drill-down for the `Inspect run detail` Business Process. The forward-only process is realised by the same real `Run Management` Application Service and `Lfm.Api` component, hosted on `Azure Function App`, with `Azure Cosmos DB account` serving the run-detail read path. The user-driven entry point is [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) exposing the `/runs/{RunId}` Application Interface.
 
 ### 10. Sign up for run — Service Realization (Process-rooted)
 
 ![Sign up for run Service Realization](renders/id-view-service-realization.png)
 
-§9.3 Service Realization view, Process-rooted modality. The Business Process `Sign up for run` (top, FORWARD-ONLY) drills down through `Mythic+ Runs` Application Service → `Lfm.Api` Application Component → `Azure Function App` Technology Node, with `Azure Cosmos DB account` serving the Function App on the data plane. Per the §9.3 Blazor idiom, the user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface; the UI Component carries a Realisation edge to the Business Process. This view satisfies the AD-B-6 / AD-B-7 / AD-B-8 / AD-B-9 / AD-B-10 between-view invariants for the §9.7 Business Process Cooperation view (sibling).
+§9.3 Service Realization view, Process-rooted modality. The Business Process `Sign up for run` (top, FORWARD-ONLY) drills down through `Run Management` Application Service → `Lfm.Api` Application Component → `Azure Function App` Technology Node, with `Azure Cosmos DB account` serving the Function App on the data plane. Per the §9.3 Blazor idiom, the user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface; the UI Component carries a Realisation edge to the Business Process. This view satisfies the AD-B-6 / AD-B-7 / AD-B-8 / AD-B-9 / AD-B-10 between-view invariants for the §9.7 Business Process Cooperation view (sibling).
 
 ### 11. Cancel signup — Service Realization (Process-rooted)
 
 ![Cancel signup Service Realization](renders/id-view-sr-cancel-signup.png)
 
-§9.3 Service Realization drill-down for the `Cancel signup` alternate-path Business Process. The process is realised by `Mythic+ Runs` through `Lfm.Api` on `Azure Function App`, with `Azure Cosmos DB account` serving the signup mutation path. The user-driven entry point remains [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) and the `/runs/{RunId}` Application Interface, matching the sibling cooperation view's alt-path Flow.
+§9.3 Service Realization drill-down for the `Cancel signup` alternate-path Business Process. The process is realised by `Run Management` through `Lfm.Api` on `Azure Function App`, with `Azure Cosmos DB account` serving the signup mutation path. The user-driven entry point remains [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) and the `/runs/{RunId}` Application Interface, matching the sibling cooperation view's alt-path Flow.
 
 ## Forward-only scope
 
