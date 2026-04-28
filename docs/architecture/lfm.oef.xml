@@ -660,9 +660,13 @@
     <relationship identifier="id-rel-grp-wow-api" source="id-grp-blizzard-external" target="id-blizzard-wow-api" xsi:type="Composition"/>
     <relationship identifier="id-rel-grp-cdn" source="id-grp-blizzard-external" target="id-blizzard-cdn" xsi:type="Composition"/>
 
-    <!-- Function App's system-assigned MI is composed into the Function App Node; resource access is authorised by RBAC role assignments documented on the MI element. -->
+    <!-- Function App's system-assigned MI is composed into the Function App Node and accesses data-plane resources via RBAC role assignments documented on the MI element. -->
 
     <relationship identifier="id-rel-fa-comp-mi" source="id-node-function-app" target="id-tech-funcapp-mi" xsi:type="Composition"/>
+    <relationship identifier="id-rel-mi-access-cosmos" source="id-tech-funcapp-mi" target="id-node-cosmos" xsi:type="Access" accessType="ReadWrite"/>
+    <relationship identifier="id-rel-mi-access-storage" source="id-tech-funcapp-mi" target="id-node-storage" xsi:type="Access" accessType="ReadWrite"/>
+    <relationship identifier="id-rel-mi-access-kv" source="id-tech-funcapp-mi" target="id-node-keyvault" xsi:type="Access" accessType="Read"/>
+    <relationship identifier="id-rel-mi-access-ai" source="id-tech-funcapp-mi" target="id-node-app-insights" xsi:type="Access" accessType="Write"/>
 
     <!-- Diagnostic settings — Log Analytics serves as the central sink for each resource's diagnostics. -->
 
@@ -949,7 +953,7 @@
 
       <view identifier="id-view-technology" xsi:type="Diagram" viewpoint="Technology Usage">
         <name xml:lang="en">View: Technology Realisation (Hosting + Data Plane)</name>
-        <documentation xml:lang="en">Azure Technology Layer hosting + data-plane overview. Static Web Apps hosts Lfm.App; Function App hosts Lfm.Api; the data plane is Cosmos DB (Free Tier, single-region) + Storage (Standard_LRS) + Key Vault; the workspace-based observability stack (Log Analytics aggregates Application Insights) receives telemetry from the Function App. **The data-plane RBAC story (system-assigned MI, role assignments, Serving dependencies into Function App) is in the Technology Security view (sibling).** Diagnostic settings (Cosmos / Storage / KV / SWA / Function App → Log Analytics) and the Action Group + Cosmos throttle alert are tracked in &lt;relationships&gt; but reserved for an Observability detail view. App-Service Plan SKU and runtime version are in &lt;elements&gt; documentation. Region is `vars.AZURE_LOCATION` from the deploy workflow — single-region, no failover.</documentation>
+        <documentation xml:lang="en">Azure Technology Layer hosting + data-plane overview. Static Web Apps hosts Lfm.App; Function App hosts Lfm.Api; the data plane is Cosmos DB (Free Tier, single-region) + Storage (Standard_LRS) + Key Vault; the workspace-based observability stack (Log Analytics aggregates Application Insights) receives telemetry from the Function App. **The data-plane RBAC story (system-assigned MI, role assignments, Access edges from MI to authorised resources) is in the Technology Security view (sibling).** Diagnostic settings (Cosmos / Storage / KV / SWA / Function App → Log Analytics) and the Action Group + Cosmos throttle alert are tracked in &lt;relationships&gt; but reserved for an Observability detail view. App-Service Plan SKU and runtime version are in &lt;elements&gt; documentation. Region is `vars.AZURE_LOCATION` from the deploy workflow — single-region, no failover.</documentation>
 
         <!-- Application row — placed above the hosting nodes so Assignment edges stay short and vertical -->
         <node identifier="id-node-v2-app" elementRef="id-lfm-app" xsi:type="Element" x="40" y="40" w="160" h="80"/>
@@ -986,7 +990,7 @@
 
       <view identifier="id-view-technology-security" xsi:type="Diagram" viewpoint="Technology Usage">
         <name xml:lang="en">View: Technology Security (Managed Identity + Data-plane RBAC)</name>
-        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because Application Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the only authentication path. Reading this view: each Serving edge into the Function App is a runtime dependency whose access is authorised by the Function App MI's documented role assignments.</documentation>
+        <documentation xml:lang="en">How Lfm.Api authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is granted six data-plane RBAC roles in `infra/modules/functions.bicep`: Key Vault Secrets User on the Vault (Read), Cosmos DB Built-in Data Contributor (RW) on the account, Storage Blob Data Owner + Queue Data Contributor + Table Data Contributor (RW) on the account, Monitoring Metrics Publisher (Write) on App Insights — the last is required because Application Insights has DisableLocalAuth=true. `infra/modules/dataprotection.bicep` adds Data Protection-specific Key Vault Crypto User (wrap/unwrap) and Storage Blob Data Contributor on the `dataprotection` container. The Cosmos account itself sets disableLocalAuth=true and the Storage account sets allowSharedKeyAccess=false, so RBAC is the only authentication path. Reading this view: each Access edge from MI represents a role assignment that must exist for the corresponding outbound call to succeed.</documentation>
 
         <!-- Function App + managed identity, separated so RBAC dependency edges do not run through the MI label. -->
         <node identifier="id-node-v2s-mi" elementRef="id-tech-funcapp-mi" xsi:type="Element" x="40" y="40" w="220" h="70"/>
@@ -1000,24 +1004,22 @@
         <!-- Application Insights for the Monitoring Metrics Publisher RBAC story -->
         <node identifier="id-node-v2s-ai" elementRef="id-node-app-insights" xsi:type="Element" x="600" y="60" w="200" h="60"/>
 
-        <!-- Connections — Composition identifies the MI carried by the Function App; Serving edges show RBAC-authorized runtime dependencies. -->
+        <!-- Connections — Composition identifies the MI carried by the Function App; Access edges show RBAC-authorized resource access. -->
         <connection identifier="id-conn-v2s-0" relationshipRef="id-rel-fa-comp-mi" source="id-node-v2s-funcapp" target="id-node-v2s-mi" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2s-1" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2s-cosmos" target="id-node-v2s-funcapp" xsi:type="Relationship">
+        <connection identifier="id-conn-v2s-1" relationshipRef="id-rel-mi-access-cosmos" source="id-node-v2s-mi" target="id-node-v2s-cosmos" xsi:type="Relationship">
           <bendpoint x="280" y="90"/>
-          <bendpoint x="280" y="190"/>
         </connection>
-        <connection identifier="id-conn-v2s-2" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2s-storage" target="id-node-v2s-funcapp" xsi:type="Relationship">
+        <connection identifier="id-conn-v2s-2" relationshipRef="id-rel-mi-access-storage" source="id-node-v2s-mi" target="id-node-v2s-storage" xsi:type="Relationship">
+          <bendpoint x="280" y="90"/>
           <bendpoint x="280" y="170"/>
-          <bendpoint x="280" y="190"/>
         </connection>
-        <connection identifier="id-conn-v2s-3" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2s-kv" target="id-node-v2s-funcapp" xsi:type="Relationship">
+        <connection identifier="id-conn-v2s-3" relationshipRef="id-rel-mi-access-kv" source="id-node-v2s-mi" target="id-node-v2s-kv" xsi:type="Relationship">
+          <bendpoint x="280" y="90"/>
           <bendpoint x="280" y="250"/>
-          <bendpoint x="280" y="190"/>
         </connection>
-        <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2s-ai" target="id-node-v2s-funcapp" xsi:type="Relationship">
-          <bendpoint x="700" y="310"/>
-          <bendpoint x="280" y="310"/>
-          <bendpoint x="280" y="190"/>
+        <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-mi-access-ai" source="id-node-v2s-mi" target="id-node-v2s-ai" xsi:type="Relationship">
+          <bendpoint x="280" y="20"/>
+          <bendpoint x="700" y="20"/>
         </connection>
 
       </view>
