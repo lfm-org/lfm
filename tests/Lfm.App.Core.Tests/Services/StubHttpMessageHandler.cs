@@ -34,6 +34,9 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
     public static StubHttpMessageHandler Throws(Exception exception) =>
         new(_ => throw exception);
 
+    public static HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, object body) =>
+        CreateResponse(statusCode, body);
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         LastRequest = request;
