@@ -20,47 +20,85 @@ The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub 
 | 10 | Sign up for run — Service Realization (Process-rooted) | `Service Realization` | [`id-view-service-realization.png`](renders/id-view-service-realization.png) |
 | 11 | Cancel signup — Service Realization (Process-rooted) | `Service Realization` | [`id-view-sr-cancel-signup.png`](renders/id-view-sr-cancel-signup.png) |
 
+## Render Gallery
+
+| View | Render |
+|---|---|
+| Application Cooperation | [<img src="renders/id-view-app-cooperation.png" alt="Application Cooperation" width="420">](renders/id-view-app-cooperation.png) |
+| Technology Realisation (Hosting + Data Plane) | [<img src="renders/id-view-technology.png" alt="Technology Realisation" width="420">](renders/id-view-technology.png) |
+| Technology Security (MI + RBAC) | [<img src="renders/id-view-technology-security.png" alt="Technology Security" width="420">](renders/id-view-technology-security.png) |
+| Production Release Migration | [<img src="renders/id-view-migration.png" alt="Production Release Migration" width="420">](renders/id-view-migration.png) |
+| Capability Map (FORWARD-ONLY scaffold) | [<img src="renders/id-view-capability-map.png" alt="Capability Map" width="420">](renders/id-view-capability-map.png) |
+| Motivation (FORWARD-ONLY scaffold) | [<img src="renders/id-view-motivation.png" alt="Motivation" width="420">](renders/id-view-motivation.png) |
+| Mythic+ Run Signup — Business Process Cooperation | [<img src="renders/id-view-business-processes.png" alt="Mythic+ Run Signup Business Process Cooperation" width="420">](renders/id-view-business-processes.png) |
+| Browse open runs — Service Realization (Process-rooted) | [<img src="renders/id-view-sr-browse-runs.png" alt="Browse open runs Service Realization" width="420">](renders/id-view-sr-browse-runs.png) |
+| Inspect run detail — Service Realization (Process-rooted) | [<img src="renders/id-view-sr-inspect-run.png" alt="Inspect run detail Service Realization" width="420">](renders/id-view-sr-inspect-run.png) |
+| Sign up for run — Service Realization (Process-rooted) | [<img src="renders/id-view-service-realization.png" alt="Sign up for run Service Realization" width="420">](renders/id-view-service-realization.png) |
+| Cancel signup — Service Realization (Process-rooted) | [<img src="renders/id-view-sr-cancel-signup.png" alt="Cancel signup Service Realization" width="420">](renders/id-view-sr-cancel-signup.png) |
+
 ### 1. Application Cooperation
+
+![Application Cooperation](renders/id-view-app-cooperation.png)
 
 LFM-internal vs Blizzard-external trust boundary, drawn explicitly with two `Grouping`s. Inside LFM: `Lfm.App.Core` serves `Lfm.App` (Blazor WASM SPA); `Lfm.Contracts` (shared DTO library) serves all three internal projects; `Lfm.Api` (Azure Functions HTTP API) exposes the `REST API (/api/*)` interface that serves `Lfm.App`. Inside Blizzard: `Battle.net OAuth 2.0` serves `Lfm.Api` (login flow); `WoW Profile API` and `WoW Game Data API` serve `Lfm.Api` (character + reference data); `render.worldofwarcraft.com` is consumed directly by the SPA browser (CSP-allowlisted).
 
 ### 2. Technology Realisation (Hosting + Data Plane)
 
+![Technology Realisation](renders/id-view-technology.png)
+
 The Azure resources and data-plane artifacts (single resource group, single region) with their hosting + data-plane relationships: `Azure Static Web Apps` hosts `Lfm.App`; `Azure Function App` hosts `Lfm.Api` on an App Service Plan using the committed Y1 Dynamic SKU and consumes `Cosmos DB account` (Free Tier, `disableLocalAuth=true`), `Storage account` (Standard_LRS, `allowSharedKeyAccess=false`), and `Key Vault` (RBAC-authorized) as data-plane services; `Application Insights` is workspace-based, aggregated by `Log Analytics workspace`. The Cosmos SQL database Artifact, Functions runtime version, container Artifacts, diagnostic-settings flows, and the Action Group + Cosmos throttle alert are tracked in the model but reserved for detail views.
 
 ### 3. Technology Security (MI + RBAC)
+
+![Technology Security](renders/id-view-technology-security.png)
 
 How `Lfm.Api` authenticates to every data-plane resource. The Function App carries a system-assigned managed identity (no client secrets, no shared keys). The MI is represented in the model as a `TechnologyService` to show the RBAC-authorized access surface; it is not a standalone Azure resource. The MI is granted six baseline data-plane RBAC roles in [`infra/modules/functions.bicep`](../../infra/modules/functions.bicep): **Key Vault Secrets User** on the Vault, **Cosmos DB Built-in Data Contributor** on the account, **Storage Blob Data Owner** + **Queue Data Contributor** + **Table Data Contributor** on the account, **Monitoring Metrics Publisher** on Application Insights (the last is required because App Insights has `DisableLocalAuth=true`). [`infra/modules/dataprotection.bicep`](../../infra/modules/dataprotection.bicep) adds the Data Protection-specific **Key Vault Crypto User** and **Storage Blob Data Contributor** grants for the encrypted key ring. Cosmos `disableLocalAuth=true` and Storage `allowSharedKeyAccess=false` make RBAC the **only** authentication path; the Serving edges into the Function App are runtime dependencies authorized by those managed-identity role assignments.
 
 ### 4. Production Release Migration
 
+![Production Release Migration](renders/id-view-migration.png)
+
 CI/CD release path lifted from [`.github/workflows/`](../../.github/workflows/). LFM deploys to **one** environment (`production`); `deploy.yml` has no environment input and tags every resource `environment=production`. The Deploy orchestrator aggregates Deploy Infrastructure (Bicep what-if + apply), Deploy App-Build (Functions zip + Blazor wwwroot bundle), and Deploy App (uploads to Function App + SWA). The Migration view now shows a Repository Baseline Plateau, a Release to production Gap, the Deploy to Production Implementation Event, and the resulting Production Plateau. `Dev` and `Staging` plateaus exist as `FORWARD-ONLY` stubs in `<elements>` for future multi-environment work but are not drawn here. CI / E2E / Secret Scanning / Analyze Infrastructure / License Compliance / Stryker / Dependabot Auto-Merge are tracked but not visualised; they gate PRs, they do not realise the Plateau.
 
 ### 5. Capability Map (FORWARD-ONLY scaffold)
+
+![Capability Map](renders/id-view-capability-map.png)
 
 Three-row realisation chain for the architect to iterate on: real **Application Services** (lifted from `api/Functions/*`) → forward-only **Business Services** (suggestive labels inferred from the API surface) → forward-only **Strategy Capabilities** (architect to validate or rename). The three Capabilities ("Find a group for Mythic+", "Guild roster management", "Personal character portfolio") are placeholders — they have not been validated against business stakeholders and are likely incomplete (no Account / Authentication capability is stubbed yet, no Stakeholders are modeled, and the Motivation layer is only a minimal run-signup seed rather than a full capability rationale).
 
 ### 6. Motivation (FORWARD-ONLY scaffold)
 
+![Motivation](renders/id-view-motivation.png)
+
 Forward-only seed for the "why" behind the run-signup capability. It connects the inferred `Mythic+ group-finding friction` Driver to the inferred `Frictionless raid signup` Goal and adds the `Expose run signup entry point` Requirement as the design constraint that realizes the goal. These elements are placeholders derived from the current product surface, not validated stakeholder intent; the architect should replace or refine them before using the view as governance evidence.
 
 ### 7. Mythic+ Run Signup — Business Process Cooperation (FORWARD-ONLY)
+
+![Business Process Cooperation](renders/id-view-business-processes.png)
 
 §9.7 Business Process Cooperation view of the user-driven "Sign up for Mythic+ run" flow. **Active structure** (top): a `Mythic+ Player` Business Actor Assigned to every user-driven Behaviour. **Behaviour** (middle, left-to-right Triggering chain): an entry `Player wants to run a key` Business Event → `Browse open runs` (realised by `RunsListFunction`) → `Inspect run detail` (`RunsDetailFunction`) → `Sign up for run` (`RunsSignupFunction`) → terminal `Signup confirmed` Business Event; an alt-path Flow from `Sign up for run` to `Cancel signup` (`RunsCancelSignupFunction`). **Passive structure** (bottom): `Run` and `Signup` Business Objects, Accessed by the Behaviour steps that read or write them. LFM has no Durable Functions orchestrators or Logic Apps, so this chain is architect-authored rather than lifted (per architecture-design `references/procedures/lifting-rules-process.md`); forward-only status is retained in element documentation rather than repeated in visible labels. Names and chain shape have **not** been validated against business stakeholders.
 
 ### 8. Browse open runs — Service Realization (Process-rooted)
 
+![Browse open runs Service Realization](renders/id-view-sr-browse-runs.png)
+
 §9.3 Service Realization drill-down for the `Browse open runs` Business Process. The forward-only Business Process is realised by the real `Mythic+ Runs` Application Service, implemented by `Lfm.Api`, hosted on `Azure Function App`, and served by `Azure Cosmos DB account` on the data plane. The user-driven entry point is the UI Application Component [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) exposing the `/runs` Application Interface.
 
 ### 9. Inspect run detail — Service Realization (Process-rooted)
+
+![Inspect run detail Service Realization](renders/id-view-sr-inspect-run.png)
 
 §9.3 Service Realization drill-down for the `Inspect run detail` Business Process. The forward-only process is realised by the same real `Mythic+ Runs` Application Service and `Lfm.Api` component, hosted on `Azure Function App`, with `Azure Cosmos DB account` serving the run-detail read path. The user-driven entry point is [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) exposing the `/runs/{RunId}` Application Interface.
 
 ### 10. Sign up for run — Service Realization (Process-rooted)
 
+![Sign up for run Service Realization](renders/id-view-service-realization.png)
+
 §9.3 Service Realization view, Process-rooted modality. The Business Process `Sign up for run` (top, FORWARD-ONLY) drills down through `Mythic+ Runs` Application Service → `Lfm.Api` Application Component → `Azure Function App` Technology Node, with `Azure Cosmos DB account` serving the Function App on the data plane. Per the §9.3 Blazor idiom, the user-driven entry point is the UI Application Component `app/Pages/RunsPage.razor` exposing the `/runs/{RunId}` Application Interface; the UI Component carries a Realisation edge to the Business Process. This view satisfies the AD-B-6 / AD-B-7 / AD-B-8 / AD-B-9 / AD-B-10 between-view invariants for the §9.7 Business Process Cooperation view (sibling).
 
 ### 11. Cancel signup — Service Realization (Process-rooted)
+
+![Cancel signup Service Realization](renders/id-view-sr-cancel-signup.png)
 
 §9.3 Service Realization drill-down for the `Cancel signup` alternate-path Business Process. The process is realised by `Mythic+ Runs` through `Lfm.Api` on `Azure Function App`, with `Azure Cosmos DB account` serving the signup mutation path. The user-driven entry point remains [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor) and the `/runs/{RunId}` Application Interface, matching the sibling cooperation view's alt-path Flow.
 
