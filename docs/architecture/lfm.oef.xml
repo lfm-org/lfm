@@ -18,6 +18,10 @@
                                    api/host.json, api/Program.cs, app/wwwroot/staticwebapp.config.json.template
     Technology Layer             : infra/main.bicep + infra/modules/*.bicep
     Implementation & Migration   : .github/workflows/*.yml
+  Scope note:
+    Production-facing runtime only. Test-only functions compiled behind #if E2E,
+    such as api/Functions/E2ELoginFunction.cs (/api/e2e/login), are deliberately
+    excluded from the Application Interface inventory.
   Forward-only (architect fills in):
     Business Layer (Service / Function / Actor / Role / Object / Contract / Product),
     Motivation Layer (Stakeholder / Driver / Goal / Outcome / Requirement),
@@ -29,7 +33,7 @@
        xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd"
        identifier="id-lfm-model">
   <name xml:lang="en">LFM — Architecture Model</name>
-  <documentation xml:lang="en">Architecture model for LFM (Looking-for-Mythic-Plus) — a Blazor WebAssembly + Azure Functions application that helps World of Warcraft players organise Mythic+ groups. Lifted from the repository's .NET solution, Bicep IaC, and GitHub Actions workflows.</documentation>
+  <documentation xml:lang="en">Architecture model for LFM (Looking-for-Mythic-Plus) — a Blazor WebAssembly + Azure Functions application that helps World of Warcraft players organise Mythic+ groups. Lifted from the repository's .NET solution, Bicep IaC, and GitHub Actions workflows. Scope is the production-facing runtime; test-only functions compiled behind #if E2E are intentionally excluded from the Application Interface inventory.</documentation>
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <schema>http://purl.org/dc/elements/1.1/</schema>
     <schemaversion>1.1</schemaversion>
@@ -105,7 +109,7 @@
 
     <element identifier="id-iface-rest-api" xsi:type="ApplicationInterface">
       <name xml:lang="en">REST API (/api/*)</name>
-      <documentation xml:lang="en">HTTP/JSON API surface exposed by Lfm.Api with route prefix /api (api/host.json). Aggregates 30+ endpoint functions: me, me-update, me-delete, guild-get, guild-update, guild-admin-get, runs-create/list/detail/update/delete/signup/cancel-signup, raider-character/-add/-enrich, raider-cleanup, battlenet-login/-callback/-logout/-characters/-characters-refresh/-character-portraits, wow-reference-instances/-expansions/-specializations/-refresh, privacy-email, health/-ready, cors-preflight catch-all OPTIONS, plus -v1 aliases where applicable. Source: api/Functions/*.cs.</documentation>
+      <documentation xml:lang="en">Production-facing HTTP/JSON API surface exposed by Lfm.Api with route prefix /api (api/host.json). Aggregates 30+ endpoint functions: me, me-update, me-delete, guild-get, guild-update, guild-admin-get, runs-create/list/detail/update/delete/signup/cancel-signup, raider-character/-add/-enrich, raider-cleanup, battlenet-login/-callback/-logout/-characters/-characters-refresh/-character-portraits, wow-reference-instances/-expansions/-specializations/-refresh, privacy-email, health/-ready, cors-preflight catch-all OPTIONS, plus -v1 aliases where applicable. Excludes test-only functions compiled behind #if E2E, such as /api/e2e/login. Source: api/Functions/*.cs.</documentation>
     </element>
 
     <element identifier="id-iface-bnet-oauth" xsi:type="ApplicationInterface">
@@ -249,7 +253,7 @@
 
     <element identifier="id-tech-funcapp-mi" xsi:type="TechnologyService">
       <name xml:lang="en">Function App MI</name>
-      <documentation xml:lang="en">System-assigned managed identity on the Function App (`identity: { type: 'SystemAssigned' }`). Holds the data-plane RBAC role assignments that authorise every outbound call from Lfm.Api: Key Vault Secrets User on the Vault, SQL Role 00000000-...-00000002 (Cosmos DB Built-in Data Contributor) on the Cosmos account, Storage Blob Data Owner / Queue Data Contributor / Table Data Contributor on the Storage account, Monitoring Metrics Publisher on App Insights (required because Application Insights has DisableLocalAuth=true), plus Data Protection-specific Key Vault Crypto User and Storage Blob Data Contributor grants. Source: infra/modules/functions.bicep (kvRoleAssignment, cosmosRoleAssignment, storageBlobRole, storageQueueRole, storageTableRole, appInsightsRoleAssignment), infra/modules/dataprotection.bicep (kvCryptoUserRoleAssignment, storageBlobContributorRoleAssignment).</documentation>
+      <documentation xml:lang="en">System-assigned managed identity on the Function App (`identity: { type: 'SystemAssigned' }`). This is modelled as a Technology Service to make the Technology Security view show the RBAC-authorised access surface; it is not a standalone Azure resource. Holds the data-plane RBAC role assignments that authorise every outbound call from Lfm.Api: Key Vault Secrets User on the Vault, SQL Role 00000000-...-00000002 (Cosmos DB Built-in Data Contributor) on the Cosmos account, Storage Blob Data Owner / Queue Data Contributor / Table Data Contributor on the Storage account, Monitoring Metrics Publisher on App Insights (required because Application Insights has DisableLocalAuth=true), plus Data Protection-specific Key Vault Crypto User and Storage Blob Data Contributor grants. Source: infra/modules/functions.bicep (kvRoleAssignment, cosmosRoleAssignment, storageBlobRole, storageQueueRole, storageTableRole, appInsightsRoleAssignment), infra/modules/dataprotection.bicep (kvCryptoUserRoleAssignment, storageBlobContributorRoleAssignment).</documentation>
     </element>
 
     <!-- Artifacts (Passive structure) -->
