@@ -8,7 +8,6 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
 shell_scripts=(
-  scripts/archi-render.sh
   scripts/check-bundle-size.sh
   scripts/claude/stop-devsecops-audit.sh
   scripts/claude/stop-responsive-audit.sh

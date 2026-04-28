@@ -73,21 +73,21 @@ The Application, Technology, and Implementation & Migration layers are extracted
 
 Open `lfm.oef.xml` in any ArchiMate-conformant tool:
 
-- **[Archi](https://www.archimatetool.com/)** (the reference implementation; what `scripts/archi-render.sh` uses): **File → Import → Open Exchange XML File**, point at `docs/architecture/lfm.oef.xml`.
+- **[Archi](https://www.archimatetool.com/)** (the reference implementation used by the `architecture-design render` helper): **File → Import → Open Exchange XML File**, point at `docs/architecture/lfm.oef.xml`.
 - **BiZZdesign Enterprise Studio** / **Sparx EA** / **Avolution ABACUS** / **HOPEX** — all import OEF natively.
 
 Edits made in any tool that round-trips OEF can be exported back over `lfm.oef.xml`. Archi-specific canvas features (custom figures, group styling presets) are not preserved by OEF; the model is portable, the canvas is not.
 
 ## How to regenerate the renders
 
-The PNGs in [`renders/`](renders/) are produced by [`scripts/archi-render.sh`](../../scripts/archi-render.sh), which runs Archi headlessly:
+The PNGs in [`renders/`](renders/) are produced by the `souroldgeezer-design:architecture-design` render helper, which runs Archi headlessly:
 
 ```bash
-scripts/archi-render.sh             # regenerate every view to .cache/archi-views/lfm/
+architecture-design render .        # regenerate every view to .cache/archi-views/lfm/
 cp .cache/archi-views/lfm/*.png docs/architecture/renders/
 ```
 
-The script writes to `.cache/archi-views/<stem>/` (gitignored) by default; copy the outputs over `docs/architecture/renders/` to update the committed snapshots. Requirements: an `Archi` binary at `$HOME/.local/bin/Archi` (override via `--archi-bin`, `$ARCHI_BIN`, or a config file), `xmllint`, `realpath`, and an `$DISPLAY` (use `xvfb-run` on pure Wayland without Xwayland). The transient cache root and output root are configurable with `--cache-root` / `$ARCHI_RENDER_CACHE_ROOT` and `--output-root` / `$ARCHI_RENDER_OUTPUT_ROOT`; an optional `--config` file may set `ARCHI_BIN`, `ARCHI_RENDER_CACHE_ROOT`, `ARCHI_RENDER_OUTPUT_ROOT`, and `ARCHI_RENDER_OEF_FILE`. Precedence is config file, then CLI argument, then environment variable, then default. The script is concurrent-safe and exits non-zero on any failure (XML well-formedness, Archi import, missing PNGs).
+The helper writes to `.cache/archi-views/<stem>/` (gitignored) by default; copy the outputs over `docs/architecture/renders/` to update the committed snapshots. Requirements: the `souroldgeezer-design:architecture-design` plugin, an `Archi` binary at `$HOME/.local/bin/Archi` or configured equivalent, `xmllint`, `realpath`, and an `$DISPLAY` (use `xvfb-run` on pure Wayland without Xwayland). Do not reference versioned Codex plugin cache paths in this repo; refresh or reinstall the local plugin if `architecture-design render` is missing from the installed runtime.
 
 When `*.oef.xml` changes, regenerate and commit the corresponding files in [`renders/`](renders/) as part of the same architecture update; update this README whenever the view inventory, names, or source provenance changes.
 
