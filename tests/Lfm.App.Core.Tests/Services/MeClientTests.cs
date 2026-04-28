@@ -53,7 +53,7 @@ public class MeClientTests
         var result = await client.GetAsync(CancellationToken.None);
 
         Assert.Null(result);
-        Assert.Equal(1, handler.CallCount);
+        Assert.Equal(4, handler.CallCount);
     }
 
     [Fact]
@@ -64,13 +64,40 @@ public class MeClientTests
         var result = await client.GetAsync(CancellationToken.None);
 
         Assert.Null(result);
-        Assert.Equal(1, handler.CallCount);
+        Assert.Equal(4, handler.CallCount);
     }
 
     [Fact]
     public async Task GetAsync_returns_null_on_5xx_status()
     {
         var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
+
+        var result = await client.GetAsync(CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Equal(4, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_retries_transient_503_and_returns_me_response()
+    {
+        var responses = new Queue<HttpResponseMessage>([
+            new HttpResponseMessage(HttpStatusCode.ServiceUnavailable),
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse())
+        ]);
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(_ => responses.Dequeue()));
+
+        var result = await client.GetAsync(CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("player#1234", result!.BattleNetId);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_does_not_retry_401()
+    {
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Unauthorized));
 
         var result = await client.GetAsync(CancellationToken.None);
 

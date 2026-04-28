@@ -152,7 +152,9 @@ builder.Services.AddSingleton<BlobContainerClient>(sp =>
     var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<StorageOptions>>().Value;
     if (!string.IsNullOrEmpty(opts.BlobConnectionString))
     {
-        var service = new BlobServiceClient(opts.BlobConnectionString);
+        var service = new BlobServiceClient(
+            opts.BlobConnectionString,
+            new BlobClientOptions(BlobClientOptions.ServiceVersion.V2025_11_05));
         return service.GetBlobContainerClient(opts.WowContainerName);
     }
     if (!string.IsNullOrEmpty(opts.BlobServiceUri))
@@ -173,7 +175,7 @@ builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Reposit
 builder.Services.AddScoped<Lfm.Api.Repositories.IGuildRepository, Lfm.Api.Repositories.GuildRepository>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services.KeyVaultSecretResolver>();
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
-builder.Services.AddScoped<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();
+builder.Services.AddSingleton<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
 
 // Audit-log actor hasher. If a salt is configured we HMAC-hash every

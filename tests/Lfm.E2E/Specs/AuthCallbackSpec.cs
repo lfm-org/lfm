@@ -40,7 +40,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
     // See AuthSpec for the rationale on the WASM patterns — this spec
     // exercises the same cold-start Blazor bundle download path.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
+        ["401", "503", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
 
     public override async Task InitializeAsync()
     {
@@ -82,14 +82,50 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
 
         // Wait for the browser to land back on the app after the full OAuth
         // redirect chain. The default post-login redirect is /runs.
-        await Page!.WaitForURLAsync(
+        await Assertions.Expect(Page!).ToHaveURLAsync(
             new System.Text.RegularExpressions.Regex(@"/runs(\?|$)"),
             new() { Timeout = 30000 });
 
         // Assert the user is signed in — the Sign Out button is only rendered
         // inside <AuthorizeView><Authorized>, so its presence proves the auth
         // cookie the real callback set is being honoured by the Blazor client.
-        var navBar = new NavBar(Page);
+        var navBar = new NavBar(Page!);
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+    }
+
+    [Fact]
+    public async Task ProductionCallback_TransientMe503AfterCallback_RetriesAndShowsSignedIn()
+    {
+        var loginPage = new LoginPage(Page!);
+
+        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
+
+        var meFailuresInjected = 0;
+        await Page!.RouteAsync("**/api/v1/me", async route =>
+        {
+            if (meFailuresInjected == 0)
+            {
+                meFailuresInjected++;
+                await route.FulfillAsync(new()
+                {
+                    Status = 503,
+                    ContentType = "text/plain",
+                    Body = "Service Unavailable"
+                });
+                return;
+            }
+
+            await route.ContinueAsync();
+        });
+
+        await loginPage.ClickSignInAsync();
+        await Assertions.Expect(Page!).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/runs(\?|$)"),
+            new() { Timeout = 30000 });
+
+        var navBar = new NavBar(Page!);
+        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+        Assert.Equal(1, meFailuresInjected);
     }
 }

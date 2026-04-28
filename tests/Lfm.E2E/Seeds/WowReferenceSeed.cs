@@ -23,7 +23,9 @@ public static class WowReferenceSeed
 
     public static async Task SeedAsync(string blobConnectionString)
     {
-        var service = new BlobServiceClient(blobConnectionString);
+        var service = new BlobServiceClient(
+            blobConnectionString,
+            new BlobClientOptions(BlobClientOptions.ServiceVersion.V2025_11_05));
         var container = service.GetBlobContainerClient(ContainerName);
         await container.CreateIfNotExistsAsync();
 
