@@ -20,22 +20,6 @@ The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub 
 | 10 | Sign up for run — Service Realization (Process-rooted) | `Service Realization` | [`id-view-service-realization.png`](renders/id-view-service-realization.png) |
 | 11 | Cancel signup — Service Realization (Process-rooted) | `Service Realization` | [`id-view-sr-cancel-signup.png`](renders/id-view-sr-cancel-signup.png) |
 
-## Render Gallery
-
-| View | Render |
-|---|---|
-| Application Cooperation | [<img src="renders/id-view-app-cooperation.png" alt="Application Cooperation" width="420">](renders/id-view-app-cooperation.png) |
-| Technology Realisation (Hosting + Data Plane) | [<img src="renders/id-view-technology.png" alt="Technology Realisation" width="420">](renders/id-view-technology.png) |
-| Technology Security (MI + RBAC) | [<img src="renders/id-view-technology-security.png" alt="Technology Security" width="420">](renders/id-view-technology-security.png) |
-| Production Release Migration | [<img src="renders/id-view-migration.png" alt="Production Release Migration" width="420">](renders/id-view-migration.png) |
-| Capability Map (FORWARD-ONLY scaffold) | [<img src="renders/id-view-capability-map.png" alt="Capability Map" width="420">](renders/id-view-capability-map.png) |
-| Motivation (FORWARD-ONLY scaffold) | [<img src="renders/id-view-motivation.png" alt="Motivation" width="420">](renders/id-view-motivation.png) |
-| Mythic+ Run Signup — Business Process Cooperation | [<img src="renders/id-view-business-processes.png" alt="Mythic+ Run Signup Business Process Cooperation" width="420">](renders/id-view-business-processes.png) |
-| Browse open runs — Service Realization (Process-rooted) | [<img src="renders/id-view-sr-browse-runs.png" alt="Browse open runs Service Realization" width="420">](renders/id-view-sr-browse-runs.png) |
-| Inspect run detail — Service Realization (Process-rooted) | [<img src="renders/id-view-sr-inspect-run.png" alt="Inspect run detail Service Realization" width="420">](renders/id-view-sr-inspect-run.png) |
-| Sign up for run — Service Realization (Process-rooted) | [<img src="renders/id-view-service-realization.png" alt="Sign up for run Service Realization" width="420">](renders/id-view-service-realization.png) |
-| Cancel signup — Service Realization (Process-rooted) | [<img src="renders/id-view-sr-cancel-signup.png" alt="Cancel signup Service Realization" width="420">](renders/id-view-sr-cancel-signup.png) |
-
 ### 1. Application Cooperation
 
 ![Application Cooperation](renders/id-view-app-cooperation.png)
