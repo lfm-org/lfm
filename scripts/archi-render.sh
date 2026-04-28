@@ -94,8 +94,8 @@ strip_optional_quotes() {
 expand_home() {
   local path="$1"
   case "$path" in
-    "~") printf '%s' "$HOME" ;;
-    "~/"*) printf '%s/%s' "$HOME" "${path#"~/"}" ;;
+    \~) printf '%s' "$HOME" ;;
+    \~/*) printf '%s/%s' "$HOME" "${path#\~/}" ;;
     *) printf '%s' "$path" ;;
   esac
 }
