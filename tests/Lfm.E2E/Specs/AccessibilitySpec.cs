@@ -154,6 +154,17 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             .ToBeVisibleAsync(new() { Timeout = 15000 });
 
         await AccessibilityHelper.ScanAndAssert(page, Output, $"/runs/{DefaultSeed.TestRunId}");
+
+        // Re-scan after keyboard-focusing the Edit button — its focus
+        // indicator, accent-fill states, and any aria-describedby tooltips
+        // only surface after interaction, mirroring the LoginPage post-focus
+        // scan above (`E-HC-A2`).
+        await AccessibilityHelper.ScanAfterAsync(page, Output, $"/runs/{DefaultSeed.TestRunId} (edit focused)", async () =>
+        {
+            var runsPage = new RunsPage(page);
+            await Assertions.Expect(runsPage.EditButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await runsPage.EditButton.FocusAsync();
+        });
     }
 
     [Fact]
