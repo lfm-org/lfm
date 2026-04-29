@@ -259,6 +259,42 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CharactersPage_Selected_Badge_Renders_When_Server_Id_Differs_In_Case()
+    {
+        // Regression: server normalises region/realm/name to lowercase before
+        // storing me.SelectedCharacterId (see CharacterPortraitService.TryNormalise).
+        // CharKey used to be `$"{c.Region}-{c.Realm}-{c.Name.ToLowerInvariant()}"`,
+        // which for a CharacterDto whose Region/Realm came back from Blizzard in
+        // mixed case would never equal the lowercase server value, silently
+        // hiding the active-character badge across page navigations.
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var mixedCase = new CharacterDto(
+            Name: "Arthas", Realm: "Silvermoon", RealmName: "Silvermoon", Level: 80,
+            Region: "EU", ClassId: 1, ClassName: "Warrior", PortraitUrl: null,
+            ActiveSpecId: 71, SpecName: "Arms");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { mixedCase }));
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        // Server-stored SelectedCharacterId is fully lowercase.
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("[data-char-id='eu-silvermoon-arthas']");
+            Assert.Contains("outline", card.GetAttribute("style") ?? "");
+            Assert.Contains(Loc("characters.active"), cut.Markup);
+        });
+    }
+
+    [Fact]
     public void CharactersPage_Non_Selected_Card_Has_No_Outline()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
