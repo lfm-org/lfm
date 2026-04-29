@@ -20,7 +20,7 @@
 #         script file changed and not yet prompted this session;
 #         empty exit 0 otherwise.
 #
-# Wired up in .claude/settings.json under hooks.Stop. Codex support deferred.
+# Wired up in .claude/settings.json and .codex/hooks.json under hooks.Stop.
 
 set -euo pipefail
 

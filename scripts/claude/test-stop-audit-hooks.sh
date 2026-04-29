@@ -106,6 +106,7 @@ jq -e 'select(.hook == "test-audit" and .event == "skip-stop-hook-active")' "$de
 
 jq -e '
   [.hooks.Stop[].hooks[].statusMessage] as $messages
-  | ($messages | length) == 3
+  | ($messages | length) == 4
+  and any($messages[]; . == "Checking source/project/script changes for software design audit prompt")
   and all($messages[]; type == "string" and length > 0)
 ' "$repo_root/.codex/hooks.json" >/dev/null
