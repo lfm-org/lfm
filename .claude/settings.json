@@ -64,6 +64,10 @@
           {
             "type": "command",
             "command": "bash ./scripts/claude/stop-responsive-audit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ./scripts/claude/stop-software-design-audit.sh"
           }
         ]
       }
