@@ -158,6 +158,29 @@ public class AppAuthenticationStateProviderTests
     }
 
     [Fact]
+    public async Task GetAuthenticationStateAsync_does_not_cache_anonymous_state_so_next_call_retries()
+    {
+        // Regression: a transient null from MeClient (cold-start race, brief
+        // network blip) used to cement the user as anonymous for the session.
+        // The provider must NOT cache the anonymous result; the next call
+        // must re-hit MeClient so a recovered backend produces an authenticated
+        // state without requiring NotifyStateChanged or a full SPA reload.
+        var meClient = new Mock<IMeClient>();
+        meClient.SetupSequence(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeResponse?)null)
+            .ReturnsAsync(MakeMe());
+        var sut = new AppAuthenticationStateProvider(meClient.Object, Mock.Of<ILocaleService>());
+
+        var first = await sut.GetAuthenticationStateAsync();
+        Assert.False(first.User.Identity!.IsAuthenticated);
+
+        var second = await sut.GetAuthenticationStateAsync();
+        Assert.True(second.User.Identity!.IsAuthenticated);
+
+        meClient.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
     public async Task NotifyStateChanged_fires_AuthenticationStateChanged_event()
     {
         var meClient = new Mock<IMeClient>();
