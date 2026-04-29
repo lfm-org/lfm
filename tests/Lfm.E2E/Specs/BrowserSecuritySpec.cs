@@ -4,6 +4,7 @@
 using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
+using Lfm.E2E.Seeds;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -266,6 +267,62 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         finally
         {
             await authContext.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public async Task CrossUser_DeleteAnotherUsersRun_BlockedBy403()
+    {
+        // Auth-matrix gap (E-HC-S3 cross-user cell): a valid session for user
+        // B must not be able to mutate user A's resource. Sub-lane S verifies
+        // (a) the cookie issued for SecondaryBattleNetId is correctly attached
+        // to a cross-origin fetch from the SPA, (b) the API authenticates the
+        // request (so the response is 403, not 401), and (c) the browser
+        // receives the 403 intact (no CORS layer collapses it to a network
+        // error). Server-side rejection is unit-tested by RunAccessPolicyTests
+        // and integration-tested by RunsDeleteFunctionTests; this proves the
+        // browser path top-to-bottom.
+        //
+        // Setup details (see DefaultSeed.cs):
+        //   - runs/e2e-run-001 is owned by PrimaryBattleNetId ("test-bnet-id").
+        //   - SecondaryBattleNetId ("test-bnet-id-2") is in the same Test
+        //     Guild but at rank 1, whose rankPermissions.canDeleteGuildRuns
+        //     is false. The 403 therefore fires from the guild-rank-denied
+        //     path in RunsDeleteFunction (line 75) — a cross-user denial
+        //     even though both users share a guild.
+        var userBContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl,
+            battleNetId: DefaultSeed.SecondaryBattleNetId);
+        try
+        {
+            var userBPage = await userBContext.NewPageAsync();
+
+            // Land on the SPA origin so the auth cookie is in scope for the
+            // cross-origin fetch (and the CORS request originates from the
+            // configured allowed origin, not data:null as in the negative
+            // CrossOriginFetch_FromUnregisteredOrigin_BlockedByCors test).
+            await userBPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+                new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+            var encodedRunId = Uri.EscapeDataString(DefaultSeed.TestRunId);
+            var status = await userBPage.EvaluateAsync<int>(
+                $$"""
+                async () => {
+                    const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/v1/runs/{{encodedRunId}}', {
+                        method: 'DELETE',
+                        credentials: 'include',
+                    });
+                    return res.status;
+                }
+                """);
+
+            Assert.Equal(403, status);
+        }
+        finally
+        {
+            await userBContext.CloseAsync();
         }
     }
 }
