@@ -192,8 +192,16 @@
 
     private async void HandleLocaleChanged()
     {
-        await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
-        await InvokeAsync(StateHasChanged);
+        // async void crosses JS interop; an unhandled exception escapes to
+        // the SynchronizationContext and can crash the WASM circuit. Mirror
+        // the OnAfterRenderAsync handling for the same teardown failure mode.
+        try
+        {
+            await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException) { /* JS channel disposed during teardown. */ }
+        catch (TaskCanceledException) { /* Render disposed mid-await. */ }
     }
 
     private void HandleLogout()
