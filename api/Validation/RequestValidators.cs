@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Text.RegularExpressions;
+using System.Globalization;
 using FluentValidation;
 using Lfm.Contracts.Guild;
 using Lfm.Contracts.Me;
@@ -28,9 +29,18 @@ public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunReque
         RuleFor(x => x.StartTime)
             .NotEmpty().WithMessage("startTime is required")
             .MaximumLength(64).WithMessage("startTime must be at most 64 characters");
+        RuleFor(x => x.StartTime)
+            .Must(RunRequestTimeRules.IsValidDateTimeOrEmpty)
+            .WithMessage("startTime must be a valid date/time");
 
         RuleFor(x => x.SignupCloseTime)
             .MaximumLength(64).WithMessage("signupCloseTime must be at most 64 characters");
+        RuleFor(x => x.SignupCloseTime)
+            .Must(RunRequestTimeRules.IsValidDateTimeOrEmpty)
+            .WithMessage("signupCloseTime must be a valid date/time");
+        RuleFor(x => x)
+            .Must(x => RunRequestTimeRules.SignupCloseTimeIsBeforeStartTime(x.SignupCloseTime, x.StartTime))
+            .WithMessage("signupCloseTime must be before startTime");
 
         RuleFor(x => x.Difficulty)
             .NotEmpty().WithMessage("difficulty is required");
@@ -84,9 +94,18 @@ public sealed class UpdateRunRequestValidator : AbstractValidator<UpdateRunReque
 
         RuleFor(x => x.StartTime)
             .MaximumLength(64).WithMessage("startTime must be at most 64 characters");
+        RuleFor(x => x.StartTime)
+            .Must(RunRequestTimeRules.IsValidDateTimeOrMissing)
+            .WithMessage("startTime must be a valid date/time");
 
         RuleFor(x => x.SignupCloseTime)
             .MaximumLength(64).WithMessage("signupCloseTime must be at most 64 characters");
+        RuleFor(x => x.SignupCloseTime)
+            .Must(RunRequestTimeRules.IsValidDateTimeOrEmpty)
+            .WithMessage("signupCloseTime must be a valid date/time");
+        RuleFor(x => x)
+            .Must(x => RunRequestTimeRules.SignupCloseTimeIsBeforeStartTime(x.SignupCloseTime, x.StartTime))
+            .WithMessage("signupCloseTime must be before startTime");
 
         RuleFor(x => x.Difficulty)
             .Must(d => d is null || CreateRunRequestValidator.ValidDifficulties.Contains(d))
@@ -192,5 +211,45 @@ public sealed class UpdateGuildRequestValidator : AbstractValidator<UpdateGuildR
 
         RuleFor(x => x.Slogan)
             .MaximumLength(200).WithMessage("slogan must be at most 200 characters");
+    }
+}
+
+internal static class RunRequestTimeRules
+{
+    internal static bool IsValidDateTimeOrMissing(string? value) =>
+        value is null || IsValidRequiredDateTime(value);
+
+    internal static bool IsValidDateTimeOrEmpty(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+        || IsValidRequiredDateTime(value);
+
+    private static bool IsValidRequiredDateTime(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && DateTimeOffset.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind,
+            out _);
+
+    internal static bool SignupCloseTimeIsBeforeStartTime(string? signupCloseTime, string? startTime)
+    {
+        if (string.IsNullOrWhiteSpace(signupCloseTime))
+            return true;
+
+        if (!DateTimeOffset.TryParse(
+                signupCloseTime,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var closeTime))
+            return true;
+
+        if (!DateTimeOffset.TryParse(
+                startTime,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var runStart))
+            return true;
+
+        return closeTime < runStart;
     }
 }

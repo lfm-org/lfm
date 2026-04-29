@@ -76,6 +76,14 @@ public class RunsCreateFunctionTests
         return httpContext.Request;
     }
 
+    private static HttpRequest MakePostRequest(string rawJson)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(rawJson));
+        httpContext.Request.ContentType = "application/json";
+        return httpContext.Request;
+    }
+
     private static RunsCreateFunction MakeFunction(
         Mock<IRunsRepository> repo,
         Mock<IRaidersRepository> raidersRepo,
@@ -185,6 +193,28 @@ public class RunsCreateFunctionTests
         Assert.True(problem.Extensions.ContainsKey("errors"));
 
         // Cosmos should never be called
+        repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_returns_400_when_body_is_malformed_json()
+    {
+        var principal = MakePrincipal();
+        var repo = new Mock<IRunsRepository>();
+        var raidersRepo = new Mock<IRaidersRepository>();
+        var permissions = new Mock<IGuildPermissions>();
+
+        var fn = MakeFunction(repo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePostRequest("{"), ctx, CancellationToken.None);
+
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#invalid-body", problem.Type);
+        Assert.Equal("Request body is invalid or missing.", problem.Detail);
+
         repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

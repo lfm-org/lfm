@@ -304,7 +304,7 @@
             var expansionsTask = ExpansionsClient.ListAsync(CancellationToken.None);
             var instancesTask = InstancesClient.ListAsync(CancellationToken.None);
             var guildTask = GuildClient.GetAsync(CancellationToken.None);
-            await Task.WhenAll(expansionsTask, instancesTask, guildTask);
+            await Task.WhenAll(expansionsTask, instancesTask);
 
             _expansions = await expansionsTask;
             _allInstances = InstanceOptions.Build(await instancesTask);
