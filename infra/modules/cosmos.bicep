@@ -90,10 +90,28 @@ resource runsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/conta
       indexingPolicy: {
         automatic: true
         indexingMode: 'consistent'
+        // Only paths actually used by RunsRepository queries are indexed —
+        // every other path (description, encounters[], etc.) is excluded so
+        // writes don't pay RU cost for indexing data that's never queried.
+        // Sources:
+        //   - WHERE c.visibility / c.creatorBattleNetId / c.creatorGuildId
+        //   - ORDER BY c.startTime
+        //   - ARRAY_CONTAINS(c.runCharacters, { raiderBattleNetId })
+        includedPaths: [
+          { path: '/visibility/?' }
+          { path: '/creatorBattleNetId/?' }
+          { path: '/creatorGuildId/?' }
+          { path: '/startTime/?' }
+          { path: '/runCharacters/[]/raiderBattleNetId/?' }
+        ]
+        excludedPaths: [{ path: '/*' }]
+        // Serves: WHERE visibility='GUILD' AND creatorGuildId=@id ORDER BY startTime
+        // Note: the original composite indexed /creatorGuild (string), but the
+        // query filters on /creatorGuildId (int). Corrected to match the query.
         compositeIndexes: [
           [
             { path: '/visibility', order: 'ascending' }
-            { path: '/creatorGuild', order: 'ascending' }
+            { path: '/creatorGuildId', order: 'ascending' }
             { path: '/startTime', order: 'ascending' }
           ]
         ]
