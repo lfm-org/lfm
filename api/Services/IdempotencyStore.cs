@@ -96,7 +96,7 @@ public sealed class IdempotencyStore : IIdempotencyStore
         // by retry burst) so a cross-partition query is not needed — we just
         // enumerate the partition and delete each id we find.
         var query = new QueryDefinition("SELECT c.id FROM c");
-        var iterator = _container.GetItemQueryIterator<IdempotencyIdOnly>(
+        using var iterator = _container.GetItemQueryIterator<IdempotencyIdOnly>(
             query,
             requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(battleNetId) });
 
