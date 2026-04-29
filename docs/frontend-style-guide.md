@@ -88,6 +88,7 @@ FluentUI Blazor handles typography via `<FluentLabel>`:
 - `<FluentTextArea @bind-Value="field">` — multiline
 - Form containers: `max-width: 600px` for create forms, `max-width: 800px` for edit forms
 - All inputs should be full-width within their container
+- **Locale caveat:** the rigid `max-width: \d+px` values above hold while the active locales (`en`, `fi`) stay close to English in glyph width. High-expansion locales (DE, RU, EL, PL) will overflow — see "Adding a locale → Text-expansion sweep" below before merging a high-expansion locale.
 
 ### Data
 - `<FluentDataGrid Items="@data.AsQueryable()" TGridItem="TDto">` with:
@@ -136,6 +137,15 @@ FluentUI Blazor handles typography via `<FluentLabel>`:
 - Toast messages: `Toast.ShowSuccess(Loc["key"])`, not hardcoded strings.
 - Locale files: `app/wwwroot/locales/{en,fi}.json` with flat dot-notation keys.
 - Locale switching: `ILocaleService.SetLocale("fi")` fires `OnLocaleChanged` event.
+
+### Adding a locale
+
+Pre-flight checklist before merging a PR that adds a new locale (`{xx}.json`):
+
+- [ ] **Text-expansion sweep.** Languages with ~35% expansion vs English (German, Russian, Greek, Polish) overflow form fields whose containers use rigid pixel max-widths. Before merging, sweep `app/Pages/*.razor` and `app/Lfm.App/Components/**/*.razor` for `max-width: \d+px` on form / card containers and switch each to `max-inline-size: min(100%, Nch)` (`ch` units scale with the rendered glyph), or drop the cap entirely so container queries handle the layout. The current `en` / `fi` pair does not expand significantly, so today's rigid `max-width: 600px` (create forms) / `800px` (edit forms) declarations in this guide are not yet a problem — but they become one the moment a high-expansion locale ships. See `docs/responsive-design-reference.md` if available, or the `RD-TEXT-EXPAND-1` audit finding from 2026-04-18 for the original ruleset.
+- [ ] **Locale-parity test.** Run `tests/Lfm.App.Tests/LocaleParityTests.cs` after adding the new JSON file — it confirms every `en` key has a translation and warns on placeholder mismatches.
+- [ ] **Bidi (LTR/RTL).** If the new locale is RTL (Arabic, Hebrew), confirm `app.css` / `MainLayout.razor` set `dir="rtl"` on the appropriate root, mirror any directional icons / chevrons, and re-run `tests/Lfm.E2E/Specs/AccessibilitySpec.cs` to surface focus-order regressions.
+- [ ] **Collation / sort order.** Any user-visible list sorted server-side (e.g. instance names, character names) should use `CultureInfo.InvariantCulture` for storage and the user's locale only for display ordering — verify before adding the locale.
 
 ## Accessibility
 
