@@ -21,7 +21,9 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         //   PUBLIC runs | runs created by this user | GUILD runs from the same guild
         //   Ordered by startTime ascending.
         if (!int.TryParse(guildId, out var numericGuildId))
-            return new RunsPage(Array.Empty<RunDocument>(), null);
+            throw new ArgumentException(
+                $"guildId '{guildId}' must be numeric; non-numeric values silently hide all runs from a user.",
+                nameof(guildId));
 
         const string query = """
             SELECT * FROM c
