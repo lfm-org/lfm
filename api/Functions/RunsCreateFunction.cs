@@ -52,13 +52,21 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
     {
         var principal = ctx.GetPrincipal(); // non-null: [RequireAuth] + AuthPolicyMiddleware guarantee
 
-        var body = await JsonSerializer.DeserializeAsync<CreateRunRequest>(
-            req.Body,
-            JsonOptions,
-            cancellationToken: ct);
+        CreateRunRequest? body;
+        try
+        {
+            body = await JsonSerializer.DeserializeAsync<CreateRunRequest>(
+                req.Body,
+                JsonOptions,
+                cancellationToken: ct);
 
-        if (body is null)
+            if (body is null)
+                return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
+        }
+        catch (JsonException)
+        {
             return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
+        }
 
         var validator = new CreateRunRequestValidator();
         var validationResult = await validator.ValidateAsync(body, ct);

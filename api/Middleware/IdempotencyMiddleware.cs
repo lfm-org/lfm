@@ -69,6 +69,12 @@ public sealed class IdempotencyMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
+        if (IsAccountDelete(httpContext.Request))
+        {
+            await next(context);
+            return;
+        }
+
         if (!httpContext.Request.Headers.TryGetValue(HeaderName, out var values))
         {
             await next(context);
@@ -180,5 +186,17 @@ public sealed class IdempotencyMiddleware : IFunctionsWorkerMiddleware
             problem.Extensions["traceId"] = traceId;
 
         await JsonSerializer.SerializeAsync(httpContext.Response.Body, problem);
+    }
+
+    private static bool IsAccountDelete(HttpRequest request)
+    {
+        if (!HttpMethods.IsDelete(request.Method))
+            return false;
+
+        var path = request.Path.Value;
+        return string.Equals(path, "/api/me", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(path, "/api/v1/me", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(path, "/me", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(path, "/v1/me", StringComparison.OrdinalIgnoreCase);
     }
 }
