@@ -441,6 +441,13 @@
         }
     }
 
+    // Lowercases all three components so the key is identical to
+    // RunsPage.CharacterId, MeClient.SelectCharacterAsync URL paths, and
+    // CharacterPortraitService's normalized response keys (region/realm/name
+    // are normalised to lowercase server-side). A mixed-case key here used
+    // to silently miss the active-character badge (when SelectedCharacterId
+    // came back from the server in lowercase) and the portrait dictionary
+    // lookup (server returns lowercase-keyed entries).
     private static string CharKey(CharacterDto c) =>
-        $"{c.Region}-{c.Realm}-{c.Name.ToLowerInvariant()}";
+        $"{c.Region.ToLowerInvariant()}-{c.Realm.ToLowerInvariant()}-{c.Name.ToLowerInvariant()}";
 }
