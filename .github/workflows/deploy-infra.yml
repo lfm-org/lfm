@@ -61,11 +61,12 @@ jobs:
           fi
 
       - name: Clean up stale role assignments from previous managed identity
+        env:
+          APP: ${{ vars.FUNCTION_APP_NAME }}
+          RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+          KV: ${{ vars.KEY_VAULT_NAME }}
+          STORAGE: ${{ vars.STORAGE_ACCOUNT_NAME }}
         run: |
-          APP="${{ vars.FUNCTION_APP_NAME }}"
-          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
-          KV="${{ vars.KEY_VAULT_NAME }}"
-
           CURRENT_PRINCIPAL=$(az functionapp identity show \
             --name "$APP" --resource-group "$RG" \
             --query "principalId" -o tsv 2>/dev/null || echo "")
@@ -81,7 +82,7 @@ jobs:
           # Resources where Bicep creates role assignments, with their ARM
           # resource types (needed for lock management). App Insights has no lock.
           declare -A LOCKED_SCOPES=(
-            ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/lfmstore"]="Microsoft.Storage/storageAccounts lfmstore"
+            ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$STORAGE"]="Microsoft.Storage/storageAccounts $STORAGE"
             ["/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/$KV"]="Microsoft.KeyVault/vaults $KV"
           )
           UNLOCKED_SCOPES=(
