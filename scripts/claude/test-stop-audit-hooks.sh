@@ -67,10 +67,13 @@ devsecops_output=$(hook_input "$fixture" "devsecops-agent-hooks" false |
   AGENT_HOOK_DEBUG=1 bash "$fixture/scripts/claude/stop-devsecops-audit.sh")
 responsive_output=$(hook_input "$fixture" "responsive-agent-hooks" false |
   AGENT_HOOK_DEBUG=1 bash "$fixture/scripts/claude/stop-responsive-audit.sh")
+software_design_output=$(hook_input "$fixture" "software-design-agent-hooks" false |
+  AGENT_HOOK_DEBUG=1 bash "$fixture/scripts/claude/stop-software-design-audit.sh")
 
 assert_block "$test_output" "Unit test files changed"
 assert_block "$devsecops_output" "Security-relevant files changed"
 assert_block "$responsive_output" "UI / app files changed"
+assert_block "$software_design_output" "Source / project / shell-script files changed"
 
 blocked_debug_fixture="$tmp/blocked-debug-repo"
 make_fixture "$blocked_debug_fixture"
@@ -85,6 +88,7 @@ assert_block "$blocked_debug_output" "Unit test files changed"
 [[ -f "$fixture/.cache/agent-hooks/test-audit-prompted-test-agent-hooks" ]]
 [[ -f "$fixture/.cache/agent-hooks/devsecops-audit-prompted-devsecops-agent-hooks" ]]
 [[ -f "$fixture/.cache/agent-hooks/responsive-audit-prompted-responsive-agent-hooks" ]]
+[[ -f "$fixture/.cache/agent-hooks/software-design-audit-prompted-software-design-agent-hooks" ]]
 [[ ! -d "$fixture/.cache/claude-hooks" ]]
 
 debug_log="$fixture/.cache/agent-hooks/debug.jsonl"
@@ -92,6 +96,7 @@ debug_log="$fixture/.cache/agent-hooks/debug.jsonl"
 jq -e 'select(.hook == "test-audit" and .event == "emit-block")' "$debug_log" >/dev/null
 jq -e 'select(.hook == "devsecops-audit" and .event == "emit-block")' "$debug_log" >/dev/null
 jq -e 'select(.hook == "responsive-audit" and .event == "emit-block")' "$debug_log" >/dev/null
+jq -e 'select(.hook == "software-design-audit" and .event == "emit-block")' "$debug_log" >/dev/null
 
 stop_active_output=$(hook_input "$fixture" "new-session" true |
   AGENT_HOOK_DEBUG=1 bash "$fixture/scripts/claude/stop-test-audit.sh")
