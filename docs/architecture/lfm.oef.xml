@@ -897,13 +897,13 @@
 
           <!-- Blizzard Battle.net (compact, top-aligned) — OAuth interface is a thin band -->
           <node identifier="id-node-v1-bnet" elementRef="id-blizzard-bnet" xsi:type="Element" x="890" y="70" w="220" h="110">
-            <node identifier="id-node-v1-iface-oauth" elementRef="id-iface-bnet-oauth" xsi:type="Element" x="910" y="120" w="180" h="50"/>
+            <node identifier="id-node-v1-iface-oauth" elementRef="id-iface-bnet-oauth" xsi:type="Element" x="910" y="120" w="180" h="60"/>
           </node>
 
           <!-- Blizzard WoW API container with both its read-only interfaces nested -->
           <node identifier="id-node-v1-wow-api" elementRef="id-blizzard-wow-api" xsi:type="Element" x="1160" y="70" w="380" h="220">
-            <node identifier="id-node-v1-iface-profile" elementRef="id-iface-wow-profile" xsi:type="Element" x="1180" y="160" w="170" h="50"/>
-            <node identifier="id-node-v1-iface-game-data" elementRef="id-iface-wow-game-data" xsi:type="Element" x="1180" y="230" w="170" h="50"/>
+            <node identifier="id-node-v1-iface-profile" elementRef="id-iface-wow-profile" xsi:type="Element" x="1180" y="160" w="170" h="60"/>
+            <node identifier="id-node-v1-iface-game-data" elementRef="id-iface-wow-game-data" xsi:type="Element" x="1180" y="230" w="170" h="60"/>
           </node>
 
         </node>
@@ -911,11 +911,11 @@
         <!-- Connections — only Serving across LFM-internal boundaries and across the trust boundary (Composition into Grouping hidden via nesting per AD-L7) -->
         <connection identifier="id-conn-v1-1" relationshipRef="id-rel-core-serves-app" source="id-node-v1-core" target="id-node-v1-app" xsi:type="Relationship">
           <bendpoint x="290" y="100"/>
-          <bendpoint x="290" y="180"/>
+          <bendpoint x="290" y="170"/>
         </connection>
         <connection identifier="id-conn-v1-2" relationshipRef="id-rel-contracts-serves-app" source="id-node-v1-contracts" target="id-node-v1-app" xsi:type="Relationship">
           <bendpoint x="290" y="250"/>
-          <bendpoint x="290" y="180"/>
+          <bendpoint x="290" y="190"/>
         </connection>
         <connection identifier="id-conn-v1-3" relationshipRef="id-rel-contracts-serves-api" source="id-node-v1-contracts" target="id-node-v1-api" xsi:type="Relationship">
           <bendpoint x="270" y="300"/>
@@ -926,7 +926,7 @@
         <connection identifier="id-conn-v1-5" relationshipRef="id-rel-bnet-oauth-serves-api" source="id-node-v1-iface-oauth" target="id-node-v1-api" xsi:type="Relationship"/>
         <connection identifier="id-conn-v1-6" relationshipRef="id-rel-wow-profile-serves-api" source="id-node-v1-iface-profile" target="id-node-v1-api" xsi:type="Relationship"/>
         <connection identifier="id-conn-v1-7" relationshipRef="id-rel-wow-game-data-serves-api" source="id-node-v1-iface-game-data" target="id-node-v1-api" xsi:type="Relationship">
-          <bendpoint x="790" y="255"/>
+          <bendpoint x="790" y="260"/>
         </connection>
         <connection identifier="id-conn-v1-8" relationshipRef="id-rel-contracts-serves-core" source="id-node-v1-contracts" target="id-node-v1-core" xsi:type="Relationship">
           <bendpoint x="50" y="260"/>
@@ -944,13 +944,13 @@
         <node identifier="id-node-v2-api" elementRef="id-lfm-api" xsi:type="Element" x="220" y="40" w="180" h="80"/>
 
         <!-- Technology band — Hosting Nodes left, data Nodes stacked vertically beside Function App so Serving arrows don't overlap, observability right -->
-        <node identifier="id-node-v2-swa" elementRef="id-node-swa" xsi:type="Element" x="40" y="200" w="160" h="180"/>
+        <node identifier="id-node-v2-swa" elementRef="id-node-swa" xsi:type="Element" x="40" y="200" w="170" h="180"/>
         <node identifier="id-node-v2-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="220" y="200" w="180" h="180"/>
         <node identifier="id-node-v2-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="420" y="190" w="220" h="60"/>
         <node identifier="id-node-v2-storage" elementRef="id-node-storage" xsi:type="Element" x="420" y="250" w="220" h="60"/>
         <node identifier="id-node-v2-kv" elementRef="id-node-keyvault" xsi:type="Element" x="420" y="310" w="220" h="60"/>
         <node identifier="id-node-v2-ai" elementRef="id-node-app-insights" xsi:type="Element" x="680" y="200" w="180" h="80"/>
-        <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="680" y="290" w="180" h="80"/>
+        <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="680" y="290" w="190" h="80"/>
 
         <!-- Connections — Assignment for hosting; Serving for data-plane consumption; Aggregation for the workspace-AI relationship -->
         <connection identifier="id-conn-v2-1" relationshipRef="id-rel-swa-assign-app" source="id-node-v2-swa" target="id-node-v2-app" xsi:type="Relationship"/>
@@ -1002,8 +1002,8 @@
           <bendpoint x="280" y="250"/>
         </connection>
         <connection identifier="id-conn-v2s-4" relationshipRef="id-rel-mi-access-ai" source="id-node-v2s-mi" target="id-node-v2s-ai" xsi:type="Relationship">
-          <bendpoint x="280" y="20"/>
-          <bendpoint x="700" y="20"/>
+          <bendpoint x="260" y="40"/>
+          <bendpoint x="700" y="40"/>
         </connection>
 
       </view>
@@ -1055,11 +1055,11 @@
         </connection>
         <connection identifier="id-conn-v3-16" relationshipRef="id-rel-deploy-infra-trig-prod-event" source="id-node-v3-deploy-infra" target="id-node-v3-event-prod" xsi:type="Relationship">
           <bendpoint x="420" y="280"/>
-          <bendpoint x="180" y="280"/>
+          <bendpoint x="200" y="280"/>
         </connection>
         <connection identifier="id-conn-v3-17" relationshipRef="id-rel-deploy-app-trig-prod-event" source="id-node-v3-deploy-app" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="950" y="280"/>
-          <bendpoint x="180" y="280"/>
+          <bendpoint x="950" y="270"/>
+          <bendpoint x="160" y="270"/>
         </connection>
 
       </view>
@@ -1092,8 +1092,7 @@
         <connection identifier="id-conn-v4-5" relationshipRef="id-rel-svc-guild-real-bsvc" source="id-node-v4-svc-guild" target="id-node-v4-bsvc-roster" xsi:type="Relationship"/>
         <connection identifier="id-conn-v4-6" relationshipRef="id-rel-svc-raiders-real-bsvc" source="id-node-v4-svc-raiders" target="id-node-v4-bsvc-charmgmt" xsi:type="Relationship"/>
         <connection identifier="id-conn-v4-7" relationshipRef="id-rel-svc-bnet-real-bsvc" source="id-node-v4-svc-bnet" target="id-node-v4-bsvc-charmgmt" xsi:type="Relationship">
-          <bendpoint x="1020" y="500"/>
-          <bendpoint x="760" y="500"/>
+          <bendpoint x="1020" y="330"/>
         </connection>
 
       </view>
@@ -1159,21 +1158,22 @@
 
         <!-- Passive structure: Behaviours Access Business Objects -->
         <connection identifier="id-conn-bpc-acc-1" relationshipRef="id-rel-bp-browse-acc-run" source="id-node-bpc-browse" target="id-node-bpc-run" xsi:type="Relationship">
-          <bendpoint x="400" y="520"/>
-          <bendpoint x="660" y="520"/>
+          <bendpoint x="400" y="610"/>
+          <bendpoint x="560" y="610"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-2" relationshipRef="id-rel-bp-inspect-acc-run" source="id-node-bpc-inspect" target="id-node-bpc-run" xsi:type="Relationship">
           <bendpoint x="660" y="520"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-3" relationshipRef="id-rel-bp-signup-acc-run" source="id-node-bpc-signup" target="id-node-bpc-run" xsi:type="Relationship">
-          <bendpoint x="920" y="340"/>
-          <bendpoint x="660" y="340"/>
-          <bendpoint x="660" y="520"/>
+          <bendpoint x="940" y="340"/>
+          <bendpoint x="1040" y="340"/>
+          <bendpoint x="1040" y="700"/>
+          <bendpoint x="660" y="700"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-4" relationshipRef="id-rel-bp-signup-acc-signup" source="id-node-bpc-signup" target="id-node-bpc-signup-obj" xsi:type="Relationship">
           <bendpoint x="1040" y="340"/>
           <bendpoint x="1040" y="520"/>
-          <bendpoint x="920" y="520"/>
+          <bendpoint x="940" y="520"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-5" relationshipRef="id-rel-bp-cancel-acc-signup" source="id-node-bpc-cancel" target="id-node-bpc-signup-obj" xsi:type="Relationship"/>
 
@@ -1208,17 +1208,17 @@
 
         <!-- Shared Application Service realizes each process step -->
         <connection identifier="id-conn-sr-real-browse" relationshipRef="id-rel-svc-runs-real-bp-browse" source="id-node-sr-svc" target="id-node-sr-browse-bp" xsi:type="Relationship">
-          <bendpoint x="475" y="280"/>
+          <bendpoint x="480" y="280"/>
         </connection>
         <connection identifier="id-conn-sr-real-inspect" relationshipRef="id-rel-svc-runs-real-bp-inspect" source="id-node-sr-svc" target="id-node-sr-inspect-bp" xsi:type="Relationship">
-          <bendpoint x="715" y="280"/>
+          <bendpoint x="720" y="280"/>
         </connection>
         <connection identifier="id-conn-sr-real-signup" relationshipRef="id-rel-svc-runs-real-bp-signup" source="id-node-sr-svc" target="id-node-sr-signup-bp" xsi:type="Relationship">
           <bendpoint x="1070" y="280"/>
           <bendpoint x="1070" y="130"/>
         </connection>
         <connection identifier="id-conn-sr-real-cancel" relationshipRef="id-rel-svc-runs-real-bp-cancel" source="id-node-sr-svc" target="id-node-sr-cancel-bp" xsi:type="Relationship">
-          <bendpoint x="955" y="280"/>
+          <bendpoint x="960" y="280"/>
         </connection>
 
         <!-- UI entry point into the process chain; route details are nested in the component. -->
