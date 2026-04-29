@@ -5,6 +5,7 @@ using Bunit;
 using Bunit.TestDoubles;
 using Lfm.App.Layout;
 using Lfm.App.Services;
+using Lfm.App.i18n;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -170,5 +171,40 @@ public class LayoutTests : ComponentTestBase
         Assert.Equal("-1", main.GetAttribute("tabindex"));
         // The FocusOnNavigate component with Selector="h1" must be gone — focus is now driven by MainLayout's LocationChanged handler.
         Assert.DoesNotContain("FocusOnNavigate", cut.Markup);
+    }
+
+    [Fact]
+    public void MainLayout_Locale_Change_Survives_JSDisconnectedException()
+    {
+        // Regression: HandleLocaleChanged is `async void` and crosses JS interop.
+        // An unhandled JSDisconnectedException during teardown would escape to
+        // the SynchronizationContext and crash the WASM circuit. The handler
+        // must catch it.
+        this.AddAuthorization();
+        // Render first (under default Loose JSInterop, the initial-render
+        // lfmSetDocumentLang call succeeds), then arm the exception for the
+        // subsequent locale-change call.
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        JSInterop.SetupVoid("lfmSetDocumentLang", "fi")
+            .SetException(new Microsoft.JSInterop.JSDisconnectedException("test: channel disposed"));
+
+        var localeService = Services.GetRequiredService<ILocaleService>();
+
+        // Triggering the locale change fires HandleLocaleChanged. The handler
+        // is async void; without the try/catch, the JSDisconnectedException
+        // raised by the test's strict JSInterop setup propagates out of the
+        // event invocation. With the fix it is swallowed.
+        Exception? caught = null;
+        try
+        {
+            localeService.SetLocale("fi");
+        }
+        catch (Exception ex)
+        {
+            caught = ex;
+        }
+        Assert.Null(caught);
     }
 }
