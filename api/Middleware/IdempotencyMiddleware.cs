@@ -154,7 +154,6 @@ public sealed class IdempotencyMiddleware : IFunctionsWorkerMiddleware
             Detail = "The original request already completed. GET the resource for its current state.",
             Instance = httpContext.Request.Path.Value,
         };
-        problem.Extensions["originalCreatedAt"] = entry.CreatedAt;
         var traceId = Activity.Current?.TraceId.ToString();
         if (!string.IsNullOrEmpty(traceId))
             problem.Extensions["traceId"] = traceId;
