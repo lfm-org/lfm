@@ -34,12 +34,18 @@ public class KeyVaultSecretResolverTests
             return clientMock.Object;
         });
 
-        await resolver.GetSecretAsync("https://kv-a.vault.azure.net/", "k1", CancellationToken.None);
-        await resolver.GetSecretAsync("https://kv-a.vault.azure.net/", "k2", CancellationToken.None);
-        await resolver.GetSecretAsync("https://kv-b.vault.azure.net/", "k3", CancellationToken.None);
+        var v1 = await resolver.GetSecretAsync("https://kv-a.vault.azure.net/", "k1", CancellationToken.None);
+        var v2 = await resolver.GetSecretAsync("https://kv-a.vault.azure.net/", "k2", CancellationToken.None);
+        var v3 = await resolver.GetSecretAsync("https://kv-b.vault.azure.net/", "k3", CancellationToken.None);
 
+        // Cache: the factory fires once per distinct URL, in arrival order.
         Assert.Equal(2, factoryCalls.Count);
         Assert.Equal("https://kv-a.vault.azure.net/", factoryCalls[0]);
         Assert.Equal("https://kv-b.vault.azure.net/", factoryCalls[1]);
+
+        // End-to-end: the secret round-trips through the cached client.
+        Assert.Equal("value", v1);
+        Assert.Equal("value", v2);
+        Assert.Equal("value", v3);
     }
 }
