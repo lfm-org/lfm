@@ -91,15 +91,18 @@ public class BattleNetCallbackFunction(
 
         var battleNetId = userInfo.Id.ToString();
 
-        // Upsert the raider document.
+        // Upsert the raider document. LastSeenAt must refresh on every login
+        // because the cleanup timer deletes missing or stale raider documents.
         var existing = await raiders.GetByBattleNetIdAsync(battleNetId, cancellationToken);
+        var nowIso = DateTimeOffset.UtcNow.ToString("o");
         var raider = existing is not null
-            ? existing with { Ttl = 180 * 86400 }
+            ? existing with { LastSeenAt = nowIso, Ttl = 180 * 86400 }
             : new RaiderDocument(
                 Id: battleNetId,
                 BattleNetId: battleNetId,
                 SelectedCharacterId: null,
                 Locale: null,
+                LastSeenAt: nowIso,
                 Ttl: 180 * 86400);
         await raiders.UpsertAsync(raider, cancellationToken);
 
