@@ -85,7 +85,7 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
             WHERE c.lastSeenAt < @cutoff OR NOT IS_DEFINED(c.lastSeenAt)
             """;
 
-        var feedIterator = _container.GetItemQueryIterator<RaiderDocument>(
+        using var feedIterator = _container.GetItemQueryIterator<RaiderDocument>(
             new QueryDefinition(query).WithParameter("@cutoff", cutoff));
 
         var results = new List<RaiderDocument>();

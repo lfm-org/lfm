@@ -70,7 +70,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         QueryDefinition queryDef, int top, string? continuationToken, CancellationToken ct)
     {
         var options = new QueryRequestOptions { MaxItemCount = top };
-        var feedIterator = _container.GetItemQueryIterator<RunDocument>(
+        using var feedIterator = _container.GetItemQueryIterator<RunDocument>(
             queryDef, continuationToken, options);
 
         if (!feedIterator.HasMoreResults)
@@ -160,7 +160,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
                OR ARRAY_CONTAINS(c.runCharacters, {"raiderBattleNetId": @battleNetId}, true)
             """;
 
-        var feedIterator = _container.GetItemQueryIterator<RunDocument>(
+        using var feedIterator = _container.GetItemQueryIterator<RunDocument>(
             new QueryDefinition(query)
                 .WithParameter("@battleNetId", battleNetId));
 
@@ -195,7 +195,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
         // Iterate every run document. The set is small (hobby scale), and
         // unlike ScrubRaiderAsync we don't have a cheap WHERE predicate —
         // every legacy doc needs inspection.
-        var feedIterator = _container.GetItemQueryIterator<RunDocument>("SELECT * FROM c");
+        using var feedIterator = _container.GetItemQueryIterator<RunDocument>("SELECT * FROM c");
 
         var scanned = 0;
         var migrated = 0;
