@@ -23,27 +23,19 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
 
         if (guild?.BlizzardRosterRaw?.Members is null) return false;
 
-        // Build lookup maps mirroring resolveMatchedGuildRanks in
+        // Build lookup map mirroring resolveMatchedGuildRanks in
         // functions/src/lib/guild-member-match.ts.
-        var rankById = new Dictionary<int, int>();
         var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var member in guild.BlizzardRosterRaw.Members)
-        {
-            if (member.Character.Id.HasValue)
-                rankById[member.Character.Id.Value] = member.Rank;
             rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
-        }
 
         // Walk stored characters — return true as soon as we find a rank-0 match.
         if (raider.Characters is null) return false;
         foreach (var character in raider.Characters)
         {
-            // Match by Blizzard character ID first (more reliable).
-            // StoredSelectedCharacter.SpecializationsSummary is the closest proxy
-            // for "profile summary id" in the .NET model; we use the raider's stored
-            // character name+realm as the fallback key.
+            // Match the stored character against the guild roster by realm-slug + name.
             var key = $"{character.Realm}:{character.Name}";
-            if (rankByKey.TryGetValue(key, out var rankByName) && rankByName == 0) return true;
+            if (rankByKey.TryGetValue(key, out var rank) && rank == 0) return true;
         }
 
         return false;
