@@ -162,6 +162,87 @@ public class BattleNetCallbackFunctionTests
     }
 
     [Fact]
+    public async Task Run_happy_path_sets_lastSeenAt_on_new_raider()
+    {
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
+
+        oauthMock.Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
+            .Returns((FakeState, FakeVerifier, (string?)null));
+        oauthMock.Setup(o => o.ExchangeCodeAsync(FakeCode, FakeVerifier, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeTokenResponse);
+        oauthMock.Setup(o => o.GetUserInfoAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeUser);
+
+        repoMock.Setup(r => r.GetByBattleNetIdAsync("999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RaiderDocument?)null);
+
+        RaiderDocument? captured = null;
+        repoMock.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .Callback<RaiderDocument, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        cipherMock.Setup(c => c.Protect(It.IsAny<SessionPrincipal>())).Returns(FakeEncrypted);
+
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
+        var req = BuildRequest(httpContext,
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState },
+            cookies: new() { ["login_state"] = "protected-payload" });
+
+        var before = DateTimeOffset.UtcNow.AddSeconds(-1);
+        await fn.Run(req, CancellationToken.None);
+        var after = DateTimeOffset.UtcNow.AddSeconds(1);
+
+        Assert.NotNull(captured);
+        Assert.False(string.IsNullOrEmpty(captured!.LastSeenAt),
+            "LastSeenAt must be set on new raider to prevent the cleanup timer from deleting the account on the next 04:00 UTC tick.");
+        var parsed = DateTimeOffset.Parse(captured.LastSeenAt!, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
+        Assert.InRange(parsed, before, after);
+    }
+
+    [Fact]
+    public async Task Run_happy_path_refreshes_lastSeenAt_on_returning_raider()
+    {
+        var oauthMock = new Mock<IBlizzardOAuthClient>(MockBehavior.Strict);
+        var cipherMock = new Mock<ISessionCipher>(MockBehavior.Strict);
+        var repoMock = new Mock<IRaidersRepository>(MockBehavior.Strict);
+
+        oauthMock.Setup(o => o.UnprotectLoginState(It.IsAny<string>()))
+            .Returns((FakeState, FakeVerifier, (string?)null));
+        oauthMock.Setup(o => o.ExchangeCodeAsync(FakeCode, FakeVerifier, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeTokenResponse);
+        oauthMock.Setup(o => o.GetUserInfoAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FakeUser);
+
+        var stale = DateTimeOffset.UtcNow.AddDays(-30).ToString("o");
+        var existing = new RaiderDocument(
+            Id: "999", BattleNetId: "999", SelectedCharacterId: null, Locale: null,
+            LastSeenAt: stale, Ttl: 180 * 86400);
+        repoMock.Setup(r => r.GetByBattleNetIdAsync("999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        RaiderDocument? captured = null;
+        repoMock.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .Callback<RaiderDocument, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        cipherMock.Setup(c => c.Protect(It.IsAny<SessionPrincipal>())).Returns(FakeEncrypted);
+
+        var (fn, httpContext) = MakeFunction(oauthMock, cipherMock, repoMock);
+        var req = BuildRequest(httpContext,
+            query: new() { ["code"] = FakeCode, ["state"] = FakeState },
+            cookies: new() { ["login_state"] = "protected-payload" });
+
+        await fn.Run(req, CancellationToken.None);
+
+        Assert.NotNull(captured);
+        Assert.NotEqual(stale, captured!.LastSeenAt);
+        var parsed = DateTimeOffset.Parse(captured.LastSeenAt!, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
+        Assert.True(parsed > DateTimeOffset.UtcNow.AddMinutes(-1));
+    }
+
+    [Fact]
     public async Task Run_happy_path_with_redirect_appends_path_to_app_base_url()
     {
         // Arrange — redirect stored in login state
