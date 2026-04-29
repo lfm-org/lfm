@@ -464,7 +464,6 @@
             if (created is null)
             {
                 _inlineError = new RunError(RunErrorKind.Unknown, [Loc["createRun.failed"].Value]);
-                _submitting = false;
                 return;
             }
 
@@ -473,6 +472,9 @@
         catch (Exception ex)
         {
             _inlineError = RunErrorParser.Network(ex);
+        }
+        finally
+        {
             _submitting = false;
         }
     }

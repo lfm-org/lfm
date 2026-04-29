@@ -566,6 +566,71 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Empty(cut.FindAll("#expansion-select"));
     }
 
+    // Regression: HandleSubmit's `_submitting` flag must reset on every exit
+    // path, including the success path that navigates away. The original
+    // implementation only reset on early-return + catch, leaving the flag
+    // stuck `true` after a successful create. Today `Nav.NavigateTo` disposes
+    // the page so the stale flag is unobservable, but a future refactor that
+    // replaces navigation with an inline success state (toast + reset form)
+    // would silently leave the submit button disabled forever. Mirror the
+    // EditRunPage `try/finally { _saving = false; }` pattern.
+    [Fact]
+    public void CreateRunPage_HandleSubmit_Resets_Submitting_Flag_On_Success_Path()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+
+        var instancesClient = new Mock<IInstancesClient>();
+        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        Services.AddSingleton(instancesClient.Object);
+
+        var expansionsClient = new Mock<IExpansionsClient>();
+        expansionsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ExpansionDto(505, "The War Within")]);
+        Services.AddSingleton(expansionsClient.Object);
+
+        var guildClient = new Mock<IGuildClient>();
+        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDto?)null);
+        Services.AddSingleton(guildClient.Object);
+
+        Services.AddSingleton(runsClient.Object);
+
+        var cut = Render<CreateRunPage>();
+
+        // The default form state after load is M+ + any-dungeon with start
+        // time auto-set to next Thursday 20:00. Only the keystone level is
+        // required to make CanSubmit return true.
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("createRun.submit"), cut.Markup));
+        cut.Find("#keylevel-input").Input("10");
+
+        var submitButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("createRun.submit"), StringComparison.Ordinal));
+        submitButton.Click();
+
+        // Verify the success path actually ran.
+        cut.WaitForAssertion(() =>
+            runsClient.Verify(c => c.CreateAsync(
+                It.IsAny<CreateRunRequest>(),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+
+        // The flag is private; reflection is the cheapest way to pin the
+        // post-condition without coupling to incidental markup. The button's
+        // disabled state is a downstream signal but it's also influenced by
+        // CanSubmit, so reading the field directly avoids ambiguity.
+        var instance = cut.Instance;
+        var field = typeof(CreateRunPage).GetField(
+            "_submitting",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        cut.WaitForAssertion(() =>
+            Assert.False((bool)field!.GetValue(instance)!));
+    }
+
     // ── EditRunPage ──────────────────────────────────────────────────────────
 
     private Mock<IRunsClient> WireEditRunServices(
