@@ -5,15 +5,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-test-audit.sh\""
+            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-test-audit.sh\"",
+            "statusMessage": "Checking changed unit tests for audit prompt"
           },
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-devsecops-audit.sh\""
+            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-devsecops-audit.sh\"",
+            "statusMessage": "Checking security-sensitive changes for audit prompt"
           },
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-responsive-audit.sh\""
+            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-responsive-audit.sh\"",
+            "statusMessage": "Checking app/UI changes for responsive audit prompt"
           }
         ]
       }
