@@ -17,6 +17,11 @@
             "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-responsive-audit.sh\"",
             "statusMessage": "Checking app/UI changes for responsive audit prompt"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/claude/stop-software-design-audit.sh\"",
+            "statusMessage": "Checking source/project/script changes for software design audit prompt"
           }
         ]
       }
