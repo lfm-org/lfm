@@ -26,8 +26,10 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleSe
         var me = await meClient.GetAsync(CancellationToken.None);
         if (me is null)
         {
-            _cached = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-            return _cached;
+            // Do not cache the anonymous result — a transient network failure
+            // or cold-start race must not cement the user as anonymous for the
+            // rest of the session. Let the next call retry MeClient.
+            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
         // Apply the user's persisted locale preference (overrides browser detection).
