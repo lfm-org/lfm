@@ -286,16 +286,41 @@ public sealed class ReferenceSync(
     // ---------------------------------------------------------------------------
 
     /// <summary>
-    /// Simple 429-retry wrapper: sleep 1s and retry on <c>HttpStatusCode.TooManyRequests</c>,
-    /// log + skip on any other error. The shared <c>BlizzardRateLimiter</c> gates
-    /// outbound traffic to ~80 req/s so genuine 429s from Blizzard are rare, but
-    /// the retry is kept for safety.
+    /// Simple 429-retry wrapper: sleep 1s and retry on <c>HttpStatusCode.TooManyRequests</c>
+    /// up to <see cref="MaxRetries429"/> times, log + skip on any other error or once
+    /// the cap is exceeded. The shared <c>BlizzardRateLimiter</c> gates outbound
+    /// traffic to ~80 req/s so genuine 429s from Blizzard are rare; the cap
+    /// prevents a sustained outage from burning the entire Functions invocation
+    /// timeout in a tight retry loop.
     /// </summary>
-    private async Task<T?> FetchWithRetryAsync<T>(
+    private const int MaxRetries429 = 5;
+    private static readonly TimeSpan Retry429Delay = TimeSpan.FromSeconds(1);
+
+    private Task<T?> FetchWithRetryAsync<T>(
         Func<Task<T>> fetch,
         string description,
         CancellationToken ct) where T : class
+        => FetchWithRetryAsyncCore(fetch, description, MaxRetries429, Retry429Delay, logger, ct);
+
+    // Test-only seam — exposed via InternalsVisibleTo. Keeps production callers unchanged.
+    internal static Task<T?> FetchWithRetryAsyncForTests<T>(
+        Func<Task<T>> fetch,
+        string description,
+        int maxRetries,
+        TimeSpan retryDelay,
+        ILogger logger,
+        CancellationToken ct) where T : class
+        => FetchWithRetryAsyncCore(fetch, description, maxRetries, retryDelay, logger, ct);
+
+    private static async Task<T?> FetchWithRetryAsyncCore<T>(
+        Func<Task<T>> fetch,
+        string description,
+        int maxRetries,
+        TimeSpan retryDelay,
+        ILogger logger,
+        CancellationToken ct) where T : class
     {
+        var attempt = 0;
         while (true)
         {
             ct.ThrowIfCancellationRequested();
@@ -305,7 +330,14 @@ public sealed class ReferenceSync(
             }
             catch (HttpRequestException ex) when ((int?)ex.StatusCode == 429)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                if (attempt++ >= maxRetries)
+                {
+                    logger.LogWarning(
+                        "Skipping {Description}: 429 retry cap exceeded ({Cap} retries)",
+                        description, maxRetries);
+                    return null;
+                }
+                await Task.Delay(retryDelay, ct);
             }
             catch (Exception ex)
             {
