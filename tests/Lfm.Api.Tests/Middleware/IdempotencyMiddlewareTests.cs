@@ -152,6 +152,10 @@ public class IdempotencyMiddlewareTests
         Assert.Equal(
             "https://github.com/lfm-org/lfm/errors#idempotent-replay",
             doc.RootElement.GetProperty("type").GetString());
+
+        // Wire-contract: server-internal audit timestamps must not appear in the body.
+        Assert.False(doc.RootElement.TryGetProperty("originalCreatedAt", out _),
+            "originalCreatedAt is a server audit timestamp and must not be on the wire.");
     }
 
     [Fact]
