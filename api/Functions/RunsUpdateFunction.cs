@@ -108,15 +108,20 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             }
         }
 
-        // 3. Parse and validate request body.
+        // 3. Parse and validate request body. Keep the raw JsonElement long
+        // enough to distinguish omitted fields from explicit nulls.
         UpdateRunRequest? body;
+        JsonDocument bodyDoc;
         try
         {
-            body = await JsonSerializer.DeserializeAsync<UpdateRunRequest>(
+            bodyDoc = await JsonDocument.ParseAsync(
                 req.Body,
-                JsonOptions,
                 cancellationToken: ct);
 
+            if (bodyDoc.RootElement.ValueKind != JsonValueKind.Object)
+                return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
+
+            body = bodyDoc.RootElement.Deserialize<UpdateRunRequest>(JsonOptions);
             if (body is null)
                 return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
@@ -128,6 +133,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
             return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
         }
 
+        using var parsedBody = bodyDoc;
         var validator = new UpdateRunRequestValidator();
         var validationResult = await validator.ValidateAsync(body, ct);
         if (!validationResult.IsValid)
@@ -139,6 +145,16 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                 "Request body failed validation.",
                 new Dictionary<string, object?> { ["errors"] = errors });
         }
+
+        var root = parsedBody.RootElement;
+        var hasStartTime = HasJsonProperty(root, "startTime");
+        var hasSignupCloseTime = HasJsonProperty(root, "signupCloseTime");
+        var hasDescription = HasJsonProperty(root, "description");
+        var hasVisibility = HasJsonProperty(root, "visibility");
+        var hasInstanceId = HasJsonProperty(root, "instanceId");
+        var hasDifficulty = HasJsonProperty(root, "difficulty");
+        var hasSize = HasJsonProperty(root, "size");
+        var hasKeystoneLevel = HasJsonProperty(root, "keystoneLevel");
 
         // 4. Editability check — mirrors isEditingClosed in run-editability.ts.
         //    Returns 409 Conflict (the resource state conflicts with the request).
@@ -161,7 +177,7 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
                     req.HttpContext,
                     "start-time-locked",
                     "Cannot change start time after signups.");
-            if (body.InstanceId is not null && body.InstanceId != existing.InstanceId)
+            if (hasInstanceId && body.InstanceId != existing.InstanceId)
                 return Problem.BadRequest(
                     req.HttpContext,
                     "instance-locked",
@@ -191,13 +207,46 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
 
         // 7. Resolve effective instanceId + mode fields and look up the
         //    instance name.
-        var effectiveInstanceId = body.InstanceId ?? existing.InstanceId;
-        var effectiveDifficulty = body.Difficulty ?? existing.Difficulty;
-        var effectiveSize = body.Size ?? existing.Size;
+        var effectiveStartTime = hasStartTime
+            ? body.StartTime ?? existing.StartTime
+            : existing.StartTime;
+        var effectiveSignupCloseTime = hasSignupCloseTime
+            ? body.SignupCloseTime ?? ""
+            : existing.SignupCloseTime;
+        var effectiveDescription = hasDescription
+            ? body.Description ?? ""
+            : existing.Description;
+        var effectiveVisibility = hasVisibility
+            ? body.Visibility ?? existing.Visibility
+            : existing.Visibility;
+        var effectiveInstanceId = hasInstanceId
+            ? body.InstanceId
+            : existing.InstanceId;
+        var effectiveDifficulty = hasDifficulty
+            ? body.Difficulty ?? existing.Difficulty
+            : existing.Difficulty;
+        var effectiveSize = hasSize
+            ? body.Size ?? existing.Size
+            : existing.Size;
         // ModeKey stays in storage only — derived here so legacy reads still
         // resolve. The wire no longer carries it.
         var effectiveModeKey = $"{effectiveDifficulty}:{effectiveSize}";
-        var effectiveKeystoneLevel = body.KeystoneLevel ?? existing.KeystoneLevel;
+        var effectiveKeystoneLevel = hasKeystoneLevel
+            ? body.KeystoneLevel
+            : existing.KeystoneLevel;
+
+        var shapeErrors = ValidateEffectiveRunShape(
+            effectiveStartTime,
+            effectiveSignupCloseTime,
+            effectiveInstanceId,
+            effectiveDifficulty,
+            effectiveKeystoneLevel);
+        if (shapeErrors.Count > 0)
+            return Problem.BadRequest(
+                req.HttpContext,
+                "validation-failed",
+                "Request body failed validation.",
+                new Dictionary<string, object?> { ["errors"] = shapeErrors });
 
         // Load instances to validate the (instanceId, difficulty, size)
         // combination and obtain the canonical instance name. Each InstanceDto
@@ -234,14 +283,14 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         // 8. Apply changes — mirrors applyRunUpdate in runs-update.ts.
         var updated = existing with
         {
-            StartTime = body.StartTime ?? existing.StartTime,
-            SignupCloseTime = body.SignupCloseTime ?? existing.SignupCloseTime,
-            Description = body.Description ?? existing.Description,
+            StartTime = effectiveStartTime,
+            SignupCloseTime = effectiveSignupCloseTime,
+            Description = effectiveDescription,
             ModeKey = effectiveModeKey,
             Difficulty = effectiveDifficulty,
             Size = effectiveSize,
             KeystoneLevel = effectiveKeystoneLevel,
-            Visibility = body.Visibility ?? existing.Visibility,
+            Visibility = effectiveVisibility,
             InstanceId = effectiveInstanceId,
             InstanceName = effectiveInstanceName,
             CreatorGuild = isGuildPromotion
@@ -291,4 +340,39 @@ public class RunsUpdateFunction(IRunsRepository repo, IRaidersRepository raiders
         CancellationToken ct)
         => Run(req, id, ctx, ct);
 
+    private static bool HasJsonProperty(JsonElement root, string name)
+    {
+        foreach (var property in root.EnumerateObject())
+        {
+            if (property.NameEquals(name)
+                || string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static IReadOnlyList<string> ValidateEffectiveRunShape(
+        string startTime,
+        string signupCloseTime,
+        int? instanceId,
+        string difficulty,
+        int? keystoneLevel)
+    {
+        var errors = new List<string>();
+        if (!RunRequestTimeRules.SignupCloseTimeIsBeforeStartTime(signupCloseTime, startTime))
+            errors.Add("signupCloseTime must be before startTime");
+
+        if (instanceId is null && difficulty != CreateRunRequestValidator.MythicKeystone)
+            errors.Add("instanceId is required for non-Mythic+ runs");
+
+        if (difficulty != CreateRunRequestValidator.MythicKeystone && keystoneLevel is not null)
+            errors.Add("keystoneLevel is only valid for Mythic+ runs");
+
+        if (difficulty == CreateRunRequestValidator.MythicKeystone
+            && instanceId is null
+            && keystoneLevel is null)
+            errors.Add("keystoneLevel is required when no specific dungeon is selected");
+
+        return errors;
+    }
 }

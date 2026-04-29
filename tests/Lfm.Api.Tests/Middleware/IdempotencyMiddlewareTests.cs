@@ -23,10 +23,12 @@ public class IdempotencyMiddlewareTests
     private static (IdempotencyMiddleware middleware, Mock<FunctionContext> context, DefaultHttpContext httpContext, Mock<IIdempotencyStore> store) Setup(
         string method = "POST",
         string? idempotencyKey = "abc-123",
-        SessionPrincipal? principal = null)
+        SessionPrincipal? principal = null,
+        string path = "/api/runs")
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = method;
+        httpContext.Request.Path = path;
         httpContext.Response.Body = new MemoryStream();
         if (idempotencyKey is not null)
             httpContext.Request.Headers["Idempotency-Key"] = idempotencyKey;
@@ -200,6 +202,29 @@ public class IdempotencyMiddlewareTests
         await middleware.Invoke(ctx.Object, next);
 
         // Non-2xx responses must not be cached — a retry should re-evaluate.
+        store.Verify(s => s.PutAsync(It.IsAny<IdempotencyEntry>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Bypasses_replay_cache_for_account_delete()
+    {
+        var (middleware, ctx, httpContext, store) = Setup(
+            method: "DELETE",
+            idempotencyKey: "delete-key",
+            principal: MakePrincipal("bnet-1"),
+            path: "/api/v1/me");
+        var nextCalled = false;
+        FunctionExecutionDelegate next = _ =>
+        {
+            nextCalled = true;
+            httpContext.Response.StatusCode = 200;
+            return Task.CompletedTask;
+        };
+
+        await middleware.Invoke(ctx.Object, next);
+
+        Assert.True(nextCalled);
+        store.Verify(s => s.TryGetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         store.Verify(s => s.PutAsync(It.IsAny<IdempotencyEntry>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

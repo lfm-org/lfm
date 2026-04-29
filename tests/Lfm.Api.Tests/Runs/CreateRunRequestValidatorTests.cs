@@ -38,6 +38,34 @@ public class CreateRunRequestValidatorTests
     }
 
     [Fact]
+    public void Rejects_invalid_StartTime()
+    {
+        var req = Valid() with { StartTime = "not-a-date" };
+        var result = Sut.Validate(req);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("startTime must be a valid date/time"));
+    }
+
+    [Fact]
+    public void Rejects_invalid_SignupCloseTime()
+    {
+        var req = Valid() with { SignupCloseTime = "not-a-date" };
+        var result = Sut.Validate(req);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("signupCloseTime must be a valid date/time"));
+    }
+
+    [Fact]
+    public void Rejects_SignupCloseTime_after_StartTime()
+    {
+        var req = Valid() with
+        {
+            StartTime = "2026-05-01T20:00:00Z",
+            SignupCloseTime = "2026-05-01T21:00:00Z",
+        };
+        var result = Sut.Validate(req);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("signupCloseTime must be before startTime"));
+    }
+
+    [Fact]
     public void Rejects_missing_Difficulty()
     {
         var req = Valid() with { Difficulty = null };

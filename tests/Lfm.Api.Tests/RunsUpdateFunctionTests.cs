@@ -83,6 +83,16 @@ public class RunsUpdateFunctionTests
         return httpContext.Request;
     }
 
+    private static HttpRequest MakePutRequest(string rawJson, string? ifMatch = DefaultTestEtag)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(rawJson));
+        httpContext.Request.ContentType = "application/json";
+        if (ifMatch is not null)
+            httpContext.Request.Headers["If-Match"] = ifMatch;
+        return httpContext.Request;
+    }
+
     /// <summary>
     /// A run that is open for editing: startTime is 24 hours in the future,
     /// signupCloseTime is 2 hours before that, no signups yet.
@@ -166,6 +176,218 @@ public class RunsUpdateFunctionTests
 
         // Cosmos UpdateAsync was called once
         repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_clears_any_dungeon_fields_when_explicit_nulls_are_sent()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator") with
+        {
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+            KeystoneLevel = 12,
+            ModeKey = "MYTHIC_KEYSTONE:5",
+        };
+
+        RunDocument? captured = null;
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<RunDocument, string?, CancellationToken>((doc, _, _) => captured = doc)
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest("""
+                {
+                  "instanceId": null,
+                  "instanceName": null,
+                  "difficulty": "MYTHIC_KEYSTONE",
+                  "size": 5,
+                  "keystoneLevel": 10
+                }
+                """),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(captured);
+        Assert.Null(captured!.InstanceId);
+        Assert.Null(captured.InstanceName);
+        Assert.Equal("MYTHIC_KEYSTONE", captured.Difficulty);
+        Assert.Equal(5, captured.Size);
+        Assert.Equal(10, captured.KeystoneLevel);
+    }
+
+    [Fact]
+    public async Task Run_rejects_explicit_null_instance_id_when_run_has_signups()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator") with
+        {
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+            KeystoneLevel = 12,
+            ModeKey = "MYTHIC_KEYSTONE:5",
+            RunCharacters =
+            [
+                new RunCharacterEntry(
+                    Id: "rc-1",
+                    CharacterId: "char-self",
+                    CharacterName: "Selfwarrior",
+                    CharacterRealm: "silvermoon",
+                    CharacterLevel: 80,
+                    CharacterClassId: 1,
+                    CharacterClassName: "Warrior",
+                    CharacterRaceId: 1,
+                    CharacterRaceName: "Human",
+                    RaiderBattleNetId: "bnet-creator",
+                    DesiredAttendance: "IN",
+                    ReviewedAttendance: "IN",
+                    SpecId: 71,
+                    SpecName: "Arms",
+                    Role: "DPS"),
+            ],
+        };
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest("""
+                {
+                  "instanceId": null,
+                  "difficulty": "MYTHIC_KEYSTONE",
+                  "size": 5,
+                  "keystoneLevel": 10
+                }
+                """),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#instance-locked", problem.Type);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_clears_signup_close_time_when_explicit_null_is_sent()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+
+        RunDocument? captured = null;
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<RunDocument, string?, CancellationToken>((doc, _, _) => captured = doc)
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        instancesRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeInstances());
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest("""
+                {
+                  "signupCloseTime": null
+                }
+                """),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(captured);
+        Assert.Equal("", captured!.SignupCloseTime);
+    }
+
+    [Fact]
+    public async Task Run_returns_400_when_update_start_time_is_invalid()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest(new { startTime = "not-a-date" }),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#validation-failed", problem.Type);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_returns_400_when_update_start_time_is_whitespace()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-creator");
+        var existing = MakeOpenRunDoc(creatorBattleNetId: "bnet-creator");
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var permissions = new Mock<IGuildPermissions>();
+        var instancesRepo = new Mock<IInstancesRepository>();
+        var raidersRepo = MakeRaidersRepoFor(MakeRaiderDoc("bnet-creator"));
+
+        var fn = MakeFunction(repo, permissions, instancesRepo, raidersRepo);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(
+            MakePutRequest(new { startTime = "   " }),
+            "run-1",
+            ctx,
+            CancellationToken.None);
+
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#validation-failed", problem.Type);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ------------------------------------------------------------------

@@ -202,7 +202,17 @@ public class RunsClientTests
     [Fact]
     public async Task UpdateAsync_puts_request_body_and_if_match_header()
     {
-        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));
+        var detail = MakeDetail("run-1");
+        var handler = new StubHttpMessageHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = System.Net.Http.Json.JsonContent.Create(detail),
+            };
+            response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"etag-v2\"");
+            return response;
+        });
+        var (client, _) = MakeClient(handler);
         var request = new UpdateRunRequest(
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
@@ -216,6 +226,8 @@ public class RunsClientTests
         var result = await client.UpdateAsync("run-1", request, "\"etag-v1\"", CancellationToken.None);
 
         Assert.NotNull(result);
+        Assert.Equal("run-1", result!.Run.Id);
+        Assert.Equal("\"etag-v2\"", result.ETag);
         Assert.Equal(HttpMethod.Put, handler.LastRequest!.Method);
         Assert.Equal("/api/v1/runs/run-1", handler.LastRequest.RequestUri!.PathAndQuery);
         Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);

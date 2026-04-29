@@ -361,7 +361,7 @@
             var instancesTask = InstancesClient.ListAsync(CancellationToken.None);
             var expansionsTask = ExpansionsClient.ListAsync(CancellationToken.None);
             var guildTask = GuildClient.GetAsync(CancellationToken.None);
-            await Task.WhenAll(runTask, instancesTask, expansionsTask, guildTask);
+            await Task.WhenAll(runTask, instancesTask, expansionsTask);
 
             var runEnvelope = await runTask;
             if (runEnvelope is null)
@@ -528,15 +528,16 @@
                 return;
             }
 
-            var updated = await RunsClient.UpdateAsync(RunId!, request, _runEtag!, CancellationToken.None);
-            if (updated is null)
+            var updatedEnvelope = await RunsClient.UpdateAsync(RunId!, request, _runEtag!, CancellationToken.None);
+            if (updatedEnvelope is null)
             {
                 _inlineError = new RunError(RunErrorKind.Unknown, [Loc["editRun.saveFailed"].Value]);
             }
             else
             {
+                _runEtag = updatedEnvelope.ETag ?? _runEtag;
                 Toast.ShowSuccess(Loc["editRun.saveSuccess"]);
-                _state = new LoadingState<RunDetailDto>.Success(updated);
+                _state = new LoadingState<RunDetailDto>.Success(updatedEnvelope.Run);
             }
         }
         catch (StaleEtagException)
