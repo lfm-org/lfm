@@ -352,11 +352,16 @@
 
     <element identifier="id-wp-license-compliance" xsi:type="WorkPackage">
       <name xml:lang="en">License Compliance</name>
-      <documentation xml:lang="en">AGPL-compatibility check for transitive dependency licenses. Source: .github/workflows/license-compliance.yml, .github/workflows/dep-license-check.yml.</documentation>
+      <documentation xml:lang="en">REUSE license-header and copyright compliance check. Source: .github/workflows/license-compliance.yml.</documentation>
+    </element>
+
+    <element identifier="id-wp-dep-license-check" xsi:type="WorkPackage">
+      <name xml:lang="en">Dep License Check</name>
+      <documentation xml:lang="en">NuGet transitive dependency license allowlist check using nuget-license. Source: .github/workflows/dep-license-check.yml.</documentation>
     </element>
 
     <element identifier="id-wp-stryker-nightly" xsi:type="WorkPackage">
-      <name xml:lang="en">Stryker Nightly</name>
+      <name xml:lang="en">Stryker Nightly (App.Core)</name>
       <documentation xml:lang="en">Nightly mutation testing against Lfm.App.Core. Source: .github/workflows/stryker-nightly.yml.</documentation>
     </element>
 
@@ -817,6 +822,7 @@
       <item identifierRef="id-wp-analyze-infra"/>
       <item identifierRef="id-wp-secrets-scan"/>
       <item identifierRef="id-wp-license-compliance"/>
+      <item identifierRef="id-wp-dep-license-check"/>
       <item identifierRef="id-wp-stryker-nightly"/>
       <item identifierRef="id-wp-dependabot-auto-merge"/>
       <item identifierRef="id-deliv-bicep"/>
@@ -1028,8 +1034,8 @@
         <!-- Row 3: Migration axis — baseline Plateau → release Gap → Production Plateau -->
         <node identifier="id-node-v3-plat-baseline" elementRef="id-plat-repository-baseline" xsi:type="Element" x="40" y="460" w="220" h="120"/>
         <node identifier="id-node-v3-gap-release" elementRef="id-gap-release-to-production" xsi:type="Element" x="300" y="480" w="180" h="80"/>
-        <node identifier="id-node-v3-event-prod" elementRef="id-event-deploy-production" xsi:type="Element" x="80" y="320" w="200" h="80"/>
-        <node identifier="id-node-v3-plat-prod" elementRef="id-plat-production" xsi:type="Element" x="520" y="460" w="740" h="120"/>
+        <node identifier="id-node-v3-event-prod" elementRef="id-event-deploy-production" xsi:type="Element" x="520" y="480" w="200" h="80"/>
+        <node identifier="id-node-v3-plat-prod" elementRef="id-plat-production" xsi:type="Element" x="760" y="460" w="500" h="120"/>
 
         <!-- Connections -->
         <connection identifier="id-conn-v3-1" relationshipRef="id-rel-deploy-agg-infra" source="id-node-v3-deploy" target="id-node-v3-deploy-infra" xsi:type="Relationship"/>
@@ -1045,21 +1051,17 @@
         <!-- Work-package Realization to Production is kept in the model but not drawn:
              the release event path is the visual migration spine for this view. -->
         <connection identifier="id-conn-v3-13" relationshipRef="id-rel-plat-baseline-trig-release-gap" source="id-node-v3-plat-baseline" target="id-node-v3-gap-release" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v3-14" relationshipRef="id-rel-release-gap-trig-prod-event" source="id-node-v3-gap-release" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="390" y="440"/>
-          <bendpoint x="180" y="440"/>
-        </connection>
-        <connection identifier="id-conn-v3-15" relationshipRef="id-rel-prod-event-trig-prod" source="id-node-v3-event-prod" target="id-node-v3-plat-prod" xsi:type="Relationship">
-          <bendpoint x="180" y="440"/>
-          <bendpoint x="890" y="440"/>
-        </connection>
+        <connection identifier="id-conn-v3-14" relationshipRef="id-rel-release-gap-trig-prod-event" source="id-node-v3-gap-release" target="id-node-v3-event-prod" xsi:type="Relationship"/>
+        <connection identifier="id-conn-v3-15" relationshipRef="id-rel-prod-event-trig-prod" source="id-node-v3-event-prod" target="id-node-v3-plat-prod" xsi:type="Relationship"/>
         <connection identifier="id-conn-v3-16" relationshipRef="id-rel-deploy-infra-trig-prod-event" source="id-node-v3-deploy-infra" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="420" y="280"/>
-          <bendpoint x="200" y="280"/>
+          <bendpoint x="560" y="200"/>
+          <bendpoint x="560" y="420"/>
+          <bendpoint x="600" y="420"/>
         </connection>
         <connection identifier="id-conn-v3-17" relationshipRef="id-rel-deploy-app-trig-prod-event" source="id-node-v3-deploy-app" target="id-node-v3-event-prod" xsi:type="Relationship">
-          <bendpoint x="950" y="270"/>
-          <bendpoint x="160" y="270"/>
+          <bendpoint x="1080" y="200"/>
+          <bendpoint x="1080" y="420"/>
+          <bendpoint x="640" y="420"/>
         </connection>
 
       </view>
@@ -1122,7 +1124,7 @@
         <node identifier="id-node-bpc-inspect" elementRef="id-bp-inspect-run" xsi:type="Element" x="560" y="220" w="200" h="80"/>
         <node identifier="id-node-bpc-signup" elementRef="id-bp-signup-run" xsi:type="Element" x="820" y="220" w="200" h="80"/>
         <node identifier="id-node-bpc-confirmed" elementRef="id-be-signup-confirmed" xsi:type="Element" x="1080" y="220" w="200" h="80"/>
-        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="820" y="410" w="200" h="80"/>
+        <node identifier="id-node-bpc-cancel" elementRef="id-bp-cancel-signup" xsi:type="Element" x="1080" y="410" w="200" h="80"/>
 
         <!-- Passive row (bottom): Business Objects -->
         <node identifier="id-node-bpc-run" elementRef="id-bobj-run" xsi:type="Element" x="570" y="570" w="180" h="80"/>
@@ -1151,9 +1153,8 @@
           <bendpoint x="920" y="190"/>
         </connection>
         <connection identifier="id-conn-bpc-asg-4" relationshipRef="id-rel-player-asg-cancel" source="id-node-bpc-player" target="id-node-bpc-cancel" xsi:type="Relationship">
-          <bendpoint x="1320" y="150"/>
-          <bendpoint x="1320" y="450"/>
-          <bendpoint x="1040" y="450"/>
+          <bendpoint x="1300" y="150"/>
+          <bendpoint x="1300" y="450"/>
         </connection>
 
         <!-- Passive structure: Behaviours Access Business Objects -->
@@ -1166,9 +1167,7 @@
         </connection>
         <connection identifier="id-conn-bpc-acc-3" relationshipRef="id-rel-bp-signup-acc-run" source="id-node-bpc-signup" target="id-node-bpc-run" xsi:type="Relationship">
           <bendpoint x="940" y="340"/>
-          <bendpoint x="1040" y="340"/>
-          <bendpoint x="1040" y="700"/>
-          <bendpoint x="660" y="700"/>
+          <bendpoint x="700" y="340"/>
         </connection>
         <connection identifier="id-conn-bpc-acc-4" relationshipRef="id-rel-bp-signup-acc-signup" source="id-node-bpc-signup" target="id-node-bpc-signup-obj" xsi:type="Relationship">
           <bendpoint x="1040" y="340"/>
