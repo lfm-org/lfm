@@ -485,7 +485,8 @@ public class RunsPagesTests : ComponentTestBase
         IReadOnlyList<InstanceDto>? instances = null,
         IReadOnlyList<ExpansionDto>? expansions = null,
         GuildDto? guild = null,
-        TaskCompletionSource<IReadOnlyList<InstanceDto>>? instancesPending = null)
+        TaskCompletionSource<IReadOnlyList<InstanceDto>>? instancesPending = null,
+        bool guildThrows = false)
     {
         var instancesClient = new Mock<IInstancesClient>();
         if (instancesPending is not null)
@@ -502,8 +503,12 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(expansionsClient.Object);
 
         var guildClient = new Mock<IGuildClient>();
-        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(guild);
+        if (guildThrows)
+            guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("guild unavailable"));
+        else
+            guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(guild);
         Services.AddSingleton(guildClient.Object);
 
         Services.AddSingleton(new Mock<IRunsClient>().Object);
@@ -543,6 +548,21 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("createRun.submit"), cut.Markup));
+    }
+
+    [Fact]
+    public void CreateRunPage_Renders_Public_Form_When_Guild_Load_Fails()
+    {
+        WireCreateRunServices(
+            instances: [MakeInstanceFixture()],
+            guildThrows: true);
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("createRun.submit"), cut.Markup));
+        Assert.DoesNotContain("Failed to load form data", cut.Markup);
+        Assert.DoesNotContain(Loc("createRun.guildOnly"), cut.Markup);
     }
 
     [Fact]
@@ -637,7 +657,8 @@ public class RunsPagesTests : ComponentTestBase
         Mock<IRunsClient>? runsClient = null,
         IReadOnlyList<InstanceDto>? instances = null,
         IReadOnlyList<ExpansionDto>? expansions = null,
-        GuildDto? guild = null)
+        GuildDto? guild = null,
+        bool guildThrows = false)
     {
         runsClient ??= new Mock<IRunsClient>();
         var instancesClient = new Mock<IInstancesClient>();
@@ -647,7 +668,11 @@ public class RunsPagesTests : ComponentTestBase
         expansionsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(expansions ?? [new ExpansionDto(505, "The War Within")]);
         var guildClient = new Mock<IGuildClient>();
-        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(guild);
+        if (guildThrows)
+            guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("guild unavailable"));
+        else
+            guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(guild);
 
         Services.AddSingleton(instancesClient.Object);
         Services.AddSingleton(expansionsClient.Object);
@@ -681,6 +706,22 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+    }
+
+    [Fact]
+    public void EditRunPage_Renders_Public_Form_When_Guild_Load_Fails()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        WireEditRunServices(runsClient, instances: [MakeInstanceFixture()], guildThrows: true);
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+        Assert.DoesNotContain("Failed to load run", cut.Markup);
+        Assert.DoesNotContain(Loc("createRun.guildOnly"), cut.Markup);
     }
 
     [Fact]
@@ -742,7 +783,7 @@ public class RunsPagesTests : ComponentTestBase
                 captured = req;
                 capturedIfMatch = ifMatch;
             })
-            .ReturnsAsync((RunDetailDto?)null);
+            .ReturnsAsync((RunDetailWithEtag?)null);
         WireEditRunServices(runsClient);
 
         var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
@@ -760,6 +801,40 @@ public class RunsPagesTests : ComponentTestBase
         // Save must echo the loaded ETag on If-Match so the server can reject
         // stale updates with 412 instead of silently overwriting.
         Assert.Equal("\"etag-v1\"", capturedIfMatch);
+    }
+
+    [Fact]
+    public void EditRunPage_Save_Refreshes_Etag_From_Update_Response()
+    {
+        var ifMatches = new List<string>();
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, UpdateRunRequest, string, CancellationToken>((_, _, ifMatch, _) => ifMatches.Add(ifMatch))
+            .ReturnsAsync(() =>
+            {
+                var etag = ifMatches.Count == 1 ? "\"etag-v2\"" : "\"etag-v3\"";
+                return new RunDetailWithEtag(MakeDetail(), etag);
+            });
+        WireEditRunServices(runsClient);
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.saveChanges")));
+        saveButton.Click();
+        cut.WaitForAssertion(() => Assert.Single(ifMatches));
+
+        saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.saveChanges")));
+        saveButton.Click();
+        cut.WaitForAssertion(() => Assert.Equal(2, ifMatches.Count));
+
+        Assert.Equal(["\"etag-v1\"", "\"etag-v2\""], ifMatches);
     }
 
     // RD-DIALOG-1 (#26): the delete confirmation renders as a native <dialog>

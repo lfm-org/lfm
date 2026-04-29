@@ -31,7 +31,7 @@ public interface IRunsClient
     /// request with 412 Precondition Failed so the caller can prompt the
     /// user to reload instead of showing a generic "save failed" error.
     /// </summary>
-    Task<RunDetailDto?> UpdateAsync(string id, UpdateRunRequest request, string ifMatchEtag, CancellationToken ct);
+    Task<RunDetailWithEtag?> UpdateAsync(string id, UpdateRunRequest request, string ifMatchEtag, CancellationToken ct);
 
     Task<bool> DeleteAsync(string id, CancellationToken ct);
     Task<RunDetailDto?> SignupAsync(string runId, SignupRequest request, CancellationToken ct);

@@ -49,7 +49,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
     }
 
-    public async Task<RunDetailDto?> UpdateAsync(
+    public async Task<RunDetailWithEtag?> UpdateAsync(
         string id, UpdateRunRequest request, string ifMatchEtag, CancellationToken ct)
     {
         var http = factory.CreateClient("api");
@@ -72,7 +72,11 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
             throw new StaleEtagException(body);
         }
         if (!response.IsSuccessStatusCode) return null;
-        return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
+
+        var dto = await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
+        if (dto is null) return null;
+
+        return new RunDetailWithEtag(dto, response.Headers.ETag?.Tag);
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken ct)
