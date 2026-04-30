@@ -80,4 +80,11 @@ public sealed record GuildEffectivePermissions(
     bool CanDeleteGuildRuns)
 {
     public static readonly GuildEffectivePermissions None = new(false, false, false, false);
+
+    /// <summary>
+    /// Site admin viewing a guild they do not belong to: editor view is enabled
+    /// (so admin tooling and Settings render), but personal member permissions
+    /// stay false because the admin is not a guild member.
+    /// </summary>
+    public static readonly GuildEffectivePermissions SiteAdminView = new(IsAdmin: true, false, false, false);
 }
