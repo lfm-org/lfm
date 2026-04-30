@@ -114,7 +114,7 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
 
         try
         {
-            await authPage.RouteAsync("**/api/battlenet/character-portraits", async route =>
+            await authPage.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
             {
                 await route.FulfillAsync(new()
                 {

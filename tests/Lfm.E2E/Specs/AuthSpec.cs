@@ -18,7 +18,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
 {
     // 401 + /api/me — expected for the anonymous context. MONO_WASM /
     // .wasm / mono_download_assets — intermittent Blazor WASM bundle download
-    // flake that hits cold-start forceLoad redirects (e.g. /api/battlenet/login);
+    // flake that hits cold-start forceLoad redirects (e.g. /api/v1/battlenet/login);
     // unrelated to the assertions these tests make. See #45.
     protected override string[] IgnoredConsolePatterns =>
         ["401", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
@@ -59,12 +59,12 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // forceLoad: true navigates to /api/battlenet/login, which immediately
+        // forceLoad: true navigates to /api/v1/battlenet/login, which immediately
         // redirects to the external Battle.net OAuth URL (unavailable in test).
-        // Wait for the request to /api/battlenet/login to be initiated, which
+        // Wait for the request to the Battle.net login endpoint to be initiated, which
         // confirms the button wired up the correct navigation URL.
         var loginRequestTask = Page!.WaitForRequestAsync(
-            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new System.Text.RegularExpressions.Regex(@"/api/(?:v1/)?battlenet/login"),
             new() { Timeout = 10000 });
 
         await loginPage.ClickSignInAsync();

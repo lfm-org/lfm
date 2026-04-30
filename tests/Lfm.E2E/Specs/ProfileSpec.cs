@@ -57,7 +57,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
         // Block the portrait request — it's fire-and-forget and crashes Blazor
         // when the E2E API can't process it (known app issue).
-        await Page!.RouteAsync("**/api/battlenet/character-portraits", async route =>
+        await Page!.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
         {
             await route.FulfillAsync(new()
             {
@@ -71,7 +71,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // DefaultSeed populates accountProfileSummary.wow_accounts[0].characters
+        // DefaultSeed populates accountProfileSummary.wowAccounts[0].characters
         // with exactly two characters (Aelrin + Aelrinalt); the characters endpoint
         // must return both and the page must render one card per character.
         await Assertions.Expect(charactersPage.CharacterList)
@@ -186,13 +186,13 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task DeleteAccount_Confirm_RedirectsToGoodbye()
     {
-        // Use a dedicated context with the secondary test user to avoid invalidating
-        // the shared primary user session used by other tests.
+        // Use a disposable test user to avoid invalidating the shared primary
+        // and secondary users used by other tests.
         var deleteContext = await AuthHelper.AuthenticatedContextAsync(
             fixture.Stack.Browser,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl,
-            battleNetId: DefaultSeed.SecondaryBattleNetId,
+            battleNetId: DefaultSeed.DisposableBattleNetId,
             redirect: "/characters");
         var deletePage = await deleteContext.NewPageAsync();
 
@@ -201,7 +201,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             var charactersPage = new CharactersPage(deletePage);
 
             // Stub the portrait endpoint to prevent fire-and-forget crash
-            await deletePage.RouteAsync("**/api/battlenet/character-portraits", async route =>
+            await deletePage.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
             {
                 await route.FulfillAsync(new()
                 {
