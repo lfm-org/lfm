@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Navigation")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -34,6 +34,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves the landing page renders feature cards and CTA in the browser.
+    // Cheaper lanes cannot prove this because the full Blazor app shell and Fluent components must load.
+    // Shared data: none.
     [Fact]
     public async Task LandingPage_Loads_ShowsFeatureCardsAndCTA()
     {
@@ -49,6 +52,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         Assert.True(ctaVisible);
     }
 
+    // E2E scope: proves authenticated navigation renders seeded raid instances in the browser.
+    // Cheaper lanes cannot prove this because the SPA, API, auth cookie, and storage read must work together.
+    // Shared data: read-only.
     [Fact]
     public async Task InstancesPage_Loads_DisplaysRaidInstances()
     {
@@ -79,6 +85,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         }
     }
 
+    // E2E scope: proves the privacy policy route renders browser-visible content.
+    // Cheaper lanes cannot prove this because app routing and final rendered content must be observed together.
+    // Shared data: none.
     [Fact]
     public async Task PrivacyPolicy_Loads_RendersContent()
     {
@@ -90,6 +99,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(privacyPage.DataControllerSection).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves unknown browser routes render the app's 404 state.
+    // Cheaper lanes cannot prove this because client-side routing decides the fallback UI.
+    // Shared data: none.
     [Fact]
     public async Task NotFound_UnknownRoute_Shows404()
     {
@@ -103,6 +115,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(notFoundPage.Message).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves the authenticated navbar characters link reaches the characters page UI.
+    // Cheaper lanes cannot prove this because it depends on browser navigation and auth-scoped rendering.
+    // Shared data: read-only.
     [Fact]
     public async Task NavbarCharactersLink_Click_NavigatesToCharactersPage()
     {
@@ -144,6 +159,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         }
     }
 
+    // E2E scope: proves the authenticated navbar guild link reaches the guild page UI.
+    // Cheaper lanes cannot prove this because it depends on browser navigation and auth-scoped rendering.
+    // Shared data: read-only.
     [Fact]
     public async Task NavbarGuildLink_Click_NavigatesToGuildPage()
     {

@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Profile")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -50,6 +50,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // Characters tests (4.2)
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the characters page renders the seeded account characters in the browser.
+    // Cheaper lanes cannot prove this because auth, API data, and component rendering must compose in the SPA.
+    // Shared data: read-only.
     [Fact]
     public async Task CharactersPage_Loads_DisplaysCharacterList()
     {
@@ -93,6 +96,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // Guild tests (4.3)
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the guild page renders seeded guild information in the browser.
+    // Cheaper lanes cannot prove this because auth-scoped routing, API data, and UI rendering must compose.
+    // Shared data: read-only.
     [Fact]
     public async Task GuildPage_Loads_DisplaysGuildInfo()
     {
@@ -108,6 +114,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         Log("Guild page rendered with guild info visible");
     }
 
+    // E2E scope: proves the guild admin settings form renders for the authenticated browser user.
+    // Cheaper lanes cannot prove this because authorization, route hydration, and Fluent form rendering compose here.
+    // Shared data: read-only.
     [Fact]
     public async Task GuildAdmin_Loads_DisplaysSettings()
     {
@@ -126,6 +135,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         Log("Guild admin settings form is visible");
     }
 
+    // E2E scope: proves guild admin browser edits persist and reload into the form.
+    // Cheaper lanes cannot prove this because form binding, API patch, storage, and page reload must round-trip.
+    // Shared data: restored.
     [Fact]
     public async Task GuildAdmin_UpdateSettings_ChangesReflected()
     {
@@ -183,6 +195,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // Delete account test (4.4)
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves account deletion redirects the browser to goodbye after confirmation.
+    // Cheaper lanes cannot prove this because confirmation UI, session state, deletion, and redirect must compose.
+    // Shared data: disposable.
     [Fact]
     public async Task DeleteAccount_Confirm_RedirectsToGoodbye()
     {

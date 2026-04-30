@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Runs")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -39,6 +39,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await _authContext.CloseAsync();
     }
 
+    // E2E scope: proves the authenticated runs page renders the seeded run list.
+    // Cheaper lanes cannot prove this because the browser observes auth, API, storage, and UI composition together.
+    // Shared data: read-only.
     [Fact]
     public async Task RunsPage_Loads_DisplaysRunList()
     {
@@ -53,6 +56,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId)).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves creating a run through the browser appears in list and detail views.
+    // Cheaper lanes cannot prove this because form binding, API persistence, routing, and rendering must round-trip.
+    // Shared data: disposable.
     [Fact]
     public async Task CreateRun_SubmitForm_AppearsInList()
     {
@@ -109,6 +115,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves list-click navigation renders the seeded run roster and signup count.
+    // Cheaper lanes cannot prove this because browser routing and detail-panel rendering compose the final behavior.
+    // Shared data: read-only.
     [Fact]
     public async Task RunDetail_Navigate_ShowsRosterWithSignupCount()
     {
@@ -133,6 +142,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves deep-link navigation renders the seeded run roster.
+    // Cheaper lanes cannot prove this because the browser must resolve the route and hydrate the detail panel.
+    // Shared data: read-only.
     [Fact]
     public async Task RunDetail_DeepLink_DisplaysSeededRoster()
     {
@@ -160,6 +172,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves the edit route renders the seeded roster in the browser.
+    // Cheaper lanes cannot prove this because routed edit-page hydration composes auth, API, and UI state.
+    // Shared data: read-only.
     [Fact]
     public async Task EditRunPage_DisplaysSeededRoster()
     {
@@ -182,6 +197,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves browser edits to run fields persist and re-render on detail.
+    // Cheaper lanes cannot prove this because form binding, API update, storage, and reload must round-trip.
+    // Shared data: disposable.
     [Fact]
     public async Task EditRun_ModifyFields_ChangesReflected()
     {
@@ -257,6 +275,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         return Uri.UnescapeDataString(runId);
     }
 
+    // E2E scope: proves browser deletion removes a created run from the rendered list.
+    // Cheaper lanes cannot prove this because confirmation UI, API delete, routing, and list refresh must compose.
+    // Shared data: disposable.
     [Fact]
     public async Task DeleteRun_Confirm_RemovedFromList()
     {
