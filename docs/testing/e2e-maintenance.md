@@ -45,7 +45,8 @@ Run these checks after UI, API route, or storage-shape changes:
 
 ```bash
 rg -n "\"/api/(battlenet|wow|raiders|runs|guilds|me)(/|[?\"])" tests/Lfm.E2E/Specs tests/Lfm.E2E/Helpers tests/Lfm.E2E/Pages
-rg -n "wow_accounts|playable_class|modekey-input|#instance-select" tests/Lfm.E2E app api
+rg -n "wow_accounts|playable_class" tests/Lfm.E2E/Seeds
+rg -n "modekey-input|#instance-select" tests/Lfm.E2E/Specs tests/Lfm.E2E/Pages
 rg -n "AuthenticatedContextAsync|NewPageAsync\\(" tests/Lfm.E2E/Specs
 rg -n "DeleteAsync|DELETE|me-delete|DeleteAccount" tests/Lfm.E2E/Specs tests/Lfm.E2E/Seeds
 ```
@@ -56,5 +57,7 @@ Expected:
   calls use `/api/v1/...`; the test-only auth shortcut remains
   `/api/e2e/login`.
 - Snake_case Blizzard wire keys do not appear in E2E Cosmos seed documents.
+- Stale selector hits do not appear in specs. If a selector hit remains in a
+  page object, confirm the app still renders that selector.
 - Specs do not create untracked pages for behavior that needs diagnostics.
 - Destructive tests use disposable seed identities.
