@@ -96,6 +96,12 @@ These look like they violate the rule but don't, because they are per-entity *ca
 
 Splitting any of these out to blob would add round-trips and a consistency surface for zero cost win, because each cache's lifecycle is *the owner's* lifecycle, not a shared patch-day lifecycle.
 
+## Design tradeoffs
+
+- **Cosmos Newtonsoft pin.** Cosmos SDK 3.x loads Newtonsoft.Json for round-trip even when `AzureCosmosDisableNewtonsoftJsonCheck=true`. Document records may carry Newtonsoft attributes for storage and STJ attributes for wire/test serialization. Revisit when the Cosmos SDK ships an STJ-default release.
+- **`RunDocument.ModeKey` retirement criterion.** The legacy composite is kept for one schema-migration cycle. Remove `RunDocument.ModeKey`, the legacy fallback branch in `RunModeResolver.Resolve`, and `RunsMigrateSchemaFunction` once `MigrateSchemaAsync(dryRun: true)` reports zero un-migrated production documents.
+- **Reference-data accessors.** New blob-backed reference data should call `IBlobReferenceClient` plus a static projection helper rather than spawning a new `I*Repository` interface, unless a real second implementation or test seam need exists.
+
 ## Production layout (2026-04-21)
 
 ```

@@ -4,6 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Lfm.App.Core uses the same RootNamespace as the parent Lfm.App project
+         on purpose: Stryker.NET cannot mutate Blazor WASM because Razor source
+         generators are not invoked during Stryker recompile. Framework-neutral
+         code is hoisted here while consumer call sites stay unchanged. See
+         CLAUDE.md Testing. -->
     <RootNamespace>Lfm.App</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
