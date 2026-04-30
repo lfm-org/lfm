@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Lfm.Api.Repositories;
+using Lfm.Api.Services;
 using Lfm.Contracts.Guild;
 
 namespace Lfm.Api.Functions;
@@ -28,7 +29,7 @@ internal static class GuildMapper
                 CanSignupGuildRuns: false,
                 CanDeleteGuildRuns: false));
 
-    internal static GuildDto MapToDto(GuildDocument doc)
+    internal static GuildDto MapToDto(GuildDocument doc, GuildEffectivePermissions permissions)
     {
         var profile = doc.BlizzardProfileRaw;
 
@@ -59,17 +60,30 @@ internal static class GuildMapper
             Timezone: doc.Setup?.Timezone ?? "Europe/Helsinki",
             Locale: doc.Setup?.Locale ?? "fi");
 
-        var editor = new GuildEditorDto(CanEdit: false);
+        var editor = new GuildEditorDto(CanEdit: permissions.IsAdmin);
 
         var memberPermissions = new GuildMemberPermissionsDto(
-            CanCreateGuildRuns: false,
-            CanSignupGuildRuns: false,
-            CanDeleteGuildRuns: false);
+            CanCreateGuildRuns: permissions.CanCreateGuildRuns,
+            CanSignupGuildRuns: permissions.CanSignupGuildRuns,
+            CanDeleteGuildRuns: permissions.CanDeleteGuildRuns);
+
+        GuildSettingsDto? settings = null;
+        if (permissions.IsAdmin)
+        {
+            var rankPerms = (doc.RankPermissions ?? Array.Empty<GuildRankPermission>())
+                .Select(rp => new GuildRankPermissionDto(
+                    Rank: rp.Rank,
+                    CanCreateGuildRuns: rp.CanCreateGuildRuns,
+                    CanSignupGuildRuns: rp.CanSignupGuildRuns,
+                    CanDeleteGuildRuns: rp.CanDeleteGuildRuns))
+                .ToList();
+            settings = new GuildSettingsDto(RankPermissions: rankPerms);
+        }
 
         return new GuildDto(
             Guild: guildInfo,
             Setup: setup,
-            Settings: null,
+            Settings: settings,
             Editor: editor,
             MemberPermissions: memberPermissions);
     }
