@@ -52,128 +52,23 @@ public static class DefaultSeed
 
     private static async Task SeedPrimaryRaiderAsync(Container container)
     {
-        var raider = new Dictionary<string, object?>
-        {
-            ["id"] = PrimaryBattleNetId,
-            ["battleNetId"] = PrimaryBattleNetId,
-            ["selectedCharacterId"] = "eu-test-realm-aelrin",
-            ["locale"] = null,
-            ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
-            // ttl must be a valid integer — Cosmos rejects "ttl": null on upsert.
-            ["ttl"] = -1,
-            ["accountProfileRefreshedAt"] = DateTimeOffset.UtcNow.ToString("O"),
-            ["accountProfileFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
-            ["characters"] = new List<object>
-            {
-                new Dictionary<string, object?>
-                {
-                    ["id"] = "eu-test-realm-aelrin",
-                    ["region"] = "eu",
-                    ["realm"] = "test-realm",
-                    ["name"] = "Aelrin",
-                    ["portraitUrl"] = null,
-                    ["specializationsSummary"] = new Dictionary<string, object?>
-                    {
-                        ["activeSpecialization"] = new Dictionary<string, object?>
-                        {
-                            ["id"] = 62,
-                            ["name"] = "Arcane",
-                        },
-                        ["specializations"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["specialization"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 62,
-                                    ["name"] = "Arcane",
-                                },
-                            },
-                        },
-                    },
-                    ["guildId"] = 12345,
-                    ["guildName"] = "Test Guild",
-                },
-                // Second character on the primary raider — used by SelectCharacter tests.
-                new Dictionary<string, object?>
-                {
-                    ["id"] = "eu-test-realm-aelrin-alt",
-                    ["region"] = "eu",
-                    ["realm"] = "test-realm",
-                    ["name"] = "Aelrinalt",
-                    ["portraitUrl"] = null,
-                    ["specializationsSummary"] = new Dictionary<string, object?>
-                    {
-                        ["activeSpecialization"] = new Dictionary<string, object?>
-                        {
-                            ["id"] = 65,
-                            ["name"] = "Holy",
-                        },
-                        ["specializations"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["specialization"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 65,
-                                    ["name"] = "Holy",
-                                },
-                            },
-                        },
-                    },
-                    ["guildId"] = 12345,
-                    ["guildName"] = "Test Guild",
-                },
-            },
-            ["accountProfileSummary"] = new Dictionary<string, object?>
-            {
-                ["wowAccounts"] = new List<object>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["id"] = 1,
-                        ["characters"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["name"] = "Aelrin",
-                                ["level"] = 80,
-                                ["realm"] = new Dictionary<string, object?>
-                                {
-                                    ["slug"] = "test-realm",
-                                    ["name"] = "Test Realm",
-                                },
-                                ["playableClass"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 8,
-                                    ["name"] = "Mage",
-                                },
-                            },
-                            // Keep in sync with raider.characters above: the characters
-                            // endpoint iterates wowAccounts[*].characters to build the
-                            // card list, so a mismatch here shows as missing cards in
-                            // the UI and drove CharactersPage_Loads_DisplaysCharacterList
-                            // to tolerate an empty render as a pass.
-                            new Dictionary<string, object?>
-                            {
-                                ["name"] = "Aelrinalt",
-                                ["level"] = 80,
-                                ["realm"] = new Dictionary<string, object?>
-                                {
-                                    ["slug"] = "test-realm",
-                                    ["name"] = "Test Realm",
-                                },
-                                ["playableClass"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 2,
-                                    ["name"] = "Paladin",
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        };
+        var raider = new RaiderSeedBuilder(PrimaryBattleNetId, accountId: 1)
+            .AddCharacter(
+                id: "eu-test-realm-aelrin",
+                name: "Aelrin",
+                classId: 8,
+                className: "Mage",
+                specializationId: 62,
+                specializationName: "Arcane")
+            // Second character on the primary raider - used by SelectCharacter tests.
+            .AddCharacter(
+                id: "eu-test-realm-aelrin-alt",
+                name: "Aelrinalt",
+                classId: 2,
+                className: "Paladin",
+                specializationId: 65,
+                specializationName: "Holy")
+            .Build();
 
         await RetryAsync(
             () => container.UpsertItemAsync(raider, new PartitionKey(PrimaryBattleNetId)));
@@ -181,78 +76,15 @@ public static class DefaultSeed
 
     private static async Task SeedSecondaryRaiderAsync(Container container)
     {
-        var raider = new Dictionary<string, object?>
-        {
-            ["id"] = SecondaryBattleNetId,
-            ["battleNetId"] = SecondaryBattleNetId,
-            ["selectedCharacterId"] = "eu-test-realm-kaldris",
-            ["locale"] = null,
-            ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
-            // ttl must be a valid integer — Cosmos rejects "ttl": null on upsert.
-            ["ttl"] = -1,
-            ["accountProfileRefreshedAt"] = DateTimeOffset.UtcNow.ToString("O"),
-            ["accountProfileFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
-            ["characters"] = new List<object>
-            {
-                new Dictionary<string, object?>
-                {
-                    ["id"] = "eu-test-realm-kaldris",
-                    ["region"] = "eu",
-                    ["realm"] = "test-realm",
-                    ["name"] = "Kaldris",
-                    ["portraitUrl"] = null,
-                    ["specializationsSummary"] = new Dictionary<string, object?>
-                    {
-                        ["activeSpecialization"] = new Dictionary<string, object?>
-                        {
-                            ["id"] = 71,
-                            ["name"] = "Arms",
-                        },
-                        ["specializations"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["specialization"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 71,
-                                    ["name"] = "Arms",
-                                },
-                            },
-                        },
-                    },
-                    ["guildId"] = 12345,
-                    ["guildName"] = "Test Guild",
-                },
-            },
-            ["accountProfileSummary"] = new Dictionary<string, object?>
-            {
-                ["wowAccounts"] = new List<object>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["id"] = 2,
-                        ["characters"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["name"] = "Kaldris",
-                                ["level"] = 80,
-                                ["realm"] = new Dictionary<string, object?>
-                                {
-                                    ["slug"] = "test-realm",
-                                    ["name"] = "Test Realm",
-                                },
-                                ["playableClass"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 1,
-                                    ["name"] = "Warrior",
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        };
+        var raider = new RaiderSeedBuilder(SecondaryBattleNetId, accountId: 2)
+            .AddCharacter(
+                id: "eu-test-realm-kaldris",
+                name: "Kaldris",
+                classId: 1,
+                className: "Warrior",
+                specializationId: 71,
+                specializationName: "Arms")
+            .Build();
 
         await RetryAsync(
             () => container.UpsertItemAsync(raider, new PartitionKey(SecondaryBattleNetId)));
@@ -260,77 +92,15 @@ public static class DefaultSeed
 
     private static async Task SeedDisposableRaiderAsync(Container container)
     {
-        var raider = new Dictionary<string, object?>
-        {
-            ["id"] = DisposableBattleNetId,
-            ["battleNetId"] = DisposableBattleNetId,
-            ["selectedCharacterId"] = "eu-test-realm-thalora",
-            ["locale"] = null,
-            ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
-            ["ttl"] = -1,
-            ["accountProfileRefreshedAt"] = DateTimeOffset.UtcNow.ToString("O"),
-            ["accountProfileFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
-            ["characters"] = new List<object>
-            {
-                new Dictionary<string, object?>
-                {
-                    ["id"] = "eu-test-realm-thalora",
-                    ["region"] = "eu",
-                    ["realm"] = "test-realm",
-                    ["name"] = "Thalora",
-                    ["portraitUrl"] = null,
-                    ["specializationsSummary"] = new Dictionary<string, object?>
-                    {
-                        ["activeSpecialization"] = new Dictionary<string, object?>
-                        {
-                            ["id"] = 257,
-                            ["name"] = "Holy",
-                        },
-                        ["specializations"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["specialization"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 257,
-                                    ["name"] = "Holy",
-                                },
-                            },
-                        },
-                    },
-                    ["guildId"] = 12345,
-                    ["guildName"] = "Test Guild",
-                },
-            },
-            ["accountProfileSummary"] = new Dictionary<string, object?>
-            {
-                ["wowAccounts"] = new List<object>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["id"] = 3,
-                        ["characters"] = new List<object>
-                        {
-                            new Dictionary<string, object?>
-                            {
-                                ["name"] = "Thalora",
-                                ["level"] = 80,
-                                ["realm"] = new Dictionary<string, object?>
-                                {
-                                    ["slug"] = "test-realm",
-                                    ["name"] = "Test Realm",
-                                },
-                                ["playableClass"] = new Dictionary<string, object?>
-                                {
-                                    ["id"] = 5,
-                                    ["name"] = "Priest",
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        };
+        var raider = new RaiderSeedBuilder(DisposableBattleNetId, accountId: 3)
+            .AddCharacter(
+                id: "eu-test-realm-thalora",
+                name: "Thalora",
+                classId: 5,
+                className: "Priest",
+                specializationId: 257,
+                specializationName: "Holy")
+            .Build();
 
         await RetryAsync(
             () => container.UpsertItemAsync(raider, new PartitionKey(DisposableBattleNetId)));
