@@ -92,6 +92,11 @@ Playwright .NET against an in-process stack: Testcontainers brings up Cosmos + A
 
 Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release`.
 
+Housekeeping: E2E specs must prove browser-only behavior. If API, app-core, or
+bUnit tests can prove the same contract, move the assertion down. Specs must
+not permanently mutate shared seed records; destructive flows require
+disposable seed data.
+
 **Rules:** Only claim "full e2e passed" after running the full E2E suite. Keep coverage deterministic and local-first — no routine real Battle.net deps. **Bug fixes must include tests** — add or update tests that cover the fixed behavior. No bugfix is complete without a test that would have caught the regression.
 
 ## Infrastructure Development
