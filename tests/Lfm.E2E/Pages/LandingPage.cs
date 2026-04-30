@@ -16,16 +16,6 @@ public class LandingPage(IPage page)
     public ILocator Heading =>
         _page.GetByText("Looking For More");
 
-    /// <summary>Feature card titles visible on the landing page.</summary>
-    public ILocator SharedScheduleCard =>
-        _page.GetByText("Shared Schedule");
-
-    public ILocator RoleCoverageCard =>
-        _page.GetByRole(AriaRole.Heading, new() { Name = "Role Coverage" });
-
-    public ILocator BattleNetSignInCard =>
-        _page.GetByText("Battle.net Sign-In");
-
     /// <summary>Primary sign-in call-to-action button.</summary>
     public ILocator SignInButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Sign in with Battle.net" });
@@ -35,8 +25,4 @@ public class LandingPage(IPage page)
         await _page.GotoAsync($"{appBaseUrl}/", new() { WaitUntil = WaitUntilState.NetworkIdle });
     }
 
-    public async Task<bool> IsSignInButtonVisibleAsync()
-    {
-        return await SignInButton.IsVisibleAsync();
-    }
 }
