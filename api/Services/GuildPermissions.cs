@@ -188,4 +188,50 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
         // No stored permission entry → fall back to default (only rank 0 can delete).
         return bestRank.Value == 0;
     }
+
+    public async Task<GuildEffectivePermissions> GetEffectivePermissionsAsync(
+        RaiderDocument raider, CancellationToken ct)
+    {
+        var (guildId, _) = GuildResolver.FromRaider(raider);
+        if (guildId is null) return GuildEffectivePermissions.None;
+
+        var guild = await guildRepo.GetAsync(guildId, ct);
+        if (guild?.BlizzardRosterRaw?.Members is null) return GuildEffectivePermissions.None;
+
+        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var member in guild.BlizzardRosterRaw.Members)
+            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
+
+        int? bestRank = null;
+        if (raider.Characters is not null)
+        {
+            foreach (var character in raider.Characters)
+            {
+                var key = $"{character.Realm}:{character.Name}";
+                if (rankByKey.TryGetValue(key, out var rank))
+                {
+                    if (bestRank is null || rank < bestRank) bestRank = rank;
+                }
+            }
+        }
+
+        var isAdmin = bestRank == 0;
+
+        // Roster-freshness check matches CanCreate/Signup/DeleteGuildRunsAsync —
+        // 1-hour TTL after BlizzardRosterFetchedAt.
+        var rosterFresh =
+            guild.BlizzardRosterFetchedAt is not null
+            && DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)
+            && DateTimeOffset.UtcNow - fetchedAt < TimeSpan.FromHours(1);
+
+        if (!rosterFresh || bestRank is null)
+            return new GuildEffectivePermissions(isAdmin, false, false, false);
+
+        var perm = guild.RankPermissions?.FirstOrDefault(rp => rp.Rank == bestRank.Value);
+        var canCreate = perm is not null ? perm.CanCreateGuildRuns : bestRank.Value == 0;
+        var canSignup = perm is not null ? perm.CanSignupGuildRuns : true;
+        var canDelete = perm is not null ? perm.CanDeleteGuildRuns : bestRank.Value == 0;
+
+        return new GuildEffectivePermissions(isAdmin, canCreate, canSignup, canDelete);
+    }
 }

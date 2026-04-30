@@ -58,4 +58,26 @@ public interface IGuildPermissions
     /// <c>GuildResolver.FromRaider</c>.
     /// </summary>
     Task<bool> CanDeleteGuildRunsAsync(RaiderDocument raider, CancellationToken ct);
+
+    /// <summary>
+    /// Computes <see cref="IsAdminAsync"/>, <see cref="CanCreateGuildRunsAsync"/>,
+    /// <see cref="CanSignupGuildRunsAsync"/>, and <see cref="CanDeleteGuildRunsAsync"/>
+    /// in a single guild-document load. Use from the guild GET path so a single
+    /// response does not trigger four guild reads.
+    /// </summary>
+    Task<GuildEffectivePermissions> GetEffectivePermissionsAsync(RaiderDocument raider, CancellationToken ct);
+}
+
+/// <summary>
+/// Combined effective permissions returned by
+/// <see cref="IGuildPermissions.GetEffectivePermissionsAsync"/>. Mirrors the
+/// shape consumed by the SPA's <c>GuildMemberPermissionsDto</c> + editor flag.
+/// </summary>
+public sealed record GuildEffectivePermissions(
+    bool IsAdmin,
+    bool CanCreateGuildRuns,
+    bool CanSignupGuildRuns,
+    bool CanDeleteGuildRuns)
+{
+    public static readonly GuildEffectivePermissions None = new(false, false, false, false);
 }
