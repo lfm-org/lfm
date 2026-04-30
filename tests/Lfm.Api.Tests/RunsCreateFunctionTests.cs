@@ -10,7 +10,7 @@ using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
-using Lfm.Api.Services;
+using Lfm.Api.Runs;
 using Lfm.Contracts.Runs;
 using Xunit;
 
@@ -51,22 +51,6 @@ public class RunsCreateFunctionTests
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
-    private static RaiderDocument MakeRaiderDoc(string battleNetId = "bnet-admin") =>
-        new RaiderDocument(
-            Id: battleNetId,
-            BattleNetId: battleNetId,
-            SelectedCharacterId: "char-1",
-            Locale: null,
-            Characters: [
-                new StoredSelectedCharacter(
-                    Id: "char-1",
-                    Region: "eu",
-                    Realm: "silvermoon",
-                    Name: "Testchar",
-                    GuildId: 12345,
-                    GuildName: "Test Guild")
-            ]);
-
     private static HttpRequest MakePostRequest(object body)
     {
         var json = JsonSerializer.Serialize(body);
@@ -85,15 +69,11 @@ public class RunsCreateFunctionTests
     }
 
     private static RunsCreateFunction MakeFunction(
-        Mock<IRunsRepository> repo,
-        Mock<IRaidersRepository> raidersRepo,
-        Mock<IGuildPermissions> permissions,
+        Mock<IRunCreateService> service,
         TestLogger<RunsCreateFunction>? logger = null)
     {
         return new RunsCreateFunction(
-            repo.Object,
-            raidersRepo.Object,
-            permissions.Object,
+            service.Object,
             logger ?? new TestLogger<RunsCreateFunction>());
     }
 
@@ -115,15 +95,14 @@ public class RunsCreateFunctionTests
             RunCharacters: []);
 
     // ------------------------------------------------------------------
-    // Test 1: Admin happy path — creates run and returns 201
+    // Test 1: Service Ok happy path → 201 Created with mapped DTO
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task Run_creates_run_and_returns_201_for_guild_admin()
+    public async Task Run_creates_run_and_returns_201_when_service_returns_ok()
     {
         var principal = MakePrincipal(battleNetId: "bnet-admin", guildId: "12345");
         var created = MakeRunDoc("run-new");
-        var raider = MakeRaiderDoc("bnet-admin");
 
         var requestBody = new
         {
@@ -137,19 +116,11 @@ public class RunsCreateFunctionTests
             instanceName = "Icecrown Citadel",
         };
 
-        var repo = new Mock<IRunsRepository>();
-        repo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(created);
+        var service = new Mock<IRunCreateService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.Ok(created));
 
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-admin", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var fn = MakeFunction(repo, raidersRepo, permissions);
+        var fn = MakeFunction(service);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -158,8 +129,9 @@ public class RunsCreateFunctionTests
         Assert.Equal(201, objectResult.StatusCode);
         Assert.IsType<RunDetailDto>(objectResult.Value);
 
-        // Cosmos CreateAsync was called once
-        repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        service.Verify(
+            s => s.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ------------------------------------------------------------------
@@ -171,17 +143,15 @@ public class RunsCreateFunctionTests
     {
         var principal = MakePrincipal();
 
-        // Missing required fields: modeKey, visibility, instanceId
+        // Missing required fields.
         var requestBody = new
         {
             startTime = FutureStartTime,
         };
 
-        var repo = new Mock<IRunsRepository>();
-        var raidersRepo = new Mock<IRaidersRepository>();
-        var permissions = new Mock<IGuildPermissions>();
+        var service = new Mock<IRunCreateService>();
 
-        var fn = MakeFunction(repo, raidersRepo, permissions);
+        var fn = MakeFunction(service);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -192,19 +162,19 @@ public class RunsCreateFunctionTests
         Assert.Equal("https://github.com/lfm-org/lfm/errors#validation-failed", problem.Type);
         Assert.True(problem.Extensions.ContainsKey("errors"));
 
-        // Cosmos should never be called
-        repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        // Service should never be called when validation fails.
+        service.Verify(
+            s => s.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
     public async Task Run_returns_400_when_body_is_malformed_json()
     {
         var principal = MakePrincipal();
-        var repo = new Mock<IRunsRepository>();
-        var raidersRepo = new Mock<IRaidersRepository>();
-        var permissions = new Mock<IGuildPermissions>();
+        var service = new Mock<IRunCreateService>();
 
-        var fn = MakeFunction(repo, raidersRepo, permissions);
+        var fn = MakeFunction(service);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest("{"), ctx, CancellationToken.None);
@@ -215,18 +185,19 @@ public class RunsCreateFunctionTests
         Assert.Equal("https://github.com/lfm-org/lfm/errors#invalid-body", problem.Type);
         Assert.Equal("Request body is invalid or missing.", problem.Detail);
 
-        repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+        service.Verify(
+            s => s.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // ------------------------------------------------------------------
-    // Test 3: Non-admin — returns 403 for GUILD run
+    // Test 3: Service Forbidden → 403 problem+json + audit failure entry
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task Run_returns_403_for_guild_run_when_caller_lacks_permission()
+    public async Task Run_returns_403_and_emits_audit_when_service_returns_forbidden()
     {
         var principal = MakePrincipal(battleNetId: "bnet-member", guildId: "12345");
-        var raider = MakeRaiderDoc("bnet-member");
 
         var requestBody = new
         {
@@ -237,18 +208,15 @@ public class RunsCreateFunctionTests
             instanceId = 631,
         };
 
-        var repo = new Mock<IRunsRepository>();
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-member", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        var service = new Mock<IRunCreateService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.Forbidden(
+                "guild-rank-denied",
+                "Guild run creation is not enabled for your rank.",
+                AuditReason: "guild rank denied"));
 
         var logger = new TestLogger<RunsCreateFunction>();
-        var fn = MakeFunction(repo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(service, logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);
@@ -258,15 +226,13 @@ public class RunsCreateFunctionTests
         var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
 
-        repo.Verify(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()), Times.Never);
-
         Assert.Single(
             logger.Entries,
             e => e.IsAudit("run.create", "failure", "guild rank denied"));
     }
 
     // ------------------------------------------------------------------
-    // Test 4: Audit event emitted on success path
+    // Test 4: Audit success entry on Ok path
     // ------------------------------------------------------------------
 
     [Fact]
@@ -274,7 +240,6 @@ public class RunsCreateFunctionTests
     {
         var principal = MakePrincipal(battleNetId: "bnet-admin", guildId: "12345");
         var created = MakeRunDoc("run-new");
-        var raider = MakeRaiderDoc("bnet-admin");
         var logger = new TestLogger<RunsCreateFunction>();
 
         var requestBody = new
@@ -289,19 +254,11 @@ public class RunsCreateFunctionTests
             instanceName = "Icecrown Citadel",
         };
 
-        var repo = new Mock<IRunsRepository>();
-        repo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(created);
+        var service = new Mock<IRunCreateService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.Ok(created));
 
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-admin", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var fn = MakeFunction(repo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(service, logger);
         var ctx = MakeFunctionContext(principal);
 
         await fn.Run(MakePostRequest(requestBody), ctx, CancellationToken.None);

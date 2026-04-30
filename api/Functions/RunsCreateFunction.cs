@@ -11,8 +11,7 @@ using Lfm.Api.Auth;
 using Lfm.Api.Helpers;
 using Lfm.Api.Mappers;
 using Lfm.Api.Middleware;
-using Lfm.Api.Repositories;
-using Lfm.Api.Services;
+using Lfm.Api.Runs;
 using Lfm.Api.Validation;
 using Lfm.Contracts.Runs;
 
@@ -21,28 +20,22 @@ namespace Lfm.Api.Functions;
 /// <summary>
 /// Serves POST /api/runs.
 ///
-/// Creates a new run document. For GUILD visibility runs, the caller must have
-/// the <c>canCreateGuildRuns</c> rank permission in their guild (defaults to
-/// rank 0 only unless overridden by guild settings).
+/// HTTP adapter for <see cref="IRunCreateService"/>. The handler deserializes
+/// the request body, runs DTO validation, calls the service, and translates
+/// the resulting <see cref="RunOperationResult"/> to a 201 Created response
+/// or the appropriate <c>problem+json</c> error. Audit emission for the
+/// success and forbidden paths stays at this layer because both events tie
+/// to the HTTP-shaped boundary (status code, idempotency, traceparent).
 ///
-/// Server-side fields assigned here:
-///   - id            — new GUID
-///   - creatorBattleNetId — from the session principal
-///   - creatorGuildId / creatorGuild — from the session principal
-///   - status        — always "open" (for future use; not yet stored)
-///   - createdAt     — UTC now
-///   - ttl           — seconds until startTime + 7 days (minimum 1 day)
-///   - runCharacters — always empty on creation
+/// Run-create policy itself (raider lookup, guild guard, document
+/// construction) lives in <see cref="RunCreateService"/>.
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-create.ts</c>.
 /// </summary>
-public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<RunsCreateFunction> logger)
+public class RunsCreateFunction(IRunCreateService service, ILogger<RunsCreateFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
-
-    private const long RunTtlAfterStartMs = 7L * 24 * 3600 * 1000;
-    private const int MinTtlSeconds = 86400; // 1 day minimum
 
     [Function("runs-create")]
     [RequireAuth]
@@ -81,46 +74,16 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
                 new Dictionary<string, object?> { ["errors"] = errors });
         }
 
-        // Load the raider once and derive guild info from the selected character.
-        // principal.GuildId / GuildName are legacy session fields that are no
-        // longer populated in production.
-        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-        if (raider is null)
-            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
+        var result = await service.CreateAsync(body, principal, ct);
 
-        var (guildId, guildName) = GuildResolver.FromRaider(raider);
-
-        // GUILD run guard: mirroring the checks in runs-create.ts.
-        //   1. GUILD run requires the caller to belong to a guild.
-        //   2. GUILD run requires the canCreateGuildRuns rank permission.
-        if (body.Visibility == "GUILD")
+        return result switch
         {
-            if (guildId is null)
-                return Problem.BadRequest(
-                    req.HttpContext,
-                    "guild-required",
-                    "A guild run requires an active character in a guild.");
-
-            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
-            if (!canCreate)
-            {
-                AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", "guild rank denied"));
-                return Problem.Forbidden(
-                    req.HttpContext,
-                    "guild-rank-denied",
-                    "Guild run creation is not enabled for your rank.");
-            }
-        }
-
-        var runId = Guid.NewGuid().ToString();
-        var createdAt = DateTimeOffset.UtcNow.ToString("o");
-
-        var run = BuildRunDocument(body, principal, guildId, guildName, runId, createdAt);
-        var created = await repo.CreateAsync(run, ct);
-
-        AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, runId, "success", null));
-
-        return new ObjectResult(RunResponseMapper.ToDetail(created, principal.BattleNetId)) { StatusCode = 201 };
+            RunOperationResult.NotFound nf => Problem.NotFound(req.HttpContext, nf.Code, nf.Message),
+            RunOperationResult.BadRequest br => Problem.BadRequest(req.HttpContext, br.Code, br.Message),
+            RunOperationResult.Forbidden fb => EmitFailureAndReturn(fb, principal, req),
+            RunOperationResult.Ok ok => EmitSuccessAndReturn(ok, principal),
+            _ => throw new InvalidOperationException($"Unexpected result: {result.GetType().Name}"),
+        };
     }
 
     /// <summary>
@@ -135,60 +98,20 @@ public class RunsCreateFunction(IRunsRepository repo, IRaidersRepository raiders
         CancellationToken ct)
         => Run(req, ctx, ct);
 
-    // ------------------------------------------------------------------
-    // Document builder — mirrors buildRunDocument in runs-create.ts
-    // ------------------------------------------------------------------
-
-    internal static RunDocument BuildRunDocument(
-        CreateRunRequest body,
+    private IActionResult EmitFailureAndReturn(
+        RunOperationResult.Forbidden fb,
         SessionPrincipal principal,
-        string? guildId,
-        string? guildName,
-        string id,
-        string createdAt)
+        HttpRequest req)
     {
-        var startTimeMs = DateTimeOffset.TryParse(body.StartTime, out var st)
-            ? st.ToUnixTimeMilliseconds()
-            : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        var createdAtMs = DateTimeOffset.TryParse(createdAt, out var ca)
-            ? ca.ToUnixTimeMilliseconds()
-            : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        var expiryMs = startTimeMs + RunTtlAfterStartMs;
-        var ttl = (int)Math.Max(MinTtlSeconds, (expiryMs - createdAtMs) / 1000);
-
-        int? creatorGuildId = guildId is not null
-            && int.TryParse(guildId, out var gid)
-            ? gid
-            : null;
-
-        // The validator guarantees Difficulty + Size are populated; ModeKey
-        // is computed from them so the persisted RunDocument still satisfies
-        // any legacy reader on the read side (storage-only compatibility —
-        // the wire no longer carries ModeKey).
-        var difficulty = body.Difficulty!;
-        var size = body.Size!.Value;
-        var modeKey = $"{difficulty}:{size}";
-
-        return new RunDocument(
-            Id: id,
-            StartTime: body.StartTime!,
-            SignupCloseTime: body.SignupCloseTime ?? "",
-            Description: body.Description ?? "",
-            ModeKey: modeKey,
-            Visibility: body.Visibility!,
-            CreatorGuild: guildName ?? "",
-            CreatorGuildId: creatorGuildId,
-            InstanceId: body.InstanceId,
-            InstanceName: body.InstanceName,
-            CreatorBattleNetId: principal.BattleNetId,
-            CreatedAt: createdAt,
-            Ttl: ttl,
-            RunCharacters: [],
-            Difficulty: difficulty,
-            Size: size,
-            KeystoneLevel: body.KeystoneLevel);
+        AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", fb.AuditReason));
+        return Problem.Forbidden(req.HttpContext, fb.Code, fb.Message);
     }
 
+    private IActionResult EmitSuccessAndReturn(
+        RunOperationResult.Ok ok,
+        SessionPrincipal principal)
+    {
+        AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, ok.Run.Id, "success", null));
+        return new ObjectResult(RunResponseMapper.ToDetail(ok.Run, principal.BattleNetId)) { StatusCode = 201 };
+    }
 }
