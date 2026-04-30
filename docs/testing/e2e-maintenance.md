@@ -41,13 +41,25 @@ Centralize these in helpers rather than specs:
 
 ## Drift Audit
 
-Run these checks after UI, API route, or storage-shape changes:
+Run the drift script after UI, API route, auth-helper, selector, or
+storage-shape changes:
+
+```bash
+./scripts/check-e2e-drift.sh
+```
+
+The script hard-fails on stale app API routes, stale selectors, and raw raider
+seed wire keys. It also prints review-only hits for extra browser pages and
+destructive flows so the maintainer can confirm diagnostics and data isolation.
+
+The underlying checks are intentionally scoped:
 
 ```bash
 rg -n "\"/api/(battlenet|wow|raiders|runs|guilds|me)(/|[?\"])" tests/Lfm.E2E/Specs tests/Lfm.E2E/Helpers tests/Lfm.E2E/Pages
-rg -n "wow_accounts|playable_class" tests/Lfm.E2E/Seeds
-rg -n "modekey-input|#instance-select" tests/Lfm.E2E/Specs tests/Lfm.E2E/Pages
-rg -n "AuthenticatedContextAsync|NewPageAsync\\(" tests/Lfm.E2E/Specs
+rg -n "wow_accounts|playable_class" tests/Lfm.E2E/Seeds/DefaultSeed.cs tests/Lfm.E2E/Seeds/RaiderSeedBuilder.cs
+rg -n "modekey-input|#instance-select" tests/Lfm.E2E/Specs
+rg -n "modekey-input|#instance-select" tests/Lfm.E2E/Pages
+rg -n "\\bvar [A-Za-z0-9_]+ = await .*NewPageAsync\\(" tests/Lfm.E2E/Specs
 rg -n "DeleteAsync|DELETE|me-delete|DeleteAccount" tests/Lfm.E2E/Specs tests/Lfm.E2E/Seeds
 ```
 
@@ -56,8 +68,9 @@ Expected:
 - E2E specs/helpers do not hardcode stale unversioned app API paths. App API
   calls use `/api/v1/...`; the test-only auth shortcut remains
   `/api/e2e/login`.
-- Snake_case Blizzard wire keys do not appear in E2E Cosmos seed documents.
-- Stale selector hits do not appear in specs. If a selector hit remains in a
-  page object, confirm the app still renders that selector.
+- Snake_case Blizzard wire keys do not appear in raider seed documents; the
+  Blizzard reference-data fixture is allowed to preserve Blizzard wire names.
+- Stale selector hits do not appear in specs. If `#instance-select` remains in
+  a page object, confirm the app still renders that selector.
 - Specs do not create untracked pages for behavior that needs diagnostics.
 - Destructive tests use disposable seed identities.
