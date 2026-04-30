@@ -4,7 +4,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Lfm.Api.Options;
-using Lfm.Api.Repositories;
+using Lfm.Api.Services.Blizzard.Models;
 using Microsoft.Extensions.Options;
 
 namespace Lfm.Api.Services;
@@ -34,7 +34,7 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
     }
 
     /// <inheritdoc/>
-    public async Task<BlizzardAccountProfileSummary> GetAccountProfileSummaryAsync(
+    public async Task<AccountProfileSummaryResponse> GetAccountProfileSummaryAsync(
         string accessToken,
         CancellationToken ct)
     {
@@ -47,12 +47,12 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<BlizzardAccountProfileSummary>(json, _jsonOptions)
+        return JsonSerializer.Deserialize<AccountProfileSummaryResponse>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Blizzard profile endpoint returned empty response.");
     }
 
     /// <inheritdoc/>
-    public async Task<BlizzardCharacterProfileResponse> GetCharacterProfileAsync(
+    public async Task<CharacterProfileResponse> GetCharacterProfileAsync(
         string realm, string name, string accessToken, CancellationToken ct)
     {
         var path = $"profile/wow/character/{Uri.EscapeDataString(realm)}/{Uri.EscapeDataString(name)}" +
@@ -64,12 +64,12 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<BlizzardCharacterProfileResponse>(json, _jsonOptions)
+        return JsonSerializer.Deserialize<CharacterProfileResponse>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Blizzard character profile returned empty response.");
     }
 
     /// <inheritdoc/>
-    public async Task<BlizzardCharacterSpecializationsResponse> GetCharacterSpecializationsAsync(
+    public async Task<CharacterSpecializationsResponse> GetCharacterSpecializationsAsync(
         string realm, string name, string accessToken, CancellationToken ct)
     {
         var path = $"profile/wow/character/{Uri.EscapeDataString(realm)}/{Uri.EscapeDataString(name)}/specializations" +
@@ -81,12 +81,12 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<BlizzardCharacterSpecializationsResponse>(json, _jsonOptions)
+        return JsonSerializer.Deserialize<CharacterSpecializationsResponse>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Blizzard character specializations returned empty response.");
     }
 
     /// <inheritdoc/>
-    public async Task<BlizzardCharacterMediaSummary?> GetCharacterMediaAsync(
+    public async Task<CharacterMediaSummaryResponse?> GetCharacterMediaAsync(
         string realm, string name, string accessToken, CancellationToken ct)
     {
         var path = $"profile/wow/character/{Uri.EscapeDataString(realm)}/{Uri.EscapeDataString(name)}/character-media" +
@@ -101,7 +101,7 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
                 return null;
 
             var json = await response.Content.ReadAsStringAsync(ct);
-            return JsonSerializer.Deserialize<BlizzardCharacterMediaSummary>(json, _jsonOptions);
+            return JsonSerializer.Deserialize<CharacterMediaSummaryResponse>(json, _jsonOptions);
         }
         catch (HttpRequestException)
         {
