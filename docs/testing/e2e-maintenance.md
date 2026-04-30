@@ -15,11 +15,13 @@ prove the same contract.
 
 ## Required Test Comment
 
-Every new E2E test must state:
+Place this compact comment immediately above each new E2E test method:
 
-1. The user-observable outcome.
-2. Why a cheaper test cannot prove it.
-3. Whether it mutates shared data.
+```csharp
+// E2E scope: proves <browser-observable behavior>.
+// Cheaper lanes cannot prove this because <reason>.
+// Shared data: <none|read-only|disposable|restored>.
+```
 
 ## Shared Data Rule
 
@@ -42,14 +44,17 @@ Centralize these in helpers rather than specs:
 Run these checks after UI, API route, or storage-shape changes:
 
 ```bash
-rg -n "api/battlenet/|wow_accounts|playable_class|modekey-input|#instance-select" tests/Lfm.E2E app api
+rg -n "\"/api/(battlenet|wow|raiders|runs|guilds|me)(/|[?\"])" tests/Lfm.E2E/Specs tests/Lfm.E2E/Helpers tests/Lfm.E2E/Pages
+rg -n "wow_accounts|playable_class|modekey-input|#instance-select" tests/Lfm.E2E app api
 rg -n "AuthenticatedContextAsync|NewPageAsync\\(" tests/Lfm.E2E/Specs
 rg -n "DeleteAsync|DELETE|me-delete|DeleteAccount" tests/Lfm.E2E/Specs tests/Lfm.E2E/Seeds
 ```
 
 Expected:
 
-- Legacy routes only appear in production wire-model comments or API XML comments.
+- E2E specs/helpers do not hardcode stale unversioned app API paths. App API
+  calls use `/api/v1/...`; the test-only auth shortcut remains
+  `/api/e2e/login`.
 - Snake_case Blizzard wire keys do not appear in E2E Cosmos seed documents.
 - Specs do not create untracked pages for behavior that needs diagnostics.
 - Destructive tests use disposable seed identities.
