@@ -17,14 +17,24 @@ public static class AuthHelper
         var context = await browser.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await AuthenticatePageAsync(page, apiBaseUrl, appBaseUrl, battleNetId, redirect);
+        await page.CloseAsync();
+
+        return context;
+    }
+
+    public static async Task AuthenticatePageAsync(
+        IPage page,
+        string apiBaseUrl,
+        string appBaseUrl,
+        string battleNetId = "test-bnet-id",
+        string redirect = "/runs")
+    {
         var loginUrl = $"{apiBaseUrl}/api/e2e/login"
             + $"?battleNetId={Uri.EscapeDataString(battleNetId)}"
             + $"&redirect={Uri.EscapeDataString(redirect)}";
         await page.GotoAsync(loginUrl, new() { WaitUntil = WaitUntilState.NetworkIdle });
         await page.WaitForURLAsync($"{appBaseUrl}/**", new() { Timeout = 15000 });
-        await page.CloseAsync();
-
-        return context;
     }
 
     public static Task<IBrowserContext> AnonymousContextAsync(IBrowser browser)

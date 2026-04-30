@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Collections.Concurrent;
+using System.Reflection;
+using System.Text;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -29,6 +31,7 @@ public abstract class E2ETestBase : IAsyncLifetime
     private const string DomSnapshotsDir = $"{ArtifactsRoot}/dom-snapshots";
 
     private readonly ITestOutputHelper _output;
+    private readonly string _artifactName;
     private readonly ConcurrentQueue<string> _consoleMessages = new();
     private readonly ConcurrentQueue<string> _requestFailures = new();
     private readonly ConcurrentQueue<string> _consoleErrors = new();
@@ -37,6 +40,7 @@ public abstract class E2ETestBase : IAsyncLifetime
     protected E2ETestBase(ITestOutputHelper output)
     {
         _output = output;
+        _artifactName = SanitizeFileName(ResolveTestDisplayName(output) ?? GetType().Name);
     }
 
     /// <summary>
@@ -55,6 +59,7 @@ public abstract class E2ETestBase : IAsyncLifetime
     /// Subclasses may override for more descriptive names.
     /// </summary>
     protected virtual string TestName => GetType().Name;
+    protected string ArtifactName => _artifactName;
 
     /// <summary>
     /// Substrings to ignore when checking for unexpected console errors/warnings
@@ -214,7 +219,7 @@ public abstract class E2ETestBase : IAsyncLifetime
         {
             var dir = Path.Combine(repoRoot, ScreenshotsDir);
             Directory.CreateDirectory(dir);
-            var path = Path.Combine(dir, $"{TestName}.png");
+            var path = Path.Combine(dir, $"{ArtifactName}.png");
             await Page!.ScreenshotAsync(new PageScreenshotOptions
             {
                 Path = path,
@@ -236,7 +241,7 @@ public abstract class E2ETestBase : IAsyncLifetime
         {
             var dir = Path.Combine(repoRoot, TracesDir);
             Directory.CreateDirectory(dir);
-            var path = Path.Combine(dir, $"{TestName}.zip");
+            var path = Path.Combine(dir, $"{ArtifactName}.zip");
             await Context.Tracing.StopAsync(new TracingStopOptions { Path = path });
             _output.WriteLine($"[ARTIFACT] Trace: {path}");
         }
@@ -253,7 +258,7 @@ public abstract class E2ETestBase : IAsyncLifetime
             var dir = Path.Combine(repoRoot, DomSnapshotsDir);
             Directory.CreateDirectory(dir);
             var html = await Page!.ContentAsync();
-            var path = Path.Combine(dir, $"{TestName}.html");
+            var path = Path.Combine(dir, $"{ArtifactName}.html");
             await File.WriteAllTextAsync(path, html);
             _output.WriteLine($"[ARTIFACT] DOM snapshot: {path}");
         }
@@ -288,5 +293,30 @@ public abstract class E2ETestBase : IAsyncLifetime
 
         throw new InvalidOperationException(
             "Could not find lfm.sln walking up from " + AppContext.BaseDirectory);
+    }
+
+    private static string? ResolveTestDisplayName(ITestOutputHelper output)
+    {
+        // xUnit v2 does not expose the current test name from ITestOutputHelper.
+        // The runner's concrete helper carries the ITest in a private field, so
+        // read it best-effort and fall back to the class name if the runner
+        // changes shape.
+        const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var field = output.GetType().GetField("test", Flags);
+        var test = field?.GetValue(output);
+        var displayName = test?.GetType().GetProperty("DisplayName")?.GetValue(test)?.ToString();
+        return string.IsNullOrWhiteSpace(displayName) ? null : displayName;
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var builder = new StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            builder.Append(invalid.Contains(ch) ? '_' : ch);
+        }
+
+        return builder.ToString();
     }
 }
