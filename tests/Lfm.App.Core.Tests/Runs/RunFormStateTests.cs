@@ -107,6 +107,31 @@ public class RunFormStateTests
     }
 
     [Fact]
+    public void OnInstanceChanged_PicksTopModeDifficulty_WhenCurrentUnavailable()
+    {
+        var state = new RunFormState();
+        state.LoadOptions(Instances, Expansions);
+
+        // Start on the dungeon, on Mythic Keystone difficulty.
+        state.OnActivityChanged(ActivityKind.Dungeon);
+        state.OnInstanceChanged(1023); // dungeon "Some Dungeon" — has MYTHIC_KEYSTONE + HEROIC
+
+        // Switch to a raid via Activity. After Activity → Raid, AnyDungeon is false,
+        // Difficulty is "" (empty) per OnActivityChanged, and InstanceId is 0.
+        state.OnActivityChanged(ActivityKind.Raid);
+        Assert.Equal("", state.Difficulty);
+
+        // Now select a raid instance whose difficulty options do NOT contain "" —
+        // the cascade rule should pick the top-of-list (last) DifficultyOption.
+        // Test data: "Some Raid" (id 2055) lists MYTHIC, HEROIC, NORMAL in that
+        // order, so LastOrDefault() = NORMAL with size 20.
+        state.OnInstanceChanged(2055);
+
+        Assert.Equal("NORMAL", state.Difficulty);
+        Assert.Equal(20, state.Size);
+    }
+
+    [Fact]
     public void Populate_SetsAllFields_WithoutCascading()
     {
         var state = new RunFormState();
