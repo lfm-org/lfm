@@ -12,7 +12,7 @@ public class GuildPermissionsTests
 {
     private static GuildDocument MakeGuildDoc(
         string id = "42",
-        IReadOnlyList<BlizzardGuildRosterMember>? members = null,
+        IReadOnlyList<StoredGuildRosterMember>? members = null,
         DateTimeOffset? rosterFetchedAt = null,
         IReadOnlyList<GuildRankPermission>? rankPermissions = null)
     {
@@ -23,12 +23,12 @@ public class GuildPermissionsTests
             RealmSlug: "silvermoon",
             BlizzardRosterFetchedAt: resolvedFetched.ToString("o"),
             RankPermissions: rankPermissions,
-            BlizzardRosterRaw: new BlizzardGuildRosterRaw(
+            BlizzardRosterRaw: new StoredGuildRoster(
                 Members: members ?? [
-                    new BlizzardGuildRosterMember(
-                        Character: new BlizzardGuildRosterMemberCharacter(
+                    new StoredGuildRosterMember(
+                        Character: new StoredGuildRosterMemberCharacter(
                             Name: "Gm",
-                            Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                            Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                             Id: 1),
                         Rank: 0)
                 ]));
@@ -106,10 +106,10 @@ public class GuildPermissionsTests
     public async Task IsAdminAsync_returns_false_when_character_matches_non_zero_rank()
     {
         var guild = MakeGuildDoc(members: [
-            new BlizzardGuildRosterMember(
-                Character: new BlizzardGuildRosterMemberCharacter(
+            new StoredGuildRosterMember(
+                Character: new StoredGuildRosterMemberCharacter(
                     Name: "Gm",
-                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                     Id: 1),
                 Rank: 3)
         ]);
@@ -168,10 +168,10 @@ public class GuildPermissionsTests
     public async Task CanCreateGuildRunsAsync_returns_false_for_non_zero_rank_by_default()
     {
         var guild = MakeGuildDoc(members: [
-            new BlizzardGuildRosterMember(
-                Character: new BlizzardGuildRosterMemberCharacter(
+            new StoredGuildRosterMember(
+                Character: new StoredGuildRosterMemberCharacter(
                     Name: "Officer",
-                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                     Id: 1),
                 Rank: 2)
         ]);
@@ -187,10 +187,10 @@ public class GuildPermissionsTests
     {
         var guild = MakeGuildDoc(
             members: [
-                new BlizzardGuildRosterMember(
-                    Character: new BlizzardGuildRosterMemberCharacter(
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
                         Name: "Officer",
-                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                         Id: 1),
                     Rank: 2)
             ],
@@ -210,10 +210,10 @@ public class GuildPermissionsTests
     public async Task CanSignupGuildRunsAsync_returns_true_for_non_zero_rank_by_default()
     {
         var guild = MakeGuildDoc(members: [
-            new BlizzardGuildRosterMember(
-                Character: new BlizzardGuildRosterMemberCharacter(
+            new StoredGuildRosterMember(
+                Character: new StoredGuildRosterMemberCharacter(
                     Name: "Member",
-                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                     Id: 1),
                 Rank: 5)
         ]);
@@ -229,10 +229,10 @@ public class GuildPermissionsTests
     {
         var guild = MakeGuildDoc(
             members: [
-                new BlizzardGuildRosterMember(
-                    Character: new BlizzardGuildRosterMemberCharacter(
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
                         Name: "Initiate",
-                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                         Id: 1),
                     Rank: 7)
             ],
@@ -273,10 +273,10 @@ public class GuildPermissionsTests
     public async Task CanDeleteGuildRunsAsync_returns_false_for_non_zero_rank_by_default()
     {
         var guild = MakeGuildDoc(members: [
-            new BlizzardGuildRosterMember(
-                Character: new BlizzardGuildRosterMemberCharacter(
+            new StoredGuildRosterMember(
+                Character: new StoredGuildRosterMemberCharacter(
                     Name: "Officer",
-                    Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                    Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                     Id: 1),
                 Rank: 1)
         ]);
@@ -343,10 +343,10 @@ public class GuildPermissionsTests
         // mutation testing flagged at GuildPermissions L99.
         var guild = MakeGuildDoc(
             members: [
-                new BlizzardGuildRosterMember(
-                    Character: new BlizzardGuildRosterMemberCharacter(
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
                         Name: "Member",
-                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                         Id: 1),
                     Rank: 5)
             ],
@@ -368,10 +368,10 @@ public class GuildPermissionsTests
         // Same shape — for signup the default is true for any matched rank.
         var guild = MakeGuildDoc(
             members: [
-                new BlizzardGuildRosterMember(
-                    Character: new BlizzardGuildRosterMemberCharacter(
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
                         Name: "Member",
-                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                         Id: 1),
                     Rank: 5)
             ],
@@ -391,10 +391,10 @@ public class GuildPermissionsTests
     {
         var guild = MakeGuildDoc(
             members: [
-                new BlizzardGuildRosterMember(
-                    Character: new BlizzardGuildRosterMemberCharacter(
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
                         Name: "Member",
-                        Realm: new BlizzardGuildRosterRealm(Slug: "silvermoon"),
+                        Realm: new StoredGuildRosterRealm(Slug: "silvermoon"),
                         Id: 1),
                     Rank: 5)
             ],
@@ -420,12 +420,12 @@ public class GuildPermissionsTests
                 GuildId: 123,
                 RealmSlug: "ravencrest",
                 BlizzardRosterFetchedAt: DateTimeOffset.UtcNow.ToString("o"),
-                BlizzardRosterRaw: new BlizzardGuildRosterRaw(Members: new[]
+                BlizzardRosterRaw: new StoredGuildRoster(Members: new[]
                 {
-                    new BlizzardGuildRosterMember(
-                        Character: new BlizzardGuildRosterMemberCharacter(
+                    new StoredGuildRosterMember(
+                        Character: new StoredGuildRosterMemberCharacter(
                             Name: "Alice",
-                            Realm: new BlizzardGuildRosterRealm(Slug: "ravencrest")),
+                            Realm: new StoredGuildRosterRealm(Slug: "ravencrest")),
                         Rank: 0),
                 }),
                 RankPermissions: null));
@@ -482,12 +482,12 @@ public class GuildPermissionsTests
                 RealmSlug: "ravencrest",
                 // 2 hours old — past the 1-hour TTL.
                 BlizzardRosterFetchedAt: DateTimeOffset.UtcNow.AddHours(-2).ToString("o"),
-                BlizzardRosterRaw: new BlizzardGuildRosterRaw(Members: new[]
+                BlizzardRosterRaw: new StoredGuildRoster(Members: new[]
                 {
-                    new BlizzardGuildRosterMember(
-                        Character: new BlizzardGuildRosterMemberCharacter(
+                    new StoredGuildRosterMember(
+                        Character: new StoredGuildRosterMemberCharacter(
                             Name: "Alice",
-                            Realm: new BlizzardGuildRosterRealm(Slug: "ravencrest")),
+                            Realm: new StoredGuildRosterRealm(Slug: "ravencrest")),
                         Rank: 0),
                 }),
                 RankPermissions: null));

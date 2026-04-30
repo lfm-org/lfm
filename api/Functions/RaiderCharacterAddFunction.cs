@@ -7,6 +7,8 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Services.Blizzard;
+using Lfm.Api.Services.Blizzard.Models;
 using Lfm.Api.Validation;
 using Lfm.Contracts.Characters;
 using Lfm.Contracts.Raiders;
@@ -125,9 +127,9 @@ public class RaiderCharacterAddFunction(
                     "missing-access-token",
                     "Session does not contain an access token. Please log out and log in again.");
 
-            BlizzardCharacterProfileResponse? profile = null;
-            BlizzardCharacterSpecializationsResponse? specs = null;
-            BlizzardCharacterMediaSummary? media = null;
+            CharacterProfileResponse? profile = null;
+            CharacterSpecializationsResponse? specs = null;
+            CharacterMediaSummaryResponse? media = null;
             try
             {
                 if (plan.FetchProfile)
@@ -203,9 +205,9 @@ public class RaiderCharacterAddFunction(
     internal static StoredSelectedCharacter Merge(
         StoredSelectedCharacter? existing,
         string id, string region, string realm, string nameDisplay,
-        BlizzardCharacterProfileResponse? profile,
-        BlizzardCharacterSpecializationsResponse? specs,
-        BlizzardCharacterMediaSummary? media,
+        CharacterProfileResponse? profile,
+        CharacterSpecializationsResponse? specs,
+        CharacterMediaSummaryResponse? media,
         string now,
         EnrichmentPlan plan)
     {
@@ -215,7 +217,7 @@ public class RaiderCharacterAddFunction(
         var guildId = profile?.Guild?.Id ?? existing?.GuildId;
         var guildName = profile?.Guild?.Name ?? existing?.GuildName;
         var specs2 = specs is not null ? MapSpecializationsSummary(specs) : existing?.SpecializationsSummary;
-        var media2 = media ?? existing?.MediaSummary;
+        var media2 = media is not null ? BlizzardModelTranslator.ToStored(media) : existing?.MediaSummary;
         var portrait = media is not null ? PickPortraitUrl(media) : existing?.PortraitUrl;
 
         return new StoredSelectedCharacter(
@@ -244,7 +246,7 @@ public class RaiderCharacterAddFunction(
     internal static bool IsCharacterOwnedByAccount(
         string characterId,
         string region,
-        BlizzardAccountProfileSummary? accountProfileSummary)
+        StoredBlizzardAccountProfile? accountProfileSummary)
     {
         if (accountProfileSummary is null) return true;
 
@@ -266,7 +268,7 @@ public class RaiderCharacterAddFunction(
     /// first asset if no key named "avatar" is present.  Returns null when the
     /// media summary is null or has no assets.
     /// </summary>
-    internal static string? PickPortraitUrl(BlizzardCharacterMediaSummary? media)
+    internal static string? PickPortraitUrl(CharacterMediaSummaryResponse? media)
     {
         if (media?.Assets is null || media.Assets.Count == 0) return null;
         var avatar = media.Assets.FirstOrDefault(a =>
@@ -279,7 +281,7 @@ public class RaiderCharacterAddFunction(
     /// shape the rest of the application uses.
     /// </summary>
     internal static StoredSpecializationsSummary MapSpecializationsSummary(
-        BlizzardCharacterSpecializationsResponse specs)
+        CharacterSpecializationsResponse specs)
     {
         var active = specs.ActiveSpecialization is null
             ? null

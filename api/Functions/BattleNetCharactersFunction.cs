@@ -93,7 +93,7 @@ public class BattleNetCharactersFunction(
     /// <c>functions/src/lib/blizzard-adapters.ts</c>.
     /// </summary>
     internal static List<CharacterDto> MapToCharacterDtos(
-        BlizzardAccountProfileSummary summary,
+        StoredBlizzardAccountProfile summary,
         string region,
         IReadOnlyList<StoredSelectedCharacter>? storedCharacters,
         IReadOnlyDictionary<string, string>? portraitCache)

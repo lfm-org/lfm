@@ -10,6 +10,7 @@ using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Services.Blizzard.Models;
 using Lfm.Contracts.Raiders;
 using System.Text;
 using System.Text.Json;
@@ -72,53 +73,53 @@ public class RaiderCharacterAddFunctionTests
         Mock<IBlizzardProfileClient> profileMock) =>
         new(repoMock.Object, profileMock.Object, NullLogger<RaiderCharacterAddFunction>.Instance);
 
-    private static BlizzardAccountProfileSummary MakeAccountProfileWithCharacter(string name, string realmSlug) =>
-        new BlizzardAccountProfileSummary(
+    private static StoredBlizzardAccountProfile MakeAccountProfileWithCharacter(string name, string realmSlug) =>
+        new StoredBlizzardAccountProfile(
             WowAccounts:
             [
-                new BlizzardWowAccount(
+                new StoredBlizzardWowAccount(
                     Id: 1,
                     Characters:
                     [
-                        new BlizzardAccountCharacter(
+                        new StoredBlizzardAccountCharacter(
                             Name: name,
                             Level: 80,
-                            Realm: new BlizzardRealmRef(Slug: realmSlug, Name: "Silvermoon"),
-                            PlayableClass: new BlizzardNamedRef(Id: 2, Name: "Paladin"))
+                            Realm: new StoredBlizzardRealmRef(Slug: realmSlug, Name: "Silvermoon"),
+                            PlayableClass: new StoredBlizzardNamedRef(Id: 2, Name: "Paladin"))
                     ])
             ]);
 
-    private static BlizzardCharacterProfileResponse MakeProfileResponse(
+    private static CharacterProfileResponse MakeProfileResponse(
         string name = "Aelrin",
         int level = 80,
         int classId = 2,
         string className = "Paladin",
         int? guildId = 42,
         string? guildName = "Midnight") =>
-        new BlizzardCharacterProfileResponse(
+        new CharacterProfileResponse(
             Name: name,
             Level: level,
-            CharacterClass: new BlizzardNamedRef(Id: classId, Name: className),
-            Race: new BlizzardNamedRef(Id: 1, Name: "Human"),
-            Realm: new BlizzardRealmRef(Slug: "silvermoon", Name: "Silvermoon"),
-            Guild: guildId is null ? null : new BlizzardCharacterGuildRef(Id: guildId.Value, Name: guildName));
+            CharacterClass: new NamedRefResponse(Id: classId, Name: className),
+            Race: new NamedRefResponse(Id: 1, Name: "Human"),
+            Realm: new RealmRefResponse(Slug: "silvermoon", Name: "Silvermoon"),
+            Guild: guildId is null ? null : new CharacterGuildRefResponse(Id: guildId.Value, Name: guildName));
 
-    private static BlizzardCharacterSpecializationsResponse MakeSpecsResponse(int activeId = 65, string activeName = "Holy") =>
-        new BlizzardCharacterSpecializationsResponse(
-            ActiveSpecialization: new BlizzardSpecializationRef(Id: activeId, Name: activeName),
+    private static CharacterSpecializationsResponse MakeSpecsResponse(int activeId = 65, string activeName = "Holy") =>
+        new CharacterSpecializationsResponse(
+            ActiveSpecialization: new SpecializationRefResponse(Id: activeId, Name: activeName),
             Specializations:
             [
-                new BlizzardSpecializationEntry(new BlizzardSpecializationRef(Id: activeId, Name: activeName)),
-                new BlizzardSpecializationEntry(new BlizzardSpecializationRef(Id: 66, Name: "Protection")),
-                new BlizzardSpecializationEntry(new BlizzardSpecializationRef(Id: 70, Name: "Retribution")),
+                new SpecializationEntryResponse(new SpecializationRefResponse(Id: activeId, Name: activeName)),
+                new SpecializationEntryResponse(new SpecializationRefResponse(Id: 66, Name: "Protection")),
+                new SpecializationEntryResponse(new SpecializationRefResponse(Id: 70, Name: "Retribution")),
             ]);
 
-    private static BlizzardCharacterMediaSummary MakeMediaSummary(string avatar = "https://render.worldofwarcraft.com/avatar.jpg") =>
-        new BlizzardCharacterMediaSummary(
+    private static CharacterMediaSummaryResponse MakeMediaSummary(string avatar = "https://render.worldofwarcraft.com/avatar.jpg") =>
+        new CharacterMediaSummaryResponse(
             Assets:
             [
-                new BlizzardCharacterMediaAsset(Key: "avatar", Value: avatar),
-                new BlizzardCharacterMediaAsset(Key: "main", Value: "https://render.worldofwarcraft.com/main.jpg"),
+                new CharacterMediaAssetResponse(Key: "avatar", Value: avatar),
+                new CharacterMediaAssetResponse(Key: "main", Value: "https://render.worldofwarcraft.com/main.jpg"),
             ]);
 
     // -------------------------------------------------------------------------
@@ -348,18 +349,18 @@ public class RaiderCharacterAddFunctionTests
     public void IsCharacterOwnedByAccount_does_not_false_positive_on_hyphenated_realm()
     {
         // Account contains aelrin on realm "mg".
-        var profile = new BlizzardAccountProfileSummary(
+        var profile = new StoredBlizzardAccountProfile(
             WowAccounts:
             [
-                new BlizzardWowAccount(
+                new StoredBlizzardWowAccount(
                     Id: 1,
                     Characters:
                     [
-                        new BlizzardAccountCharacter(
+                        new StoredBlizzardAccountCharacter(
                             Name: "Aelrin",
                             Level: 80,
-                            Realm: new BlizzardRealmRef(Slug: "mg", Name: "Moonglade"),
-                            PlayableClass: new BlizzardNamedRef(Id: 2, Name: "Paladin"))
+                            Realm: new StoredBlizzardRealmRef(Slug: "mg", Name: "Moonglade"),
+                            PlayableClass: new StoredBlizzardNamedRef(Id: 2, Name: "Paladin"))
                     ])
             ]);
 
@@ -376,18 +377,18 @@ public class RaiderCharacterAddFunctionTests
     [Fact]
     public void IsCharacterOwnedByAccount_returns_true_for_exact_match()
     {
-        var profile = new BlizzardAccountProfileSummary(
+        var profile = new StoredBlizzardAccountProfile(
             WowAccounts:
             [
-                new BlizzardWowAccount(
+                new StoredBlizzardWowAccount(
                     Id: 1,
                     Characters:
                     [
-                        new BlizzardAccountCharacter(
+                        new StoredBlizzardAccountCharacter(
                             Name: "Aelrin",
                             Level: 80,
-                            Realm: new BlizzardRealmRef(Slug: "silvermoon", Name: "Silvermoon"),
-                            PlayableClass: new BlizzardNamedRef(Id: 2, Name: "Paladin"))
+                            Realm: new StoredBlizzardRealmRef(Slug: "silvermoon", Name: "Silvermoon"),
+                            PlayableClass: new StoredBlizzardNamedRef(Id: 2, Name: "Paladin"))
                     ])
             ]);
 
@@ -428,7 +429,7 @@ public class RaiderCharacterAddFunctionTests
             .ReturnsAsync(MakeSpecsResponse());
         profileClient
             .Setup(p => p.GetCharacterMediaAsync("silvermoon", "aelrin", FakeAccessToken, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((BlizzardCharacterMediaSummary?)null);
+            .ReturnsAsync((CharacterMediaSummaryResponse?)null);
 
         var fn = MakeFunction(repo, profileClient);
         var ctx = MakeFunctionContext(FakePrincipal());
@@ -563,12 +564,12 @@ public class RaiderCharacterAddFunctionTests
     private static SessionPrincipal MakePrincipal(string? accessToken = FakeAccessToken) =>
         FakePrincipal(accessToken);
 
-    private static BlizzardAccountProfileSummary OwningSummary() =>
+    private static StoredBlizzardAccountProfile OwningSummary() =>
         MakeAccountProfileWithCharacter("Aelrin", "silvermoon");
 
     private static RaiderDocument MakeRaider(
         IReadOnlyList<StoredSelectedCharacter>? characters = null,
-        BlizzardAccountProfileSummary? accountProfile = null) =>
+        StoredBlizzardAccountProfile? accountProfile = null) =>
         new RaiderDocument(
             Id: FakeBattleNetId,
             BattleNetId: FakeBattleNetId,
@@ -603,7 +604,7 @@ public class RaiderCharacterAddFunctionTests
         var repo = RepoReturning(raider);
         var profileClient = new Mock<IBlizzardProfileClient>();
         profileClient.Setup(p => p.GetCharacterSpecializationsAsync("silvermoon", "aelrin", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(new BlizzardCharacterSpecializationsResponse());
+                     .ReturnsAsync(new CharacterSpecializationsResponse());
 
         var fn = new RaiderCharacterAddFunction(repo.Object, profileClient.Object, NullLogger<RaiderCharacterAddFunction>.Instance);
         await fn.Run(MakePostRequest(ValidBody), MakeFunctionContext(MakePrincipal()), CancellationToken.None);

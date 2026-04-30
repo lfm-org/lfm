@@ -73,18 +73,18 @@ public class BattleNetCharactersFunctionTests
             BattleNetId: FakeBattleNetId,
             SelectedCharacterId: null,
             Locale: null,
-            AccountProfileSummary: new BlizzardAccountProfileSummary(
+            AccountProfileSummary: new StoredBlizzardAccountProfile(
                 WowAccounts:
                 [
-                    new BlizzardWowAccount(
+                    new StoredBlizzardWowAccount(
                         Id: 1,
                         Characters:
                         [
-                            new BlizzardAccountCharacter(
+                            new StoredBlizzardAccountCharacter(
                                 Name: "Legolas",
                                 Level: 80,
-                                Realm: new BlizzardRealmRef(Slug: "silvermoon", Name: "Silvermoon"),
-                                PlayableClass: new BlizzardNamedRef(Id: 3, Name: "Hunter"))
+                                Realm: new StoredBlizzardRealmRef(Slug: "silvermoon", Name: "Silvermoon"),
+                                PlayableClass: new StoredBlizzardNamedRef(Id: 3, Name: "Hunter"))
                         ])
                 ]),
             AccountProfileRefreshedAt: refreshedAt);

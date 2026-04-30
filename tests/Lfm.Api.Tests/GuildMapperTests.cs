@@ -16,10 +16,10 @@ public class GuildMapperTests
         RealmSlug: "ravencrest",
         Slogan: "for the alliance",
         BlizzardRosterFetchedAt: DateTimeOffset.UtcNow.ToString("o"),
-        BlizzardProfileRaw: new BlizzardGuildProfileRaw(
+        BlizzardProfileRaw: new StoredGuildProfile(
             Name: "Test Guild",
-            Realm: new BlizzardGuildProfileRealm(Slug: "ravencrest", Name: "Ravencrest"),
-            Faction: new BlizzardGuildProfileFaction(Name: "Alliance"),
+            Realm: new StoredGuildProfileRealm(Slug: "ravencrest", Name: "Ravencrest"),
+            Faction: new StoredGuildProfileFaction(Name: "Alliance"),
             MemberCount: 50),
         RankPermissions: new[]
         {

@@ -10,6 +10,7 @@ using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Services.Blizzard.Models;
 using Lfm.Contracts.Characters;
 using Xunit;
 
@@ -86,18 +87,18 @@ public class BattleNetCharactersRefreshFunctionTests
         repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var freshSummary = new BlizzardAccountProfileSummary(
+        var freshSummary = new AccountProfileSummaryResponse(
             WowAccounts:
             [
-                new BlizzardWowAccount(
+                new WowAccountResponse(
                     Id: 1,
                     Characters:
                     [
-                        new BlizzardAccountCharacter(
+                        new AccountCharacterResponse(
                             Name: "Thrall",
                             Level: 80,
-                            Realm: new BlizzardRealmRef(Slug: "draenor", Name: "Draenor"),
-                            PlayableClass: new BlizzardNamedRef(Id: 1, Name: "Warrior"))
+                            Realm: new RealmRefResponse(Slug: "draenor", Name: "Draenor"),
+                            PlayableClass: new NamedRefResponse(Id: 1, Name: "Warrior"))
                     ])
             ]);
 
