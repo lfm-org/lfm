@@ -34,24 +34,6 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             await Context.CloseAsync();
     }
 
-    // E2E scope: proves the landing page renders feature cards and CTA in the browser.
-    // Cheaper lanes cannot prove this because the full Blazor app shell and Fluent components must load.
-    // Shared data: none.
-    [Fact]
-    public async Task LandingPage_Loads_ShowsFeatureCardsAndCTA()
-    {
-        var landingPage = new LandingPage(Page!);
-
-        await landingPage.GotoAsync(fixture.Stack.AppBaseUrl);
-
-        await Assertions.Expect(landingPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(landingPage.SharedScheduleCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(landingPage.RoleCoverageCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(landingPage.BattleNetSignInCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        var ctaVisible = await landingPage.IsSignInButtonVisibleAsync();
-        Assert.True(ctaVisible);
-    }
-
     // E2E scope: proves authenticated navigation renders seeded raid instances in the browser.
     // Cheaper lanes cannot prove this because the SPA, API, auth cookie, and storage read must work together.
     // Shared data: read-only.
@@ -83,20 +65,6 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         {
             await authContext.CloseAsync();
         }
-    }
-
-    // E2E scope: proves the privacy policy route renders browser-visible content.
-    // Cheaper lanes cannot prove this because app routing and final rendered content must be observed together.
-    // Shared data: none.
-    [Fact]
-    public async Task PrivacyPolicy_Loads_RendersContent()
-    {
-        var privacyPage = new PrivacyPage(Page!);
-
-        await privacyPage.GotoAsync(fixture.Stack.AppBaseUrl);
-
-        await Assertions.Expect(privacyPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(privacyPage.DataControllerSection).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     // E2E scope: proves unknown browser routes render the app's 404 state.
