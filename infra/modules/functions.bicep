@@ -90,6 +90,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     siteConfig: {
       http20Enabled: true
       minTlsVersion: '1.2'
+      ftpsState: 'Disabled'
       netFrameworkVersion: 'v10.0'
       healthCheckPath: '/api/health'
       cors: {
@@ -133,9 +134,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         // AuditOptions (section: Audit). Without this, IActorHasher falls
         // back to IdentityActorHasher and emits plaintext battleNetId
         // (PII) into Application Insights. The "audit-hash-salt" secret
-        // must exist in Key Vault before deploy — see
-        // docs/threat-models/audit-log-pii-pipeline.md (backlog) and
-        // api/Options/AuditOptions.cs.
+        // must exist in Key Vault before deploy — see api/Options/AuditOptions.cs.
         { name: 'Audit__HashSalt', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=audit-hash-salt)' }
       ]
     }
