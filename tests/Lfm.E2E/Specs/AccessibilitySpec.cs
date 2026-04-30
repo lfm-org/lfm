@@ -178,7 +178,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             fixture.Stack.AppBaseUrl);
 
         var page = await authContext.NewPageAsync();
-        await page.RouteAsync("**/api/battlenet/character-portraits", async route =>
+        await page.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
         {
             await route.FulfillAsync(new()
             {
@@ -317,7 +317,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         // surfaces whose contrast / labels are invisible at load time.
         await AccessibilityHelper.ScanAfterAsync(page, Output, "/runs/new (Dungeon selected)", async () =>
         {
-            await page.GetByRole(AriaRole.Radio, new() { Name = "Dungeon" }).ClickAsync();
+            await page.GetByRole(AriaRole.Radio, new() { Name = "Dungeon", Exact = true }).ClickAsync();
         });
     }
 
@@ -437,7 +437,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         // Register request listener before triggering navigation
         var loginRequestTask = Page!.WaitForRequestAsync(
-            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new System.Text.RegularExpressions.Regex(@"/api/(?:v1/)?battlenet/login"),
             new() { Timeout = 10000 });
 
         await loginPage.SignInButton.FocusAsync();
@@ -464,7 +464,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         var loginRequestTask = freshPage.WaitForRequestAsync(
-            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new System.Text.RegularExpressions.Regex(@"/api/(?:v1/)?battlenet/login"),
             new() { Timeout = 10000 });
 
         await loginPage.SignInButton.FocusAsync();

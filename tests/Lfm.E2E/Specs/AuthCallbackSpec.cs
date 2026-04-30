@@ -71,7 +71,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         // warm cache and can get by with 10s; this one cannot. See #45.
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
 
-        // Click the real sign-in button. In production this hits /api/battlenet/login
+        // Click the real sign-in button. In production this hits /api/v1/battlenet/login
         // which redirects through the Battle.net OAuth authorize / token / userinfo
         // endpoints. Locally, Blizzard__OAuthBaseUrl points at the WireMock stub,
         // so every outbound Battle.net call resolves against the stub instead of
