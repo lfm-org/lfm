@@ -5,7 +5,7 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Runs;
 
-namespace Lfm.Api.Functions;
+namespace Lfm.Api.Mappers;
 
 internal static class RunResponseMapper
 {
