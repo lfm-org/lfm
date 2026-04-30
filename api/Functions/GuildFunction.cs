@@ -68,12 +68,14 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
         if (guildDoc is null)
             return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
+        var permissions = await guildPermissions.GetEffectivePermissionsAsync(raider, cancellationToken);
+
         // Emit the Cosmos _etag so the SPA can echo it as If-Match on PATCH /guild
         // for optimistic concurrency.
         if (!string.IsNullOrEmpty(guildDoc.ETag))
             req.HttpContext.Response.Headers.ETag = guildDoc.ETag;
 
-        return new OkObjectResult(GuildMapper.MapToDto(guildDoc));
+        return new OkObjectResult(GuildMapper.MapToDto(guildDoc, permissions));
     }
 
     /// <summary>
@@ -195,7 +197,8 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
         if (!string.IsNullOrEmpty(persisted.ETag))
             req.HttpContext.Response.Headers.ETag = persisted.ETag;
 
-        return new OkObjectResult(GuildMapper.MapToDto(persisted));
+        var permissions = await guildPermissions.GetEffectivePermissionsAsync(raider, cancellationToken);
+        return new OkObjectResult(GuildMapper.MapToDto(persisted, permissions));
     }
 
     /// <summary>
