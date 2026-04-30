@@ -46,55 +46,55 @@
                         <span id="editRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
                         <ToggleGroup TValue="ActivityKind"
                                      Options="_activityOptions"
-                                     Value="_activity"
+                                     Value="_form.Activity"
                                      ValueChanged="OnActivityChanged"
                                      AriaLabelledBy="editRun-activity-label"
                                      Disabled="@(_saving || _hasSignups)" />
                     </div>
 
-                    @if (_activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE")
+                    @if (_form.Activity == ActivityKind.Dungeon && _form.Difficulty == "MYTHIC_KEYSTONE")
                     {
                         <div>
                             <span id="editRun-dungeonScope-label" class="field__label">@Loc["createRun.dungeonScope"]</span>
                             <ToggleGroup TValue="bool"
                                          Options="_dungeonScopeOptions"
-                                         Value="_anyDungeon"
+                                         Value="_form.AnyDungeon"
                                          ValueChanged="OnDungeonScopeChanged"
                                          AriaLabelledBy="editRun-dungeonScope-label"
                                          Disabled="@(_saving || _hasSignups)" />
                         </div>
                     }
 
-                    @if (ShowInstanceDropdown)
+                    @if (_form.ShowInstanceDropdown)
                     {
                         <FluentSelect Id="instance-select"
                                       Label="@Loc["createRun.instance"]"
                                       TOption="string"
-                                      Value="@_instanceId.ToString()"
+                                      Value="@_form.InstanceId.ToString()"
                                       ValueChanged="@OnInstanceChanged"
                                       Disabled="@(_saving || _hasSignups)">
                             <FluentOption Value="0">@Loc["createRun.selectInstance"]</FluentOption>
-                            @foreach (var opt in FilteredInstances)
+                            @foreach (var opt in _form.FilteredInstances)
                             {
                                 <FluentOption Value="@opt.InstanceId.ToString()">@opt.Name</FluentOption>
                             }
                         </FluentSelect>
                     }
 
-                    @if (ShowDifficultyToggle && _difficultyOptions.Count > 1)
+                    @if (_form.ShowDifficultyToggle && _difficultyOptions.Count > 1)
                     {
                         <div>
                             <span id="editRun-difficulty-label" class="field__label">@Loc["createRun.difficulty"]</span>
                             <ToggleGroup TValue="string"
                                          Options="_difficultyOptions"
-                                         Value="_difficulty"
+                                         Value="_form.Difficulty"
                                          ValueChanged="OnDifficultyChanged"
                                          AriaLabelledBy="editRun-difficulty-label"
                                          Disabled="@(_saving || _hasSignups)" />
                         </div>
                     }
 
-                    @if (_difficulty == "MYTHIC_KEYSTONE")
+                    @if (_form.Difficulty == "MYTHIC_KEYSTONE")
                     {
                         <div>
                             <label for="keylevel-input" class="field__label">@Loc["createRun.keyLevel"]</label>
@@ -106,12 +106,12 @@
                                        max="30"
                                        inputmode="numeric"
                                        placeholder="@Loc["createRun.keyLevel.placeholder"]"
-                                       @bind="_keystoneLevel"
+                                       @bind="_form.KeystoneLevel"
                                        @bind:event="oninput"
                                        disabled="@_saving"
                                        style="inline-size:7rem" />
                                 <FluentButton Appearance="Appearance.Outline"
-                                              OnClick="@(() => _keystoneLevel = 10)"
+                                              OnClick="@(() => _form.KeystoneLevel = 10)"
                                               Disabled="@_saving"
                                               Title="@Loc["createRun.keyLevel.wnlDescription"]"
                                               aria-label="@Loc["createRun.keyLevel.wnlDescription"]">
@@ -119,7 +119,7 @@
                                 </FluentButton>
                             </FluentStack>
                             <small class="field__hint">
-                                @(_anyDungeon ? Loc["createRun.keyLevel.hintAny"] : Loc["createRun.keyLevel.hintSpecific"])
+                                @(_form.AnyDungeon ? Loc["createRun.keyLevel.hintAny"] : Loc["createRun.keyLevel.hintSpecific"])
                             </small>
                         </div>
                     }
@@ -129,42 +129,42 @@
                         <input type="datetime-local"
                                id="starttime-input"
                                class="field__input"
-                               @bind="_startTimeLocal"
+                               @bind="_form.StartTimeLocal"
                                disabled="@(_saving || _hasSignups)"
                                required />
                     </label>
 
-                    @if (_showSignupClose)
+                    @if (_form.ShowSignupClose)
                     {
                         <label class="field">
                             <span class="field__label">@Loc["createRun.signupCloseTime"]</span>
                             <input type="datetime-local"
                                    id="signupclose-input"
                                    class="field__input"
-                                   @bind="_signupCloseLocal"
+                                   @bind="_form.SignupCloseLocal"
                                    disabled="@_saving" />
                         </label>
                     }
                     else
                     {
                         <FluentButton Appearance="Appearance.Stealth"
-                                      OnClick="@(() => _showSignupClose = true)"
+                                      OnClick="@(() => _form.ShowSignupClose = true)"
                                       Disabled="@_saving">
                             @Loc["createRun.addSignupDeadline"]
                         </FluentButton>
                     }
 
-                    @if (_canShowGuildOption)
+                    @if (_form.CanShowGuildOption)
                     {
                         <div>
                             <span id="editRun-visibility-label" class="field__label">@Loc["createRun.visibility"]</span>
                             <ToggleGroup TValue="string"
                                          Options="_visibilityOptions"
-                                         Value="_visibility"
-                                         ValueChanged="@(v => _visibility = v)"
+                                         Value="_form.Visibility"
+                                         ValueChanged="@(v => _form.Visibility = v)"
                                          AriaLabelledBy="editRun-visibility-label"
                                          Disabled="@_saving" />
-                            @if (!_canCreateGuildRuns)
+                            @if (!_form.CanCreateGuildRuns)
                             {
                                 <small class="field__hint">@Loc["createRun.visibility.guildDisabledReason"]</small>
                             }
@@ -174,13 +174,13 @@
                     <div>
                         <FluentTextArea Id="description-input"
                                         Label="@Loc["createRun.description"]"
-                                        Value="@_description"
-                                        ValueChanged="@(v => _description = v ?? string.Empty)"
+                                        Value="@_form.Description"
+                                        ValueChanged="@(v => _form.Description = v ?? string.Empty)"
                                         Disabled="@_saving"
                                         Rows="5"
                                         Resize="TextAreaResize.Vertical"
                                         @attributes="DescriptionAttrs" />
-                        <small class="field__hint">@(Loc["createRun.description.charCount", _description.Length])</small>
+                        <small class="field__hint">@(Loc["createRun.description.charCount", _form.Description.Length])</small>
                     </div>
 
                     @if (_inlineError is not null)
@@ -262,33 +262,12 @@
 </FluentStack>
 
 @code {
-    // The instance list is scoped to Blizzard's "Current Season" journal
-    // expansion tier. The edit-run form does not let the user pick an
-    // expansion — M+, raids, and non-M+ dungeons are all pulled from the
-    // currently-active rotation.
-    private const string CurrentSeasonExpansion = "Current Season";
-
     [Parameter] public string? RunId { get; set; }
 
     // ── Loading ────────────────────────────────────────────────────────────
     private LoadingState<RunDetailDto> _state = new LoadingState<RunDetailDto>.Idle();
-    private IReadOnlyList<ExpansionDto> _expansions = [];
-    private IReadOnlyList<InstanceOption> _allInstances = [];
+    private readonly RunFormState _form = new();
     private GuildDto? _guild;
-
-    // ── Form state ─────────────────────────────────────────────────────────
-    private int _expansionId;
-    private ActivityKind _activity = ActivityKind.Raid;
-    private int _instanceId;
-    private string _difficulty = "";
-    private int _size;
-    private int? _keystoneLevel;
-    private bool _anyDungeon;
-    private DateTime? _startTimeLocal;
-    private DateTime? _signupCloseLocal;
-    private bool _showSignupClose;
-    private string _visibility = "PUBLIC";
-    private string _description = string.Empty;
 
     // ── Page state ─────────────────────────────────────────────────────────
     private bool _saving;
@@ -301,20 +280,6 @@
     private RunError? _inlineError;
     private ElementReference _deleteDialogRef;
     private IJSObjectReference? _dialogModule;
-
-    // ── Derived ────────────────────────────────────────────────────────────
-    private bool _canCreateGuildRuns;
-    private bool _canShowGuildOption => _guild?.Guild is not null;
-
-    private IEnumerable<InstanceOption> FilteredInstances =>
-        _allInstances.Where(o =>
-            (o.ExpansionId is null || o.ExpansionId == _expansionId) &&
-            o.Activity == _activity);
-
-    private bool ShowInstanceDropdown =>
-        !(_activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE" && _anyDungeon);
-
-    private bool ShowDifficultyToggle => _instanceId != 0 || !ShowInstanceDropdown;
 
     private IReadOnlyList<(ActivityKind, string)> _activityOptions = [];
     private IReadOnlyList<(bool, string)> _dungeonScopeOptions = [];
@@ -334,16 +299,6 @@
 
     private static string? ToIsoOrNull(DateTime? dt) =>
         dt is null ? null : dt.Value.ToUniversalTime().ToString("o");
-
-    // Match the Blizzard "Current Season" tier by its canonical English name.
-    // Falls back to the highest-id expansion so the form still works on a
-    // stale manifest that predates the current rotation being ingested.
-    private static int ResolveCurrentSeasonId(IReadOnlyList<ExpansionDto> expansions)
-    {
-        var current = expansions.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
-        if (current is not null) return current.Id;
-        return expansions.Count == 0 ? 0 : expansions.MaxBy(e => e.Id)!.Id;
-    }
 
     // ── Lifecycle ──────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
@@ -373,9 +328,10 @@
             var run = runEnvelope.Run;
             _runEtag = runEnvelope.ETag;
 
-            _allInstances = InstanceOptions.Build(await instancesTask);
-            _expansions = await expansionsTask;
+            _form.LoadOptions(InstanceOptions.Build(await instancesTask), await expansionsTask);
             try { _guild = await guildTask; } catch { _guild = null; }
+
+            _form.CanShowGuildOption = _guild?.Guild is not null;
 
             _hasSignups = run.RunCharacters.Count > 0;
             RebuildStaticOptions();
@@ -395,76 +351,54 @@
         // If the run is an M+ "any dungeon" session (InstanceId null), fall back
         // to the dungeon-any branch with no specific instance selected.
         var match = run.InstanceId is int id
-            ? _allInstances.FirstOrDefault(o => o.InstanceId == id)
+            ? _form.AllInstances.FirstOrDefault(o => o.InstanceId == id)
             : null;
 
-        _activity = match?.Activity
+        _form.Activity = match?.Activity
             ?? (run.Difficulty == "MYTHIC_KEYSTONE" ? ActivityKind.Dungeon : ActivityKind.Raid);
-        _expansionId = match?.ExpansionId ?? ResolveCurrentSeasonId(_expansions);
-        _instanceId = match?.InstanceId ?? 0;
-        _difficulty = string.IsNullOrEmpty(run.Difficulty)
+        _form.ExpansionId = match?.ExpansionId ?? RunFormState.ResolveCurrentSeasonId(_form.Expansions);
+        _form.InstanceId = match?.InstanceId ?? 0;
+        var difficulty = string.IsNullOrEmpty(run.Difficulty)
             ? (match?.Difficulties.LastOrDefault()?.DifficultyId ?? "")
             : run.Difficulty;
-        _size = run.Size > 0 ? run.Size : (match?.Difficulties.FirstOrDefault(d => d.DifficultyId == _difficulty)?.Size ?? 0);
-        _keystoneLevel = run.KeystoneLevel;
-        _anyDungeon = _activity == ActivityKind.Dungeon
-                      && _difficulty == "MYTHIC_KEYSTONE"
-                      && run.InstanceId is null;
+        var size = run.Size > 0 ? run.Size : (match?.Difficulties.FirstOrDefault(d => d.DifficultyId == difficulty)?.Size ?? 0);
+        _form.SetMode(difficulty, size, run.KeystoneLevel);
+        _form.AnyDungeon = _form.Activity == ActivityKind.Dungeon
+                          && _form.Difficulty == "MYTHIC_KEYSTONE"
+                          && run.InstanceId is null;
 
-        _startTimeLocal = ParseIso(run.StartTime);
-        _signupCloseLocal = ParseIso(run.SignupCloseTime);
-        _showSignupClose = _signupCloseLocal is not null;
-        _visibility = string.IsNullOrEmpty(run.Visibility) ? "PUBLIC" : run.Visibility;
-        _description = run.Description ?? string.Empty;
+        _form.StartTimeLocal = ParseIso(run.StartTime);
+        _form.SignupCloseLocal = ParseIso(run.SignupCloseTime);
+        _form.ShowSignupClose = _form.SignupCloseLocal is not null;
+        _form.Visibility = string.IsNullOrEmpty(run.Visibility) ? "PUBLIC" : run.Visibility;
+        _form.Description = run.Description ?? string.Empty;
 
         RefreshDifficultyOptions();
-        _canCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
+        _form.CanCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
     }
 
     private void OnActivityChanged(ActivityKind value)
     {
-        _activity = value;
-        _instanceId = 0;
-        _anyDungeon = value == ActivityKind.Dungeon;
-        _difficulty = value == ActivityKind.Dungeon ? "MYTHIC_KEYSTONE" : "";
-        _size = value == ActivityKind.Dungeon ? 5 : 0;
-        _keystoneLevel = null;
+        _form.OnActivityChanged(value);
         RefreshDifficultyOptions();
     }
 
     private void OnDungeonScopeChanged(bool anyDungeon)
     {
-        _anyDungeon = anyDungeon;
-        if (anyDungeon) _instanceId = 0;
+        _form.OnDungeonScopeChanged(anyDungeon);
         RefreshDifficultyOptions();
     }
 
     private void OnInstanceChanged(string value)
     {
         if (!int.TryParse(value, out var id)) return;
-        _instanceId = id;
+        _form.OnInstanceChanged(id);
         RefreshDifficultyOptions();
-        if (_difficultyOptions.Count > 0 && !_difficultyOptions.Any(o => o.Item1 == _difficulty))
-        {
-            var topMode = FilteredInstances
-                .FirstOrDefault(o => o.InstanceId == id)?
-                .Difficulties.LastOrDefault();
-            if (topMode is not null)
-            {
-                _difficulty = topMode.DifficultyId;
-                _size = topMode.Size;
-            }
-        }
     }
 
     private void OnDifficultyChanged(string value)
     {
-        _difficulty = value;
-        var match = FilteredInstances
-            .FirstOrDefault(o => o.InstanceId == _instanceId)?
-            .Difficulties.FirstOrDefault(d => d.DifficultyId == value);
-        _size = match?.Size ?? 0;
-        if (value != "MYTHIC_KEYSTONE") _keystoneLevel = null;
+        _form.OnDifficultyChanged(value);
     }
 
     private void RebuildStaticOptions()
@@ -488,12 +422,10 @@
 
     private void RefreshDifficultyOptions()
     {
-        var match = FilteredInstances.FirstOrDefault(o => o.InstanceId == _instanceId);
-        _difficultyOptions = match is null
-            ? []
-            : match.Difficulties
-                .Select(d => (d.DifficultyId, d.DisplayName))
-                .ToList();
+        _form.RefreshDifficultyOptions();
+        _difficultyOptions = _form.DifficultyOptions
+            .Select(d => (d.DifficultyId, d.DisplayName))
+            .ToList();
     }
 
     // ── Save / delete ──────────────────────────────────────────────────────
@@ -501,23 +433,23 @@
     {
         _saving = true;
         _inlineError = null;
-        var isMythicPlus = _activity == ActivityKind.Dungeon && _difficulty == "MYTHIC_KEYSTONE";
-        var instanceOption = isMythicPlus && _anyDungeon
+        var isMythicPlus = _form.Activity == ActivityKind.Dungeon && _form.Difficulty == "MYTHIC_KEYSTONE";
+        var instanceOption = isMythicPlus && _form.AnyDungeon
             ? null
-            : FilteredInstances.FirstOrDefault(o => o.InstanceId == _instanceId);
+            : _form.FilteredInstances.FirstOrDefault(o => o.InstanceId == _form.InstanceId);
 
         try
         {
             var request = new UpdateRunRequest(
-                StartTime: ToIsoOrNull(_startTimeLocal) ?? string.Empty,
-                SignupCloseTime: ToIsoOrNull(_signupCloseLocal),
-                Description: _description,
-                Visibility: _visibility,
+                StartTime: ToIsoOrNull(_form.StartTimeLocal) ?? string.Empty,
+                SignupCloseTime: ToIsoOrNull(_form.SignupCloseLocal),
+                Description: _form.Description,
+                Visibility: _form.Visibility,
                 InstanceId: instanceOption?.InstanceId,
                 InstanceName: instanceOption?.Name,
-                Difficulty: _difficulty,
-                Size: _size,
-                KeystoneLevel: isMythicPlus ? _keystoneLevel : null);
+                Difficulty: _form.Difficulty,
+                Size: _form.Size,
+                KeystoneLevel: isMythicPlus ? _form.KeystoneLevel : null);
 
             if (string.IsNullOrEmpty(_runEtag))
             {

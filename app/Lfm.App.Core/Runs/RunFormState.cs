@@ -19,7 +19,7 @@ public sealed class RunFormState
     public IReadOnlyList<ExpansionDto> Expansions { get; private set; } = Array.Empty<ExpansionDto>();
 
     public int ExpansionId { get; set; }
-    public ActivityKind Activity { get; private set; } = ActivityKind.Dungeon;
+    public ActivityKind Activity { get; set; } = ActivityKind.Dungeon;
     public int InstanceId { get; set; }
     public string Difficulty { get; private set; } = "MYTHIC_KEYSTONE";
     public int Size { get; private set; } = 5;
