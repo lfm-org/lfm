@@ -130,7 +130,12 @@ public class RunsUpdateFunction(IRunUpdateService service, ILogger<RunsUpdateFun
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", fb.AuditReason));
                 return result.ToProblemResult(req.HttpContext);
             case RunOperationResult.PreconditionFailed pf:
-                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", pf.Code.Replace('-', ' ')));
+                var auditReason = pf.Code switch
+                {
+                    "if-match-stale" => "if-match stale",
+                    _ => pf.Code,
+                };
+                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", auditReason));
                 return result.ToProblemResult(req.HttpContext);
             default:
                 return result.ToProblemResult(req.HttpContext);
