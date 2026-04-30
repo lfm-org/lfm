@@ -12,6 +12,7 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Mappers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
+using Lfm.Api.Runs;
 using Lfm.Api.Services;
 using Lfm.Api.Validation;
 using Lfm.Contracts.Runs;

@@ -4,7 +4,7 @@
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Runs;
 
-namespace Lfm.Api.Helpers;
+namespace Lfm.Api.Runs;
 
 /// <summary>
 /// Resolves the canonical typed mode fields (<c>Difficulty</c>, <c>Size</c>) for
