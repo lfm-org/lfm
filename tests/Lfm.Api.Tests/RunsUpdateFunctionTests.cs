@@ -414,7 +414,7 @@ public class RunsUpdateFunctionTests
         var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#if-match-stale", problem.Type);
 
-        Assert.Single(logger.Entries, e => e.IsAudit("run.update", "failure", "if-match stale"));
+        Assert.Single(logger.Entries, e => e.IsAudit("run.update", "failure", "if match stale"));
     }
 
     // ------------------------------------------------------------------
