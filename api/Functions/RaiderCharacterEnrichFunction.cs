@@ -6,6 +6,7 @@ using Lfm.Api.Helpers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Services.Blizzard.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -76,9 +77,9 @@ public sealed class RaiderCharacterEnrichFunction(
                     "missing-access-token",
                     "Session does not contain an access token. Please log out and log in again.");
 
-            BlizzardCharacterProfileResponse? profile = null;
-            BlizzardCharacterSpecializationsResponse? specs = null;
-            BlizzardCharacterMediaSummary? media = null;
+            CharacterProfileResponse? profile = null;
+            CharacterSpecializationsResponse? specs = null;
+            CharacterMediaSummaryResponse? media = null;
             try
             {
                 if (plan.FetchProfile)

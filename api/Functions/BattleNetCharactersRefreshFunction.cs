@@ -7,6 +7,8 @@ using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Services.Blizzard;
+using Lfm.Api.Services.Blizzard.Models;
 using Lfm.Contracts.Characters;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -74,7 +76,7 @@ public class BattleNetCharactersRefreshFunction(
                 "missing-access-token",
                 "Session does not contain an access token. Please log out and log in again.");
 
-        BlizzardAccountProfileSummary freshSummary;
+        AccountProfileSummaryResponse freshSummary;
         try
         {
             freshSummary = await profileClient.GetAccountProfileSummaryAsync(accessToken, cancellationToken);
@@ -88,10 +90,11 @@ public class BattleNetCharactersRefreshFunction(
                 "Failed to fetch characters from Blizzard.");
         }
 
+        var freshSummaryStored = BlizzardModelTranslator.ToStored(freshSummary);
         var now = DateTimeOffset.UtcNow.ToString("O");
         var updated = raider with
         {
-            AccountProfileSummary = freshSummary,
+            AccountProfileSummary = freshSummaryStored,
             AccountProfileFetchedAt = now,
             AccountProfileRefreshedAt = now,
             Ttl = 180 * 86400,
@@ -100,7 +103,7 @@ public class BattleNetCharactersRefreshFunction(
 
         var region = _blizzardOpts.Region.ToLowerInvariant();
         var characters = BattleNetCharactersFunction.MapToCharacterDtos(
-            freshSummary, region, raider.Characters, raider.PortraitCache);
+            freshSummaryStored, region, raider.Characters, raider.PortraitCache);
 
         return new OkObjectResult(characters);
     }
