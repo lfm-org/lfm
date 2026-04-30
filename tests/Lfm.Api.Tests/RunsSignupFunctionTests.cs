@@ -10,7 +10,7 @@ using Moq;
 using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
-using Lfm.Api.Services;
+using Lfm.Api.Runs;
 using Lfm.Contracts.Runs;
 using Xunit;
 
@@ -30,15 +30,12 @@ public class RunsSignupFunctionTests
         return ctx.Object;
     }
 
-    private static SessionPrincipal MakePrincipal(
-        string battleNetId = "bnet-user",
-        string? guildId = null,
-        string? guildName = null) =>
+    private static SessionPrincipal MakePrincipal(string battleNetId = "bnet-user") =>
         new SessionPrincipal(
             BattleNetId: battleNetId,
             BattleTag: "User#1234",
-            GuildId: guildId,
-            GuildName: guildName,
+            GuildId: null,
+            GuildName: null,
             IssuedAt: DateTimeOffset.UtcNow,
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
 
@@ -51,23 +48,25 @@ public class RunsSignupFunctionTests
         return httpContext.Request;
     }
 
+    private static HttpRequest MakePostRequest(string rawJson)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(rawJson));
+        httpContext.Request.ContentType = "application/json";
+        return httpContext.Request;
+    }
+
     private static RunsSignupFunction MakeFunction(
-        Mock<IRunsRepository> runsRepo,
-        Mock<IRaidersRepository> raidersRepo,
-        Mock<IGuildPermissions> permissions,
+        Mock<IRunSignupService> service,
         TestLogger<RunsSignupFunction>? logger = null)
     {
         return new RunsSignupFunction(
-            runsRepo.Object,
-            raidersRepo.Object,
-            permissions.Object,
+            service.Object,
             logger ?? new TestLogger<RunsSignupFunction>());
     }
 
     private static RunDocument MakeRunDoc(
         string id = "run-1",
-        string visibility = "PUBLIC",
-        int? creatorGuildId = null,
         IReadOnlyList<RunCharacterEntry>? runCharacters = null) =>
         new RunDocument(
             Id: id,
@@ -75,61 +74,17 @@ public class RunsSignupFunctionTests
             SignupCloseTime: DateTimeOffset.UtcNow.AddHours(22).ToString("o"),
             Description: "Test run",
             ModeKey: "NORMAL:10",
-            Visibility: visibility,
+            Visibility: "PUBLIC",
             CreatorGuild: "Test Guild",
-            CreatorGuildId: creatorGuildId,
+            CreatorGuildId: null,
             InstanceId: 631,
             InstanceName: "Icecrown Citadel",
             CreatorBattleNetId: "bnet-creator",
             CreatedAt: DateTimeOffset.UtcNow.AddDays(-14).ToString("o"),
             Ttl: 86400,
-            RunCharacters: runCharacters ?? []);
-
-    private static RaiderDocument MakeRaiderDoc(
-        string battleNetId = "bnet-user",
-        string characterId = "char-1",
-        int? guildId = null) =>
-        new RaiderDocument(
-            Id: battleNetId,
-            BattleNetId: battleNetId,
-            SelectedCharacterId: characterId,
-            Locale: null,
-            Characters: [
-                new StoredSelectedCharacter(
-                    Id: characterId,
-                    Region: "eu",
-                    Realm: "silvermoon",
-                    Name: "Testchar",
-                    GuildId: guildId,
-                    GuildName: guildId is not null ? "Test Guild" : null)
-            ]);
-
-    /// <summary>
-    /// Pre-wired mocks for a successful signup call. Each test can mutate the
-    /// fields before invoking the function to introduce a single axis of variance.
-    /// </summary>
-    private sealed class HappyPathFixture
-    {
-        public required Mock<IRunsRepository> RunsRepo { get; init; }
-        public required Mock<IRaidersRepository> RaidersRepo { get; init; }
-        public required Mock<IGuildPermissions> Permissions { get; init; }
-        public required TestLogger<RunsSignupFunction> Logger { get; init; }
-        public required SessionPrincipal Principal { get; init; }
-        public required FunctionContext Context { get; init; }
-        public required object RequestBody { get; init; }
-    }
-
-    private static HappyPathFixture MakeHappyPath()
-    {
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var run = MakeRunDoc();
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
-
-        var updatedRun = run with
-        {
-            RunCharacters = [
+            RunCharacters: runCharacters ?? [
                 new RunCharacterEntry(
-                    Id: "new-entry-id",
+                    Id: "entry-1",
                     CharacterId: "char-1",
                     CharacterName: "Testchar",
                     CharacterRealm: "silvermoon",
@@ -144,252 +99,199 @@ public class RunsSignupFunctionTests
                     SpecId: null,
                     SpecName: null,
                     Role: null)
-            ]
-        };
+            ]);
 
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedRun);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        return new HappyPathFixture
-        {
-            RunsRepo = runsRepo,
-            RaidersRepo = raidersRepo,
-            Permissions = new Mock<IGuildPermissions>(),
-            Logger = new TestLogger<RunsSignupFunction>(),
-            Principal = principal,
-            Context = MakeFunctionContext(principal),
-            RequestBody = new
-            {
-                characterId = "char-1",
-                desiredAttendance = "IN",
-                specId = (int?)null,
-            },
-        };
-    }
+    private static object MakeBody(
+        string characterId = "char-1",
+        string desiredAttendance = "IN") =>
+        new { characterId, desiredAttendance, specId = (int?)null };
 
     // ------------------------------------------------------------------
-    // Test 1: Happy path — new signup returns 200 with sanitized run
+    // Test 1: Service Ok happy path → 200 with mapped DTO + audit
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task Run_adds_signup_and_returns_200()
+    public async Task Run_returns_200_when_service_returns_ok()
     {
-        var fx = MakeHappyPath();
+        var principal = MakePrincipal("bnet-user");
+        var persisted = MakeRunDoc();
 
-        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
-        var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
+        var service = new Mock<IRunSignupService>();
+        service.Setup(s => s.SignupAsync(
+                "run-1",
+                It.IsAny<SignupRequest>(),
+                It.IsAny<SessionPrincipal>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.Ok(persisted));
 
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var dto = Assert.IsType<RunDetailDto>(okResult.Value);
+        var fn = MakeFunction(service);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePostRequest(MakeBody()), "run-1", ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<RunDetailDto>(ok.Value);
         Assert.Single(dto.RunCharacters);
         Assert.True(dto.RunCharacters[0].IsCurrentUser);
 
-        fx.RunsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        service.Verify(
+            s => s.SignupAsync("run-1", It.IsAny<SignupRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ------------------------------------------------------------------
-    // Test 2: Run not found — returns 404
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public async Task Run_returns_404_when_run_does_not_exist()
-    {
-        var principal = MakePrincipal();
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
-
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("missing-run", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((RunDocument?)null);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
-        var ctx = MakeFunctionContext(principal);
-
-        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
-        var result = await fn.Run(MakePostRequest(requestBody), "missing-run", ctx, CancellationToken.None);
-
-        var notFound = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(404, notFound.StatusCode);
-        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
-        Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
-
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    // ------------------------------------------------------------------
-    // Test 3: GUILD run — caller lacks canSignupGuildRuns — returns 403
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public async Task Run_returns_403_for_guild_run_when_caller_lacks_signup_permission()
-    {
-        // Caller is in same guild but lacks canSignupGuildRuns.
-        var principal = MakePrincipal(battleNetId: "bnet-member", guildId: "12345");
-        var run = MakeRunDoc(visibility: "GUILD", creatorGuildId: 12345);
-        var raider = MakeRaiderDoc(battleNetId: "bnet-member", characterId: "char-1", guildId: 12345);
-
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-member", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        permissions.Setup(p => p.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var logger = new TestLogger<RunsSignupFunction>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions, logger);
-        var ctx = MakeFunctionContext(principal);
-
-        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
-        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
-
-        var objectResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(403, objectResult.StatusCode);
-        var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
-        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
-
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
-
-        Assert.Single(logger.Entries, e => e.IsAudit("signup.create", "failure", "guild rank denied"));
-    }
-
-    // ------------------------------------------------------------------
-    // Test 5: Happy path — emits signup.create audit event
+    // Test 2: Audit success entry on Ok path
     // ------------------------------------------------------------------
 
     [Fact]
     public async Task Run_emits_signup_create_audit_event_on_success()
     {
-        var fx = MakeHappyPath();
+        var principal = MakePrincipal("bnet-user");
+        var persisted = MakeRunDoc();
+        var logger = new TestLogger<RunsSignupFunction>();
 
-        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
-        await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
+        var service = new Mock<IRunSignupService>();
+        service.Setup(s => s.SignupAsync(
+                It.IsAny<string>(),
+                It.IsAny<SignupRequest>(),
+                It.IsAny<SessionPrincipal>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.Ok(persisted));
 
-        Assert.Single(fx.Logger.Entries, e => e.IsAudit(
+        var fn = MakeFunction(service, logger);
+        var ctx = MakeFunctionContext(principal);
+
+        await fn.Run(MakePostRequest(MakeBody()), "run-1", ctx, CancellationToken.None);
+
+        Assert.Single(logger.Entries, e => e.IsAudit(
             action: "signup.create",
             actorId: "bnet-user",
             result: "success"));
     }
 
     // ------------------------------------------------------------------
-    // Test 6: Signup close time has passed — returns 409
+    // Test 3: Service NotFound → 404 problem+json
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task Run_returns_409_when_signup_close_time_has_passed()
+    public async Task Run_returns_404_when_service_returns_not_found()
     {
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
+        var principal = MakePrincipal("bnet-user");
 
-        // Run whose signupCloseTime is in the past.
-        var closedRun = new RunDocument(
-            Id: "run-1",
-            StartTime: DateTimeOffset.UtcNow.AddHours(2).ToString("o"),
-            SignupCloseTime: DateTimeOffset.UtcNow.AddHours(-1).ToString("o"),
-            Description: "Closed run",
-            ModeKey: "NORMAL:10",
-            Visibility: "PUBLIC",
-            CreatorGuild: "Test Guild",
-            CreatorGuildId: null,
-            InstanceId: 631,
-            InstanceName: "Icecrown Citadel",
-            CreatorBattleNetId: "bnet-creator",
-            CreatedAt: DateTimeOffset.UtcNow.AddDays(-14).ToString("o"),
-            Ttl: 86400,
-            RunCharacters: []);
+        var service = new Mock<IRunSignupService>();
+        service.Setup(s => s.SignupAsync(
+                It.IsAny<string>(),
+                It.IsAny<SignupRequest>(),
+                It.IsAny<SessionPrincipal>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.NotFound("run-not-found", "Run not found."));
 
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(closedRun);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var permissions = new Mock<IGuildPermissions>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
+        var fn = MakeFunction(service);
         var ctx = MakeFunctionContext(principal);
 
-        var requestBody = new { characterId = "char-1", desiredAttendance = "IN" };
-        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+        var result = await fn.Run(MakePostRequest(MakeBody()), "missing-run", ctx, CancellationToken.None);
+
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(notFound.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#run-not-found", problem.Type);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 4: Service Forbidden → 403 problem+json + audit failure entry
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_403_and_emits_audit_when_service_returns_forbidden()
+    {
+        var principal = MakePrincipal("bnet-member");
+
+        var service = new Mock<IRunSignupService>();
+        service.Setup(s => s.SignupAsync(
+                It.IsAny<string>(),
+                It.IsAny<SignupRequest>(),
+                It.IsAny<SessionPrincipal>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.Forbidden(
+                "guild-rank-denied",
+                "Guild signup is not enabled for your rank.",
+                AuditReason: "guild rank denied"));
+
+        var logger = new TestLogger<RunsSignupFunction>();
+        var fn = MakeFunction(service, logger);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePostRequest(MakeBody()), "run-1", ctx, CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(409, objectResult.StatusCode);
+        Assert.Equal(403, objectResult.StatusCode);
         var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
-        Assert.Equal("https://github.com/lfm-org/lfm/errors#signups-closed", problem.Type);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-rank-denied", problem.Type);
 
-        runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Single(
+            logger.Entries,
+            e => e.IsAudit("signup.create", "failure", "guild rank denied"));
     }
 
     // ------------------------------------------------------------------
-    // Test 7: Concurrency conflict retries and succeeds on second attempt
+    // Test 5: Service ConflictResult → 409 problem+json (no audit)
     // ------------------------------------------------------------------
 
     [Fact]
-    public async Task Run_retries_on_concurrency_conflict_and_succeeds()
+    public async Task Run_returns_409_when_service_returns_conflict()
     {
-        var fx = MakeHappyPath();
+        var principal = MakePrincipal("bnet-user");
 
-        // Override UpdateAsync to throw on the first call, then succeed.
-        // The behavior we care about is: after a transient conflict the caller
-        // sees a successful 200 with the persisted run state. The exact retry
-        // count is a loop-structure detail and is not pinned here.
-        var callCount = 0;
-        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Returns<RunDocument, string?, CancellationToken>((doc, _, _) =>
-            {
-                callCount++;
-                if (callCount == 1)
-                    throw new ConcurrencyConflictException();
-                return Task.FromResult(doc);
-            });
+        var service = new Mock<IRunSignupService>();
+        service.Setup(s => s.SignupAsync(
+                It.IsAny<string>(),
+                It.IsAny<SignupRequest>(),
+                It.IsAny<SessionPrincipal>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunOperationResult.ConflictResult(
+                "concurrent-modification",
+                "Concurrent modification, please retry."));
 
-        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
-        var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
+        var fn = MakeFunction(service);
+        var ctx = MakeFunctionContext(principal);
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var detail = Assert.IsType<RunDetailDto>(ok.Value);
-        Assert.Equal("run-1", detail.Id);
-    }
+        var result = await fn.Run(MakePostRequest(MakeBody()), "run-1", ctx, CancellationToken.None);
 
-    // ------------------------------------------------------------------
-    // Test 8: Concurrency conflict exhausts all retries — returns 409
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public async Task Run_returns_409_after_exhausting_concurrency_retries()
-    {
-        var fx = MakeHappyPath();
-
-        fx.RunsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new ConcurrencyConflictException());
-
-        var fn = MakeFunction(fx.RunsRepo, fx.RaidersRepo, fx.Permissions, fx.Logger);
-        var result = await fn.Run(MakePostRequest(fx.RequestBody), "run-1", fx.Context, CancellationToken.None);
-
-        // The visible 409 is sufficient evidence that the retry loop exhausted —
-        // pinning Times.Exactly(3) couples the test to the loop count, which is a
-        // structural detail that may legitimately change (e.g. policy library swap).
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(409, objectResult.StatusCode);
         var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#concurrent-modification", problem.Type);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 6: Validation failure — service is never called
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Run_returns_400_when_body_fails_validation()
+    {
+        var principal = MakePrincipal("bnet-user");
+
+        // Missing required fields (e.g., desiredAttendance).
+        var requestBody = new { characterId = "char-1" };
+
+        var service = new Mock<IRunSignupService>();
+
+        var fn = MakeFunction(service);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakePostRequest(requestBody), "run-1", ctx, CancellationToken.None);
+
+        var badRequest = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#validation-failed", problem.Type);
+        Assert.True(problem.Extensions.ContainsKey("errors"));
+
+        // Service should never be called when validation fails.
+        service.Verify(
+            s => s.SignupAsync(It.IsAny<string>(), It.IsAny<SignupRequest>(), It.IsAny<SessionPrincipal>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // ------------------------------------------------------------------
@@ -404,17 +306,15 @@ public class RunsSignupFunctionTests
     [Fact]
     public async Task Run_returns_generic_400_when_body_is_invalid_json()
     {
-        var principal = MakePrincipal();
-        var runsRepo = new Mock<IRunsRepository>();
-        var raidersRepo = new Mock<IRaidersRepository>();
-        var permissions = new Mock<IGuildPermissions>();
-        var fn = MakeFunction(runsRepo, raidersRepo, permissions);
+        var principal = MakePrincipal("bnet-user");
+        var service = new Mock<IRunSignupService>();
+        var fn = MakeFunction(service);
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{ not valid json at all"));
-        httpContext.Request.ContentType = "application/json";
-
-        var result = await fn.Run(httpContext.Request, "run-1", MakeFunctionContext(principal), CancellationToken.None);
+        var result = await fn.Run(
+            MakePostRequest("{ not valid json at all"),
+            "run-1",
+            MakeFunctionContext(principal),
+            CancellationToken.None);
 
         var bad = Assert.IsType<ObjectResult>(result);
         Assert.Equal(400, bad.StatusCode);
@@ -428,81 +328,7 @@ public class RunsSignupFunctionTests
         Assert.DoesNotContain("position", json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Request body is invalid or missing.", json);
 
-        // Repos must not have been touched for a parse failure.
-        runsRepo.VerifyNoOtherCalls();
-        raidersRepo.VerifyNoOtherCalls();
-        permissions.VerifyNoOtherCalls();
-    }
-
-    // ------------------------------------------------------------------
-    // Tests N+1/N+2: rejected-raider list defends the cancel-then-resignup
-    //   bypass documented in docs/threat-models/run-signup-peer-permission.md.
-    // ------------------------------------------------------------------
-
-    [Fact]
-    public async Task Run_defaults_reviewedAttendance_to_OUT_when_raider_in_rejection_list()
-    {
-        // The run owner has previously rejected this raider. The raider had
-        // cancelled the prior signup (so existingIndex < 0 here), but the
-        // RejectedRaiderBattleNetIds list still names them — re-signup must
-        // *not* silently flip back to "IN".
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var run = MakeRunDoc() with { RejectedRaiderBattleNetIds = ["bnet-user"] };
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
-
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-
-        RunDocument? captured = null;
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<RunDocument, string?, CancellationToken>((r, _, _) => captured = r)
-            .ReturnsAsync((RunDocument r, string? _, CancellationToken _) => r);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var fn = MakeFunction(runsRepo, raidersRepo, new Mock<IGuildPermissions>());
-        var body = new { characterId = "char-1", desiredAttendance = "IN", specId = (int?)null };
-        var result = await fn.Run(MakePostRequest(body), "run-1", MakeFunctionContext(principal), CancellationToken.None);
-
-        Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(captured);
-        var entry = Assert.Single(captured!.RunCharacters);
-        Assert.Equal("OUT", entry.ReviewedAttendance);
-    }
-
-    [Fact]
-    public async Task Run_defaults_reviewedAttendance_to_IN_when_raider_not_in_rejection_list()
-    {
-        // Negative case: a raider who has *not* been rejected gets the normal
-        // "IN" default on a fresh signup. Guards against the inverted-condition
-        // mutant where every signup would silently land as "OUT".
-        var principal = MakePrincipal(battleNetId: "bnet-user");
-        var run = MakeRunDoc() with { RejectedRaiderBattleNetIds = ["someone-else"] };
-        var raider = MakeRaiderDoc(battleNetId: "bnet-user", characterId: "char-1");
-
-        var runsRepo = new Mock<IRunsRepository>();
-        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(run);
-
-        RunDocument? captured = null;
-        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<RunDocument, string?, CancellationToken>((r, _, _) => captured = r)
-            .ReturnsAsync((RunDocument r, string? _, CancellationToken _) => r);
-
-        var raidersRepo = new Mock<IRaidersRepository>();
-        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(raider);
-
-        var fn = MakeFunction(runsRepo, raidersRepo, new Mock<IGuildPermissions>());
-        var body = new { characterId = "char-1", desiredAttendance = "IN", specId = (int?)null };
-        var result = await fn.Run(MakePostRequest(body), "run-1", MakeFunctionContext(principal), CancellationToken.None);
-
-        Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(captured);
-        var entry = Assert.Single(captured!.RunCharacters);
-        Assert.Equal("IN", entry.ReviewedAttendance);
+        // Service must not have been touched for a parse failure.
+        service.VerifyNoOtherCalls();
     }
 }
