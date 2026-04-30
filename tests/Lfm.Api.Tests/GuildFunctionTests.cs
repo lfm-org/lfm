@@ -83,10 +83,21 @@ public class GuildFunctionTests
         Mock<IGuildPermissions>? permissions = null,
         TestLogger<GuildFunction>? logger = null)
     {
+        // Ensure a freshly-created permissions mock returns a non-null record
+        // for GetEffectivePermissionsAsync so MapToDto does not NRE. Caller-
+        // supplied mocks are expected to set this up themselves when needed.
+        if (permissions is null)
+        {
+            permissions = new Mock<IGuildPermissions>();
+            permissions
+                .Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(GuildEffectivePermissions.None);
+        }
+
         return new GuildFunction(
             (guildRepo ?? new Mock<IGuildRepository>()).Object,
             (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
-            (permissions ?? new Mock<IGuildPermissions>()).Object,
+            permissions.Object,
             logger ?? new TestLogger<GuildFunction>());
     }
 
@@ -110,6 +121,9 @@ public class GuildFunctionTests
             .ReturnsAsync(raiderDoc);
 
         var permissions = new Mock<IGuildPermissions>();
+        permissions
+            .Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var logger = new TestLogger<GuildFunction>();
         var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
@@ -122,6 +136,52 @@ public class GuildFunctionTests
         Assert.Equal("fi", dto.Setup.Locale);
         Assert.Equal("Europe/Helsinki", dto.Setup.Timezone);
         Assert.True(dto.Setup.IsInitialized);
+    }
+
+    // ------------------------------------------------------------------
+    // Test 1b: GET surfaces effective permissions in response DTO
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task GuildGet_RankZeroRaider_ReturnsAdminEditorAndSettings()
+    {
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc() with
+        {
+            RankPermissions =
+            [
+                new GuildRankPermission(Rank: 0, CanCreateGuildRuns: true, CanSignupGuildRuns: true, CanDeleteGuildRuns: true),
+            ],
+        };
+        var raiderDoc = MakeRaiderDoc();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions
+            .Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildEffectivePermissions(
+                IsAdmin: true,
+                CanCreateGuildRuns: true,
+                CanSignupGuildRuns: true,
+                CanDeleteGuildRuns: true));
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.True(dto.Editor.CanEdit);
+        Assert.True(dto.MemberPermissions.CanCreateGuildRuns);
+        Assert.NotNull(dto.Settings);
     }
 
     // ------------------------------------------------------------------
@@ -212,6 +272,8 @@ public class GuildFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var logger = new TestLogger<GuildFunction>();
         var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
@@ -300,6 +362,8 @@ public class GuildFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
@@ -353,6 +417,8 @@ public class GuildFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var fn = MakeFunction(guildRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
@@ -418,6 +484,8 @@ public class GuildFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var fn = MakeFunction(guildRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
@@ -451,6 +519,8 @@ public class GuildFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
         var ctx = MakeFunctionContext(principal);
@@ -485,6 +555,8 @@ public class GuildFunctionTests
         var permissions = new Mock<IGuildPermissions>();
         permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GuildEffectivePermissions.None);
 
         var fn = MakeFunction(guildRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
