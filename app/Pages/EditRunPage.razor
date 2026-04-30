@@ -354,24 +354,32 @@
             ? _form.AllInstances.FirstOrDefault(o => o.InstanceId == id)
             : null;
 
-        _form.Activity = match?.Activity
+        var activity = match?.Activity
             ?? (run.Difficulty == "MYTHIC_KEYSTONE" ? ActivityKind.Dungeon : ActivityKind.Raid);
-        _form.ExpansionId = match?.ExpansionId ?? RunFormState.ResolveCurrentSeasonId(_form.Expansions);
-        _form.InstanceId = match?.InstanceId ?? 0;
+        var expansionId = match?.ExpansionId ?? RunFormState.ResolveCurrentSeasonId(_form.Expansions);
+        var instanceId = match?.InstanceId ?? 0;
         var difficulty = string.IsNullOrEmpty(run.Difficulty)
             ? (match?.Difficulties.LastOrDefault()?.DifficultyId ?? "")
             : run.Difficulty;
         var size = run.Size > 0 ? run.Size : (match?.Difficulties.FirstOrDefault(d => d.DifficultyId == difficulty)?.Size ?? 0);
-        _form.SetMode(difficulty, size, run.KeystoneLevel);
-        _form.AnyDungeon = _form.Activity == ActivityKind.Dungeon
-                          && _form.Difficulty == "MYTHIC_KEYSTONE"
+        var anyDungeon = activity == ActivityKind.Dungeon
+                          && difficulty == "MYTHIC_KEYSTONE"
                           && run.InstanceId is null;
+        var signupCloseLocal = ParseIso(run.SignupCloseTime);
 
-        _form.StartTimeLocal = ParseIso(run.StartTime);
-        _form.SignupCloseLocal = ParseIso(run.SignupCloseTime);
-        _form.ShowSignupClose = _form.SignupCloseLocal is not null;
-        _form.Visibility = string.IsNullOrEmpty(run.Visibility) ? "PUBLIC" : run.Visibility;
-        _form.Description = run.Description ?? string.Empty;
+        _form.Populate(
+            activity: activity,
+            expansionId: expansionId,
+            instanceId: instanceId,
+            difficulty: difficulty,
+            size: size,
+            keystoneLevel: run.KeystoneLevel,
+            anyDungeon: anyDungeon,
+            startTimeLocal: ParseIso(run.StartTime),
+            signupCloseLocal: signupCloseLocal,
+            showSignupClose: signupCloseLocal is not null,
+            visibility: string.IsNullOrEmpty(run.Visibility) ? "PUBLIC" : run.Visibility,
+            description: run.Description ?? string.Empty);
 
         RefreshDifficultyOptions();
         _form.CanCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
