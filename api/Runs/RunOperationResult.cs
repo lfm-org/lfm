@@ -17,6 +17,8 @@ public abstract record RunOperationResult
     public sealed record NotFound(string Code, string Message) : RunOperationResult;
     public sealed record BadRequest(string Code, string Message, IReadOnlyList<string>? Errors = null) : RunOperationResult;
     public sealed record Forbidden(string Code, string Message, string AuditReason) : RunOperationResult;
+    // Suffixed "Result" to avoid shadowing Microsoft.AspNetCore.Mvc.ConflictResult
+    // at Function call sites that use both namespaces.
     public sealed record ConflictResult(string Code, string Message) : RunOperationResult;
     public sealed record PreconditionFailed(string Code, string Message) : RunOperationResult;
     public sealed record ServiceUnavailable(string Code, string Message) : RunOperationResult;

@@ -76,14 +76,19 @@ public class RunsCreateFunction(IRunCreateService service, ILogger<RunsCreateFun
 
         var result = await service.CreateAsync(body, principal, ct);
 
-        return result switch
+        // Audit-bearing branches stay at the function (this layer owns audit shape);
+        // pure HTTP-shape branches go through the shared translator.
+        switch (result)
         {
-            RunOperationResult.NotFound nf => Problem.NotFound(req.HttpContext, nf.Code, nf.Message),
-            RunOperationResult.BadRequest br => Problem.BadRequest(req.HttpContext, br.Code, br.Message),
-            RunOperationResult.Forbidden fb => EmitFailureAndReturn(fb, principal, req),
-            RunOperationResult.Ok ok => EmitSuccessAndReturn(ok, principal),
-            _ => throw new InvalidOperationException($"Unexpected result: {result.GetType().Name}"),
-        };
+            case RunOperationResult.Ok ok:
+                AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, ok.Run.Id, "success", null));
+                return new ObjectResult(RunResponseMapper.ToDetail(ok.Run, principal.BattleNetId)) { StatusCode = 201 };
+            case RunOperationResult.Forbidden fb:
+                AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", fb.AuditReason));
+                return result.ToProblemResult(req.HttpContext);
+            default:
+                return result.ToProblemResult(req.HttpContext);
+        }
     }
 
     /// <summary>
@@ -97,21 +102,4 @@ public class RunsCreateFunction(IRunCreateService service, ILogger<RunsCreateFun
         FunctionContext ctx,
         CancellationToken ct)
         => Run(req, ctx, ct);
-
-    private IActionResult EmitFailureAndReturn(
-        RunOperationResult.Forbidden fb,
-        SessionPrincipal principal,
-        HttpRequest req)
-    {
-        AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, null, "failure", fb.AuditReason));
-        return Problem.Forbidden(req.HttpContext, fb.Code, fb.Message);
-    }
-
-    private IActionResult EmitSuccessAndReturn(
-        RunOperationResult.Ok ok,
-        SessionPrincipal principal)
-    {
-        AuditLog.Emit(logger, new AuditEvent("run.create", principal.BattleNetId, ok.Run.Id, "success", null));
-        return new ObjectResult(RunResponseMapper.ToDetail(ok.Run, principal.BattleNetId)) { StatusCode = 201 };
-    }
 }
