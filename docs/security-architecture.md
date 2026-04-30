@@ -62,8 +62,4 @@ events to live ones, so rotate only when there is reason to.
 
 ## Related documents
 
-- `docs/threat-models/session-cookie-api.md` — cookie → API threat model.
-- `docs/threat-models/battlenet-oauth-callback.md` — OAuth callback threat model.
-- `docs/threat-models/keyvault-data-protection-wrap.md` — KV trust boundary.
-- `docs/threat-models/admin-privilege-boundary.md` — admin auth + cache.
 - `docs/wire-payload-contract.md` — what leaves the API boundary.
