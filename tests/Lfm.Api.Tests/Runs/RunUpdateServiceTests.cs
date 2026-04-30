@@ -267,7 +267,6 @@ public class RunUpdateServiceTests
         Assert.Equal(25, ok.Run.Size);
         Assert.Equal("HEROIC:25", ok.Run.ModeKey);
         Assert.NotNull(captured);
-        Assert.Equal(IfMatchEtag, captured!.ETag is null ? IfMatchEtag : IfMatchEtag); // sanity
         runsRepo.Verify(r => r.UpdateAsync(It.IsAny<RunDocument>(), IfMatchEtag, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
