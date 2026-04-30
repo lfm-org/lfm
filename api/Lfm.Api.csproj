@@ -33,6 +33,10 @@
     <!-- Cosmos SDK 3.x loads Newtonsoft.Json at runtime via DocumentClient even
          when AzureCosmosDisableNewtonsoftJsonCheck bypasses the build-time check.
          Without this the isolated worker crashes with FileNotFoundException. -->
+    <!-- DESIGN TRADEOFF: Cosmos document records may carry dual serializer
+         attributes (Newtonsoft for storage round-trip, STJ for wire/tests).
+         Revisit when Cosmos SDK ships an STJ-default release; see
+         docs/storage-architecture.md. -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <!-- Min 12.24.1 required by Azure.Extensions.AspNetCore.DataProtection.Blobs 1.5.1 -->
