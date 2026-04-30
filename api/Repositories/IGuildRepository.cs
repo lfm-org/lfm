@@ -44,55 +44,63 @@ public sealed record GuildDocument(
     GuildSetup? Setup = null,
     string? LastOverrideBy = null,
     string? LastOverrideAt = null,
-    // blizzardRosterRaw: embedded JSON object — modelled as opaque string to
-    // avoid pulling in the full Blizzard roster type in this iteration.
-    // The service layer deserialises it when needed.
-    BlizzardGuildRosterRaw? BlizzardRosterRaw = null,
-    BlizzardGuildProfileRaw? BlizzardProfileRaw = null,
+    // blizzardRosterRaw / blizzardProfileRaw: cached Blizzard responses,
+    // translated from Blizzard wire shapes via BlizzardModelTranslator.
+    StoredGuildRoster? BlizzardRosterRaw = null,
+    StoredGuildProfile? BlizzardProfileRaw = null,
     // Cosmos _etag — populated by the repository on read, used by PATCH /guild
     // to honor client-supplied If-Match headers for optimistic concurrency.
     [property: System.Text.Json.Serialization.JsonPropertyName("_etag")] string? ETag = null);
 
+// ---------------------------------------------------------------------------
+// Stored Blizzard guild roster — embedded inside the guild Cosmos document.
+// Cosmos keys are derived from .NET property names via CamelCase contract
+// resolver. Renaming any property here changes the JSON key written to Cosmos
+// and breaks reading existing documents.
+//
+// Resolves SD-S-5 from docs/superpowersreviews/2026-04-29-software-design-deep-review.md.
+// ---------------------------------------------------------------------------
+
 /// <summary>
-/// Blizzard guild roster member character (minimal fields needed for rank matching).
+/// Stored Blizzard guild roster member character (minimal fields needed for rank matching).
 /// </summary>
-public sealed record BlizzardGuildRosterMemberCharacter(
+public sealed record StoredGuildRosterMemberCharacter(
     string Name,
-    BlizzardGuildRosterRealm Realm,
+    StoredGuildRosterRealm Realm,
     int? Id = null);
 
-/// <summary>Realm reference embedded in a Blizzard guild roster member.</summary>
-public sealed record BlizzardGuildRosterRealm(string Slug);
+/// <summary>Realm reference embedded in a stored Blizzard guild roster member.</summary>
+public sealed record StoredGuildRosterRealm(string Slug);
 
-/// <summary>Single member entry in a Blizzard guild roster response.</summary>
-public sealed record BlizzardGuildRosterMember(
-    BlizzardGuildRosterMemberCharacter Character,
+/// <summary>Single member entry in a stored Blizzard guild roster.</summary>
+public sealed record StoredGuildRosterMember(
+    StoredGuildRosterMemberCharacter Character,
     int Rank);
 
 /// <summary>
-/// Blizzard guild roster response as stored inside the guild document.
+/// Blizzard guild roster as stored inside the guild Cosmos document.
 /// Only the fields used by GuildPermissions (rank matching) are modelled here.
 /// </summary>
-public sealed record BlizzardGuildRosterRaw(
-    IReadOnlyList<BlizzardGuildRosterMember>? Members = null);
+public sealed record StoredGuildRoster(
+    IReadOnlyList<StoredGuildRosterMember>? Members = null);
 
-/// <summary>Faction reference in a Blizzard guild profile response.</summary>
-public sealed record BlizzardGuildProfileFaction(
+/// <summary>Faction reference in a stored Blizzard guild profile.</summary>
+public sealed record StoredGuildProfileFaction(
     [property: JsonConverter(typeof(LocalizedStringConverter))] string? Name = null);
 
-/// <summary>Realm reference in a Blizzard guild profile response.</summary>
-public sealed record BlizzardGuildProfileRealm(
+/// <summary>Realm reference in a stored Blizzard guild profile.</summary>
+public sealed record StoredGuildProfileRealm(
     string Slug,
     [property: JsonConverter(typeof(LocalizedStringConverter))] string? Name = null);
 
 /// <summary>
-/// Blizzard guild profile as stored inside the guild document.
+/// Blizzard guild profile as stored inside the guild Cosmos document.
 /// Only the fields used for building the GuildDto are modelled here.
 /// </summary>
-public sealed record BlizzardGuildProfileRaw(
+public sealed record StoredGuildProfile(
     [property: JsonConverter(typeof(LocalizedStringConverter))] string Name,
-    BlizzardGuildProfileRealm Realm,
-    BlizzardGuildProfileFaction? Faction = null,
+    StoredGuildProfileRealm Realm,
+    StoredGuildProfileFaction? Faction = null,
     int? MemberCount = null,
     int? AchievementPoints = null);
 

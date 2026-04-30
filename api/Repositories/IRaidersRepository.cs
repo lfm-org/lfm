@@ -7,32 +7,37 @@ using Lfm.Api.Serialization;
 namespace Lfm.Api.Repositories;
 
 // ---------------------------------------------------------------------------
-// Blizzard account profile — stored verbatim as returned by the Blizzard API.
-// Field names follow Blizzard's snake_case convention; STJ [JsonPropertyName]
-// attributes are required because the Cosmos client is configured for camelCase
-// only at the *top-level document* boundary, not for nested objects.
+// Stored Blizzard account profile — embedded inside the raider Cosmos document.
+// Cosmos keys are derived from .NET property names via CamelCase contract
+// resolver (see Program.cs CosmosClientOptions). Renaming any property here
+// changes the JSON key written to Cosmos and breaks reading existing documents.
+//
+// These types were previously dual-roled as Blizzard HTTP wire models. The
+// HTTP wire shapes now live in api/Services/Blizzard/Models/ and a translator
+// converts wire → stored at the Blizzard adapter boundary.
+// Resolves SD-S-5 from docs/superpowersreviews/2026-04-29-software-design-deep-review.md.
 // ---------------------------------------------------------------------------
 
-public sealed record BlizzardRealmRef(
-    [property: JsonPropertyName("slug")] string Slug,
-    [property: JsonPropertyName("name")] string? Name = null);
+public sealed record StoredBlizzardRealmRef(
+    string Slug,
+    string? Name = null);
 
-public sealed record BlizzardNamedRef(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("name")] string? Name = null);
+public sealed record StoredBlizzardNamedRef(
+    int Id,
+    string? Name = null);
 
-public sealed record BlizzardAccountCharacter(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("level")] int Level,
-    [property: JsonPropertyName("realm")] BlizzardRealmRef Realm,
-    [property: JsonPropertyName("playable_class")] BlizzardNamedRef? PlayableClass = null);
+public sealed record StoredBlizzardAccountCharacter(
+    string Name,
+    int Level,
+    StoredBlizzardRealmRef Realm,
+    StoredBlizzardNamedRef? PlayableClass = null);
 
-public sealed record BlizzardWowAccount(
-    [property: JsonPropertyName("id")] int? Id,
-    [property: JsonPropertyName("characters")] IReadOnlyList<BlizzardAccountCharacter>? Characters = null);
+public sealed record StoredBlizzardWowAccount(
+    int? Id,
+    IReadOnlyList<StoredBlizzardAccountCharacter>? Characters = null);
 
-public sealed record BlizzardAccountProfileSummary(
-    [property: JsonPropertyName("wow_accounts")] IReadOnlyList<BlizzardWowAccount>? WowAccounts = null);
+public sealed record StoredBlizzardAccountProfile(
+    IReadOnlyList<StoredBlizzardWowAccount>? WowAccounts = null);
 
 // ---------------------------------------------------------------------------
 // Stored selected character — minimal fields required for character mapping.
@@ -50,18 +55,18 @@ public sealed record StoredSpecializationsSummary(
 public sealed record StoredSpecializationsEntry(StoredCharacterSpecialization Specialization);
 
 /// <summary>
-/// A single asset entry in a Blizzard character media summary.
-/// Field names match the snake_case Blizzard API response (e.g. "avatar", "main").
+/// A single asset entry in a Blizzard character media summary, as stored in
+/// Cosmos. Field names round-trip through Newtonsoft to camelCase ("key", "value").
 /// </summary>
-public sealed record BlizzardCharacterMediaAsset(string Key, string Value);
+public sealed record StoredBlizzardCharacterMediaAsset(string Key, string Value);
 
 /// <summary>
-/// The Blizzard character media summary response.
-/// Mirrors <c>BlizzardCharacterMediaSummary</c> from
-/// <c>functions/src/types/blizzard.ts</c>.
+/// The Blizzard character media summary as stored in Cosmos (inside
+/// <see cref="StoredSelectedCharacter.MediaSummary"/>). Round-trips through
+/// Newtonsoft + camelCase contract resolver.
 /// </summary>
-public sealed record BlizzardCharacterMediaSummary(
-    IReadOnlyList<BlizzardCharacterMediaAsset>? Assets = null);
+public sealed record StoredBlizzardCharacterMedia(
+    IReadOnlyList<StoredBlizzardCharacterMediaAsset>? Assets = null);
 
 public sealed record StoredSelectedCharacter(
     string Id,
@@ -70,7 +75,7 @@ public sealed record StoredSelectedCharacter(
     string Name,
     string? PortraitUrl = null,
     StoredSpecializationsSummary? SpecializationsSummary = null,
-    BlizzardCharacterMediaSummary? MediaSummary = null,
+    StoredBlizzardCharacterMedia? MediaSummary = null,
     int? ClassId = null,
     [property: Newtonsoft.Json.JsonConverter(typeof(LocalizedStringConverter))] string? ClassName = null,
     int? Level = null,
@@ -101,7 +106,7 @@ public sealed record RaiderDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     int? Ttl = null,
     // accountProfileSummary: cached Blizzard profile response (populated by battlenet-characters-refresh).
-    BlizzardAccountProfileSummary? AccountProfileSummary = null,
+    StoredBlizzardAccountProfile? AccountProfileSummary = null,
     // accountProfileRefreshedAt: ISO-8601 timestamp of last cooldown reset (even on 304 / not-modified).
     string? AccountProfileRefreshedAt = null,
     // accountProfileFetchedAt: ISO-8601 timestamp of last full Blizzard fetch (only updated on 200 OK).
@@ -113,37 +118,6 @@ public sealed record RaiderDocument(
     // Cosmos _etag — populated by the repository on read, used by PATCH /me to
     // honor client-supplied If-Match headers for optimistic concurrency.
     [property: JsonPropertyName("_etag")] string? ETag = null);
-
-// ---------------------------------------------------------------------------
-// Blizzard character profile — response from /profile/wow/character/{realm}/{name}
-// ---------------------------------------------------------------------------
-
-public sealed record BlizzardCharacterGuildRef(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("name")] string? Name = null);
-
-public sealed record BlizzardCharacterProfileResponse(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("level")] int Level,
-    [property: JsonPropertyName("character_class")] BlizzardNamedRef? CharacterClass = null,
-    [property: JsonPropertyName("race")] BlizzardNamedRef? Race = null,
-    [property: JsonPropertyName("realm")] BlizzardRealmRef? Realm = null,
-    [property: JsonPropertyName("guild")] BlizzardCharacterGuildRef? Guild = null);
-
-// ---------------------------------------------------------------------------
-// Blizzard character specializations — response from /profile/wow/character/{realm}/{name}/specializations
-// ---------------------------------------------------------------------------
-
-public sealed record BlizzardSpecializationRef(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("name")] string? Name = null);
-
-public sealed record BlizzardSpecializationEntry(
-    [property: JsonPropertyName("specialization")] BlizzardSpecializationRef Specialization);
-
-public sealed record BlizzardCharacterSpecializationsResponse(
-    [property: JsonPropertyName("active_specialization")] BlizzardSpecializationRef? ActiveSpecialization = null,
-    [property: JsonPropertyName("specializations")] IReadOnlyList<BlizzardSpecializationEntry>? Specializations = null);
 
 public interface IRaidersRepository
 {
