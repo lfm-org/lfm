@@ -243,6 +243,38 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_Signup_AutoRefreshes_Characters_When_Cache_NeedsRefresh()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        Services.AddSingleton(client.Object);
+
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.NeedsRefresh());
+        battleNet.Setup(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CharacterDto> { MakeAppCharacter() });
+        Services.AddSingleton(battleNet.Object);
+
+        var me = new Mock<IMeClient>();
+        me.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeResponse("bnet-1", null, "eu-silvermoon-aelrin", false, "en"));
+        Services.AddSingleton(me.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            battleNet.Verify(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Contains(Loc("runs.signup.action"), cut.Markup);
+            Assert.DoesNotContain(Loc("runs.signup.charactersNeedRefresh"), cut.Markup);
+        });
+    }
+
+    [Fact]
     public void RunsPage_CancelSignup_Removes_Current_User_Signup()
     {
         var client = new Mock<IRunsClient>();

@@ -397,13 +397,27 @@
                 _signupOptionsLoaded = true;
                 SelectDefaultSignupCharacter(me?.SelectedCharacterId);
             }
+            else if (charactersResult is CharactersFetchResult.NeedsRefresh)
+            {
+                var fresh = await BattleNetClient.RefreshCharactersAsync(CancellationToken.None);
+                if (fresh is null)
+                {
+                    _signupCharacters = [];
+                    _signupOptionsLoaded = true;
+                    _signupError = Loc["runs.signup.charactersLoadFailed"].Value;
+                }
+                else
+                {
+                    _signupCharacters = fresh;
+                    _signupOptionsLoaded = true;
+                    SelectDefaultSignupCharacter(me?.SelectedCharacterId);
+                }
+            }
             else
             {
                 _signupCharacters = [];
                 _signupOptionsLoaded = true;
-                _signupError = charactersResult is CharactersFetchResult.NeedsRefresh
-                    ? Loc["runs.signup.charactersNeedRefresh"].Value
-                    : Loc["runs.signup.charactersLoadFailed"].Value;
+                _signupError = Loc["runs.signup.charactersLoadFailed"].Value;
             }
         }
         catch
