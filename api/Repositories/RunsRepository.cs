@@ -4,8 +4,8 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Lfm.Api.Helpers;
 using Lfm.Api.Options;
+using Lfm.Api.Runs;
 
 namespace Lfm.Api.Repositories;
 
