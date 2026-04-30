@@ -60,7 +60,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
 
     // E2E scope: proves the real callback path signs in and lands the browser on runs.
     // Cheaper lanes cannot prove this because OAuth redirects, callback cookies, and SPA auth state compose here.
-    // Shared data: read-only.
+    // Shared data: disposable.
     [Fact]
     public async Task ProductionCallback_StubbedOAuthProvider_SignsInAndLandsOnRuns()
     {
@@ -98,7 +98,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
 
     // E2E scope: proves the browser recovers from a transient post-callback /me failure.
     // Cheaper lanes cannot prove this because retry behavior must preserve the callback session in the SPA.
-    // Shared data: read-only.
+    // Shared data: disposable.
     [Fact]
     public async Task ProductionCallback_TransientMe503AfterCallback_RetriesAndShowsSignedIn()
     {
