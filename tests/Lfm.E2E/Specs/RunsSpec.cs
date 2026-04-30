@@ -61,18 +61,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Navigate to the create-run form
         await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
 
-        // Wait for the form to load (instance dropdown is populated)
+        // Wait for the form to load.
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        // Known limitation: FluentUI <fluent-select> web component does not expose
-        // standard ARIA combobox/option roles to Playwright. Prefer GetByRole once
-        // upstream support lands (microsoft/fluentui-blazor#2614). Until then, use the
-        // element ID set on the component.
-        var instanceSelect = Page.Locator("#instance-select");
-        await instanceSelect.ClickAsync();
-        var firstRealOption = Page.Locator("#instance-select fluent-option").Nth(1);
-        await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
-        await firstRealOption.ClickAsync();
 
         // Fill in required form fields with a unique run name via description.
         // Use a future date anchored to UtcNow so the test does not become a
@@ -80,10 +70,10 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // The native <input type="datetime-local"> accepts no timezone suffix;
         // the browser interprets the value as wall-clock local time.
         var uniqueRunName = $"E2E-Create-{Guid.NewGuid():N}";
-        await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
+        await runsPage.KeyLevelInput.FillAsync("10");
         await runsPage.StartTimeInput.FillAsync(
             DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
-        await runsPage.DescriptionInput.FillAsync(uniqueRunName);
+        await runsPage.FillDescriptionAsync(uniqueRunName);
 
         // Submit
         await runsPage.CreateRunSubmitButton.ClickAsync();
@@ -138,7 +128,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         Assert.Contains("(1)", attendingText);
 
         await Assertions.Expect(runsPage.RosterCharacterRows).ToHaveCountAsync(1, new() { Timeout = 10000 });
-        await Assertions.Expect(Page!.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(
+            runsPage.RosterCharacterRows.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
@@ -163,7 +155,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         var attendingText = await runsPage.AttendingHeading.InnerTextAsync();
         Assert.Contains("(1)", attendingText);
 
-        await Assertions.Expect(Page.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(
+            runsPage.RosterCharacterRows.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
@@ -184,7 +178,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(runsPage.SaveChangesButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         // Verify the seeded character is shown in the roster on the edit page
-        await Assertions.Expect(Page.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(Page.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]
@@ -244,19 +239,11 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        // FluentUI <fluent-select> does not yet expose ARIA combobox roles to
-        // Playwright (microsoft/fluentui-blazor#2614); target by element id.
-        var instanceSelect = Page.Locator("#instance-select");
-        await instanceSelect.ClickAsync();
-        var firstRealOption = Page.Locator("#instance-select fluent-option").Nth(1);
-        await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
-        await firstRealOption.ClickAsync();
-
-        await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
+        await runsPage.KeyLevelInput.FillAsync("10");
         // Native <input type="datetime-local"> rejects a Z suffix.
         await runsPage.StartTimeInput.FillAsync(
             DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
-        await runsPage.DescriptionInput.FillAsync($"E2E-Scratch-{Guid.NewGuid():N}");
+        await runsPage.FillDescriptionAsync($"E2E-Scratch-{Guid.NewGuid():N}");
 
         await runsPage.CreateRunSubmitButton.ClickAsync();
 
@@ -293,22 +280,13 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
             await deletePage.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Select the first available instance. FluentUI custom elements
-            // do not yet expose ARIA combobox roles to Playwright (see
-            // microsoft/fluentui-blazor#2614), so target by element id.
-            var instanceSelect = deletePage.Locator("#instance-select");
-            await instanceSelect.ClickAsync();
-            var firstRealOption = deletePage.Locator("#instance-select fluent-option").Nth(1);
-            await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
-            await firstRealOption.ClickAsync();
-
             var uniqueDescription = $"E2E-Delete-{Guid.NewGuid():N}";
-            await runsPage.ModeKeyInput.FillAsync("HEROIC:25");
+            await runsPage.KeyLevelInput.FillAsync("10");
             // Native <input type="datetime-local"> rejects a Z suffix; the
             // browser interprets the value as wall-clock local time.
             await runsPage.StartTimeInput.FillAsync(
                 DateTimeOffset.UtcNow.AddDays(60).ToString("yyyy-MM-ddTHH:mm:ss"));
-            await runsPage.DescriptionInput.FillAsync(uniqueDescription);
+            await runsPage.FillDescriptionAsync(uniqueDescription);
             await deletePage.Keyboard.PressAsync("Tab");
             await runsPage.CreateRunSubmitButton.ClickAsync();
 

@@ -10,6 +10,7 @@ public static class DefaultSeed
     // Well-known test identifiers shared with AuthHelper and spec files.
     public const string PrimaryBattleNetId = "test-bnet-id";
     public const string SecondaryBattleNetId = "test-bnet-id-2";
+    public const string DisposableBattleNetId = "test-bnet-id-delete";
     // Must match the guildId assigned by E2ELoginFunction for non-admin test users.
     // Must be numeric — RunsRepository.ListForGuildAsync does int.TryParse on it.
     public const string TestGuildId = "12345";
@@ -28,6 +29,7 @@ public static class DefaultSeed
 
         await SeedPrimaryRaiderAsync(raidersContainer);
         await SeedSecondaryRaiderAsync(raidersContainer);
+        await SeedDisposableRaiderAsync(raidersContainer);
 
         // --- Guilds container (partition key: /id) ---
         var guildsContainer = (await RetryAsync(
@@ -125,7 +127,7 @@ public static class DefaultSeed
             },
             ["accountProfileSummary"] = new Dictionary<string, object?>
             {
-                ["wow_accounts"] = new List<object>
+                ["wowAccounts"] = new List<object>
                 {
                     new Dictionary<string, object?>
                     {
@@ -141,14 +143,14 @@ public static class DefaultSeed
                                     ["slug"] = "test-realm",
                                     ["name"] = "Test Realm",
                                 },
-                                ["playable_class"] = new Dictionary<string, object?>
+                                ["playableClass"] = new Dictionary<string, object?>
                                 {
                                     ["id"] = 8,
                                     ["name"] = "Mage",
                                 },
                             },
                             // Keep in sync with raider.characters above: the characters
-                            // endpoint iterates wow_accounts[*].characters to build the
+                            // endpoint iterates wowAccounts[*].characters to build the
                             // card list, so a mismatch here shows as missing cards in
                             // the UI and drove CharactersPage_Loads_DisplaysCharacterList
                             // to tolerate an empty render as a pass.
@@ -161,7 +163,7 @@ public static class DefaultSeed
                                     ["slug"] = "test-realm",
                                     ["name"] = "Test Realm",
                                 },
-                                ["playable_class"] = new Dictionary<string, object?>
+                                ["playableClass"] = new Dictionary<string, object?>
                                 {
                                     ["id"] = 2,
                                     ["name"] = "Paladin",
@@ -224,7 +226,7 @@ public static class DefaultSeed
             },
             ["accountProfileSummary"] = new Dictionary<string, object?>
             {
-                ["wow_accounts"] = new List<object>
+                ["wowAccounts"] = new List<object>
                 {
                     new Dictionary<string, object?>
                     {
@@ -240,7 +242,7 @@ public static class DefaultSeed
                                     ["slug"] = "test-realm",
                                     ["name"] = "Test Realm",
                                 },
-                                ["playable_class"] = new Dictionary<string, object?>
+                                ["playableClass"] = new Dictionary<string, object?>
                                 {
                                     ["id"] = 1,
                                     ["name"] = "Warrior",
@@ -254,6 +256,84 @@ public static class DefaultSeed
 
         await RetryAsync(
             () => container.UpsertItemAsync(raider, new PartitionKey(SecondaryBattleNetId)));
+    }
+
+    private static async Task SeedDisposableRaiderAsync(Container container)
+    {
+        var raider = new Dictionary<string, object?>
+        {
+            ["id"] = DisposableBattleNetId,
+            ["battleNetId"] = DisposableBattleNetId,
+            ["selectedCharacterId"] = "eu-test-realm-thalora",
+            ["locale"] = null,
+            ["lastSeenAt"] = "2026-03-18T12:00:00.0000000Z",
+            ["ttl"] = -1,
+            ["accountProfileRefreshedAt"] = DateTimeOffset.UtcNow.ToString("O"),
+            ["accountProfileFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
+            ["characters"] = new List<object>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "eu-test-realm-thalora",
+                    ["region"] = "eu",
+                    ["realm"] = "test-realm",
+                    ["name"] = "Thalora",
+                    ["portraitUrl"] = null,
+                    ["specializationsSummary"] = new Dictionary<string, object?>
+                    {
+                        ["activeSpecialization"] = new Dictionary<string, object?>
+                        {
+                            ["id"] = 257,
+                            ["name"] = "Holy",
+                        },
+                        ["specializations"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["specialization"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 257,
+                                    ["name"] = "Holy",
+                                },
+                            },
+                        },
+                    },
+                    ["guildId"] = 12345,
+                    ["guildName"] = "Test Guild",
+                },
+            },
+            ["accountProfileSummary"] = new Dictionary<string, object?>
+            {
+                ["wowAccounts"] = new List<object>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = 3,
+                        ["characters"] = new List<object>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Thalora",
+                                ["level"] = 80,
+                                ["realm"] = new Dictionary<string, object?>
+                                {
+                                    ["slug"] = "test-realm",
+                                    ["name"] = "Test Realm",
+                                },
+                                ["playableClass"] = new Dictionary<string, object?>
+                                {
+                                    ["id"] = 5,
+                                    ["name"] = "Priest",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(raider, new PartitionKey(DisposableBattleNetId)));
     }
 
     private static async Task SeedGuildAsync(Container container)
