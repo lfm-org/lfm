@@ -8,7 +8,13 @@ namespace Lfm.Api.Services.Blizzard.Models;
 /// <summary>
 /// Blizzard <c>/data/wow/guild/{realm}/{name}</c> response (HTTP wire shape).
 /// STJ-only snake_case mapping. Never stored directly in Cosmos —
-/// translate via <see cref="BlizzardModelTranslator"/> first.
+/// translate via <see cref="Lfm.Api.Services.Blizzard.BlizzardModelTranslator.ToStored(GuildProfileResponse)"/>
+/// before persisting.
+///
+/// Reserved for the upcoming guild-roster port — no .NET caller yet; the
+/// TypeScript handler still owns guild roster refresh. Kept here so the
+/// .NET port can adopt the wire/storage split without re-introducing the
+/// dual-roled record shape.
 /// </summary>
 public sealed record GuildProfileResponse(
     [property: JsonPropertyName("name")] string Name,
