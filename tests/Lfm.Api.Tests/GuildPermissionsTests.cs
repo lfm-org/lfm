@@ -407,4 +407,114 @@ public class GuildPermissionsTests
 
         Assert.False(result);
     }
+
+    // ─── GetEffectivePermissionsAsync ───────────────────────────────────────
+
+    [Fact]
+    public async Task GetEffectivePermissions_RankZero_AllTrue()
+    {
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("123", It.IsAny<CancellationToken>())).ReturnsAsync(
+            new GuildDocument(
+                Id: "123",
+                GuildId: 123,
+                RealmSlug: "ravencrest",
+                BlizzardRosterFetchedAt: DateTimeOffset.UtcNow.ToString("o"),
+                BlizzardRosterRaw: new BlizzardGuildRosterRaw(Members: new[]
+                {
+                    new BlizzardGuildRosterMember(
+                        Character: new BlizzardGuildRosterMemberCharacter(
+                            Name: "Alice",
+                            Realm: new BlizzardGuildRosterRealm(Slug: "ravencrest")),
+                        Rank: 0),
+                }),
+                RankPermissions: null));
+
+        var raider = new RaiderDocument(
+            Id: "abc",
+            BattleNetId: "abc",
+            SelectedCharacterId: "us-ravencrest-alice",
+            Locale: null,
+            Characters: new[]
+            {
+                new StoredSelectedCharacter(
+                    Id: "us-ravencrest-alice",
+                    Region: "us",
+                    Realm: "ravencrest",
+                    Name: "Alice",
+                    GuildId: 123,
+                    GuildName: "Test Guild"),
+            });
+
+        var sut = new GuildPermissions(guildRepo.Object);
+        var perms = await sut.GetEffectivePermissionsAsync(raider, CancellationToken.None);
+
+        Assert.True(perms.IsAdmin);
+        Assert.True(perms.CanCreateGuildRuns);
+        Assert.True(perms.CanSignupGuildRuns);
+        Assert.True(perms.CanDeleteGuildRuns);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_NoGuild_AllFalse()
+    {
+        var guildRepo = new Mock<IGuildRepository>();
+        var raider = new RaiderDocument(Id: "abc", BattleNetId: "abc", SelectedCharacterId: null, Locale: null);
+
+        var sut = new GuildPermissions(guildRepo.Object);
+        var perms = await sut.GetEffectivePermissionsAsync(raider, CancellationToken.None);
+
+        Assert.False(perms.IsAdmin);
+        Assert.False(perms.CanCreateGuildRuns);
+        Assert.False(perms.CanSignupGuildRuns);
+        Assert.False(perms.CanDeleteGuildRuns);
+        guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_StaleRoster_AdminTrue_RunPermsFalse()
+    {
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("123", It.IsAny<CancellationToken>())).ReturnsAsync(
+            new GuildDocument(
+                Id: "123",
+                GuildId: 123,
+                RealmSlug: "ravencrest",
+                // 2 hours old — past the 1-hour TTL.
+                BlizzardRosterFetchedAt: DateTimeOffset.UtcNow.AddHours(-2).ToString("o"),
+                BlizzardRosterRaw: new BlizzardGuildRosterRaw(Members: new[]
+                {
+                    new BlizzardGuildRosterMember(
+                        Character: new BlizzardGuildRosterMemberCharacter(
+                            Name: "Alice",
+                            Realm: new BlizzardGuildRosterRealm(Slug: "ravencrest")),
+                        Rank: 0),
+                }),
+                RankPermissions: null));
+
+        var raider = new RaiderDocument(
+            Id: "abc",
+            BattleNetId: "abc",
+            SelectedCharacterId: "us-ravencrest-alice",
+            Locale: null,
+            Characters: new[]
+            {
+                new StoredSelectedCharacter(
+                    Id: "us-ravencrest-alice",
+                    Region: "us",
+                    Realm: "ravencrest",
+                    Name: "Alice",
+                    GuildId: 123,
+                    GuildName: "Test Guild"),
+            });
+
+        var sut = new GuildPermissions(guildRepo.Object);
+        var perms = await sut.GetEffectivePermissionsAsync(raider, CancellationToken.None);
+
+        // IsAdmin does not require fresh roster; CanX permissions do.
+        Assert.True(perms.IsAdmin);
+        Assert.False(perms.CanCreateGuildRuns);
+        Assert.False(perms.CanSignupGuildRuns);
+        Assert.False(perms.CanDeleteGuildRuns);
+    }
 }
