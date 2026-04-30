@@ -22,11 +22,6 @@ public class LoginPage(IPage page)
         await _page.GotoAsync($"{appBaseUrl}/login", new() { WaitUntil = WaitUntilState.NetworkIdle });
     }
 
-    public async Task<bool> IsSignInButtonVisibleAsync()
-    {
-        return await SignInButton.IsVisibleAsync();
-    }
-
     public async Task ClickSignInAsync()
     {
         await SignInButton.ClickAsync();
