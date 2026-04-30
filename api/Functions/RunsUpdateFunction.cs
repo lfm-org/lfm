@@ -129,8 +129,8 @@ public class RunsUpdateFunction(IRunUpdateService service, ILogger<RunsUpdateFun
             case RunOperationResult.Forbidden fb:
                 AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", fb.AuditReason));
                 return result.ToProblemResult(req.HttpContext);
-            case RunOperationResult.PreconditionFailed pf when pf.Code == "if-match-stale":
-                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", "if-match stale"));
+            case RunOperationResult.PreconditionFailed pf:
+                AuditLog.Emit(logger, new AuditEvent("run.update", principal.BattleNetId, id, "failure", pf.Code.Replace('-', ' ')));
                 return result.ToProblemResult(req.HttpContext);
             default:
                 return result.ToProblemResult(req.HttpContext);
