@@ -235,6 +235,38 @@ public class RunsClientTests
     }
 
     [Fact]
+    public async Task UpdateAsync_preserves_unquoted_if_match_and_response_etag()
+    {
+        var detail = MakeDetail("run-1");
+        var handler = new StubHttpMessageHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = System.Net.Http.Json.JsonContent.Create(detail),
+            };
+            response.Headers.TryAddWithoutValidation("ETag", "etag-v2");
+            return response;
+        });
+        var (client, _) = MakeClient(handler);
+        var request = new UpdateRunRequest(
+            StartTime: FutureStartTime,
+            SignupCloseTime: FutureSignupCloseTime,
+            Description: "updated",
+            Visibility: "PUBLIC",
+            InstanceId: 1,
+            InstanceName: "Liberation of Undermine",
+            Difficulty: "HEROIC",
+            Size: 25);
+
+        var result = await client.UpdateAsync("run-1", request, "etag-v1", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("etag-v2", result!.ETag);
+        Assert.True(handler.LastRequest!.Headers.TryGetValues("If-Match", out var ifMatch));
+        Assert.Equal("etag-v1", Assert.Single(ifMatch));
+    }
+
+    [Fact]
     public async Task UpdateAsync_returns_null_on_non_success_status()
     {
         var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadRequest));
@@ -275,6 +307,28 @@ public class RunsClientTests
         Assert.NotNull(result);
         Assert.Equal("run-1", result!.Run.Id);
         Assert.Equal("\"cosmos-etag\"", result.ETag);
+    }
+
+    [Fact]
+    public async Task GetWithEtagAsync_captures_unquoted_response_etag()
+    {
+        var detail = MakeDetail("run-1");
+        var handler = new StubHttpMessageHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = System.Net.Http.Json.JsonContent.Create(detail),
+            };
+            response.Headers.TryAddWithoutValidation("ETag", "cosmos-etag");
+            return response;
+        });
+        var (client, _) = MakeClient(handler);
+
+        var result = await client.GetWithEtagAsync("run-1", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("run-1", result!.Run.Id);
+        Assert.Equal("cosmos-etag", result.ETag);
     }
 
     [Fact]
