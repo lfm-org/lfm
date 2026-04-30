@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Auth")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -39,6 +39,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves the login page renders its browser-visible sign-in control.
+    // Cheaper lanes cannot prove this because Blazor routing and component upgrade run in the browser.
+    // Shared data: none.
     [Fact]
     public async Task LoginPage_Renders_ShowsSignInButton()
     {
@@ -51,6 +54,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         Assert.True(visible);
     }
 
+    // E2E scope: proves the sign-in button starts browser navigation to Battle.net OAuth.
+    // Cheaper lanes cannot prove this because the contract is a force-load browser request.
+    // Shared data: none.
     [Fact]
     public async Task SignIn_ClickButton_RedirectsToBattleNetOAuth()
     {
@@ -85,6 +91,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         Page = null;
     }
 
+    // E2E scope: proves test-mode login creates a browser session and lands on the redirect target.
+    // Cheaper lanes cannot prove this because cookie storage and authorized nav rendering require a browser.
+    // Shared data: read-only.
     [Fact]
     public async Task TestModeLogin_ValidIdentity_SetsCookieAndRedirects()
     {
@@ -105,6 +114,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves sign-out clears the browser session and protected routes redirect.
+    // Cheaper lanes cannot prove this because the force-load logout and SPA re-bootstrap are browser behavior.
+    // Shared data: read-only.
     [Fact]
     public async Task Logout_ClickSignOut_ClearsSessionAndRedirects()
     {
@@ -149,6 +161,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         }
     }
 
+    // E2E scope: proves the login failure route renders its recovery UI in the browser.
+    // Cheaper lanes cannot prove this because route activation and rendered Fluent UI are browser-observable.
+    // Shared data: none.
     [Fact]
     public async Task AuthFailure_NavigateToErrorPage_ShowsErrorMessage()
     {
