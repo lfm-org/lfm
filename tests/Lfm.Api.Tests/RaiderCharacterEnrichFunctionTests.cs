@@ -6,6 +6,7 @@ using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Api.Services.Blizzard.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -211,23 +212,23 @@ public class RaiderCharacterEnrichFunctionTests
             Id: "bnet-1", BattleNetId: "bnet-1",
             SelectedCharacterId: selected, Locale: null,
             Characters: characters,
-            AccountProfileSummary: accountChars is null ? null : new BlizzardAccountProfileSummary(
-                WowAccounts: [new BlizzardWowAccount(
+            AccountProfileSummary: accountChars is null ? null : new StoredBlizzardAccountProfile(
+                WowAccounts: [new StoredBlizzardWowAccount(
                     Id: 1,
                     Characters: accountChars.Select(c =>
-                        new BlizzardAccountCharacter(
+                        new StoredBlizzardAccountCharacter(
                             Name: c.Name, Level: 80,
-                            Realm: new BlizzardRealmRef(Slug: c.Realm))).ToList())]));
+                            Realm: new StoredBlizzardRealmRef(Slug: c.Realm))).ToList())]));
 
     private static Mock<IBlizzardProfileClient> MakeProfileClient()
     {
         var m = new Mock<IBlizzardProfileClient>();
         m.Setup(p => p.GetCharacterProfileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-         .ReturnsAsync(new BlizzardCharacterProfileResponse(Name: "Shalena", Level: 80));
+         .ReturnsAsync(new CharacterProfileResponse(Name: "Shalena", Level: 80));
         m.Setup(p => p.GetCharacterSpecializationsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-         .ReturnsAsync(new BlizzardCharacterSpecializationsResponse());
+         .ReturnsAsync(new CharacterSpecializationsResponse());
         m.Setup(p => p.GetCharacterMediaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-         .ReturnsAsync((BlizzardCharacterMediaSummary?)null);
+         .ReturnsAsync((CharacterMediaSummaryResponse?)null);
         return m;
     }
 }
