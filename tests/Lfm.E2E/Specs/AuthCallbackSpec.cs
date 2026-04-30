@@ -70,8 +70,8 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         // 30s timeout — this is typically the first test in the suite to hit
         // the /login page on a cold CI runner, so the Blazor WASM bootstrap +
         // FluentUI component registration + the <fluent-button> upgrade all
-        // happen inside this wait. Sibling AuthSpec.LoginPage_Renders hits a
-        // warm cache and can get by with 10s; this one cannot. See #45.
+        // happen inside this wait. AuthSpec.SignIn_ClickButton_RedirectsToBattleNetOAuth
+        // hits the same forceLoad edge without completing the callback. See #45.
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
 
         // Click the real sign-in button. In production this hits /api/v1/battlenet/login

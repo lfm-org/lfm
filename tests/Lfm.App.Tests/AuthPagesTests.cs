@@ -18,6 +18,9 @@ public class AuthPagesTests : ComponentTestBase
 
         Assert.Contains(Loc("landing.title"), cut.Markup);
         Assert.Contains(Loc("landing.subtitle"), cut.Markup);
+        Assert.Contains(Loc("landing.sharedSchedule.title"), cut.Markup);
+        Assert.Contains(Loc("landing.roleCoverage.title"), cut.Markup);
+        Assert.Contains(Loc("landing.battleNetSignIn.title"), cut.Markup);
         Assert.Contains(Loc("landing.signIn"), cut.Markup);
     }
 

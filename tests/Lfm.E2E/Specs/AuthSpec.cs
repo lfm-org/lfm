@@ -39,21 +39,6 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             await Context.CloseAsync();
     }
 
-    // E2E scope: proves the login page renders its browser-visible sign-in control.
-    // Cheaper lanes cannot prove this because Blazor routing and component upgrade run in the browser.
-    // Shared data: none.
-    [Fact]
-    public async Task LoginPage_Renders_ShowsSignInButton()
-    {
-        var loginPage = new LoginPage(Page!);
-
-        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        var visible = await loginPage.IsSignInButtonVisibleAsync();
-        Assert.True(visible);
-    }
-
     // E2E scope: proves the sign-in button starts browser navigation to Battle.net OAuth.
     // Cheaper lanes cannot prove this because the contract is a force-load browser request.
     // Shared data: none.
