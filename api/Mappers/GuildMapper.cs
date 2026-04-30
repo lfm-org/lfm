@@ -5,7 +5,7 @@ using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Contracts.Guild;
 
-namespace Lfm.Api.Functions;
+namespace Lfm.Api.Mappers;
 
 /// <summary>
 /// Shared mapping from <see cref="GuildDocument"/> to <see cref="GuildDto"/>.
