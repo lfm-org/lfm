@@ -40,15 +40,7 @@ public class GuildAdminFunction(IGuildRepository guildRepo, ISiteAdminService si
         if (guildDoc is null)
             return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
-        // Site admin viewing any guild — show admin/editor view but not personal
-        // member permissions. Mirrors the TypeScript site-admin override path.
-        var sitePermissions = new GuildEffectivePermissions(
-            IsAdmin: true,
-            CanCreateGuildRuns: false,
-            CanSignupGuildRuns: false,
-            CanDeleteGuildRuns: false);
-
-        return new OkObjectResult(GuildMapper.MapToDto(guildDoc, sitePermissions));
+        return new OkObjectResult(GuildMapper.MapToDto(guildDoc, GuildEffectivePermissions.SiteAdminView));
     }
 
     /// <summary>

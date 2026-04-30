@@ -228,9 +228,9 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
             return new GuildEffectivePermissions(isAdmin, false, false, false);
 
         var perm = guild.RankPermissions?.FirstOrDefault(rp => rp.Rank == bestRank.Value);
-        var canCreate = perm is not null ? perm.CanCreateGuildRuns : bestRank.Value == 0;
-        var canSignup = perm is not null ? perm.CanSignupGuildRuns : true;
-        var canDelete = perm is not null ? perm.CanDeleteGuildRuns : bestRank.Value == 0;
+        var canCreate = perm?.CanCreateGuildRuns ?? bestRank.Value == 0;
+        var canSignup = perm?.CanSignupGuildRuns ?? true;
+        var canDelete = perm?.CanDeleteGuildRuns ?? bestRank.Value == 0;
 
         return new GuildEffectivePermissions(isAdmin, canCreate, canSignup, canDelete);
     }
