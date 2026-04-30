@@ -43,6 +43,7 @@ public class GuildAdminFunctionTests
             GuildId: 99,
             RealmSlug: "test-realm",
             Slogan: "Admin view",
+            RankPermissions: new[] { new GuildRankPermission(0, true, true, true) },
             Setup: new GuildSetup(
                 InitializedAt: "2025-01-01T00:00:00Z",
                 Timezone: "Europe/Helsinki",
@@ -137,6 +138,11 @@ public class GuildAdminFunctionTests
         var dto = Assert.IsType<GuildDto>(ok.Value);
         Assert.Equal("fi", dto.Setup.Locale);
         Assert.Equal("Europe/Helsinki", dto.Setup.Timezone);
+        Assert.True(dto.Editor.CanEdit);
+        Assert.NotNull(dto.Settings);
+        Assert.False(dto.MemberPermissions.CanCreateGuildRuns);
+        Assert.False(dto.MemberPermissions.CanSignupGuildRuns);
+        Assert.False(dto.MemberPermissions.CanDeleteGuildRuns);
     }
 
     // ---------------------------------------------------------------------------
