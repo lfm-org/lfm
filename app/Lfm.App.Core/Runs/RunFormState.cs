@@ -19,7 +19,7 @@ public sealed class RunFormState
     public IReadOnlyList<ExpansionDto> Expansions { get; private set; } = Array.Empty<ExpansionDto>();
 
     public int ExpansionId { get; set; }
-    public ActivityKind Activity { get; set; } = ActivityKind.Dungeon;
+    public ActivityKind Activity { get; private set; } = ActivityKind.Dungeon;
     public int InstanceId { get; set; }
     public string Difficulty { get; private set; } = "MYTHIC_KEYSTONE";
     public int Size { get; private set; } = 5;
@@ -125,6 +125,40 @@ public sealed class RunFormState
         Difficulty = difficulty;
         Size = size;
         KeystoneLevel = keystoneLevel;
+    }
+
+    /// <summary>
+    /// Sets all form state atomically for the populate-from-stored-run path.
+    /// Unlike <see cref="OnActivityChanged"/>, this does NOT cascade clears —
+    /// callers supply every field's intended value.
+    /// </summary>
+    public void Populate(
+        ActivityKind activity,
+        int expansionId,
+        int instanceId,
+        string difficulty,
+        int size,
+        int? keystoneLevel,
+        bool anyDungeon,
+        DateTime? startTimeLocal,
+        DateTime? signupCloseLocal,
+        bool showSignupClose,
+        string visibility,
+        string description)
+    {
+        Activity = activity;
+        ExpansionId = expansionId;
+        InstanceId = instanceId;
+        Difficulty = difficulty;
+        Size = size;
+        KeystoneLevel = keystoneLevel;
+        AnyDungeon = anyDungeon;
+        StartTimeLocal = startTimeLocal;
+        SignupCloseLocal = signupCloseLocal;
+        ShowSignupClose = showSignupClose;
+        Visibility = visibility;
+        Description = description;
+        RefreshDifficultyOptions();
     }
 
     public static int ResolveCurrentSeasonId(IReadOnlyList<ExpansionDto> expansions)

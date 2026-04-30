@@ -105,4 +105,36 @@ public class RunFormStateTests
     {
         Assert.Equal(14, RunFormState.ResolveCurrentSeasonId(Expansions));
     }
+
+    [Fact]
+    public void Populate_SetsAllFields_WithoutCascading()
+    {
+        var state = new RunFormState();
+        state.LoadOptions(Instances, Expansions);
+
+        state.Populate(
+            activity: ActivityKind.Raid,
+            expansionId: 14,
+            instanceId: 2055,
+            difficulty: "MYTHIC",
+            size: 20,
+            keystoneLevel: null,
+            anyDungeon: false,
+            startTimeLocal: new DateTime(2026, 5, 1, 20, 0, 0),
+            signupCloseLocal: null,
+            showSignupClose: false,
+            visibility: "PUBLIC",
+            description: "test");
+
+        Assert.Equal(ActivityKind.Raid, state.Activity);
+        Assert.Equal(2055, state.InstanceId);
+        Assert.Equal("MYTHIC", state.Difficulty);
+        Assert.Equal(20, state.Size);
+        Assert.Null(state.KeystoneLevel);
+        Assert.False(state.AnyDungeon);
+        Assert.Equal("test", state.Description);
+        // The Mythic raid difficulty options for instance 2055 must be loaded
+        // (RefreshDifficultyOptions ran).
+        Assert.Contains(state.DifficultyOptions, d => d.DifficultyId == "MYTHIC");
+    }
 }
