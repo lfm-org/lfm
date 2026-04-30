@@ -99,6 +99,10 @@ dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release
 
 Requires a running Docker engine — Testcontainers spins up Cosmos + Azurite; the API and Blazor app are published and run in-process.
 
+Maintenance guidance: see [E2E Maintenance](docs/testing/e2e-maintenance.md)
+for lane selection, seed mutation rules, drift checks, and diagnostics
+expectations.
+
 ## Deployment
 
 Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workflow. All Bicep parameters are passed inline from GitHub repository variables.
