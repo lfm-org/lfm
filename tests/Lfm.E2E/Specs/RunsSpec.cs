@@ -209,12 +209,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Mirrors the per-test factory pattern in DeleteRun_Confirm_RemovedFromList.
         Page!.Request += (_, req) =>
         {
-            if (req.Url.Contains("/api/runs/") && req.Method is "PUT" or "PATCH")
+            if (req.Url.Contains("/api/v1/runs/") && req.Method is "PUT" or "PATCH")
                 Log($"[API REQ] {req.Method} {req.Url} body={req.PostData}");
         };
         Page.Response += (_, resp) =>
         {
-            if (resp.Url.Contains("/api/runs/") && resp.Status >= 400)
+            if (resp.Url.Contains("/api/v1/runs/") && resp.Status >= 400)
                 Log($"[API RESP] {resp.Status} {resp.Url}");
         };
 

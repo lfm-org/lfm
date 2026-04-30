@@ -31,7 +31,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
     protected override string[] IgnoredConsolePatterns =>
         [
             "401",
-            "/api/me",
+            "/api/v1/me",
             "Content Security Policy",
             "Refused",
             "blocked",
@@ -103,7 +103,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             $$"""
             async () => {
                 try {
-                    const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/me', { credentials: 'include' });
+                    const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/v1/me', { credentials: 'include' });
                     return 'unexpected-success-status-' + res.status;
                 } catch (e) {
                     return 'blocked';

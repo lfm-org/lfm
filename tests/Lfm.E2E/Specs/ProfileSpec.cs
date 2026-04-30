@@ -23,9 +23,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // the refresh actually completes — ignore the 429 from the refresh path.
     // The browser console only carries the status code in <c>msg.Text</c>
     // (not the URL), so we filter on the literal "status of 429" substring.
-    // The 401 / /api/me pattern is the default for all specs.
+    // The 401 / /api/v1/me pattern is the default for all specs.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "/api/me", "status of 429"];
+        ["401", "/api/v1/me", "status of 429"];
 
     public override async Task InitializeAsync()
     {

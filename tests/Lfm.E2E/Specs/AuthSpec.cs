@@ -16,12 +16,12 @@ namespace Lfm.E2E.Specs;
 public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    // 401 + /api/me — expected for the anonymous context. MONO_WASM /
+    // 401 + /api/v1/me — expected for the anonymous context. MONO_WASM /
     // .wasm / mono_download_assets — intermittent Blazor WASM bundle download
     // flake that hits cold-start forceLoad redirects (e.g. /api/v1/battlenet/login);
     // unrelated to the assertions these tests make. See #45.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
+        ["401", "/api/v1/me", "MONO_WASM", ".wasm", "mono_download_assets"];
 
     public override async Task InitializeAsync()
     {
@@ -134,7 +134,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             // Verify session cleared — revisit a protected route and confirm the
             // SPA redirects to /login. Goto's default WaitUntil=Load plus the
             // auto-retrying URL assertion give Blazor enough time to fetch
-            // /api/me (now 401) and fire RedirectToLogin.
+            // /api/v1/me (now 401) and fire RedirectToLogin.
             await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
             await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
