@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
-namespace Lfm.Api.Helpers;
+namespace Lfm.Api.Runs;
 
 /// <summary>
 /// Shared editability check for runs. Mirrors isEditingClosed in run-editability.ts.
