@@ -47,7 +47,7 @@
                         <ToggleGroup TValue="ActivityKind"
                                      Options="_activityOptions"
                                      Value="_form.Activity"
-                                     ValueChanged="OnActivityChanged"
+                                     ValueChanged="HandleActivityChanged"
                                      AriaLabelledBy="editRun-activity-label"
                                      Disabled="@(_saving || _hasSignups)" />
                     </div>
@@ -59,7 +59,7 @@
                             <ToggleGroup TValue="bool"
                                          Options="_dungeonScopeOptions"
                                          Value="_form.AnyDungeon"
-                                         ValueChanged="OnDungeonScopeChanged"
+                                         ValueChanged="HandleDungeonScopeChanged"
                                          AriaLabelledBy="editRun-dungeonScope-label"
                                          Disabled="@(_saving || _hasSignups)" />
                         </div>
@@ -71,7 +71,7 @@
                                       Label="@Loc["createRun.instance"]"
                                       TOption="string"
                                       Value="@_form.InstanceId.ToString()"
-                                      ValueChanged="@OnInstanceChanged"
+                                      ValueChanged="@HandleInstanceChanged"
                                       Disabled="@(_saving || _hasSignups)">
                             <FluentOption Value="0">@Loc["createRun.selectInstance"]</FluentOption>
                             @foreach (var opt in _form.FilteredInstances)
@@ -88,7 +88,7 @@
                             <ToggleGroup TValue="string"
                                          Options="_difficultyOptions"
                                          Value="_form.Difficulty"
-                                         ValueChanged="OnDifficultyChanged"
+                                         ValueChanged="HandleDifficultyChanged"
                                          AriaLabelledBy="editRun-difficulty-label"
                                          Disabled="@(_saving || _hasSignups)" />
                         </div>
@@ -381,30 +381,30 @@
             visibility: string.IsNullOrEmpty(run.Visibility) ? "PUBLIC" : run.Visibility,
             description: run.Description ?? string.Empty);
 
-        RefreshDifficultyOptions();
+        SyncDifficultyOptionTuples();
         _form.CanCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
     }
 
-    private void OnActivityChanged(ActivityKind value)
+    private void HandleActivityChanged(ActivityKind value)
     {
         _form.OnActivityChanged(value);
-        RefreshDifficultyOptions();
+        SyncDifficultyOptionTuples();
     }
 
-    private void OnDungeonScopeChanged(bool anyDungeon)
+    private void HandleDungeonScopeChanged(bool anyDungeon)
     {
         _form.OnDungeonScopeChanged(anyDungeon);
-        RefreshDifficultyOptions();
+        SyncDifficultyOptionTuples();
     }
 
-    private void OnInstanceChanged(string value)
+    private void HandleInstanceChanged(string value)
     {
         if (!int.TryParse(value, out var id)) return;
         _form.OnInstanceChanged(id);
-        RefreshDifficultyOptions();
+        SyncDifficultyOptionTuples();
     }
 
-    private void OnDifficultyChanged(string value)
+    private void HandleDifficultyChanged(string value)
     {
         _form.OnDifficultyChanged(value);
     }
@@ -428,7 +428,7 @@
         };
     }
 
-    private void RefreshDifficultyOptions()
+    private void SyncDifficultyOptionTuples()
     {
         _form.RefreshDifficultyOptions();
         _difficultyOptions = _form.DifficultyOptions
