@@ -93,6 +93,12 @@ dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app
 
 ## E2E Tests
 
+Optional drift check after route, selector, auth-helper, or seed-shape changes:
+
+```bash
+./scripts/check-e2e-drift.sh
+```
+
 ```bash
 dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release
 ```

@@ -95,7 +95,8 @@ Commands: `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release`.
 Housekeeping: E2E specs must prove browser-only behavior. If API, app-core, or
 bUnit tests can prove the same contract, move the assertion down. Specs must
 not permanently mutate shared seed records; destructive flows require
-disposable seed data.
+disposable seed data. When changing routes, selectors, seed storage shape, or
+auth helpers, run `./scripts/check-e2e-drift.sh` before the targeted E2E run.
 
 **Rules:** Only claim "full e2e passed" after running the full E2E suite. Keep coverage deterministic and local-first — no routine real Battle.net deps. **Bug fixes must include tests** — add or update tests that cover the fixed behavior. No bugfix is complete without a test that would have caught the regression.
 

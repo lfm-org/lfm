@@ -40,7 +40,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
     // See AuthSpec for the rationale on the WASM patterns — this spec
     // exercises the same cold-start Blazor bundle download path.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "503", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
+        ["401", "503", "/api/v1/me", "MONO_WASM", ".wasm", "mono_download_assets"];
 
     public override async Task InitializeAsync()
     {

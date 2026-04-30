@@ -9,6 +9,7 @@ cd "$REPO_ROOT"
 
 shell_scripts=(
   scripts/check-bundle-size.sh
+  scripts/check-e2e-drift.sh
   scripts/claude/stop-devsecops-audit.sh
   scripts/claude/stop-responsive-audit.sh
   scripts/claude/stop-test-audit.sh
