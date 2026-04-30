@@ -160,6 +160,8 @@ See [docs/storage-architecture.md](docs/storage-architecture.md) for the full da
 
 There is no DB migration runner. Reference data refresh is handled by `WowReferenceRefreshFunction` (admin-only `POST /api/wow/reference/refresh`) and `WowReferenceRefreshTimerFunction` (weekly), both writing to blob.
 
+New reference-data accessors should reuse `IBlobReferenceClient` plus a focused projection helper rather than create a new `I*Repository` interface unless a second implementation or test seam need is real.
+
 ## API Wire Contracts
 
 Every property on a `shared/Lfm.Contracts/` record must have a live consumer in `app/` markup or `app/Lfm.App.Core/`. Test-only usage does not qualify. Server-internal state (Cosmos `Ttl`, audit timestamps, other users' Battle.net ids, raw Blizzard pass-through payloads) never goes on the wire — project to a Lfm-owned DTO at the `api/Functions/` boundary. Two narrow exceptions (peer permission fields, planned near-term feature reservations) require an XML doc-comment naming the reason. See [docs/wire-payload-contract.md](docs/wire-payload-contract.md).
