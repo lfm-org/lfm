@@ -174,6 +174,7 @@ public class StackFixture : IAsyncLifetime
                 ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
                 ["PRIVACY_EMAIL"] = "privacy@e2e.test",
                 ["PrivacyContact__Email"] = "privacy@e2e.test",
+                ["RateLimit__Enabled"] = "false",
             },
             _apiOutput);
 
@@ -276,6 +277,7 @@ public class StackFixture : IAsyncLifetime
         // stop it after the API without risk of in-flight requests hanging.
         _oauthStub?.Stop();
         _oauthStub?.Dispose();
+        WriteApiLogArtifact();
         CosmosClient?.Dispose();
         await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
     }
@@ -350,6 +352,20 @@ public class StackFixture : IAsyncLifetime
         if (proc is null || proc.HasExited) return;
         try { proc.Kill(entireProcessTree: true); }
         catch { /* best effort */ }
+    }
+
+    private void WriteApiLogArtifact()
+    {
+        try
+        {
+            var dir = Path.Combine(FindRepoRoot(), "artifacts", "e2e-results");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "api.log"), _apiOutput.ToString());
+        }
+        catch
+        {
+            // Best effort — never hide the original test result.
+        }
     }
 
     /// <summary>
