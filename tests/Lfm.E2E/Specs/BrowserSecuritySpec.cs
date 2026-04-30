@@ -20,7 +20,7 @@ namespace Lfm.E2E.Specs;
 // in production, replicated locally by StackFixture's Kestrel host (which sets
 // the same globalHeaders the production platform sets).
 [Collection("BrowserSecurity")]
-[Trait("Category", "Security")]
+[Trait("Category", E2ELanes.Security)]
 public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -57,6 +57,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves the auth cookie is hidden from document.cookie in Chromium.
+    // Cheaper lanes cannot prove this because HttpOnly enforcement is browser cookie-jar behavior.
+    // Shared data: read-only.
     [Fact]
     public async Task AuthCookie_NotAccessibleViaDocumentCookie()
     {
@@ -83,6 +86,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.Contains(jarCookies, c => c.Name == "battlenet_token");
     }
 
+    // E2E scope: proves credentialed cross-origin browser fetches are blocked by CORS.
+    // Cheaper lanes cannot prove this because only the browser enforces response visibility.
+    // Shared data: none.
     [Fact]
     public async Task CrossOriginFetch_FromUnregisteredOrigin_BlockedByCors()
     {
@@ -108,6 +114,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.Equal("blocked", fetchOutcome);
     }
 
+    // E2E scope: proves a cross-origin iframe cannot render the app.
+    // Cheaper lanes cannot prove this because frame blocking is enforced by the browser.
+    // Shared data: none.
     [Fact]
     public async Task IframeFromCrossOrigin_BlockedByXFrameOptions()
     {
@@ -146,6 +155,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.Equal("blocked", iframeState);
     }
 
+    // E2E scope: proves injected inline script does not execute under the served CSP.
+    // Cheaper lanes cannot prove this because CSP execution blocking is browser enforcement.
+    // Shared data: none.
     [Fact]
     public async Task CspBlocksInjectedInlineScript()
     {
@@ -170,6 +182,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.NotEqual(true, pwnedFlag);
     }
 
+    // E2E scope: proves a tampered session cookie sends the SPA back to login.
+    // Cheaper lanes cannot prove this because browser cookie state and client redirect must compose.
+    // Shared data: read-only.
     [Fact]
     public async Task TamperedSessionCookie_AccessingProtectedRoute_RedirectsToLogin()
     {
@@ -207,6 +222,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves an expired browser session cookie is not sent to protected routes.
+    // Cheaper lanes cannot prove this because expiry is enforced by the browser cookie jar.
+    // Shared data: read-only.
     [Fact]
     public async Task ExpiredSessionCookie_AccessingProtectedRoute_RedirectsToLogin()
     {
@@ -246,6 +264,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves a cross-user delete attempt returns 403 through browser fetch.
+    // Cheaper lanes cannot prove this because the browser must attach auth cookies and expose the response.
+    // Shared data: read-only.
     [Fact]
     public async Task CrossUser_DeleteAnotherUsersRun_BlockedBy403()
     {

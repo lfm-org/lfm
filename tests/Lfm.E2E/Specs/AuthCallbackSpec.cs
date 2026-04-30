@@ -33,7 +33,7 @@ namespace Lfm.E2E.Specs;
 // The test asserts the end of the flow (signed-in navbar on /runs) — the
 // assertion target that proves the contract users actually care about.
 [Collection("AuthCallback")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.AuthFlow)]
 public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -58,6 +58,9 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves the real callback path signs in and lands the browser on runs.
+    // Cheaper lanes cannot prove this because OAuth redirects, callback cookies, and SPA auth state compose here.
+    // Shared data: read-only.
     [Fact]
     public async Task ProductionCallback_StubbedOAuthProvider_SignsInAndLandsOnRuns()
     {
@@ -93,6 +96,9 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves the browser recovers from a transient post-callback /me failure.
+    // Cheaper lanes cannot prove this because retry behavior must preserve the callback session in the SPA.
+    // Shared data: read-only.
     [Fact]
     public async Task ProductionCallback_TransientMe503AfterCallback_RetriesAndShowsSignedIn()
     {

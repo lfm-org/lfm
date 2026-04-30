@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("AccessControl")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -34,6 +34,9 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves unauthenticated browser navigation redirects protected routes to login.
+    // Cheaper lanes cannot prove this because the SPA auth-state check and client redirect run in the browser.
+    // Shared data: none.
     [Theory]
     [InlineData("/runs", "%2Fruns")]
     [InlineData("/characters", "%2Fcharacters")]
@@ -54,6 +57,9 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
         await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves an authenticated browser session can render the protected runs route.
+    // Cheaper lanes cannot prove this because cookie-backed SPA authorization is browser state.
+    // Shared data: read-only.
     [Fact]
     public async Task ProtectedRoute_Authenticated_CanAccessRuns()
     {
@@ -82,6 +88,9 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
         }
     }
 
+    // E2E scope: proves the public landing page renders without auth redirection.
+    // Cheaper lanes cannot prove this because the absence of client redirect is browser routing behavior.
+    // Shared data: none.
     [Fact]
     public async Task PublicLandingPage_Unauthenticated_RendersWithoutRedirect()
     {
@@ -92,6 +101,9 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
         Assert.DoesNotContain("/login?redirect", Page!.Url);
     }
 
+    // E2E scope: proves the public login page renders without adding a redirect parameter.
+    // Cheaper lanes cannot prove this because browser URL state and SPA routing must both settle.
+    // Shared data: none.
     [Fact]
     public async Task PublicLoginPage_Unauthenticated_RendersWithoutRedirect()
     {
@@ -103,6 +115,9 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
         Assert.DoesNotContain("redirect=", Page.Url);
     }
 
+    // E2E scope: proves the public privacy page renders without auth redirection.
+    // Cheaper lanes cannot prove this because the browser observes the final routed URL and page.
+    // Shared data: none.
     [Fact]
     public async Task PublicPrivacyPage_Unauthenticated_RendersWithoutRedirect()
     {
