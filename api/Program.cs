@@ -13,6 +13,7 @@ using Lfm.Api.Options;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -81,7 +82,9 @@ builder.Services.AddOptions<PrivacyContactOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddOptions<AuditOptions>()
-    .Bind(builder.Configuration.GetSection(AuditOptions.SectionName));
+    .Bind(builder.Configuration.GetSection(AuditOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AuditOptions>, AuditOptionsValidator>();
 builder.Services.AddOptions<RequestSizeLimitOptions>()
     .Bind(builder.Configuration.GetSection(RequestSizeLimitOptions.SectionName))
     .ValidateDataAnnotations()
@@ -181,14 +184,14 @@ builder.Services.AddScoped<Lfm.Api.Runs.IRunCreateService, Lfm.Api.Runs.RunCreat
 builder.Services.AddScoped<Lfm.Api.Runs.IRunUpdateService, Lfm.Api.Runs.RunUpdateService>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunSignupService, Lfm.Api.Runs.RunSignupService>();
 
-// Audit-log actor hasher. If a salt is configured we HMAC-hash every
-// AuditActorId before it reaches Application Insights; otherwise (local
-// dev, tests) we fall back to logging the raw id. Selected here so the
-// singleton can be disposed with the process.
+// Audit-log actor hasher. If a usable salt is configured we HMAC-hash every
+// AuditActorId before it reaches Application Insights; otherwise explicit
+// local/test modes fall back to logging the raw id. Production-like startup
+// fails before this singleton is resolved when AuditOptions is invalid.
 builder.Services.AddSingleton<Lfm.Api.Services.IActorHasher>(sp =>
 {
-    var auditOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuditOptions>>().Value;
-    if (string.IsNullOrEmpty(auditOpts.HashSalt))
+    var auditOpts = sp.GetRequiredService<IOptions<AuditOptions>>().Value;
+    if (!AuditOptionsValidator.HasUsableHashSalt(auditOpts.HashSalt))
     {
         return new Lfm.Api.Services.IdentityActorHasher();
     }
