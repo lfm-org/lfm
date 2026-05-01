@@ -300,7 +300,7 @@ public class RaiderCharacterAddFunction(
     /// <summary>
     /// Maps a <see cref="StoredSelectedCharacter"/> to the outbound
     /// <see cref="CharacterDto"/>.  Mirrors the field selection used by
-    /// <see cref="BattleNetCharactersFunction.MapToCharacterDtos"/>.
+    /// <c>AccountCharacterMapper.MapToCharacterDtos</c>.
     /// </summary>
     internal static CharacterDto MapToCharacterDto(StoredSelectedCharacter stored)
     {
