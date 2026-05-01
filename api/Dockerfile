@@ -11,7 +11,7 @@ COPY shared/ shared/
 COPY api/ api/
 RUN dotnet publish api/Lfm.Api.csproj -c Release -o /app/publish
 
-FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0@sha256:3cfc0f62f55399ab0b83d51c204a205446dd6efb19511a4f4e0a06758747fc28
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0@sha256:bde119620c65d7a7dc333bb50d1ca0e23644409a9844288996e30a5766b0bbcd
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
 COPY --from=build /app/publish /home/site/wwwroot
 # Runs as the base image's default user. Adding `USER app` with the .NET 8+ non-root
