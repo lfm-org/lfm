@@ -25,6 +25,12 @@
     All materialized views were rebuilt against the 0.21.0 layout strategy:
     viewpoint-specific policies, explicit relationship curation, concrete
     node geometry, and routed connections for each view's visual story.
+    Technology Realisation, Technology Security, and Run Signup Service
+    Realization were then reflowed through arch-layout.sh layout-elk
+    (elk-layered 0.11.0), snapped to the OEF 10 px grid, and validated with
+    the source-geometry gate. Application Cooperation keeps the curated
+    trust-boundary geometry because the raw compound ELK result did not pass
+    the source-geometry gate.
 -->
 <model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -926,31 +932,37 @@
         <name xml:lang="en">View: Technology Realisation (Hosting + Data Plane)</name>
         <documentation xml:lang="en">Technology Usage view answering: which Azure resources host or enable the LFM application? Application components sit above their hosting nodes, the Function App is nested inside its Y1 Dynamic App Service Plan, and the Azure Functions runtime is nested inside the Function App. Data-plane and observability providers are adjacent so the hosting, data, and telemetry responsibilities do not collapse into one layer. Managed-identity Access edges are intentionally curated into the sibling Technology Security view.</documentation>
 
-        <node identifier="id-node-v2-app" elementRef="id-lfm-app" xsi:type="Element" x="40" y="40" w="180" h="70"/>
-        <node identifier="id-node-v2-api" elementRef="id-lfm-api" xsi:type="Element" x="340" y="40" w="180" h="70"/>
+        <node identifier="id-node-v2-app" elementRef="id-lfm-app" xsi:type="Element" x="60" y="170" w="180" h="70"/>
+        <node identifier="id-node-v2-api" elementRef="id-lfm-api" xsi:type="Element" x="430" y="640" w="180" h="70"/>
 
-        <node identifier="id-node-v2-swa" elementRef="id-node-swa" xsi:type="Element" x="40" y="190" w="220" h="110"/>
-        <node identifier="id-node-v2-plan" elementRef="id-sysw-app-service-plan" xsi:type="Element" x="300" y="170" w="520" h="300">
-          <node identifier="id-node-v2-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="330" y="220" w="460" h="150">
-            <node identifier="id-node-v2-runtime" elementRef="id-sysw-functions-runtime" xsi:type="Element" x="350" y="300" w="420" h="60"/>
+        <node identifier="id-node-v2-swa" elementRef="id-node-swa" xsi:type="Element" x="40" y="40" w="220" h="110"/>
+        <node identifier="id-node-v2-plan" elementRef="id-sysw-app-service-plan" xsi:type="Element" x="260" y="450" w="520" h="180">
+          <node identifier="id-node-v2-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="290" y="470" w="460" h="150">
+            <node identifier="id-node-v2-runtime" elementRef="id-sysw-functions-runtime" xsi:type="Element" x="310" y="550" w="420" h="60"/>
           </node>
         </node>
 
-        <node identifier="id-node-v2-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="880" y="170" w="240" h="70"/>
-        <node identifier="id-node-v2-storage" elementRef="id-node-storage" xsi:type="Element" x="880" y="270" w="240" h="70"/>
-        <node identifier="id-node-v2-kv" elementRef="id-node-keyvault" xsi:type="Element" x="880" y="370" w="240" h="70"/>
-        <node identifier="id-node-v2-ai" elementRef="id-node-app-insights" xsi:type="Element" x="1210" y="190" w="230" h="80"/>
-        <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="1210" y="330" w="230" h="80"/>
+        <node identifier="id-node-v2-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="670" y="370" w="240" h="70"/>
+        <node identifier="id-node-v2-storage" elementRef="id-node-storage" xsi:type="Element" x="40" y="370" w="240" h="70"/>
+        <node identifier="id-node-v2-kv" elementRef="id-node-keyvault" xsi:type="Element" x="990" y="370" w="240" h="70"/>
+        <node identifier="id-node-v2-ai" elementRef="id-node-app-insights" xsi:type="Element" x="360" y="360" w="230" h="80"/>
+        <node identifier="id-node-v2-la" elementRef="id-node-log-analytics" xsi:type="Element" x="360" y="260" w="230" h="80"/>
 
         <connection identifier="id-conn-v2-swa-app" relationshipRef="id-rel-swa-assign-app" source="id-node-v2-swa" target="id-node-v2-app" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-func-api" relationshipRef="id-rel-funcapp-assign-api" source="id-node-v2-funcapp" target="id-node-v2-api" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-cosmos-func" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2-cosmos" target="id-node-v2-funcapp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-storage-func" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2-storage" target="id-node-v2-funcapp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-kv-func" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2-kv" target="id-node-v2-funcapp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-v2-ai-func" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2-ai" target="id-node-v2-funcapp" xsi:type="Relationship">
-          <bendpoint x="1180" y="130"/>
-          <bendpoint x="560" y="130"/>
+        <connection identifier="id-conn-v2-cosmos-func" relationshipRef="id-rel-cosmos-serves-funcapp" source="id-node-v2-cosmos" target="id-node-v2-funcapp" xsi:type="Relationship">
+          <bendpoint x="790" y="450"/>
+          <bendpoint x="570" y="450"/>
         </connection>
+        <connection identifier="id-conn-v2-storage-func" relationshipRef="id-rel-storage-serves-funcapp" source="id-node-v2-storage" target="id-node-v2-funcapp" xsi:type="Relationship">
+          <bendpoint x="160" y="450"/>
+          <bendpoint x="380" y="450"/>
+        </connection>
+        <connection identifier="id-conn-v2-kv-func" relationshipRef="id-rel-kv-serves-funcapp" source="id-node-v2-kv" target="id-node-v2-funcapp" xsi:type="Relationship">
+          <bendpoint x="1110" y="460"/>
+          <bendpoint x="660" y="460"/>
+        </connection>
+        <connection identifier="id-conn-v2-ai-func" relationshipRef="id-rel-ai-serves-funcapp" source="id-node-v2-ai" target="id-node-v2-funcapp" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2-la-ai" relationshipRef="id-rel-la-agg-ai" source="id-node-v2-la" target="id-node-v2-ai" xsi:type="Relationship"/>
       </view>
 
@@ -958,28 +970,26 @@
         <name xml:lang="en">View: Technology Security (Managed Identity + Data-plane RBAC)</name>
         <documentation xml:lang="en">Technology Usage security view answering: how does Lfm.Api authenticate to protected Azure data-plane resources without secrets or shared keys? The Function App's system-assigned managed identity is composed into the Function App and carries RBAC Access relationships to Cosmos DB, Storage, Key Vault, and Application Insights. The view intentionally focuses on Access paths; hosting and data-plane Serving paths are shown in the sibling Technology Realisation view.</documentation>
 
-        <node identifier="id-node-v2s-mi" elementRef="id-tech-funcapp-mi" xsi:type="Element" x="40" y="40" w="220" h="70"/>
-        <node identifier="id-node-v2s-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="40" y="140" w="220" h="100"/>
-        <node identifier="id-node-v2s-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="320" y="60" w="220" h="60"/>
-        <node identifier="id-node-v2s-storage" elementRef="id-node-storage" xsi:type="Element" x="320" y="140" w="220" h="60"/>
-        <node identifier="id-node-v2s-kv" elementRef="id-node-keyvault" xsi:type="Element" x="320" y="220" w="220" h="60"/>
-        <node identifier="id-node-v2s-ai" elementRef="id-node-app-insights" xsi:type="Element" x="600" y="60" w="200" h="60"/>
+        <node identifier="id-node-v2s-mi" elementRef="id-tech-funcapp-mi" xsi:type="Element" x="110" y="160" w="220" h="70"/>
+        <node identifier="id-node-v2s-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="110" y="40" w="220" h="100"/>
+        <node identifier="id-node-v2s-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="920" y="270" w="220" h="60"/>
+        <node identifier="id-node-v2s-storage" elementRef="id-node-storage" xsi:type="Element" x="340" y="270" w="220" h="60"/>
+        <node identifier="id-node-v2s-kv" elementRef="id-node-keyvault" xsi:type="Element" x="40" y="270" w="220" h="60"/>
+        <node identifier="id-node-v2s-ai" elementRef="id-node-app-insights" xsi:type="Element" x="640" y="270" w="200" h="60"/>
 
         <connection identifier="id-conn-v2s-fa-mi" relationshipRef="id-rel-fa-comp-mi" source="id-node-v2s-funcapp" target="id-node-v2s-mi" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2s-mi-cosmos" relationshipRef="id-rel-mi-access-cosmos" source="id-node-v2s-mi" target="id-node-v2s-cosmos" xsi:type="Relationship">
-          <bendpoint x="280" y="90"/>
+          <bendpoint x="280" y="240"/>
+          <bendpoint x="1030" y="240"/>
         </connection>
         <connection identifier="id-conn-v2s-mi-storage" relationshipRef="id-rel-mi-access-storage" source="id-node-v2s-mi" target="id-node-v2s-storage" xsi:type="Relationship">
-          <bendpoint x="280" y="90"/>
-          <bendpoint x="280" y="170"/>
+          <bendpoint x="190" y="260"/>
+          <bendpoint x="450" y="260"/>
         </connection>
-        <connection identifier="id-conn-v2s-mi-kv" relationshipRef="id-rel-mi-access-kv" source="id-node-v2s-mi" target="id-node-v2s-kv" xsi:type="Relationship">
-          <bendpoint x="280" y="90"/>
-          <bendpoint x="280" y="250"/>
-        </connection>
+        <connection identifier="id-conn-v2s-mi-kv" relationshipRef="id-rel-mi-access-kv" source="id-node-v2s-mi" target="id-node-v2s-kv" xsi:type="Relationship"/>
         <connection identifier="id-conn-v2s-mi-ai" relationshipRef="id-rel-mi-access-ai" source="id-node-v2s-mi" target="id-node-v2s-ai" xsi:type="Relationship">
-          <bendpoint x="260" y="40"/>
-          <bendpoint x="700" y="40"/>
+          <bendpoint x="240" y="250"/>
+          <bendpoint x="740" y="250"/>
         </connection>
       </view>
 
@@ -1107,26 +1117,35 @@
         <name xml:lang="en">View: Run Signup — Service Realization (Process-rooted)</name>
         <documentation xml:lang="en">Cooperation view: id-view-business-processes. Shared-story Service Realization view answering: what realizes the run signup process chain? Browse open runs, Inspect run detail, Sign up for run, and Cancel signup share the same UI entry point, Application Service, backend Component, hosting Node, and Cosmos data plane, so they are consolidated into one §9.3 view rather than repeated as near-identical drill-downs. The main Realization and hosting chain remains visible.</documentation>
 
-        <node identifier="id-node-sr-browse-bp" elementRef="id-bp-browse-runs" xsi:type="Element" x="360" y="40" w="200" h="80"/>
-        <node identifier="id-node-sr-inspect-bp" elementRef="id-bp-inspect-run" xsi:type="Element" x="610" y="40" w="200" h="80"/>
-        <node identifier="id-node-sr-signup-bp" elementRef="id-bp-signup-run" xsi:type="Element" x="860" y="40" w="200" h="80"/>
-        <node identifier="id-node-sr-cancel-bp" elementRef="id-bp-cancel-signup" xsi:type="Element" x="1110" y="190" w="200" h="80"/>
-        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="40" y="260" w="300" h="280">
-          <node identifier="id-node-sr-runs-route" elementRef="id-uiapi-runs-route" xsi:type="Element" x="90" y="350" w="240" h="60"/>
-          <node identifier="id-node-sr-detail-route" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="90" y="450" w="240" h="60"/>
+        <node identifier="id-node-sr-browse-bp" elementRef="id-bp-browse-runs" xsi:type="Element" x="790" y="650" w="200" h="80"/>
+        <node identifier="id-node-sr-inspect-bp" elementRef="id-bp-inspect-run" xsi:type="Element" x="360" y="750" w="200" h="80"/>
+        <node identifier="id-node-sr-signup-bp" elementRef="id-bp-signup-run" xsi:type="Element" x="230" y="850" w="200" h="80"/>
+        <node identifier="id-node-sr-cancel-bp" elementRef="id-bp-cancel-signup" xsi:type="Element" x="100" y="950" w="200" h="80"/>
+        <node identifier="id-node-sr-uicomp" elementRef="id-uicomp-runs-page" xsi:type="Element" x="770" y="350" w="300" h="280">
+          <node identifier="id-node-sr-runs-route" elementRef="id-uiapi-runs-route" xsi:type="Element" x="820" y="440" w="240" h="60"/>
+          <node identifier="id-node-sr-detail-route" elementRef="id-uiapi-run-detail-route" xsi:type="Element" x="820" y="540" w="240" h="60"/>
         </node>
-        <node identifier="id-node-sr-svc" elementRef="id-svc-runs" xsi:type="Element" x="410" y="300" w="650" h="80"/>
-        <node identifier="id-node-sr-api" elementRef="id-lfm-api" xsi:type="Element" x="620" y="450" w="230" h="80"/>
-        <node identifier="id-node-sr-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="620" y="620" w="230" h="90"/>
-        <node identifier="id-node-sr-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="930" y="620" w="240" h="80"/>
+        <node identifier="id-node-sr-svc" elementRef="id-svc-runs" xsi:type="Element" x="40" y="510" w="650" h="80"/>
+        <node identifier="id-node-sr-api" elementRef="id-lfm-api" xsi:type="Element" x="250" y="250" w="230" h="80"/>
+        <node identifier="id-node-sr-funcapp" elementRef="id-node-function-app" xsi:type="Element" x="250" y="140" w="230" h="90"/>
+        <node identifier="id-node-sr-cosmos" elementRef="id-node-cosmos" xsi:type="Element" x="250" y="40" w="240" h="80"/>
 
-        <connection identifier="id-conn-sr-browse-inspect" relationshipRef="id-rel-bp-browse-trig-inspect" source="id-node-sr-browse-bp" target="id-node-sr-inspect-bp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-sr-inspect-signup" relationshipRef="id-rel-bp-inspect-trig-signup" source="id-node-sr-inspect-bp" target="id-node-sr-signup-bp" xsi:type="Relationship"/>
-        <connection identifier="id-conn-sr-signup-cancel" relationshipRef="id-rel-bp-signup-flow-cancel" source="id-node-sr-signup-bp" target="id-node-sr-cancel-bp" xsi:type="Relationship">
-          <bendpoint x="1210" y="80"/>
-          <bendpoint x="1210" y="180"/>
+        <connection identifier="id-conn-sr-browse-inspect" relationshipRef="id-rel-bp-browse-trig-inspect" source="id-node-sr-browse-bp" target="id-node-sr-inspect-bp" xsi:type="Relationship">
+          <bendpoint x="890" y="740"/>
+          <bendpoint x="500" y="740"/>
         </connection>
-        <connection identifier="id-conn-sr-svc-browse" relationshipRef="id-rel-svc-runs-real-bp-browse" source="id-node-sr-svc" target="id-node-sr-browse-bp" xsi:type="Relationship"/>
+        <connection identifier="id-conn-sr-inspect-signup" relationshipRef="id-rel-bp-inspect-trig-signup" source="id-node-sr-inspect-bp" target="id-node-sr-signup-bp" xsi:type="Relationship">
+          <bendpoint x="460" y="840"/>
+          <bendpoint x="370" y="840"/>
+        </connection>
+        <connection identifier="id-conn-sr-signup-cancel" relationshipRef="id-rel-bp-signup-flow-cancel" source="id-node-sr-signup-bp" target="id-node-sr-cancel-bp" xsi:type="Relationship">
+          <bendpoint x="330" y="940"/>
+          <bendpoint x="240" y="940"/>
+        </connection>
+        <connection identifier="id-conn-sr-svc-browse" relationshipRef="id-rel-svc-runs-real-bp-browse" source="id-node-sr-svc" target="id-node-sr-browse-bp" xsi:type="Relationship">
+          <bendpoint x="560" y="640"/>
+          <bendpoint x="850" y="640"/>
+        </connection>
         <connection identifier="id-conn-sr-svc-inspect" relationshipRef="id-rel-svc-runs-real-bp-inspect" source="id-node-sr-svc" target="id-node-sr-inspect-bp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-svc-signup" relationshipRef="id-rel-svc-runs-real-bp-signup" source="id-node-sr-svc" target="id-node-sr-signup-bp" xsi:type="Relationship"/>
         <connection identifier="id-conn-sr-svc-cancel" relationshipRef="id-rel-svc-runs-real-bp-cancel" source="id-node-sr-svc" target="id-node-sr-cancel-bp" xsi:type="Relationship"/>
