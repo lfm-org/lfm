@@ -2,7 +2,7 @@
 
 ArchiMate® 3.2 model of the LFM application — Blazor WebAssembly SPA + Azure Functions API + Cosmos / Storage / Key Vault on a single-environment Azure deployment. The canonical source is [`lfm.oef.xml`](lfm.oef.xml), serialised in The Open Group **Model Exchange File Format** (OEF) so it loads in Archi, BiZZdesign, Sparx EA, and any ArchiMate-conformant tool.
 
-The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub Actions workflows (Application + Technology + Implementation & Migration layers). It describes the production-facing runtime surface; test-only Functions compiled behind `#if E2E`, such as `/api/e2e/login`, are deliberately excluded from the Application Interface inventory. Strategy, Business, and Motivation elements are stubbed `FORWARD-ONLY` — they exist as placeholders for the architect to fill in; their names are inferred from the application surface and have not been validated against business stakeholders.
+The model was recreated on 2026-05-01 with `souroldgeezer-design:architecture-design` 0.21.0 from the repository's .NET solution, Bicep IaC, and GitHub Actions workflows (Application + Technology + Implementation & Migration layers). It describes the production-facing runtime surface; test-only Functions compiled behind `#if E2E`, such as `/api/e2e/login`, are deliberately excluded from the Application Interface inventory. Strategy, Business, and Motivation elements are stubbed `FORWARD-ONLY` — they exist as placeholders for the architect to fill in; their names are inferred from the application surface and have not been validated against business stakeholders.
 
 ## Views
 
@@ -21,13 +21,13 @@ The model was lifted from the repository's .NET solution, Bicep IaC, and GitHub 
 
 ![Application Cooperation](renders/id-view-app-cooperation.png)
 
-LFM-internal vs Blizzard-external trust boundary, drawn explicitly with two `Grouping`s. Inside LFM: `Lfm.App.Core` serves `Lfm.App` (Blazor WASM SPA); `Lfm.Contracts` (shared DTO library) serves all three internal projects; `Lfm.Api` (Azure Functions HTTP API) exposes the `REST API (/api/*)` interface that serves `Lfm.App`. Inside Blizzard: `Battle.net OAuth 2.0` serves `Lfm.Api` (login flow); `WoW Profile API` and `WoW Game Data API` serve `Lfm.Api` (character + reference data); `render.worldofwarcraft.com` is consumed directly by the SPA browser (CSP-allowlisted).
+LFM-internal vs Blizzard-external trust boundary, drawn explicitly with two `Grouping`s. Inside LFM: `Lfm.App.Core` serves `Lfm.App` (Blazor WASM SPA); `Lfm.Contracts` (shared DTO library) serves all three internal projects; `Lfm.Api` (Azure Functions HTTP API) exposes the `REST API (/api/*)` interface that serves `Lfm.App`. Inside Blizzard: `Battle.net OAuth 2.0` serves `Lfm.Api` (login flow); `WoW Profile API` and `WoW Game Data API` serve `Lfm.Api` (character + reference data); the Blizzard Render CDN serves character render images directly to the SPA browser (CSP-allowlisted).
 
 ### 2. Technology Realisation (Hosting + Data Plane)
 
 ![Technology Realisation](renders/id-view-technology.png)
 
-The Azure resources and data-plane artifacts (single resource group, single region) with their hosting + data-plane relationships: `Azure Static Web Apps` hosts `Lfm.App`; `Azure Function App` hosts `Lfm.Api` on an App Service Plan using the committed Y1 Dynamic SKU and consumes `Cosmos DB account` (Free Tier, `disableLocalAuth=true`), `Storage account` (Standard_LRS, `allowSharedKeyAccess=false`), and `Key Vault` (RBAC-authorized) as data-plane services; `Application Insights` is workspace-based, aggregated by `Log Analytics workspace`. This view keeps the runtime topology separate from the managed-identity `Access` edges shown in Technology Security. The Cosmos SQL database Artifact, Functions runtime version, container Artifacts, diagnostic-settings flows, and the Action Group + Cosmos throttle alert are tracked in the model but reserved for detail views.
+The Azure resources and data-plane artifacts (single resource group, single region) with their hosting + data-plane relationships: `Azure Static Web Apps` hosts `Lfm.App`; `Azure Function App` hosts `Lfm.Api` on an App Service Plan using the committed Y1 Dynamic SKU and the nested Azure Functions runtime; the Function App consumes `Cosmos DB account` (Free Tier, `disableLocalAuth=true`), `Storage account` (Standard_LRS, `allowSharedKeyAccess=false`), and `Key Vault` (RBAC-authorized) as data-plane services; `Application Insights` is workspace-based, aggregated by `Log Analytics workspace`. This view keeps the runtime topology separate from the managed-identity `Access` edges shown in Technology Security. The Cosmos SQL database Artifact, container Artifacts, diagnostic-settings flows, and the Action Group + Cosmos throttle alert are tracked in the model but reserved for detail views.
 
 ### 3. Technology Security (MI + RBAC)
 
