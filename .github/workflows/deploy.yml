@@ -26,6 +26,7 @@ on:
       - 'Directory.Packages.props'
       - 'scripts/check-bundle-size.sh'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-app-build.yml'
       - '.github/workflows/deploy-infra.yml'
       - '.github/workflows/deploy-app.yml'
 
@@ -65,6 +66,7 @@ jobs:
               - 'global.json'
               - 'Directory.Packages.props'
               - 'scripts/check-bundle-size.sh'
+              - '.github/workflows/deploy-app-build.yml'
               - '.github/workflows/deploy-app.yml'
 
       - name: Resolve change flags
@@ -104,6 +106,7 @@ jobs:
   build-app:
     needs: [detect-changes, secrets-scan]
     if: |
+      github.ref == 'refs/heads/main' &&
       needs.secrets-scan.result == 'success' &&
       needs.detect-changes.outputs.app == 'true'
     uses: ./.github/workflows/deploy-app-build.yml
@@ -112,6 +115,7 @@ jobs:
   deploy-infra:
     needs: [detect-changes, secrets-scan, analyze-infra]
     if: |
+      github.ref == 'refs/heads/main' &&
       needs.secrets-scan.result == 'success' &&
       needs.analyze-infra.result == 'success' &&
       needs.detect-changes.outputs.infra == 'true'
@@ -122,6 +126,7 @@ jobs:
     needs: [detect-changes, secrets-scan, analyze-infra, build-app, deploy-infra]
     if: |
       always() &&
+      github.ref == 'refs/heads/main' &&
       needs.secrets-scan.result == 'success' &&
       (needs.analyze-infra.result == 'success' || needs.analyze-infra.result == 'skipped') &&
       needs.build-app.result == 'success' &&

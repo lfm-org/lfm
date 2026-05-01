@@ -5,11 +5,11 @@ name: Deploy App
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
+  attestations: read
 
 concurrency:
   group: deploy-app
@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -28,7 +30,39 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: deploy-app-publish-api
-          path: ./publish/api
+          path: ./publish/artifacts
+
+      - name: Download App publish artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: deploy-app-publish-app
+          path: ./publish/artifacts
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: deploy-app-sbom
+          path: ./publish
+
+      - name: Verify artifact attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify ./publish/artifacts/deploy-api.tar -R "$GITHUB_REPOSITORY"
+          gh attestation verify ./publish/artifacts/deploy-app.tar -R "$GITHUB_REPOSITORY"
+          gh attestation verify ./publish/artifacts/deploy-api.tar -R "$GITHUB_REPOSITORY" --predicate-type https://cyclonedx.org/bom
+          gh attestation verify ./publish/artifacts/deploy-app.tar -R "$GITHUB_REPOSITORY" --predicate-type https://cyclonedx.org/bom
+          test -s ./publish/sbom.cdx.json
+
+      - name: Extract deploy artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p ./publish/api ./publish/app
+          tar -xf ./publish/artifacts/deploy-api.tar -C ./publish/api
+          tar -xf ./publish/artifacts/deploy-app.tar -C ./publish/app
+          test -d ./publish/api
+          test -d ./publish/app
 
       # Reverses deploy-app-build.yml's `Archive .azurefunctions metadata`
       # step. See that step for the why.
@@ -37,12 +71,6 @@ jobs:
           set -euo pipefail
           tar -xf ./publish/api/azurefunctions.tar -C ./publish/api
           rm ./publish/api/azurefunctions.tar
-
-      - name: Download App publish artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: deploy-app-publish-app
-          path: ./publish/app
 
       - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
         with:

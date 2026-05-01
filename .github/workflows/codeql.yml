@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 LFM contributors
+
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'app/**'
+      - 'shared/**'
+      - 'tests/**'
+      - '*.sln'
+      - '**/*.csproj'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'global.json'
+      - 'NuGet.config'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/codeql.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'app/**'
+      - 'shared/**'
+      - 'tests/**'
+      - '*.sln'
+      - '**/*.csproj'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'global.json'
+      - 'NuGet.config'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/codeql.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-cached
+
+      - name: Restore
+        run: dotnet restore lfm.sln
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@e46ed2cbd01164d986452f91f178727624ae40d7 # v4
+        with:
+          languages: csharp
+          build-mode: manual
+
+      - name: Build
+        run: dotnet build lfm.sln -c Release --no-restore -p:TreatWarningsAsErrors=true
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7 # v4
+        with:
+          category: /language:csharp
