@@ -34,6 +34,7 @@ Edit `.env` and fill in the required values. See the table below for details.
 | `Blizzard__Region` | Default ok | `eu` |
 | `Blizzard__RedirectUri` | Default ok | `http://localhost:7071/api/battlenet/callback` |
 | `Blizzard__AppBaseUrl` | Default ok | `http://localhost:5138` (Blazor dev server port, no trailing slash) |
+| `AZURE_FUNCTIONS_ENVIRONMENT` | Default ok | `Development`; required when `Audit__HashSalt` is empty |
 | `Cors__AllowedOrigins__0` | Default ok | `http://localhost:5138` |
 | `COSMOS_KEY_CONTENT` | Yes | Cosmos emulator master key (base64). Generate: `openssl rand -base64 32` |
 | `Cosmos__Endpoint` | Default ok | `http://cosmosdb:8081` for the compose network |
@@ -46,7 +47,7 @@ Edit `.env` and fill in the required values. See the table below for details.
 | `Auth__CookieMaxAgeHours` | Default ok | `24` |
 | `Auth__KeyVaultUrl` | No | Leave empty for local dev |
 | `PrivacyContact__Email` | Default ok | Privacy contact returned by the API |
-| `Audit__HashSalt` | No | Empty logs plaintext actor IDs locally; set a base64 salt outside local dev |
+| `Audit__HashSalt` | No | Empty logs plaintext actor IDs only in Development/E2E; deployed environments fail closed unless this is a resolved secret |
 
 ### 3. Start local stack
 

@@ -19,8 +19,9 @@ public sealed class AuditOptions
     /// <c>openssl rand -base64 32</c>, store in Key Vault, and wire to this
     /// setting via a <c>@Microsoft.KeyVault(...)</c> reference in Bicep.
     /// Leaving this empty disables hashing — actor ids are logged as
-    /// plaintext. Acceptable in local dev; MUST be set in any deployed
-    /// environment that ingests logs to App Insights.
+    /// plaintext. Startup validation permits that only in local development
+    /// and E2E/test mode; any deployed environment that ingests logs to App
+    /// Insights must set this to a resolved secret value.
     /// </summary>
     public string HashSalt { get; init; } = string.Empty;
 }

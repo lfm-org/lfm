@@ -29,6 +29,7 @@ public sealed class LocalConfigurationContractTests
         "Blizzard__Region",
         "Blizzard__RedirectUri",
         "Blizzard__AppBaseUrl",
+        "AZURE_FUNCTIONS_ENVIRONMENT",
         "Cosmos__Endpoint",
         "Cosmos__AuthKey",
         "Cosmos__DatabaseName",

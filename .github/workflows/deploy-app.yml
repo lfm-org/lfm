@@ -78,6 +78,20 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Verify required Key Vault secrets
+        env:
+          KEY_VAULT_NAME: ${{ vars.KEY_VAULT_NAME }}
+        run: |
+          set -euo pipefail
+          if ! az keyvault secret show \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name audit-hash-salt \
+            --query id \
+            -o tsv >/dev/null; then
+            echo "FAIL: required Key Vault secret 'audit-hash-salt' is missing or inaccessible." >&2
+            exit 1
+          fi
+
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@bc63708cc6539760eea18d8a7de4ce8ef5fdf593 # v1
         with:

@@ -66,6 +66,7 @@ services:
     tmpfs:
       - /tmp
     environment:
+      AZURE_FUNCTIONS_ENVIRONMENT: Development
       AzureWebJobsStorage: ${AzureWebJobsStorage}
       Cosmos__Endpoint: ${Cosmos__Endpoint}
       Cosmos__AuthKey: ${Cosmos__AuthKey}
