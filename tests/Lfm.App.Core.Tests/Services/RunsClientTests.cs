@@ -3,6 +3,7 @@
 
 using System.Net;
 using Lfm.App.Services;
+using Lfm.Contracts.Characters;
 using Lfm.Contracts.Runs;
 using Moq;
 using Xunit;
@@ -197,6 +198,68 @@ public class RunsClientTests
         Assert.NotNull(result);
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
         Assert.Equal("/api/v1/runs/run-1/signup", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task GetSignupOptionsAsync_returns_cached_characters_on_200()
+    {
+        var options = new RunSignupOptionsDto([
+            new CharacterDto(
+                Name: "Aelrin",
+                Realm: "silvermoon",
+                RealmName: "Silvermoon",
+                Level: 80,
+                Region: "eu",
+                ClassId: 5,
+                ClassName: "Priest",
+                ActiveSpecId: 257,
+                SpecName: "Holy")
+        ]);
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, options));
+
+        var result = await client.GetSignupOptionsAsync("run-1", CancellationToken.None);
+
+        var cached = Assert.IsType<CharactersFetchResult.Cached>(result);
+        var character = Assert.Single(cached.Characters);
+        Assert.Equal("Aelrin", character.Name);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/v1/runs/run-1/signup/options", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task GetSignupOptionsAsync_returns_needs_refresh_on_204()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NoContent));
+
+        var result = await client.GetSignupOptionsAsync("run-1", CancellationToken.None);
+
+        Assert.IsType<CharactersFetchResult.NeedsRefresh>(result);
+    }
+
+    [Fact]
+    public async Task GetSignupOptionsAsync_returns_error_on_non_success_status()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Forbidden));
+
+        var result = await client.GetSignupOptionsAsync("run-1", CancellationToken.None);
+
+        Assert.IsType<CharactersFetchResult.Error>(result);
+    }
+
+    [Fact]
+    public async Task GetSignupOptionsAsync_escapes_run_id_in_path()
+    {
+        var options = new RunSignupOptionsDto([]);
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, options));
+
+        await client.GetSignupOptionsAsync("run with spaces/and?weird", CancellationToken.None);
+
+        var path = handler.LastRequest!.RequestUri!.PathAndQuery;
+        Assert.StartsWith("/api/v1/runs/", path);
+        Assert.EndsWith("/signup/options", path);
+        Assert.Contains("%2F", path);
+        Assert.DoesNotContain(" ", path);
+        Assert.DoesNotContain("?weird", path);
     }
 
     [Fact]
