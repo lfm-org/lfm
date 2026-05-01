@@ -182,6 +182,7 @@ builder.Services.AddSingleton<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Servic
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunCreateService, Lfm.Api.Runs.RunCreateService>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunUpdateService, Lfm.Api.Runs.RunUpdateService>();
+builder.Services.AddScoped<Lfm.Api.Runs.IRunSignupEligibility, Lfm.Api.Runs.RunSignupEligibility>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunSignupService, Lfm.Api.Runs.RunSignupService>();
 
 // Audit-log actor hasher. If a usable salt is configured we HMAC-hash every

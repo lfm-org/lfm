@@ -28,6 +28,7 @@ public sealed class RunSignupService(
     IRunsRepository runsRepo,
     IRaidersRepository raidersRepo,
     IGuildPermissions guildPermissions,
+    IRunSignupEligibility signupEligibility,
     ILogger<RunSignupService> logger) : IRunSignupService
 {
     private const int MaxAttempts = 3;
@@ -100,6 +101,17 @@ public sealed class RunSignupService(
                     "guild-rank-denied",
                     "Guild signup is not enabled for your rank.",
                     AuditReason: "guild rank denied");
+            }
+
+            var signupCharacterInGuild = await signupEligibility.IsSignupCharacterInRunGuildAsync(
+                run,
+                storedCharacter,
+                ct);
+            if (!signupCharacterInGuild)
+            {
+                return new RunOperationResult.BadRequest(
+                    "character-not-in-guild",
+                    "Character is not on this guild roster.");
             }
 
             // 3d. Upsert the RunCharacterEntry — one per battleNetId per run.
