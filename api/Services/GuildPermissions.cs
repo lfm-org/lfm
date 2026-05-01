@@ -21,24 +21,7 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
 
         var guild = await guildRepo.GetAsync(guildId, ct);
 
-        if (guild?.BlizzardRosterRaw?.Members is null) return false;
-
-        // Build lookup map mirroring resolveMatchedGuildRanks in
-        // functions/src/lib/guild-member-match.ts.
-        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var member in guild.BlizzardRosterRaw.Members)
-            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
-
-        // Walk stored characters — return true as soon as we find a rank-0 match.
-        if (raider.Characters is null) return false;
-        foreach (var character in raider.Characters)
-        {
-            // Match the stored character against the guild roster by realm-slug + name.
-            var key = $"{character.Realm}:{character.Name}";
-            if (rankByKey.TryGetValue(key, out var rank) && rank == 0) return true;
-        }
-
-        return false;
+        return GuildRosterMatcher.BestRank(guild?.BlizzardRosterRaw, raider.Characters) == 0;
     }
 
     public async Task<bool> CanCreateGuildRunsAsync(RaiderDocument raider, CancellationToken ct)
@@ -48,41 +31,19 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
 
         var guild = await guildRepo.GetAsync(guildId, ct);
 
-        // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
-        if (guild?.BlizzardRosterRaw?.Members is null) return false;
-
-        // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
-        if (guild.BlizzardRosterFetchedAt is null) return false;
-        if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
-        if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
+        if (guild is null || !GuildRosterMatcher.IsFresh(guild.BlizzardRosterFetchedAt)) return false;
 
         // Find the best (lowest) matched rank for the raider's characters.
         // Mirrors resolveMatchedGuildRanks + Math.min(...matchedRanks).
-        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var member in guild.BlizzardRosterRaw.Members)
-            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
-
-        int? bestRank = null;
-        if (raider.Characters is not null)
-        {
-            foreach (var character in raider.Characters)
-            {
-                var key = $"{character.Realm}:{character.Name}";
-                if (rankByKey.TryGetValue(key, out var rank))
-                {
-                    if (bestRank is null || rank < bestRank)
-                        bestRank = rank;
-                }
-            }
-        }
-
+        var bestRank = GuildRosterMatcher.BestRank(guild.BlizzardRosterRaw, raider.Characters);
         if (bestRank is null) return false;
 
         // Look up rank permission entry; default canCreateGuildRuns to false.
         // Mirrors: permission?.canCreateGuildRuns ?? false.
-        if (guild.RankPermissions is not null)
+        var rankPermissions = guild.RankPermissions;
+        if (rankPermissions is not null)
         {
-            var perm = guild.RankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
+            var perm = rankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
             if (perm is not null)
                 return perm.CanCreateGuildRuns;
         }
@@ -98,40 +59,18 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
 
         var guild = await guildRepo.GetAsync(guildId, ct);
 
-        // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
-        if (guild?.BlizzardRosterRaw?.Members is null) return false;
-
-        // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
-        if (guild.BlizzardRosterFetchedAt is null) return false;
-        if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
-        if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
+        if (guild is null || !GuildRosterMatcher.IsFresh(guild.BlizzardRosterFetchedAt)) return false;
 
         // Find the best (lowest) matched rank for the raider's characters.
-        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var member in guild.BlizzardRosterRaw.Members)
-            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
-
-        int? bestRank = null;
-        if (raider.Characters is not null)
-        {
-            foreach (var character in raider.Characters)
-            {
-                var key = $"{character.Realm}:{character.Name}";
-                if (rankByKey.TryGetValue(key, out var rank))
-                {
-                    if (bestRank is null || rank < bestRank)
-                        bestRank = rank;
-                }
-            }
-        }
-
+        var bestRank = GuildRosterMatcher.BestRank(guild.BlizzardRosterRaw, raider.Characters);
         if (bestRank is null) return false;
 
         // Look up rank permission entry; default canSignupGuildRuns to true for all ranks.
         // Mirrors: permission?.canSignupGuildRuns ?? true.
-        if (guild.RankPermissions is not null)
+        var rankPermissions = guild.RankPermissions;
+        if (rankPermissions is not null)
         {
-            var perm = guild.RankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
+            var perm = rankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
             if (perm is not null)
                 return perm.CanSignupGuildRuns;
         }
@@ -147,40 +86,18 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
 
         var guild = await guildRepo.GetAsync(guildId, ct);
 
-        // Mirrors: getEffectiveGuildPermissions — returns false when roster is absent or stale.
-        if (guild?.BlizzardRosterRaw?.Members is null) return false;
-
-        // Roster freshness check: mirrors isGuildRosterFresh (TTL = 1 hour).
-        if (guild.BlizzardRosterFetchedAt is null) return false;
-        if (!DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
-        if (DateTimeOffset.UtcNow - fetchedAt >= TimeSpan.FromHours(1)) return false;
+        if (guild is null || !GuildRosterMatcher.IsFresh(guild.BlizzardRosterFetchedAt)) return false;
 
         // Find the best (lowest) matched rank for the raider's characters.
-        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var member in guild.BlizzardRosterRaw.Members)
-            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
-
-        int? bestRank = null;
-        if (raider.Characters is not null)
-        {
-            foreach (var character in raider.Characters)
-            {
-                var key = $"{character.Realm}:{character.Name}";
-                if (rankByKey.TryGetValue(key, out var rank))
-                {
-                    if (bestRank is null || rank < bestRank)
-                        bestRank = rank;
-                }
-            }
-        }
-
+        var bestRank = GuildRosterMatcher.BestRank(guild.BlizzardRosterRaw, raider.Characters);
         if (bestRank is null) return false;
 
         // Look up rank permission entry; default canDeleteGuildRuns to (rank 0 only).
         // Mirrors: permission?.canDeleteGuildRuns ?? (rank === 0).
-        if (guild.RankPermissions is not null)
+        var rankPermissions = guild.RankPermissions;
+        if (rankPermissions is not null)
         {
-            var perm = guild.RankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
+            var perm = rankPermissions.FirstOrDefault(rp => rp.Rank == bestRank.Value);
             if (perm is not null)
                 return perm.CanDeleteGuildRuns;
         }
@@ -198,31 +115,12 @@ public sealed class GuildPermissions(IGuildRepository guildRepo) : IGuildPermiss
         var guild = await guildRepo.GetAsync(guildId, ct);
         if (guild?.BlizzardRosterRaw?.Members is null) return GuildEffectivePermissions.None;
 
-        var rankByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var member in guild.BlizzardRosterRaw.Members)
-            rankByKey[$"{member.Character.Realm.Slug}:{member.Character.Name}"] = member.Rank;
-
-        int? bestRank = null;
-        if (raider.Characters is not null)
-        {
-            foreach (var character in raider.Characters)
-            {
-                var key = $"{character.Realm}:{character.Name}";
-                if (rankByKey.TryGetValue(key, out var rank))
-                {
-                    if (bestRank is null || rank < bestRank) bestRank = rank;
-                }
-            }
-        }
-
+        var bestRank = GuildRosterMatcher.BestRank(guild.BlizzardRosterRaw, raider.Characters);
         var isAdmin = bestRank == 0;
 
         // Roster-freshness check matches CanCreate/Signup/DeleteGuildRunsAsync —
         // 1-hour TTL after BlizzardRosterFetchedAt.
-        var rosterFresh =
-            guild.BlizzardRosterFetchedAt is not null
-            && DateTimeOffset.TryParse(guild.BlizzardRosterFetchedAt, out var fetchedAt)
-            && DateTimeOffset.UtcNow - fetchedAt < TimeSpan.FromHours(1);
+        var rosterFresh = GuildRosterMatcher.IsFresh(guild.BlizzardRosterFetchedAt);
 
         if (!rosterFresh || bestRank is null)
             return new GuildEffectivePermissions(isAdmin, false, false, false);
