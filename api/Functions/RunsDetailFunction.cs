@@ -20,11 +20,9 @@ namespace Lfm.Api.Functions;
 /// Returns a single run by its Cosmos document id, sanitized so that each
 /// RunCharacter's raiderBattleNetId is replaced by an IsCurrentUser flag.
 ///
-/// Visibility rules (mirrors runs-detail.ts):
-///   - The run is always returned if it is PUBLIC.
-///   - The run is returned for GUILD visibility when:
-///       * the requesting user is the creator, OR
-///       * the requesting user belongs to the same guild as the creator.
+/// Guild-only visibility rules:
+///   - The run is returned when the requesting user is the creator or belongs
+///     to the same guild as the creator.
 ///   - All other cases return 404 (no information leakage).
 /// </summary>
 public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raidersRepo)
@@ -43,23 +41,17 @@ public class RunsDetailFunction(IRunsRepository repo, IRaidersRepository raiders
         if (run is null)
             return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
-        // Visibility check — mirrors runs-detail.ts:
-        //   if (resource.visibility === "GUILD" && !isCreator && !isGuildMember)
-        //     return errorResponse(404, "Run not found");
-        if (run.Visibility == "GUILD")
-        {
-            // Derive the caller's guild from their raider's selected character so
-            // that guild membership is always taken from the stored character data
-            // (principal.GuildId is a legacy session field that is no longer populated).
-            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-            if (raider is null)
-                return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
+        // Derive the caller's guild from their raider's selected character so
+        // that guild membership is always taken from the stored character data
+        // (principal.GuildId is a legacy session field that is no longer populated).
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        if (raider is null)
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
-            var (guildId, _) = GuildResolver.FromRaider(raider);
+        var (guildId, _) = GuildResolver.FromRaider(raider);
 
-            if (!RunAccessPolicy.CanView(run, principal.BattleNetId, guildId))
-                return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
-        }
+        if (!RunAccessPolicy.CanView(run, principal.BattleNetId, guildId))
+            return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
         // Emit the Cosmos _etag as a strong HTTP ETag so callers can send it back
         // on PUT /api/runs/{id} as an If-Match header for optimistic concurrency.

@@ -84,7 +84,7 @@ public class RunsCreateFunctionTests
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Created run",
             ModeKey: "NORMAL:10",
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "Test Guild",
             CreatorGuildId: 12345,
             InstanceId: 631,

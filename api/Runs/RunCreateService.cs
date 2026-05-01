@@ -10,10 +10,10 @@ namespace Lfm.Api.Runs;
 
 /// <summary>
 /// Implements the run-create policy: load the raider, derive guild context,
-/// gate GUILD-visibility runs on the <c>canCreateGuildRuns</c> rank
-/// permission, build the Cosmos document with server-assigned fields, and
-/// persist it. Returns a <see cref="RunOperationResult"/> that the Function
-/// adapter translates to HTTP.
+/// gate run creation on the <c>canCreateGuildRuns</c> rank permission, build
+/// the guild-scoped Cosmos document with server-assigned fields, and persist
+/// it. Returns a <see cref="RunOperationResult"/> that the Function adapter
+/// translates to HTTP.
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-create.ts</c>.
 /// </summary>
@@ -39,23 +39,17 @@ public sealed class RunCreateService(
 
         var (guildId, guildName) = GuildResolver.FromRaider(raider);
 
-        // GUILD run guard: mirroring the checks in runs-create.ts.
-        //   1. GUILD run requires the caller to belong to a guild.
-        //   2. GUILD run requires the canCreateGuildRuns rank permission.
-        if (body.Visibility == "GUILD")
-        {
-            if (guildId is null)
-                return new RunOperationResult.BadRequest(
-                    "guild-required",
-                    "A guild run requires an active character in a guild.");
+        if (guildId is null)
+            return new RunOperationResult.BadRequest(
+                "guild-required",
+                "A run requires an active character in a guild.");
 
-            var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
-            if (!canCreate)
-                return new RunOperationResult.Forbidden(
-                    "guild-rank-denied",
-                    "Guild run creation is not enabled for your rank.",
-                    AuditReason: "guild rank denied");
-        }
+        var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
+        if (!canCreate)
+            return new RunOperationResult.Forbidden(
+                "guild-rank-denied",
+                "Guild run creation is not enabled for your rank.",
+                AuditReason: "guild rank denied");
 
         var runId = Guid.NewGuid().ToString();
         var createdAt = DateTimeOffset.UtcNow.ToString("o");
@@ -108,7 +102,7 @@ public sealed class RunCreateService(
             SignupCloseTime: body.SignupCloseTime ?? "",
             Description: body.Description ?? "",
             ModeKey: modeKey,
-            Visibility: body.Visibility!,
+            Visibility: "GUILD",
             CreatorGuild: guildName ?? "",
             CreatorGuildId: creatorGuildId,
             InstanceId: body.InstanceId,

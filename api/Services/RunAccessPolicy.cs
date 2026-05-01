@@ -8,13 +8,11 @@ namespace Lfm.Api.Services;
 internal static class RunAccessPolicy
 {
     internal static bool CanView(RunDocument run, string currentBattleNetId, string? callerGuildId) =>
-        run.Visibility != "GUILD"
-        || IsCreator(run, currentBattleNetId)
+        IsCreator(run, currentBattleNetId)
         || IsSameGuild(run, callerGuildId);
 
     internal static bool IsGuildPeer(RunDocument run, string currentBattleNetId, string? callerGuildId) =>
-        run.Visibility == "GUILD"
-        && !IsCreator(run, currentBattleNetId)
+        !IsCreator(run, currentBattleNetId)
         && IsSameGuild(run, callerGuildId);
 
     internal static bool IsCreator(RunDocument run, string currentBattleNetId) =>

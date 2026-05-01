@@ -13,9 +13,9 @@ namespace Lfm.Api.Runs;
 /// <summary>
 /// Implements the run-signup policy: load the raider, verify character
 /// ownership, and run a read-modify-write loop with optimistic concurrency
-/// that loads the run, gates GUILD-visibility runs on view + canSignupGuildRuns
+/// that loads the run, gates every signup on guild view + canSignupGuildRuns
 /// rank permission, upserts the <see cref="RunCharacterEntry"/> (handling the
-/// rejection-list IN→OUT default flip), and persists the document.
+/// rejection-list IN->OUT default flip), and persists the document.
 ///
 /// Returns a <see cref="RunOperationResult"/> that the Function adapter
 /// translates to HTTP. Audit emission for the success and forbidden paths
@@ -45,8 +45,8 @@ public sealed class RunSignupService(
             return new RunOperationResult.NotFound("raider-not-found", "Raider not found.");
 
         // Derive the caller's guild from the raider's selected character for the
-        // GUILD visibility check below. principal.GuildId is a legacy session field
-        // and is no longer populated.
+        // guild-only visibility check below. principal.GuildId is a legacy session
+        // field and is no longer populated.
         var (callerGuildId, _) = GuildResolver.FromRaider(raider);
 
         var storedCharacter = raider.Characters?.FirstOrDefault(c => c.Id == body.CharacterId);
@@ -89,20 +89,17 @@ public sealed class RunSignupService(
                     "Signups are closed for this run.");
             }
 
-            // 3c. Visibility check for GUILD runs — mirrors runs-signup.ts.
-            if (run.Visibility == "GUILD")
-            {
-                if (!RunAccessPolicy.CanView(run, principal.BattleNetId, callerGuildId))
-                    return new RunOperationResult.NotFound("run-not-found", "Run not found.");
+            // 3c. Guild-only visibility and rank checks.
+            if (!RunAccessPolicy.CanView(run, principal.BattleNetId, callerGuildId))
+                return new RunOperationResult.NotFound("run-not-found", "Run not found.");
 
-                var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
-                if (!canSignup)
-                {
-                    return new RunOperationResult.Forbidden(
-                        "guild-rank-denied",
-                        "Guild signup is not enabled for your rank.",
-                        AuditReason: "guild rank denied");
-                }
+            var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
+            if (!canSignup)
+            {
+                return new RunOperationResult.Forbidden(
+                    "guild-rank-denied",
+                    "Guild signup is not enabled for your rank.",
+                    AuditReason: "guild rank denied");
             }
 
             // 3d. Upsert the RunCharacterEntry — one per battleNetId per run.

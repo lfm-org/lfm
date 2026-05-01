@@ -368,8 +368,9 @@ paths:
       tags: [Runs]
       summary: List runs visible to the caller.
       description: |
-        Visibility: all PUBLIC runs, GUILD runs whose creator is in the
-        caller's guild, plus runs the caller created. One page per request,
+        Guild-only discovery: callers with a selected-character guild see
+        GUILD runs whose creator is in the caller's guild. Callers without a
+        selected-character guild receive an empty page. One page per request,
         capped server-side at 200 items.
       operationId: listRuns
       parameters:
@@ -1027,7 +1028,7 @@ components:
         startTime: { type: string, format: date-time }
         signupCloseTime: { type: string, format: date-time }
         description: { type: string }
-        visibility: { type: string, enum: [PUBLIC, GUILD] }
+        visibility: { type: string, enum: [GUILD] }
         creatorGuild: { type: string }
         instanceId: { type: integer, nullable: true }
         instanceName: { type: string, nullable: true }
@@ -1058,7 +1059,7 @@ components:
         startTime: { type: string }
         signupCloseTime: { type: string, nullable: true }
         description: { type: string, nullable: true }
-        visibility: { type: string, enum: [PUBLIC, GUILD] }
+        visibility: { type: string, enum: [GUILD] }
         instanceId: { type: integer, nullable: true }
         instanceName: { type: string, nullable: true }
         difficulty: { type: string, enum: [LFR, NORMAL, HEROIC, MYTHIC, MYTHIC_KEYSTONE] }
@@ -1072,7 +1073,7 @@ components:
         startTime: { type: string, nullable: true }
         signupCloseTime: { type: string, nullable: true }
         description: { type: string, nullable: true }
-        visibility: { type: string, nullable: true, enum: [PUBLIC, GUILD, null] }
+        visibility: { type: string, nullable: true, enum: [GUILD, null] }
         instanceId: { type: integer, nullable: true }
         instanceName: { type: string, nullable: true }
         difficulty: { type: string, nullable: true }

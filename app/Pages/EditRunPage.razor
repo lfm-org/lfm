@@ -154,23 +154,6 @@
                         </FluentButton>
                     }
 
-                    @if (_form.CanShowGuildOption)
-                    {
-                        <div>
-                            <span id="editRun-visibility-label" class="field__label">@Loc["createRun.visibility"]</span>
-                            <ToggleGroup TValue="string"
-                                         Options="_visibilityOptions"
-                                         Value="_form.Visibility"
-                                         ValueChanged="@(v => _form.Visibility = v)"
-                                         AriaLabelledBy="editRun-visibility-label"
-                                         Disabled="@_saving" />
-                            @if (!_form.CanCreateGuildRuns)
-                            {
-                                <small class="field__hint">@Loc["createRun.visibility.guildDisabledReason"]</small>
-                            }
-                        </div>
-                    }
-
                     <div>
                         <FluentTextArea Id="description-input"
                                         Label="@Loc["createRun.description"]"
@@ -284,7 +267,6 @@
     private IReadOnlyList<(ActivityKind, string)> _activityOptions = [];
     private IReadOnlyList<(bool, string)> _dungeonScopeOptions = [];
     private IReadOnlyList<(string, string)> _difficultyOptions = [];
-    private IReadOnlyList<(string, string)> _visibilityOptions = [];
 
     private static readonly Dictionary<string, object> DescriptionAttrs = new()
     {
@@ -331,8 +313,6 @@
             _form.LoadOptions(InstanceOptions.Build(await instancesTask), await expansionsTask);
             try { _guild = await guildTask; } catch { _guild = null; }
 
-            _form.CanShowGuildOption = _guild?.Guild is not null;
-
             _hasSignups = run.RunCharacters.Count > 0;
             RebuildStaticOptions();
             PopulateForm(run);
@@ -378,7 +358,7 @@
             startTimeLocal: ParseIso(run.StartTime),
             signupCloseLocal: signupCloseLocal,
             showSignupClose: signupCloseLocal is not null,
-            visibility: string.IsNullOrEmpty(run.Visibility) ? "PUBLIC" : run.Visibility,
+            visibility: "GUILD",
             description: run.Description ?? string.Empty);
 
         SyncDifficultyOptionTuples();
@@ -421,11 +401,6 @@
             (true, Loc["createRun.dungeonScope.any"].Value),
             (false, Loc["createRun.dungeonScope.specific"].Value),
         };
-        _visibilityOptions = new (string, string)[]
-        {
-            ("GUILD", Loc["createRun.guildOnly"].Value),
-            ("PUBLIC", Loc["createRun.public"].Value),
-        };
     }
 
     private void SyncDifficultyOptionTuples()
@@ -452,7 +427,7 @@
                 StartTime: ToIsoOrNull(_form.StartTimeLocal) ?? string.Empty,
                 SignupCloseTime: ToIsoOrNull(_form.SignupCloseLocal),
                 Description: _form.Description,
-                Visibility: _form.Visibility,
+                Visibility: "GUILD",
                 InstanceId: instanceOption?.InstanceId,
                 InstanceName: instanceOption?.Name,
                 Difficulty: _form.Difficulty,

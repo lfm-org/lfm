@@ -25,7 +25,7 @@ public class RunsPageKeyboardTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "",
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "Test",
             InstanceId: 1,
             InstanceName: name,

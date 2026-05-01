@@ -56,7 +56,7 @@ public class RunsListFunctionTests
 
     private static RunDocument MakeRunDoc(
         string id = "run-1",
-        string visibility = "PUBLIC",
+        string visibility = "GUILD",
         string? creatorBattleNetId = null,
         int? creatorGuildId = null,
         List<RunCharacterEntry>? runCharacters = null) =>

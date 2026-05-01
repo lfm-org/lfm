@@ -158,29 +158,11 @@
                     </FluentButton>
                 }
 
-                @* ── Visibility ─────────────────────────────────────────── *@
-                @if (_form.CanShowGuildOption)
+                @if (!_form.CanCreateGuildRuns)
                 {
-                    <div>
-                        <span id="createRun-visibility-label" class="field__label">@Loc["createRun.visibility"]</span>
-                        <ToggleGroup TValue="string"
-                                     Options="_visibilityOptions"
-                                     Value="_form.Visibility"
-                                     ValueChanged="@(v => _form.Visibility = v)"
-                                     AriaLabelledBy="createRun-visibility-label"
-                                     Disabled="@_submitting" />
-                        @if (!_form.CanCreateGuildRuns)
-                        {
-                            <small class="field__hint">@Loc["createRun.visibility.guildDisabledReason"]</small>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div>
-                        <span class="field__label">@Loc["createRun.visibility"]</span>
-                        <small class="field__hint">@Loc["createRun.visibility.visibleToEveryone"]</small>
-                    </div>
+                    <FluentMessageBar Intent="MessageIntent.Warning">
+                        @Loc["createRun.visibility.guildDisabledReason"]
+                    </FluentMessageBar>
                 }
 
                 @* ── Notes ──────────────────────────────────────────────── *@
@@ -211,7 +193,7 @@
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                     <FluentButton Appearance="Appearance.Accent"
                                   OnClick="@HandleSubmit"
-                                  Disabled="@(!_form.CanSubmit || _submitting)">
+                                  Disabled="@(!_form.CanSubmit || !_form.CanCreateGuildRuns || _submitting)">
                         @(_submitting ? Loc["createRun.creating"] : Loc["createRun.submit"])
                     </FluentButton>
                     <FluentButton Appearance="Appearance.Outline"
@@ -240,7 +222,6 @@
     private IReadOnlyList<(ActivityKind, string)> _activityOptions = [];
     private IReadOnlyList<(bool, string)> _dungeonScopeOptions = [];
     private IReadOnlyList<(string, string)> _difficultyOptions = [];
-    private IReadOnlyList<(string, string)> _visibilityOptions = [];
 
     private static readonly Dictionary<string, object> DescriptionAttrs = new()
     {
@@ -260,12 +241,8 @@
 
             _form.LoadOptions(InstanceOptions.Build(await instancesTask), await expansionsTask);
 
-            // A guild fetch failure must not block the form — fall back to
-            // PUBLIC-only visibility rather than an unusable screen.
             try { _guild = await guildTask; }
             catch { _guild = null; }
-
-            _form.CanShowGuildOption = _guild?.Guild is not null;
 
             RebuildStaticOptions();
             SyncDifficultyOptionTuples();
@@ -322,11 +299,6 @@
             (true, Loc["createRun.dungeonScope.any"].Value),
             (false, Loc["createRun.dungeonScope.specific"].Value),
         };
-        _visibilityOptions = new (string, string)[]
-        {
-            ("GUILD", Loc["createRun.guildOnly"].Value),
-            ("PUBLIC", Loc["createRun.public"].Value),
-        };
     }
 
     private void SyncDifficultyOptionTuples()
@@ -340,10 +312,7 @@
     private void ApplyVisibilityDefault()
     {
         _form.CanCreateGuildRuns = _guild?.MemberPermissions?.CanCreateGuildRuns ?? false;
-        if (_form.CanShowGuildOption && _form.CanCreateGuildRuns)
-            _form.Visibility = "GUILD";
-        else
-            _form.Visibility = "PUBLIC";
+        _form.Visibility = "GUILD";
     }
 
     // The native <input type="datetime-local"> binds wall-clock time with no
@@ -369,7 +338,7 @@
                 StartTime: ToIsoOrNull(_form.StartTimeLocal) ?? string.Empty,
                 SignupCloseTime: ToIsoOrNull(_form.SignupCloseLocal),
                 Description: string.IsNullOrWhiteSpace(_form.Description) ? null : _form.Description,
-                Visibility: _form.Visibility,
+                Visibility: "GUILD",
                 InstanceId: instanceOption?.InstanceId,
                 InstanceName: instanceOption?.Name,
                 Difficulty: _form.Difficulty,

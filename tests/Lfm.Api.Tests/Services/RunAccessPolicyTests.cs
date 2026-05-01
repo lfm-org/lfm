@@ -10,11 +10,11 @@ namespace Lfm.Api.Tests.Services;
 public class RunAccessPolicyTests
 {
     [Fact]
-    public void CanView_allows_public_runs_without_guild_membership()
+    public void CanView_denies_legacy_public_runs_without_creator_or_guild_membership()
     {
         var run = MakeRun(visibility: "PUBLIC", creatorBattleNetId: "creator", creatorGuildId: null);
 
-        Assert.True(RunAccessPolicy.CanView(run, "viewer", callerGuildId: null));
+        Assert.False(RunAccessPolicy.CanView(run, "viewer", callerGuildId: null));
     }
 
     [Fact]
@@ -42,14 +42,14 @@ public class RunAccessPolicyTests
     }
 
     [Fact]
-    public void IsGuildPeer_allows_same_guild_non_creator_only_for_guild_runs()
+    public void IsGuildPeer_allows_same_guild_non_creator_independent_of_visibility()
     {
         var guildRun = MakeRun(visibility: "GUILD", creatorBattleNetId: "creator", creatorGuildId: 123);
-        var publicRun = MakeRun(visibility: "PUBLIC", creatorBattleNetId: "creator", creatorGuildId: 123);
+        var legacyPublicRun = MakeRun(visibility: "PUBLIC", creatorBattleNetId: "creator", creatorGuildId: 123);
 
         Assert.True(RunAccessPolicy.IsGuildPeer(guildRun, "peer", callerGuildId: "123"));
         Assert.False(RunAccessPolicy.IsGuildPeer(guildRun, "creator", callerGuildId: "123"));
-        Assert.False(RunAccessPolicy.IsGuildPeer(publicRun, "peer", callerGuildId: "123"));
+        Assert.True(RunAccessPolicy.IsGuildPeer(legacyPublicRun, "peer", callerGuildId: "123"));
     }
 
     private static RunDocument MakeRun(

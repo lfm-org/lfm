@@ -98,8 +98,15 @@ public sealed class RunUpdateService(
                     "Cannot change instance after signups.");
         }
 
-        // 6. GUILD visibility promotion guard — mirrors isGuildVisibilityPromotion.
-        var isGuildPromotion = body.Visibility == "GUILD" && existing.Visibility != "GUILD";
+        if (presentFields.Visibility && body.Visibility == "PUBLIC")
+        {
+            return new RunOperationResult.BadRequest(
+                "visibility-must-be-guild",
+                "Visibility must be GUILD.");
+        }
+
+        // 6. Legacy visibility promotion guard.
+        var isGuildPromotion = existing.Visibility != "GUILD";
         if (isGuildPromotion)
         {
             if (guildId is null)
@@ -128,9 +135,7 @@ public sealed class RunUpdateService(
         var effectiveDescription = presentFields.Description
             ? body.Description ?? ""
             : existing.Description;
-        var effectiveVisibility = presentFields.Visibility
-            ? body.Visibility ?? existing.Visibility
-            : existing.Visibility;
+        var effectiveVisibility = "GUILD";
         var effectiveInstanceId = presentFields.InstanceId
             ? body.InstanceId
             : existing.InstanceId;
