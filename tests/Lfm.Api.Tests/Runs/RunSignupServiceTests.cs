@@ -95,6 +95,7 @@ public class RunSignupServiceTests
         Mock<IRunsRepository> runsRepo,
         Mock<IRaidersRepository> raidersRepo,
         Mock<IGuildPermissions> guildPermissions,
+        Mock<IRunSignupEligibility> signupEligibility,
         Mock<ILogger<RunSignupService>> logger,
         RunSignupService sut) MakeSut()
     {
@@ -104,19 +105,27 @@ public class RunSignupServiceTests
         guildPermissions
             .Setup(g => g.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        var signupEligibility = new Mock<IRunSignupEligibility>();
+        signupEligibility
+            .Setup(s => s.IsSignupCharacterInRunGuildAsync(
+                It.IsAny<RunDocument>(),
+                It.IsAny<StoredSelectedCharacter>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         var logger = new Mock<ILogger<RunSignupService>>();
         var sut = new RunSignupService(
             runsRepo.Object,
             raidersRepo.Object,
             guildPermissions.Object,
+            signupEligibility.Object,
             logger.Object);
-        return (runsRepo, raidersRepo, guildPermissions, logger, sut);
+        return (runsRepo, raidersRepo, guildPermissions, signupEligibility, logger, sut);
     }
 
     [Fact]
     public async Task SignupAsync_RaiderMissing_ReturnsNotFound()
     {
-        var (_, raidersRepo, _, _, sut) = MakeSut();
+        var (_, raidersRepo, _, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync((RaiderDocument?)null);
 
@@ -133,7 +142,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_CharacterNotOnProfile_ReturnsBadRequest()
     {
-        var (_, raidersRepo, _, _, sut) = MakeSut();
+        var (_, raidersRepo, _, _, _, sut) = MakeSut();
         // Raider has only "char-1"; body asks for "char-missing".
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
@@ -151,7 +160,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_RunNotFound_ReturnsNotFound()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
         runsRepo.Setup(r => r.GetByIdAsync("missing-run", It.IsAny<CancellationToken>()))
@@ -170,7 +179,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_SignupsClosed_ReturnsConflict()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         // Run whose start time and signup close time are both in the past.
         var closed = MakeOpenRun() with
         {
@@ -195,7 +204,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_HappyPath_GuildRun_ReturnsOkWithEntry()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
@@ -219,9 +228,81 @@ public class RunSignupServiceTests
     }
 
     [Fact]
+    public async Task SignupAsync_GuildRun_SubmittedCharacterNotInRunGuild_ReturnsBadRequest()
+    {
+        var (runsRepo, raidersRepo, _, signupEligibility, _, sut) = MakeSut();
+        var raider = MakeRaider("bnet-user", characterId: "char-1", guildId: 123) with
+        {
+            Characters = [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Guildmain",
+                    GuildId: 123,
+                    GuildName: "Test Guild"),
+                new StoredSelectedCharacter(
+                    Id: "char-alt",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Unguildedalt")
+            ]
+        };
+
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun(visibility: "GUILD", creatorGuildId: 123));
+        signupEligibility
+            .Setup(s => s.IsSignupCharacterInRunGuildAsync(
+                It.IsAny<RunDocument>(),
+                It.Is<StoredSelectedCharacter>(c => c.Id == "char-alt"),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-alt"),
+            MakePrincipal("bnet-user"),
+            CancellationToken.None);
+
+        var badRequest = Assert.IsType<RunOperationResult.BadRequest>(result);
+        Assert.Equal("character-not-in-guild", badRequest.Code);
+        runsRepo.Verify(
+            r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SignupAsync_GuildRun_ChecksSubmittedCharacterEligibility()
+    {
+        var (runsRepo, raidersRepo, _, signupEligibility, _, sut) = MakeSut();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1", guildId: 123));
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun(visibility: "GUILD", creatorGuildId: 123));
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-1", desiredAttendance: "IN"),
+            MakePrincipal("bnet-user"),
+            CancellationToken.None);
+
+        Assert.IsType<RunOperationResult.Ok>(result);
+        signupEligibility.Verify(
+            s => s.IsSignupCharacterInRunGuildAsync(
+                It.IsAny<RunDocument>(),
+                It.Is<StoredSelectedCharacter>(c => c.Id == "char-1"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task SignupAsync_RetryExhaustion_ReturnsConflict()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
@@ -248,7 +329,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_GuildVisibility_NonMember_ReturnsNotFound_DoesNotLeakExistence()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         // Caller's selected character is in guild 999; run is owned by guild 123.
         // RunAccessPolicy.CanView returns false, so the policy lifts the run as
         // "not found" rather than "forbidden" so existence cannot be probed.
@@ -278,7 +359,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_GuildVisibility_MemberWithoutPermission_ReturnsForbiddenWithAuditReason()
     {
-        var (runsRepo, raidersRepo, guildPermissions, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, guildPermissions, _, _, sut) = MakeSut();
         // Same guild as the run (CanView true), but rank lacks canSignupGuildRuns.
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1", guildId: 123));
@@ -309,7 +390,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_GuildVisibility_MemberWithPermission_ReturnsOk()
     {
-        var (runsRepo, raidersRepo, guildPermissions, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, guildPermissions, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1", guildId: 123));
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
@@ -342,7 +423,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_RaiderInRejectionList_NewSignup_DefaultsToOut()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
@@ -371,7 +452,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_RaiderInRejectionList_EditExistingEntry_PreservesPriorReviewedAttendance()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         var existingEntry = new RunCharacterEntry(
             Id: "entry-1",
             CharacterId: "char-1",
@@ -419,7 +500,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_RetryConcurrencyConflict_ThenSucceeds_ReturnsOk()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
         runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
@@ -459,7 +540,7 @@ public class RunSignupServiceTests
     [Fact]
     public async Task SignupAsync_InvalidSpecId_ReturnsBadRequest()
     {
-        var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
         // Character knows spec 71 only; body asks for spec 999.
         var specs = new StoredSpecializationsSummary(
             ActiveSpecialization: null,
