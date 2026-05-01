@@ -45,16 +45,16 @@ ops escape hatch when the cookie flow is unavailable.
 The Functions app reads four secrets from Key Vault (one role grant,
 `Key Vault Secrets User`, scoped to the vault). Bicep references them but
 does **not** create them — operators must populate the vault before the
-first deploy and on rotation. Until a secret exists the Functions runtime
-shows the corresponding app setting as "Not Resolved" and falls back to
-the in-code default for that setting, which is **not** the secure path.
+first deploy and on rotation. Deploy and startup checks fail closed for
+secrets where falling back to an in-code default would weaken the security
+boundary.
 
 | Secret name | Bound app setting | Resolver | Effect when missing |
 |---|---|---|---|
 | `battlenet-client-id` | `Blizzard__ClientId` | Platform `@Microsoft.KeyVault(...)` | Battle.net OAuth + Game Data calls fail at startup. |
 | `battlenet-client-secret` | `Blizzard__ClientSecret` | Platform `@Microsoft.KeyVault(...)` | Same. |
 | `site-admin-battle-net-ids` | (read at runtime by `KeyVaultSecretResolver`) | `Azure.Security.KeyVault.Secrets.SecretClient` | `SiteAdminService.IsAdminAsync` returns `false` for everyone — admin endpoints become unreachable. Fail-closed. |
-| `audit-hash-salt` | `Audit__HashSalt` | Platform `@Microsoft.KeyVault(...)` | `AuditLog` falls back to `IdentityActorHasher` and emits **plaintext** `battleNetId` (PII) into Application Insights. **Fail-open.** |
+| `audit-hash-salt` | `Audit__HashSalt` | Platform `@Microsoft.KeyVault(...)` | `deploy-app.yml` preflight fails if the secret is missing or inaccessible; production-like startup also fails if the setting is empty, whitespace, or still an unresolved Key Vault reference. **Fail-closed.** |
 
 Generate `audit-hash-salt` with `openssl rand -base64 32` and store in the
 `audit-hash-salt` secret. Rotation breaks linkage of historical audit
