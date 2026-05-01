@@ -35,5 +35,6 @@ public interface IRunsClient
 
     Task<bool> DeleteAsync(string id, CancellationToken ct);
     Task<RunDetailDto?> SignupAsync(string runId, SignupRequest request, CancellationToken ct);
+    Task<CharactersFetchResult> GetSignupOptionsAsync(string runId, CancellationToken ct);
     Task<RunDetailDto?> CancelSignupAsync(string runId, CancellationToken ct);
 }

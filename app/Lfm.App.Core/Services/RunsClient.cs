@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Lfm.App.Runs;
 using Lfm.Contracts.Runs;
 
@@ -89,6 +90,28 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         var response = await http.PostAsJsonAsync($"api/v1/runs/{Uri.EscapeDataString(runId)}/signup", request, ct);
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
+    }
+
+    public async Task<CharactersFetchResult> GetSignupOptionsAsync(string runId, CancellationToken ct)
+    {
+        var http = factory.CreateClient("api");
+        try
+        {
+            var response = await http.GetAsync($"api/v1/runs/{Uri.EscapeDataString(runId)}/signup/options", ct);
+            if (response.StatusCode == HttpStatusCode.NoContent)
+                return new CharactersFetchResult.NeedsRefresh();
+            if (!response.IsSuccessStatusCode)
+                return new CharactersFetchResult.Error();
+
+            var options = await response.Content.ReadFromJsonAsync<RunSignupOptionsDto>(cancellationToken: ct);
+            return options is null
+                ? new CharactersFetchResult.Error()
+                : new CharactersFetchResult.Cached(options.Characters);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException)
+        {
+            return new CharactersFetchResult.Error();
+        }
     }
 
     public async Task<RunDetailDto?> CancelSignupAsync(string runId, CancellationToken ct)

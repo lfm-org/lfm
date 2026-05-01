@@ -216,12 +216,17 @@ public class RunsPagesTests : ComponentTestBase
             SpecName: "Holy");
 
     private void WireSignupSupport(
+        Mock<IRunsClient>? runsClient = null,
         IReadOnlyList<CharacterDto>? characters = null,
         string? selectedCharacterId = "eu-silvermoon-aelrin")
     {
+        var signupCharacters = characters ?? new List<CharacterDto> { MakeAppCharacter() };
+        runsClient?.Setup(c => c.GetSignupOptionsAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(signupCharacters));
+
         var battleNet = new Mock<IBattleNetClient>();
-        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CharactersFetchResult.Cached(characters ?? new List<CharacterDto> { MakeAppCharacter() }));
+        battleNet.Setup(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(signupCharacters);
         Services.AddSingleton(battleNet.Object);
 
         var me = new Mock<IMeClient>();
@@ -244,7 +249,7 @@ public class RunsPagesTests : ComponentTestBase
                 MakeCharacter("Aelrin", classId: 5, className: "Priest", role: "HEALER", spec: "Holy", isCurrentUser: true),
             }));
         Services.AddSingleton(client.Object);
-        WireSignupSupport();
+        WireSignupSupport(client);
 
         var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
 
@@ -277,9 +282,11 @@ public class RunsPagesTests : ComponentTestBase
             .ReturnsAsync(MakeDetail());
         Services.AddSingleton(client.Object);
 
+        client.SetupSequence(c => c.GetSignupOptionsAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.NeedsRefresh())
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { MakeAppCharacter() }));
+
         var battleNet = new Mock<IBattleNetClient>();
-        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CharactersFetchResult.NeedsRefresh());
         battleNet.Setup(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CharacterDto> { MakeAppCharacter() });
         Services.AddSingleton(battleNet.Object);
@@ -293,9 +300,35 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
+            client.Verify(c => c.GetSignupOptionsAsync("run-1", It.IsAny<CancellationToken>()), Times.Exactly(2));
+            battleNet.Verify(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()), Times.Never);
             battleNet.Verify(c => c.RefreshCharactersAsync(It.IsAny<CancellationToken>()), Times.Once);
             Assert.Contains(Loc("runs.signup.action"), cut.Markup);
             Assert.DoesNotContain(Loc("runs.signup.charactersNeedRefresh"), cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void RunsPage_Signup_Uses_RunScoped_Character_Options()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        var runScopedCharacter = MakeAppCharacter(name: "Guildmain", realm: "silvermoon");
+        client.Setup(c => c.GetSignupOptionsAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(new List<CharacterDto> { runScopedCharacter }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(selectedCharacterId: "eu-silvermoon-guildmain");
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Guildmain", cut.Markup);
+            Assert.DoesNotContain("Aelrin", cut.Markup);
+            client.Verify(c => c.GetSignupOptionsAsync("run-1", It.IsAny<CancellationToken>()), Times.Once);
         });
     }
 
@@ -313,7 +346,7 @@ public class RunsPagesTests : ComponentTestBase
         client.Setup(c => c.CancelSignupAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetail());
         Services.AddSingleton(client.Object);
-        WireSignupSupport();
+        WireSignupSupport(client);
 
         var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
 

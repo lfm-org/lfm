@@ -386,8 +386,12 @@
         StateHasChanged();
         try
         {
+            if (selectedRun is null)
+                return;
+
+            var runId = selectedRun.Id;
             var meTask = MeClient.GetAsync(CancellationToken.None);
-            var charactersResult = await BattleNetClient.GetCharactersAsync(CancellationToken.None);
+            var charactersResult = await RunsClient.GetSignupOptionsAsync(runId, CancellationToken.None);
             var me = await meTask;
 
             if (charactersResult is CharactersFetchResult.Cached cached)
@@ -407,9 +411,19 @@
                 }
                 else
                 {
-                    _signupCharacters = fresh;
-                    _signupOptionsLoaded = true;
-                    SelectDefaultSignupCharacter(me?.SelectedCharacterId);
+                    var refreshedOptions = await RunsClient.GetSignupOptionsAsync(runId, CancellationToken.None);
+                    if (refreshedOptions is CharactersFetchResult.Cached refreshedCached)
+                    {
+                        _signupCharacters = refreshedCached.Characters;
+                        _signupOptionsLoaded = true;
+                        SelectDefaultSignupCharacter(me?.SelectedCharacterId);
+                    }
+                    else
+                    {
+                        _signupCharacters = [];
+                        _signupOptionsLoaded = true;
+                        _signupError = Loc["runs.signup.charactersLoadFailed"].Value;
+                    }
                 }
             }
             else
