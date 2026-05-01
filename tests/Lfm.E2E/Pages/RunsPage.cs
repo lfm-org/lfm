@@ -66,9 +66,9 @@ public class RunsPage(IPage page)
     public ILocator InstanceSelect =>
         _page.Locator("#instance-select").First;
 
-    /// <summary>Mode Key text field — inner input of FluentTextField.</summary>
-    public ILocator ModeKeyInput =>
-        _page.Locator("#modekey-input input");
+    /// <summary>Mythic+ key level native number input.</summary>
+    public ILocator KeyLevelInput =>
+        _page.Locator("#keylevel-input");
 
     /// <summary>Start Time native &lt;input type="datetime-local"&gt; element.</summary>
     public ILocator StartTimeInput =>
@@ -82,9 +82,9 @@ public class RunsPage(IPage page)
     public ILocator VisibilitySelect =>
         _page.Locator("#visibility-select").First;
 
-    /// <summary>Description text field — inner input of FluentTextField.</summary>
+    /// <summary>Description text area web component.</summary>
     public ILocator DescriptionInput =>
-        _page.Locator("#description-input input");
+        _page.Locator("#description-input");
 
     /// <summary>"Create Run" submit button on the create-run form.</summary>
     public ILocator CreateRunSubmitButton =>
@@ -145,12 +145,12 @@ public class RunsPage(IPage page)
     /// Fills in the minimal required fields for the create-run form and submits it.
     /// Waits for redirect to the newly created run's detail page.
     /// </summary>
-    public async Task FillCreateFormAsync(string modeKey, string startTime, string? description = null)
+    public async Task FillCreateFormAsync(string keyLevel, string startTime, string? description = null)
     {
-        await ModeKeyInput.FillAsync(modeKey);
+        await KeyLevelInput.FillAsync(keyLevel);
         await StartTimeInput.FillAsync(startTime);
         if (description is not null)
-            await DescriptionInput.FillAsync(description);
+            await FillDescriptionAsync(description);
     }
 
     /// <summary>
@@ -160,7 +160,20 @@ public class RunsPage(IPage page)
     /// </summary>
     public async Task UpdateDescriptionAsync(string description)
     {
-        await DescriptionInput.FillAsync(description);
+        await FillDescriptionAsync(description);
         await SaveChangesButton.ClickAsync();
+    }
+
+    public async Task FillDescriptionAsync(string description)
+    {
+        await DescriptionInput.EvaluateAsync(
+            """
+            (element, value) => {
+                element.value = value;
+                element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            }
+            """,
+            description);
     }
 }

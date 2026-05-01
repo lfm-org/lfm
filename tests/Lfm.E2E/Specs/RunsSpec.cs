@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Runs")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -39,6 +39,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await _authContext.CloseAsync();
     }
 
+    // E2E scope: proves the authenticated runs page renders the seeded run list.
+    // Cheaper lanes cannot prove this because the browser observes auth, API, storage, and UI composition together.
+    // Shared data: read-only.
     [Fact]
     public async Task RunsPage_Loads_DisplaysRunList()
     {
@@ -53,6 +56,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId)).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves creating a run through the browser appears in list and detail views.
+    // Cheaper lanes cannot prove this because form binding, API persistence, routing, and rendering must round-trip.
+    // Shared data: disposable.
     [Fact]
     public async Task CreateRun_SubmitForm_AppearsInList()
     {
@@ -61,18 +67,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Navigate to the create-run form
         await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
 
-        // Wait for the form to load (instance dropdown is populated)
+        // Wait for the form to load.
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        // Known limitation: FluentUI <fluent-select> web component does not expose
-        // standard ARIA combobox/option roles to Playwright. Prefer GetByRole once
-        // upstream support lands (microsoft/fluentui-blazor#2614). Until then, use the
-        // element ID set on the component.
-        var instanceSelect = Page.Locator("#instance-select");
-        await instanceSelect.ClickAsync();
-        var firstRealOption = Page.Locator("#instance-select fluent-option").Nth(1);
-        await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
-        await firstRealOption.ClickAsync();
 
         // Fill in required form fields with a unique run name via description.
         // Use a future date anchored to UtcNow so the test does not become a
@@ -80,10 +76,10 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // The native <input type="datetime-local"> accepts no timezone suffix;
         // the browser interprets the value as wall-clock local time.
         var uniqueRunName = $"E2E-Create-{Guid.NewGuid():N}";
-        await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
+        await runsPage.KeyLevelInput.FillAsync("10");
         await runsPage.StartTimeInput.FillAsync(
             DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
-        await runsPage.DescriptionInput.FillAsync(uniqueRunName);
+        await runsPage.FillDescriptionAsync(uniqueRunName);
 
         // Submit
         await runsPage.CreateRunSubmitButton.ClickAsync();
@@ -119,6 +115,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves list-click navigation renders the seeded run roster and signup count.
+    // Cheaper lanes cannot prove this because browser routing and detail-panel rendering compose the final behavior.
+    // Shared data: read-only.
     [Fact]
     public async Task RunDetail_Navigate_ShowsRosterWithSignupCount()
     {
@@ -138,9 +137,14 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         Assert.Contains("(1)", attendingText);
 
         await Assertions.Expect(runsPage.RosterCharacterRows).ToHaveCountAsync(1, new() { Timeout = 10000 });
-        await Assertions.Expect(Page!.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(
+            runsPage.RosterCharacterRows.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves deep-link navigation renders the seeded run roster.
+    // Cheaper lanes cannot prove this because the browser must resolve the route and hydrate the detail panel.
+    // Shared data: read-only.
     [Fact]
     public async Task RunDetail_DeepLink_DisplaysSeededRoster()
     {
@@ -163,9 +167,14 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         var attendingText = await runsPage.AttendingHeading.InnerTextAsync();
         Assert.Contains("(1)", attendingText);
 
-        await Assertions.Expect(Page.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(
+            runsPage.RosterCharacterRows.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves the edit route renders the seeded roster in the browser.
+    // Cheaper lanes cannot prove this because routed edit-page hydration composes auth, API, and UI state.
+    // Shared data: read-only.
     [Fact]
     public async Task EditRunPage_DisplaysSeededRoster()
     {
@@ -184,9 +193,13 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(runsPage.SaveChangesButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         // Verify the seeded character is shown in the roster on the edit page
-        await Assertions.Expect(Page.GetByText("Aelrin")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(Page.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves browser edits to run fields persist and re-render on detail.
+    // Cheaper lanes cannot prove this because form binding, API update, storage, and reload must round-trip.
+    // Shared data: disposable.
     [Fact]
     public async Task EditRun_ModifyFields_ChangesReflected()
     {
@@ -196,12 +209,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Mirrors the per-test factory pattern in DeleteRun_Confirm_RemovedFromList.
         Page!.Request += (_, req) =>
         {
-            if (req.Url.Contains("/api/runs/") && req.Method is "PUT" or "PATCH")
+            if (req.Url.Contains("/api/v1/runs/") && req.Method is "PUT" or "PATCH")
                 Log($"[API REQ] {req.Method} {req.Url} body={req.PostData}");
         };
         Page.Response += (_, resp) =>
         {
-            if (resp.Url.Contains("/api/runs/") && resp.Status >= 400)
+            if (resp.Url.Contains("/api/v1/runs/") && resp.Status >= 400)
                 Log($"[API RESP] {resp.Status} {resp.Url}");
         };
 
@@ -244,19 +257,11 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        // FluentUI <fluent-select> does not yet expose ARIA combobox roles to
-        // Playwright (microsoft/fluentui-blazor#2614); target by element id.
-        var instanceSelect = Page.Locator("#instance-select");
-        await instanceSelect.ClickAsync();
-        var firstRealOption = Page.Locator("#instance-select fluent-option").Nth(1);
-        await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
-        await firstRealOption.ClickAsync();
-
-        await runsPage.ModeKeyInput.FillAsync("NORMAL:25");
+        await runsPage.KeyLevelInput.FillAsync("10");
         // Native <input type="datetime-local"> rejects a Z suffix.
         await runsPage.StartTimeInput.FillAsync(
             DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
-        await runsPage.DescriptionInput.FillAsync($"E2E-Scratch-{Guid.NewGuid():N}");
+        await runsPage.FillDescriptionAsync($"E2E-Scratch-{Guid.NewGuid():N}");
 
         await runsPage.CreateRunSubmitButton.ClickAsync();
 
@@ -270,6 +275,9 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         return Uri.UnescapeDataString(runId);
     }
 
+    // E2E scope: proves browser deletion removes a created run from the rendered list.
+    // Cheaper lanes cannot prove this because confirmation UI, API delete, routing, and list refresh must compose.
+    // Shared data: disposable.
     [Fact]
     public async Task DeleteRun_Confirm_RemovedFromList()
     {
@@ -293,22 +301,13 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await runsPage.NavigateToCreateRunAsync(fixture.Stack.AppBaseUrl);
             await deletePage.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Select the first available instance. FluentUI custom elements
-            // do not yet expose ARIA combobox roles to Playwright (see
-            // microsoft/fluentui-blazor#2614), so target by element id.
-            var instanceSelect = deletePage.Locator("#instance-select");
-            await instanceSelect.ClickAsync();
-            var firstRealOption = deletePage.Locator("#instance-select fluent-option").Nth(1);
-            await firstRealOption.WaitForAsync(new() { Timeout = 10000 });
-            await firstRealOption.ClickAsync();
-
             var uniqueDescription = $"E2E-Delete-{Guid.NewGuid():N}";
-            await runsPage.ModeKeyInput.FillAsync("HEROIC:25");
+            await runsPage.KeyLevelInput.FillAsync("10");
             // Native <input type="datetime-local"> rejects a Z suffix; the
             // browser interprets the value as wall-clock local time.
             await runsPage.StartTimeInput.FillAsync(
                 DateTimeOffset.UtcNow.AddDays(60).ToString("yyyy-MM-ddTHH:mm:ss"));
-            await runsPage.DescriptionInput.FillAsync(uniqueDescription);
+            await runsPage.FillDescriptionAsync(uniqueDescription);
             await deletePage.Keyboard.PressAsync("Tab");
             await runsPage.CreateRunSubmitButton.ClickAsync();
 

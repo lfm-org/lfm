@@ -33,14 +33,14 @@ namespace Lfm.E2E.Specs;
 // The test asserts the end of the flow (signed-in navbar on /runs) — the
 // assertion target that proves the contract users actually care about.
 [Collection("AuthCallback")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.AuthFlow)]
 public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
     // See AuthSpec for the rationale on the WASM patterns — this spec
     // exercises the same cold-start Blazor bundle download path.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "503", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
+        ["401", "503", "/api/v1/me", "MONO_WASM", ".wasm", "mono_download_assets"];
 
     public override async Task InitializeAsync()
     {
@@ -58,6 +58,9 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves the real callback path signs in and lands the browser on runs.
+    // Cheaper lanes cannot prove this because OAuth redirects, callback cookies, and SPA auth state compose here.
+    // Shared data: disposable.
     [Fact]
     public async Task ProductionCallback_StubbedOAuthProvider_SignsInAndLandsOnRuns()
     {
@@ -67,11 +70,11 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         // 30s timeout — this is typically the first test in the suite to hit
         // the /login page on a cold CI runner, so the Blazor WASM bootstrap +
         // FluentUI component registration + the <fluent-button> upgrade all
-        // happen inside this wait. Sibling AuthSpec.LoginPage_Renders hits a
-        // warm cache and can get by with 10s; this one cannot. See #45.
+        // happen inside this wait. AuthSpec.SignIn_ClickButton_RedirectsToBattleNetOAuth
+        // hits the same forceLoad edge without completing the callback. See #45.
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
 
-        // Click the real sign-in button. In production this hits /api/battlenet/login
+        // Click the real sign-in button. In production this hits /api/v1/battlenet/login
         // which redirects through the Battle.net OAuth authorize / token / userinfo
         // endpoints. Locally, Blizzard__OAuthBaseUrl points at the WireMock stub,
         // so every outbound Battle.net call resolves against the stub instead of
@@ -93,6 +96,9 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves the browser recovers from a transient post-callback /me failure.
+    // Cheaper lanes cannot prove this because retry behavior must preserve the callback session in the SPA.
+    // Shared data: disposable.
     [Fact]
     public async Task ProductionCallback_TransientMe503AfterCallback_RetriesAndShowsSignedIn()
     {

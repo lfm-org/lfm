@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Lfm.App.Runs;
 using Lfm.Contracts.Runs;
@@ -37,7 +36,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         var dto = await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
         if (dto is null) return null;
 
-        var etag = response.Headers.ETag?.Tag;
+        var etag = ReadETag(response);
         return new RunDetailWithEtag(dto, etag);
     }
 
@@ -58,9 +57,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         {
             Content = JsonContent.Create(request),
         };
-        // Cosmos ETags are already double-quoted opaque strings; mirror them
-        // verbatim into the EntityTagHeaderValue so HttpClient doesn't re-quote.
-        httpRequest.Headers.IfMatch.Add(new EntityTagHeaderValue(ifMatchEtag));
+        httpRequest.Headers.TryAddWithoutValidation("If-Match", ifMatchEtag);
 
         using var response = await http.SendAsync(httpRequest, ct);
         if (response.StatusCode == HttpStatusCode.PreconditionFailed)
@@ -76,7 +73,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         var dto = await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
         if (dto is null) return null;
 
-        return new RunDetailWithEtag(dto, response.Headers.ETag?.Tag);
+        return new RunDetailWithEtag(dto, ReadETag(response));
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken ct)
@@ -100,5 +97,15 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         var response = await http.DeleteAsync($"api/v1/runs/{Uri.EscapeDataString(runId)}/signup", ct);
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
+    }
+
+    private static string? ReadETag(HttpResponseMessage response)
+    {
+        if (response.Headers.ETag?.Tag is { Length: > 0 } typed)
+            return typed;
+
+        return response.Headers.TryGetValues("ETag", out var values)
+            ? values.FirstOrDefault()
+            : null;
     }
 }

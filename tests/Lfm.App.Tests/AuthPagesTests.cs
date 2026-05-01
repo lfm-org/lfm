@@ -12,12 +12,15 @@ namespace Lfm.App.Tests;
 public class AuthPagesTests : ComponentTestBase
 {
     [Fact]
-    public void LandingPage_Renders_Title_Subtitle_And_SignIn_Cta()
+    public void LandingPage_Renders_Title_Feature_Cards_And_SignIn_Cta()
     {
         var cut = Render<LandingPage>();
 
         Assert.Contains(Loc("landing.title"), cut.Markup);
         Assert.Contains(Loc("landing.subtitle"), cut.Markup);
+        Assert.Contains(Loc("landing.sharedSchedule.title"), cut.Markup);
+        Assert.Contains(Loc("landing.roleCoverage.title"), cut.Markup);
+        Assert.Contains(Loc("landing.battleNetSignIn.title"), cut.Markup);
         Assert.Contains(Loc("landing.signIn"), cut.Markup);
     }
 

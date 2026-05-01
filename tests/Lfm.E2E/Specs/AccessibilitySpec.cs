@@ -13,11 +13,11 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Accessibility")]
-[Trait("Category", "Accessibility")]
+[Trait("Category", E2ELanes.Accessibility)]
 public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
+    protected override string[] IgnoredConsolePatterns => ["401", "/api/v1/me"];
 
     public override async Task InitializeAsync()
     {
@@ -39,6 +39,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // Public route axe-core scans — no auth required
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the rendered landing page passes axe in Chromium.
+    // Cheaper lanes cannot prove this because axe evaluates computed browser accessibility state.
+    // Shared data: none.
     [Fact]
     public async Task LandingPage_MeetsWcag22AA()
     {
@@ -52,6 +55,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await AccessibilityHelper.ScanAndAssert(Page, Output, "/ (landing)");
     }
 
+    // E2E scope: proves the rendered login page and focused sign-in state pass axe.
+    // Cheaper lanes cannot prove this because focus styling and accessible state are browser-computed.
+    // Shared data: none.
     [Fact]
     public async Task LoginPage_MeetsWcag22AA()
     {
@@ -73,6 +79,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         });
     }
 
+    // E2E scope: proves the rendered privacy page passes axe in Chromium.
+    // Cheaper lanes cannot prove this because axe evaluates the browser accessibility tree.
+    // Shared data: none.
     [Fact]
     public async Task PrivacyPage_MeetsWcag22AA()
     {
@@ -87,6 +96,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await AccessibilityHelper.ScanAndAssert(Page, Output, "/privacy");
     }
 
+    // E2E scope: proves the rendered login failure page passes axe in Chromium.
+    // Cheaper lanes cannot prove this because route rendering and accessibility state settle in the browser.
+    // Shared data: none.
     [Fact]
     public async Task LoginFailedPage_MeetsWcag22AA()
     {
@@ -104,6 +116,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // Authenticated route axe-core scans
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the runs page and selected-run state pass axe in Chromium.
+    // Cheaper lanes cannot prove this because dynamic rendered accessibility state needs browser evaluation.
+    // Shared data: read-only.
     [Fact]
     public async Task RunsPage_MeetsWcag22AA()
     {
@@ -135,6 +150,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         });
     }
 
+    // E2E scope: proves the run detail page and focused edit button pass axe.
+    // Cheaper lanes cannot prove this because focus and rendered detail accessibility state are browser-computed.
+    // Shared data: read-only.
     [Fact]
     public async Task RunDetailPage_MeetsWcag22AA()
     {
@@ -167,6 +185,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         });
     }
 
+    // E2E scope: proves the characters page and dirty delete field state pass axe.
+    // Cheaper lanes cannot prove this because Fluent input state and accessibility tree are browser-computed.
+    // Shared data: read-only.
     [Fact]
     public async Task CharactersPage_MeetsWcag22AA()
     {
@@ -178,7 +199,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             fixture.Stack.AppBaseUrl);
 
         var page = await authContext.NewPageAsync();
-        await page.RouteAsync("**/api/battlenet/character-portraits", async route =>
+        await page.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
         {
             await route.FulfillAsync(new()
             {
@@ -211,6 +232,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         });
     }
 
+    // E2E scope: proves the rendered guild page passes axe in Chromium.
+    // Cheaper lanes cannot prove this because authenticated rendering and accessibility state settle in the browser.
+    // Shared data: read-only.
     [Fact]
     public async Task GuildPage_MeetsWcag22AA()
     {
@@ -232,6 +256,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await AccessibilityHelper.ScanAndAssert(page, Output, "/guild");
     }
 
+    // E2E scope: proves the guild admin page and dirty slogan state pass axe.
+    // Cheaper lanes cannot prove this because form state and accessibility tree are browser-computed.
+    // Shared data: read-only.
     [Fact]
     public async Task GuildAdminPage_MeetsWcag22AA()
     {
@@ -264,6 +291,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         });
     }
 
+    // E2E scope: proves the rendered instances page passes axe in Chromium.
+    // Cheaper lanes cannot prove this because authenticated rendering and accessibility state settle in the browser.
+    // Shared data: read-only.
     [Fact]
     public async Task InstancesPage_MeetsWcag22AA()
     {
@@ -285,6 +315,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await AccessibilityHelper.ScanAndAssert(page, Output, "/instances");
     }
 
+    // E2E scope: proves the create-run form and toggled activity state pass axe.
+    // Cheaper lanes cannot prove this because selected Fluent controls expose accessibility state in the browser.
+    // Shared data: read-only.
     [Fact]
     public async Task CreateRunPage_MeetsWcag22AA()
     {
@@ -317,7 +350,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         // surfaces whose contrast / labels are invisible at load time.
         await AccessibilityHelper.ScanAfterAsync(page, Output, "/runs/new (Dungeon selected)", async () =>
         {
-            await page.GetByRole(AriaRole.Radio, new() { Name = "Dungeon" }).ClickAsync();
+            await page.GetByRole(AriaRole.Radio, new() { Name = "Dungeon", Exact = true }).ClickAsync();
         });
     }
 
@@ -325,6 +358,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // Keyboard navigation tests
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the first keyboard tab stop is the skip-to-content link.
+    // Cheaper lanes cannot prove this because actual tab order is resolved by the browser.
+    // Shared data: none.
     [Fact]
     public async Task TabFromBody_FirstStopIsSkipToContentLink()
     {
@@ -352,6 +388,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         Assert.Equal("Skip to content", firstText);
     }
 
+    // E2E scope: proves keyboard tabbing reaches the sign-in control.
+    // Cheaper lanes cannot prove this because focus traversal is browser behavior.
+    // Shared data: none.
     [Fact]
     public async Task InteractiveElements_ReachableViaTab()
     {
@@ -380,6 +419,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         Assert.Contains(stops, s => s.Text.Contains("Sign in with Battle.net"));
     }
 
+    // E2E scope: proves every walked tab stop exposes a visible focus indicator.
+    // Cheaper lanes cannot prove this because focus styles require computed browser CSS.
+    // Shared data: none.
     [Fact]
     public async Task FocusIndicator_VisibleOnAllTabbableElements()
     {
@@ -428,6 +470,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // Keyboard activation tests
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves Enter activates the browser sign-in button.
+    // Cheaper lanes cannot prove this because keyboard activation must trigger a real navigation request.
+    // Shared data: none.
     [Fact]
     public async Task SignInButton_ActivatesWithEnter()
     {
@@ -437,7 +482,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         // Register request listener before triggering navigation
         var loginRequestTask = Page!.WaitForRequestAsync(
-            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new System.Text.RegularExpressions.Regex(@"/api/(?:v1/)?battlenet/login"),
             new() { Timeout = 10000 });
 
         await loginPage.SignInButton.FocusAsync();
@@ -452,6 +497,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await Page.GotoAsync("about:blank");
     }
 
+    // E2E scope: proves Space activates the browser sign-in button.
+    // Cheaper lanes cannot prove this because keyboard activation must trigger a real navigation request.
+    // Shared data: none.
     [Fact]
     public async Task SignInButton_ActivatesWithSpace()
     {
@@ -464,7 +512,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         var loginRequestTask = freshPage.WaitForRequestAsync(
-            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new System.Text.RegularExpressions.Regex(@"/api/(?:v1/)?battlenet/login"),
             new() { Timeout = 10000 });
 
         await loginPage.SignInButton.FocusAsync();
@@ -473,6 +521,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await loginRequestTask;
     }
 
+    // E2E scope: proves Enter activates authenticated nav links in the browser.
+    // Cheaper lanes cannot prove this because keyboard activation, routing, and auth state compose here.
+    // Shared data: read-only.
     [Fact]
     public async Task NavLinks_ActivateWithEnter()
     {
@@ -501,6 +552,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves pressing Enter in the delete confirmation field does not submit.
+    // Cheaper lanes cannot prove this because keyboard form behavior and routed page state are browser-observable.
+    // Shared data: read-only.
     [Fact]
     public async Task FormSubmission_WorksWithEnter()
     {

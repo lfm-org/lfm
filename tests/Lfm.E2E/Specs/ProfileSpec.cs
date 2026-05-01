@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Profile")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -23,9 +23,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // the refresh actually completes — ignore the 429 from the refresh path.
     // The browser console only carries the status code in <c>msg.Text</c>
     // (not the URL), so we filter on the literal "status of 429" substring.
-    // The 401 / /api/me pattern is the default for all specs.
+    // The 401 / /api/v1/me pattern is the default for all specs.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "/api/me", "status of 429"];
+        ["401", "/api/v1/me", "status of 429"];
 
     public override async Task InitializeAsync()
     {
@@ -50,6 +50,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // Characters tests (4.2)
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the characters page renders the seeded account characters in the browser.
+    // Cheaper lanes cannot prove this because auth, API data, and component rendering must compose in the SPA.
+    // Shared data: read-only.
     [Fact]
     public async Task CharactersPage_Loads_DisplaysCharacterList()
     {
@@ -57,7 +60,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
         // Block the portrait request — it's fire-and-forget and crashes Blazor
         // when the E2E API can't process it (known app issue).
-        await Page!.RouteAsync("**/api/battlenet/character-portraits", async route =>
+        await Page!.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
         {
             await route.FulfillAsync(new()
             {
@@ -71,7 +74,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
-        // DefaultSeed populates accountProfileSummary.wow_accounts[0].characters
+        // DefaultSeed populates accountProfileSummary.wowAccounts[0].characters
         // with exactly two characters (Aelrin + Aelrinalt); the characters endpoint
         // must return both and the page must render one card per character.
         await Assertions.Expect(charactersPage.CharacterList)
@@ -93,6 +96,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // Guild tests (4.3)
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves the guild page renders seeded guild information in the browser.
+    // Cheaper lanes cannot prove this because auth-scoped routing, API data, and UI rendering must compose.
+    // Shared data: read-only.
     [Fact]
     public async Task GuildPage_Loads_DisplaysGuildInfo()
     {
@@ -108,6 +114,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         Log("Guild page rendered with guild info visible");
     }
 
+    // E2E scope: proves the guild admin settings form renders for the authenticated browser user.
+    // Cheaper lanes cannot prove this because authorization, route hydration, and Fluent form rendering compose here.
+    // Shared data: read-only.
     [Fact]
     public async Task GuildAdmin_Loads_DisplaysSettings()
     {
@@ -126,6 +135,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         Log("Guild admin settings form is visible");
     }
 
+    // E2E scope: proves guild admin browser edits persist and reload into the form.
+    // Cheaper lanes cannot prove this because form binding, API patch, storage, and page reload must round-trip.
+    // Shared data: restored.
     [Fact]
     public async Task GuildAdmin_UpdateSettings_ChangesReflected()
     {
@@ -183,16 +195,19 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     // Delete account test (4.4)
     // -------------------------------------------------------------------------
 
+    // E2E scope: proves account deletion redirects the browser to goodbye after confirmation.
+    // Cheaper lanes cannot prove this because confirmation UI, session state, deletion, and redirect must compose.
+    // Shared data: disposable.
     [Fact]
     public async Task DeleteAccount_Confirm_RedirectsToGoodbye()
     {
-        // Use a dedicated context with the secondary test user to avoid invalidating
-        // the shared primary user session used by other tests.
+        // Use a disposable test user to avoid invalidating the shared primary
+        // and secondary users used by other tests.
         var deleteContext = await AuthHelper.AuthenticatedContextAsync(
             fixture.Stack.Browser,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl,
-            battleNetId: DefaultSeed.SecondaryBattleNetId,
+            battleNetId: DefaultSeed.DisposableBattleNetId,
             redirect: "/characters");
         var deletePage = await deleteContext.NewPageAsync();
 
@@ -201,7 +216,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             var charactersPage = new CharactersPage(deletePage);
 
             // Stub the portrait endpoint to prevent fire-and-forget crash
-            await deletePage.RouteAsync("**/api/battlenet/character-portraits", async route =>
+            await deletePage.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
             {
                 await route.FulfillAsync(new()
                 {

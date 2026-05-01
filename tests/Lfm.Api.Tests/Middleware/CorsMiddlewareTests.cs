@@ -59,6 +59,17 @@ public class CorsMiddlewareTests
     }
 
     [Fact]
+    public async Task Allowed_origin_get_request_exposes_etag_header()
+    {
+        var sut = new CorsMiddleware(MsOptions.Create(DefaultOptions()));
+        var (ctx, httpCtx) = CreateContext("GET", origin: AllowedOrigin);
+
+        await sut.Invoke(ctx.Object, _ => Task.CompletedTask);
+
+        Assert.Equal("ETag", httpCtx.Response.Headers["Access-Control-Expose-Headers"].ToString());
+    }
+
+    [Fact]
     public async Task Disallowed_origin_does_not_get_cors_headers_but_passes_through()
     {
         // Defensive: a non-preflight request from an evil origin still flows to the

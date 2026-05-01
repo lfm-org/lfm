@@ -12,11 +12,11 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Navigation")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    protected override string[] IgnoredConsolePatterns => ["401", "/api/me"];
+    protected override string[] IgnoredConsolePatterns => ["401", "/api/v1/me"];
 
     public override async Task InitializeAsync()
     {
@@ -34,21 +34,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             await Context.CloseAsync();
     }
 
-    [Fact]
-    public async Task LandingPage_Loads_ShowsFeatureCardsAndCTA()
-    {
-        var landingPage = new LandingPage(Page!);
-
-        await landingPage.GotoAsync(fixture.Stack.AppBaseUrl);
-
-        await Assertions.Expect(landingPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(landingPage.SharedScheduleCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(landingPage.RoleCoverageCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(landingPage.BattleNetSignInCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        var ctaVisible = await landingPage.IsSignInButtonVisibleAsync();
-        Assert.True(ctaVisible);
-    }
-
+    // E2E scope: proves authenticated navigation renders seeded raid instances in the browser.
+    // Cheaper lanes cannot prove this because the SPA, API, auth cookie, and storage read must work together.
+    // Shared data: read-only.
     [Fact]
     public async Task InstancesPage_Loads_DisplaysRaidInstances()
     {
@@ -79,17 +67,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         }
     }
 
-    [Fact]
-    public async Task PrivacyPolicy_Loads_RendersContent()
-    {
-        var privacyPage = new PrivacyPage(Page!);
-
-        await privacyPage.GotoAsync(fixture.Stack.AppBaseUrl);
-
-        await Assertions.Expect(privacyPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(privacyPage.DataControllerSection).ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
+    // E2E scope: proves unknown browser routes render the app's 404 state.
+    // Cheaper lanes cannot prove this because client-side routing decides the fallback UI.
+    // Shared data: none.
     [Fact]
     public async Task NotFound_UnknownRoute_Shows404()
     {
@@ -103,6 +83,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(notFoundPage.Message).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves the authenticated navbar characters link reaches the characters page UI.
+    // Cheaper lanes cannot prove this because it depends on browser navigation and auth-scoped rendering.
+    // Shared data: read-only.
     [Fact]
     public async Task NavbarCharactersLink_Click_NavigatesToCharactersPage()
     {
@@ -114,7 +97,7 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
 
         try
         {
-            await authPage.RouteAsync("**/api/battlenet/character-portraits", async route =>
+            await authPage.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
             {
                 await route.FulfillAsync(new()
                 {
@@ -144,6 +127,9 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
         }
     }
 
+    // E2E scope: proves the authenticated navbar guild link reaches the guild page UI.
+    // Cheaper lanes cannot prove this because it depends on browser navigation and auth-scoped rendering.
+    // Shared data: read-only.
     [Fact]
     public async Task NavbarGuildLink_Click_NavigatesToGuildPage()
     {

@@ -12,16 +12,16 @@ using Xunit.Abstractions;
 namespace Lfm.E2E.Specs;
 
 [Collection("Auth")]
-[Trait("Category", "Functional")]
+[Trait("Category", E2ELanes.Functional)]
 public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    // 401 + /api/me — expected for the anonymous context. MONO_WASM /
+    // 401 + /api/v1/me — expected for the anonymous context. MONO_WASM /
     // .wasm / mono_download_assets — intermittent Blazor WASM bundle download
-    // flake that hits cold-start forceLoad redirects (e.g. /api/battlenet/login);
+    // flake that hits cold-start forceLoad redirects (e.g. /api/v1/battlenet/login);
     // unrelated to the assertions these tests make. See #45.
     protected override string[] IgnoredConsolePatterns =>
-        ["401", "/api/me", "MONO_WASM", ".wasm", "mono_download_assets"];
+        ["401", "/api/v1/me", "MONO_WASM", ".wasm", "mono_download_assets"];
 
     public override async Task InitializeAsync()
     {
@@ -39,18 +39,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             await Context.CloseAsync();
     }
 
-    [Fact]
-    public async Task LoginPage_Renders_ShowsSignInButton()
-    {
-        var loginPage = new LoginPage(Page!);
-
-        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-
-        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 10000 });
-        var visible = await loginPage.IsSignInButtonVisibleAsync();
-        Assert.True(visible);
-    }
-
+    // E2E scope: proves the sign-in button starts browser navigation to Battle.net OAuth.
+    // Cheaper lanes cannot prove this because the contract is a force-load browser request.
+    // Shared data: none.
     [Fact]
     public async Task SignIn_ClickButton_RedirectsToBattleNetOAuth()
     {
@@ -59,12 +50,12 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
         await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // forceLoad: true navigates to /api/battlenet/login, which immediately
+        // forceLoad: true navigates to /api/v1/battlenet/login, which immediately
         // redirects to the external Battle.net OAuth URL (unavailable in test).
-        // Wait for the request to /api/battlenet/login to be initiated, which
+        // Wait for the request to the Battle.net login endpoint to be initiated, which
         // confirms the button wired up the correct navigation URL.
         var loginRequestTask = Page!.WaitForRequestAsync(
-            new System.Text.RegularExpressions.Regex(@"/api/battlenet/login"),
+            new System.Text.RegularExpressions.Regex(@"/api/(?:v1/)?battlenet/login"),
             new() { Timeout = 10000 });
 
         await loginPage.ClickSignInAsync();
@@ -85,6 +76,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         Page = null;
     }
 
+    // E2E scope: proves test-mode login creates a browser session and lands on the redirect target.
+    // Cheaper lanes cannot prove this because cookie storage and authorized nav rendering require a browser.
+    // Shared data: read-only.
     [Fact]
     public async Task TestModeLogin_ValidIdentity_SetsCookieAndRedirects()
     {
@@ -105,6 +99,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves sign-out clears the browser session and protected routes redirect.
+    // Cheaper lanes cannot prove this because the force-load logout and SPA re-bootstrap are browser behavior.
+    // Shared data: read-only.
     [Fact]
     public async Task Logout_ClickSignOut_ClearsSessionAndRedirects()
     {
@@ -137,7 +134,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             // Verify session cleared — revisit a protected route and confirm the
             // SPA redirects to /login. Goto's default WaitUntil=Load plus the
             // auto-retrying URL assertion give Blazor enough time to fetch
-            // /api/me (now 401) and fire RedirectToLogin.
+            // /api/v1/me (now 401) and fire RedirectToLogin.
             await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
             await Assertions.Expect(authPage).ToHaveURLAsync(
                 new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
@@ -149,6 +146,9 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         }
     }
 
+    // E2E scope: proves the login failure route renders its recovery UI in the browser.
+    // Cheaper lanes cannot prove this because route activation and rendered Fluent UI are browser-observable.
+    // Shared data: none.
     [Fact]
     public async Task AuthFailure_NavigateToErrorPage_ShowsErrorMessage()
     {

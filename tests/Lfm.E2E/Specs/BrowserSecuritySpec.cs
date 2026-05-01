@@ -20,7 +20,7 @@ namespace Lfm.E2E.Specs;
 // in production, replicated locally by StackFixture's Kestrel host (which sets
 // the same globalHeaders the production platform sets).
 [Collection("BrowserSecurity")]
-[Trait("Category", "Security")]
+[Trait("Category", E2ELanes.Security)]
 public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
@@ -31,7 +31,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
     protected override string[] IgnoredConsolePatterns =>
         [
             "401",
-            "/api/me",
+            "/api/v1/me",
             "Content Security Policy",
             "Refused",
             "blocked",
@@ -57,6 +57,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             await Context.CloseAsync();
     }
 
+    // E2E scope: proves the auth cookie is hidden from document.cookie in Chromium.
+    // Cheaper lanes cannot prove this because HttpOnly enforcement is browser cookie-jar behavior.
+    // Shared data: read-only.
     [Fact]
     public async Task AuthCookie_NotAccessibleViaDocumentCookie()
     {
@@ -65,32 +68,27 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         // BattleNetCallbackFunctionTests), but a regression in the cookie
         // attributes would only matter if the browser actually honours them.
         // This test proves the browser does.
-        var authContext = await AuthHelper.AuthenticatedContextAsync(
-            fixture.Stack.Browser,
+        await AuthHelper.AuthenticatePageAsync(
+            Page!,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl);
-        var authPage = await authContext.NewPageAsync();
-        try
-        {
-            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-                new() { WaitUntil = WaitUntilState.NetworkIdle });
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-            var jsCookieView = await authPage.EvaluateAsync<string>("() => document.cookie");
+        var jsCookieView = await Page.EvaluateAsync<string>("() => document.cookie");
 
-            Assert.DoesNotContain("battlenet_token", jsCookieView);
+        Assert.DoesNotContain("battlenet_token", jsCookieView);
 
-            // Sanity check: the cookie *does* exist in the browser jar — Playwright
-            // can see it via the protocol because it bypasses the DOM. If this
-            // fails the test setup is broken, not the contract under test.
-            var jarCookies = await authContext.CookiesAsync();
-            Assert.Contains(jarCookies, c => c.Name == "battlenet_token");
-        }
-        finally
-        {
-            await authContext.CloseAsync();
-        }
+        // Sanity check: the cookie *does* exist in the browser jar — Playwright
+        // can see it via the protocol because it bypasses the DOM. If this
+        // fails the test setup is broken, not the contract under test.
+        var jarCookies = await Context!.CookiesAsync();
+        Assert.Contains(jarCookies, c => c.Name == "battlenet_token");
     }
 
+    // E2E scope: proves credentialed cross-origin browser fetches are blocked by CORS.
+    // Cheaper lanes cannot prove this because only the browser enforces response visibility.
+    // Shared data: none.
     [Fact]
     public async Task CrossOriginFetch_FromUnregisteredOrigin_BlockedByCors()
     {
@@ -105,7 +103,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
             $$"""
             async () => {
                 try {
-                    const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/me', { credentials: 'include' });
+                    const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/v1/me', { credentials: 'include' });
                     return 'unexpected-success-status-' + res.status;
                 } catch (e) {
                     return 'blocked';
@@ -116,6 +114,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.Equal("blocked", fetchOutcome);
     }
 
+    // E2E scope: proves a cross-origin iframe cannot render the app.
+    // Cheaper lanes cannot prove this because frame blocking is enforced by the browser.
+    // Shared data: none.
     [Fact]
     public async Task IframeFromCrossOrigin_BlockedByXFrameOptions()
     {
@@ -154,6 +155,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.Equal("blocked", iframeState);
     }
 
+    // E2E scope: proves injected inline script does not execute under the served CSP.
+    // Cheaper lanes cannot prove this because CSP execution blocking is browser enforcement.
+    // Shared data: none.
     [Fact]
     public async Task CspBlocksInjectedInlineScript()
     {
@@ -178,6 +182,9 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         Assert.NotEqual(true, pwnedFlag);
     }
 
+    // E2E scope: proves a tampered session cookie sends the SPA back to login.
+    // Cheaper lanes cannot prove this because browser cookie state and client redirect must compose.
+    // Shared data: read-only.
     [Fact]
     public async Task TamperedSessionCookie_AccessingProtectedRoute_RedirectsToLogin()
     {
@@ -187,42 +194,37 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         // /login. This proves browser-side handling of a rejected session —
         // the integration-layer CorsMiddlewareTests / AuthMiddlewareTests
         // prove the server-side rejection, but not the SPA's response to it.
-        var authContext = await AuthHelper.AuthenticatedContextAsync(
-            fixture.Stack.Browser,
+        await AuthHelper.AuthenticatePageAsync(
+            Page!,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl);
-        try
-        {
-            var original = (await authContext.CookiesAsync())
-                .First(c => c.Name == "battlenet_token");
-            await authContext.AddCookiesAsync(
-            [
-                new Cookie
-                {
-                    Name = original.Name,
-                    Value = "TAMPERED-" + original.Value,
-                    Domain = original.Domain,
-                    Path = original.Path,
-                    HttpOnly = original.HttpOnly,
-                    Secure = original.Secure,
-                    SameSite = original.SameSite,
-                    Expires = original.Expires,
-                },
-            ]);
+        var original = (await Context!.CookiesAsync())
+            .First(c => c.Name == "battlenet_token");
+        await Context.AddCookiesAsync(
+        [
+            new Cookie
+            {
+                Name = original.Name,
+                Value = "TAMPERED-" + original.Value,
+                Domain = original.Domain,
+                Path = original.Path,
+                HttpOnly = original.HttpOnly,
+                Secure = original.Secure,
+                SameSite = original.SameSite,
+                Expires = original.Expires,
+            },
+        ]);
 
-            var tamperedPage = await authContext.NewPageAsync();
-            await tamperedPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
 
-            await Assertions.Expect(tamperedPage).ToHaveURLAsync(
-                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
-                new() { Timeout = 15000 });
-        }
-        finally
-        {
-            await authContext.CloseAsync();
-        }
+        await Assertions.Expect(Page).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+            new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves an expired browser session cookie is not sent to protected routes.
+    // Cheaper lanes cannot prove this because expiry is enforced by the browser cookie jar.
+    // Shared data: read-only.
     [Fact]
     public async Task ExpiredSessionCookie_AccessingProtectedRoute_RedirectsToLogin()
     {
@@ -233,43 +235,38 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         // cookie-jar expiry enforcement — even though the encrypted
         // principal inside the cookie is still valid, the browser's own
         // Expires check must prevent the cookie from leaving the jar.
-        var authContext = await AuthHelper.AuthenticatedContextAsync(
-            fixture.Stack.Browser,
+        await AuthHelper.AuthenticatePageAsync(
+            Page!,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl);
-        try
-        {
-            var original = (await authContext.CookiesAsync())
-                .First(c => c.Name == "battlenet_token");
-            var pastExpiry = DateTimeOffset.UtcNow.AddHours(-1).ToUnixTimeSeconds();
-            await authContext.AddCookiesAsync(
-            [
-                new Cookie
-                {
-                    Name = original.Name,
-                    Value = original.Value,
-                    Domain = original.Domain,
-                    Path = original.Path,
-                    HttpOnly = original.HttpOnly,
-                    Secure = original.Secure,
-                    SameSite = original.SameSite,
-                    Expires = pastExpiry,
-                },
-            ]);
+        var original = (await Context!.CookiesAsync())
+            .First(c => c.Name == "battlenet_token");
+        var pastExpiry = DateTimeOffset.UtcNow.AddHours(-1).ToUnixTimeSeconds();
+        await Context.AddCookiesAsync(
+        [
+            new Cookie
+            {
+                Name = original.Name,
+                Value = original.Value,
+                Domain = original.Domain,
+                Path = original.Path,
+                HttpOnly = original.HttpOnly,
+                Secure = original.Secure,
+                SameSite = original.SameSite,
+                Expires = pastExpiry,
+            },
+        ]);
 
-            var expiredPage = await authContext.NewPageAsync();
-            await expiredPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs");
 
-            await Assertions.Expect(expiredPage).ToHaveURLAsync(
-                new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
-                new() { Timeout = 15000 });
-        }
-        finally
-        {
-            await authContext.CloseAsync();
-        }
+        await Assertions.Expect(Page).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+            new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves a cross-user delete attempt returns 403 through browser fetch.
+    // Cheaper lanes cannot prove this because the browser must attach auth cookies and expose the response.
+    // Shared data: read-only.
     [Fact]
     public async Task CrossUser_DeleteAnotherUsersRun_BlockedBy403()
     {
@@ -290,39 +287,31 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
         //     is false. The 403 therefore fires from the guild-rank-denied
         //     path in RunsDeleteFunction (line 75) — a cross-user denial
         //     even though both users share a guild.
-        var userBContext = await AuthHelper.AuthenticatedContextAsync(
-            fixture.Stack.Browser,
+        await AuthHelper.AuthenticatePageAsync(
+            Page!,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl,
             battleNetId: DefaultSeed.SecondaryBattleNetId);
-        try
-        {
-            var userBPage = await userBContext.NewPageAsync();
 
-            // Land on the SPA origin so the auth cookie is in scope for the
-            // cross-origin fetch (and the CORS request originates from the
-            // configured allowed origin, not data:null as in the negative
-            // CrossOriginFetch_FromUnregisteredOrigin_BlockedByCors test).
-            await userBPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
-                new() { WaitUntil = WaitUntilState.NetworkIdle });
+        // Land on the SPA origin so the auth cookie is in scope for the
+        // cross-origin fetch (and the CORS request originates from the
+        // configured allowed origin, not data:null as in the negative
+        // CrossOriginFetch_FromUnregisteredOrigin_BlockedByCors test).
+        await Page!.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs",
+            new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-            var encodedRunId = Uri.EscapeDataString(DefaultSeed.TestRunId);
-            var status = await userBPage.EvaluateAsync<int>(
-                $$"""
-                async () => {
-                    const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/v1/runs/{{encodedRunId}}', {
-                        method: 'DELETE',
-                        credentials: 'include',
-                    });
-                    return res.status;
-                }
-                """);
+        var encodedRunId = Uri.EscapeDataString(DefaultSeed.TestRunId);
+        var status = await Page.EvaluateAsync<int>(
+            $$"""
+            async () => {
+                const res = await fetch('{{fixture.Stack.ApiBaseUrl}}/api/v1/runs/{{encodedRunId}}', {
+                    method: 'DELETE',
+                    credentials: 'include',
+                });
+                return res.status;
+            }
+            """);
 
-            Assert.Equal(403, status);
-        }
-        finally
-        {
-            await userBContext.CloseAsync();
-        }
+        Assert.Equal(403, status);
     }
 }

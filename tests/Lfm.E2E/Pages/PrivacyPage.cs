@@ -16,10 +16,6 @@ public class PrivacyPage(IPage page)
     public ILocator Heading =>
         _page.GetByText("Privacy Policy");
 
-    /// <summary>Any section of the privacy policy content (Data Controller section).</summary>
-    public ILocator DataControllerSection =>
-        _page.GetByText("Data Controller");
-
     public async Task GotoAsync(string appBaseUrl)
     {
         await _page.GotoAsync($"{appBaseUrl}/privacy", new() { WaitUntil = WaitUntilState.NetworkIdle });

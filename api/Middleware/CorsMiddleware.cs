@@ -32,6 +32,7 @@ public sealed class CorsMiddleware(IOptions<CorsOptions> corsOpts) : IFunctionsW
         {
             httpContext.Response.Headers.Append("Access-Control-Allow-Origin", origin);
             httpContext.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+            httpContext.Response.Headers.Append("Access-Control-Expose-Headers", "ETag");
             httpContext.Response.Headers.Append("Vary", "Origin");
         }
 

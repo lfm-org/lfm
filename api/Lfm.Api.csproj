@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.50.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.59.0" />
     <!-- Cosmos SDK 3.x loads Newtonsoft.Json at runtime via DocumentClient even
          when AzureCosmosDisableNewtonsoftJsonCheck bypasses the build-time check.
          Without this the isolated worker crashes with FileNotFoundException. -->
@@ -53,8 +53,8 @@
     <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
          package is deprecated. MS guidance is to use the Azure.Extensions.*
          packages below, which address key security and stability issues. -->
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.1" />
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.1" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.2" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.2" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
     <!-- Microsoft.Extensions.Options.ConfigurationExtensions is provided transitively
          via FrameworkReference; explicit pin causes NU1510 warning-as-error. -->
