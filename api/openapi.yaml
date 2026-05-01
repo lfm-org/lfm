@@ -535,6 +535,37 @@ paths:
         '404':
           $ref: '#/components/responses/ProblemNotFound'
 
+  /api/v1/runs/{id}/signup/options:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Runs]
+      summary: List account-owned characters eligible for signup to this run.
+      description: |
+        Returns account-owned characters filtered to the run creator guild's
+        fresh Blizzard roster. Returns 204 when the caller's cached Battle.net
+        account profile is missing or stale; clients should refresh account
+        characters and retry this endpoint rather than using the raw account
+        character list as signup options.
+      operationId: getRunSignupOptions
+      responses:
+        '200':
+          description: Run-scoped signup character options.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunSignupOptionsDto' }
+        '204':
+          description: Account character cache must be refreshed before options can be computed.
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
   # ─────────────────────────────────────────────────────────────────────────
   # Raider Characters
   # ─────────────────────────────────────────────────────────────────────────
@@ -1087,6 +1118,14 @@ components:
         characterId: { type: string }
         desiredAttendance: { type: string, enum: [IN, OUT, BENCH, LATE, AWAY] }
         specId: { type: integer, nullable: true }
+
+    RunSignupOptionsDto:
+      type: object
+      required: [characters]
+      properties:
+        characters:
+          type: array
+          items: { $ref: '#/components/schemas/CharacterDto' }
 
     # ── Raider Characters ─────────────────────────────────────────────────
     AddCharacterRequest:
