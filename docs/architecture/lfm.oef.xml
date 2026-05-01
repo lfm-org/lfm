@@ -1101,14 +1101,16 @@
 
       <view identifier="id-view-motivation" xsi:type="Diagram" viewpoint="Motivation">
         <name xml:lang="en">View: Motivation (FORWARD-ONLY scaffolding)</name>
-        <documentation xml:lang="en">FORWARD-ONLY — architect-authored Motivation view for the run-signup capability. The Driver and Goal are inferred from the raid and dungeon signup surface and must be validated or replaced by the architect.</documentation>
+        <documentation xml:lang="en">FORWARD-ONLY — architect-authored Motivation view for the run-signup capability. The Driver and Goal are inferred from the raid and dungeon signup surface and must be validated or replaced by the architect. The Requirement and Coordinate raid and dungeon runs Capability make the rationale trace visible; the architect still owns final stakeholder, outcome, constraint, and naming validation.</documentation>
 
-        <node identifier="id-node-mot-driver" elementRef="id-driver-run-coordination-friction" xsi:type="Element" x="40" y="40" w="280" h="70"/>
-        <node identifier="id-node-mot-goal" elementRef="id-goal-low-friction-signup" xsi:type="Element" x="400" y="40" w="260" h="70"/>
-        <node identifier="id-node-mot-req" elementRef="id-req-run-signup-entrypoint" xsi:type="Element" x="740" y="40" w="260" h="70"/>
+        <node identifier="id-node-mot-driver" elementRef="id-driver-run-coordination-friction" xsi:type="Element" x="400" y="40" w="280" h="70"/>
+        <node identifier="id-node-mot-goal" elementRef="id-goal-low-friction-signup" xsi:type="Element" x="400" y="180" w="280" h="70"/>
+        <node identifier="id-node-mot-capability" elementRef="id-cap-coordinate-runs" xsi:type="Element" x="40" y="180" w="300" h="70"/>
+        <node identifier="id-node-mot-req" elementRef="id-req-run-signup-entrypoint" xsi:type="Element" x="400" y="320" w="300" h="70"/>
 
         <connection identifier="id-conn-mot-1" relationshipRef="id-rel-driver-infl-goal" source="id-node-mot-driver" target="id-node-mot-goal" xsi:type="Relationship"/>
         <connection identifier="id-conn-mot-2" relationshipRef="id-rel-req-real-goal-run-signup" source="id-node-mot-req" target="id-node-mot-goal" xsi:type="Relationship"/>
+        <connection identifier="id-conn-mot-3" relationshipRef="id-rel-cap-coordinate-runs-real-goal" source="id-node-mot-capability" target="id-node-mot-goal" xsi:type="Relationship"/>
       </view>
 
       <view identifier="id-view-business-processes" xsi:type="Diagram" viewpoint="Business Process Cooperation">

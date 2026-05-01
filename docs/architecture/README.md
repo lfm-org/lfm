@@ -51,7 +51,7 @@ Three-row realisation chain for the architect to iterate on: real **Application 
 
 ![Motivation](renders/id-view-motivation.png)
 
-Forward-only seed for the "why" behind the run-signup capability. It connects the inferred `Run coordination friction` Driver to the inferred `Low-friction run signup` Goal and adds the `Expose run signup entry point` Requirement as the design constraint that realizes the goal. These elements are placeholders derived from the current product surface, not validated stakeholder intent; the architect should replace or refine them before using the view as governance evidence.
+Forward-only seed for the "why" behind the run-signup capability. It connects the inferred `Run coordination friction` Driver to the inferred `Low-friction run signup` Goal, shows the `Coordinate raid and dungeon runs` Capability as part of the rationale trace, and adds the `Expose run signup entry point` Requirement as the design constraint that realizes the goal. These elements are placeholders derived from the current product surface, not validated stakeholder intent; the architect should replace or refine them before using the view as governance evidence.
 
 ### 7. Run Signup — Business Process Cooperation (FORWARD-ONLY)
 
