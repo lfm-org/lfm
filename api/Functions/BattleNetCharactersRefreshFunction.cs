@@ -3,13 +3,13 @@
 
 using Lfm.Api.Auth;
 using Lfm.Api.Helpers;
+using Lfm.Api.Mappers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Api.Services.Blizzard;
 using Lfm.Api.Services.Blizzard.Models;
-using Lfm.Contracts.Characters;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -102,7 +102,7 @@ public class BattleNetCharactersRefreshFunction(
         await repo.UpsertAsync(updated, cancellationToken);
 
         var region = _blizzardOpts.Region.ToLowerInvariant();
-        var characters = BattleNetCharactersFunction.MapToCharacterDtos(
+        var characters = AccountCharacterMapper.MapToCharacterDtos(
             freshSummaryStored, region, raider.Characters, raider.PortraitCache);
 
         return new OkObjectResult(characters);
