@@ -72,7 +72,7 @@ public class RunsDeleteFunctionTests
         string id = "run-1",
         string creatorBattleNetId = "bnet-creator",
         int? creatorGuildId = 12345,
-        string visibility = "PUBLIC") =>
+        string visibility = "GUILD") =>
         new RunDocument(
             Id: id,
             StartTime: DateTimeOffset.UtcNow.AddHours(24).ToString("o"),

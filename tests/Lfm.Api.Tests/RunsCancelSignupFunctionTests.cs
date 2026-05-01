@@ -48,8 +48,8 @@ public class RunsCancelSignupFunctionTests
 
     private static RunDocument MakeRunDoc(
         string id = "run-1",
-        string visibility = "PUBLIC",
-        int? creatorGuildId = null,
+        string visibility = "GUILD",
+        int? creatorGuildId = 12345,
         IReadOnlyList<RunCharacterEntry>? runCharacters = null) =>
         new RunDocument(
             Id: id,
@@ -87,7 +87,7 @@ public class RunsCancelSignupFunctionTests
 
     private static RaiderDocument MakeRaiderDoc(
         string battleNetId = "bnet-user",
-        int? guildId = null) =>
+        int? guildId = 12345) =>
         new RaiderDocument(
             Id: battleNetId,
             BattleNetId: battleNetId,
@@ -108,9 +108,17 @@ public class RunsCancelSignupFunctionTests
         Mock<IRaidersRepository>? raidersRepo = null,
         TestLogger<RunsCancelSignupFunction>? logger = null)
     {
+        var effectiveRaidersRepo = raidersRepo ?? new Mock<IRaidersRepository>();
+        if (raidersRepo is null)
+        {
+            effectiveRaidersRepo
+                .Setup(r => r.GetByBattleNetIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string battleNetId, CancellationToken _) => MakeRaiderDoc(battleNetId));
+        }
+
         return new RunsCancelSignupFunction(
             runsRepo.Object,
-            (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
+            effectiveRaidersRepo.Object,
             logger ?? new TestLogger<RunsCancelSignupFunction>());
     }
 

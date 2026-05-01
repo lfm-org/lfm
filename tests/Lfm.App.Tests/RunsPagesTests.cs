@@ -38,7 +38,7 @@ public class RunsPagesTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
@@ -52,7 +52,7 @@ public class RunsPagesTests : ComponentTestBase
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "Stormchasers",
             InstanceId: 1,
             InstanceName: "Liberation of Undermine",
@@ -63,6 +63,31 @@ public class RunsPagesTests : ComponentTestBase
     private static InstanceDto MakeInstanceFixture() =>
         new("1:HEROIC:25", 1, "Liberation of Undermine", "HEROIC:25",
             "The War Within", "RAID", 505, "HEROIC", 25);
+
+    private static GuildDto MakeGuildDto(bool canCreateGuildRuns = true) =>
+        new(
+            Guild: new GuildInfoDto(
+                Id: 12345,
+                Name: "Stormchasers",
+                Slogan: null,
+                RealmName: "Silvermoon",
+                FactionName: "Alliance",
+                MemberCount: 12,
+                RankCount: 8,
+                CrestEmblemUrl: null,
+                CrestBorderUrl: null),
+            Setup: new GuildSetupDto(
+                IsInitialized: true,
+                RequiresSetup: false,
+                RankDataFresh: true,
+                Timezone: "Europe/Helsinki",
+                Locale: "en-gb"),
+            Settings: null,
+            Editor: new GuildEditorDto(CanEdit: false),
+            MemberPermissions: new GuildMemberPermissionsDto(
+                CanCreateGuildRuns: canCreateGuildRuns,
+                CanSignupGuildRuns: true,
+                CanDeleteGuildRuns: false));
 
     // ── RunsPage ─────────────────────────────────────────────────────────────
 
@@ -540,7 +565,7 @@ public class RunsPagesTests : ComponentTestBase
                 .ThrowsAsync(new InvalidOperationException("guild unavailable"));
         else
             guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(guild);
+                .ReturnsAsync(guild ?? MakeGuildDto());
         Services.AddSingleton(guildClient.Object);
 
         Services.AddSingleton(new Mock<IRunsClient>().Object);
@@ -583,7 +608,7 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void CreateRunPage_Renders_Public_Form_When_Guild_Load_Fails()
+    public void CreateRunPage_Renders_GuildRank_Message_When_Guild_Load_Fails()
     {
         WireCreateRunServices(
             instances: [MakeInstanceFixture()],
@@ -595,6 +620,7 @@ public class RunsPagesTests : ComponentTestBase
             Assert.Contains(Loc("createRun.submit"), cut.Markup));
         Assert.DoesNotContain("Failed to load form data", cut.Markup);
         Assert.DoesNotContain(Loc("createRun.guildOnly"), cut.Markup);
+        Assert.Contains(Loc("createRun.visibility.guildDisabledReason"), cut.Markup);
     }
 
     [Fact]
@@ -645,7 +671,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var guildClient = new Mock<IGuildClient>();
         guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((GuildDto?)null);
+            .ReturnsAsync(MakeGuildDto());
         Services.AddSingleton(guildClient.Object);
 
         Services.AddSingleton(runsClient.Object);

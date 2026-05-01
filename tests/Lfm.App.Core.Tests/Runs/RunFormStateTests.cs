@@ -148,7 +148,7 @@ public class RunFormStateTests
             startTimeLocal: new DateTime(2026, 5, 1, 20, 0, 0),
             signupCloseLocal: null,
             showSignupClose: false,
-            visibility: "PUBLIC",
+            visibility: "GUILD",
             description: "test");
 
         Assert.Equal(ActivityKind.Raid, state.Activity);

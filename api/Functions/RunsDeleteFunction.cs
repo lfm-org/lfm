@@ -22,7 +22,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Permission rules (mirrors runs-delete.ts):
 ///   - The creator can always delete their own run.
-///   - A non-creator can delete a GUILD run if they belong to the same guild and
+///   - A non-creator can delete a run if they belong to the same guild and
 ///     hold the <c>canDeleteGuildRuns</c> rank permission.
 ///   - All other callers receive 403.
 ///

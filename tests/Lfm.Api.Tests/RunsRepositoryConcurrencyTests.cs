@@ -29,7 +29,7 @@ public class RunsRepositoryConcurrencyTests
             SignupCloseTime: FutureSignupCloseTime,
             Description: "Test run",
             ModeKey: "NORMAL:10",
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "Test Guild",
             CreatorGuildId: null,
             InstanceId: 631,

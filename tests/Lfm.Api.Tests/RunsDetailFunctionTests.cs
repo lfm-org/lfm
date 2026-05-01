@@ -58,7 +58,7 @@ public class RunsDetailFunctionTests
 
     private static RunDocument MakeRunDoc(
         string id = "run-1",
-        string visibility = "PUBLIC",
+        string visibility = "GUILD",
         string? creatorBattleNetId = null,
         int? creatorGuildId = null,
         List<RunCharacterEntry>? runCharacters = null,
@@ -106,13 +106,19 @@ public class RunsDetailFunctionTests
     public async Task RunV1_delegates_to_canonical_Run_handler()
     {
         var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
-        var doc = MakeRunDoc(id: "run-1", visibility: "PUBLIC", etag: "\"v1-etag\"");
+        var doc = MakeRunDoc(
+            id: "run-1",
+            visibility: "GUILD",
+            creatorGuildId: 12345,
+            etag: "\"v1-etag\"");
 
         var repo = new Mock<IRunsRepository>();
         repo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(doc);
 
         var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
         var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 
@@ -293,7 +299,8 @@ public class RunsDetailFunctionTests
         var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
         var doc = MakeRunDoc(
             id: "run-1",
-            visibility: "PUBLIC",
+            visibility: "GUILD",
+            creatorGuildId: 12345,
             etag: "\"cosmos-etag-xyz\"");
 
         var repo = new Mock<IRunsRepository>();
@@ -301,6 +308,8 @@ public class RunsDetailFunctionTests
             .ReturnsAsync(doc);
 
         var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
         var fn = new RunsDetailFunction(repo.Object, raidersRepo.Object);
         var ctx = MakeFunctionContext(principal);
 

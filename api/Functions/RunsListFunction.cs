@@ -20,10 +20,9 @@ namespace Lfm.Api.Functions;
 /// Returns all runs visible to the authenticated user, sanitized so that each
 /// RunCharacter's raiderBattleNetId is replaced by an IsCurrentUser flag.
 ///
-/// Visibility rules (mirrors runs-list.ts):
-///   - For users with a guild: PUBLIC runs, runs created by the user, and GUILD
-///     runs created by the same guild.
-///   - For users without a guild: PUBLIC runs and runs created by the user.
+/// Guild-only visibility rules:
+///   - For users with a guild: GUILD runs created by the same guild.
+///   - For users without a guild: no runs.
 ///
 /// Results are ordered by startTime ascending.
 /// </summary>

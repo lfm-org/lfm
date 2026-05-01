@@ -39,7 +39,7 @@ public class RunSignupServiceTests
     private static RaiderDocument MakeRaider(
         string battleNetId = "bnet-user",
         string characterId = "char-1",
-        int? guildId = null,
+        int? guildId = 123,
         StoredSpecializationsSummary? specializationsSummary = null) =>
         new RaiderDocument(
             Id: battleNetId,
@@ -59,8 +59,8 @@ public class RunSignupServiceTests
 
     private static RunDocument MakeOpenRun(
         string id = "run-1",
-        string visibility = "PUBLIC",
-        int? creatorGuildId = null,
+        string visibility = "GUILD",
+        int? creatorGuildId = 123,
         IReadOnlyList<RunCharacterEntry>? runCharacters = null,
         IReadOnlyList<string>? rejected = null) =>
         new RunDocument(
@@ -101,6 +101,9 @@ public class RunSignupServiceTests
         var runsRepo = new Mock<IRunsRepository>();
         var raidersRepo = new Mock<IRaidersRepository>();
         var guildPermissions = new Mock<IGuildPermissions>();
+        guildPermissions
+            .Setup(g => g.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         var logger = new Mock<ILogger<RunSignupService>>();
         var sut = new RunSignupService(
             runsRepo.Object,
@@ -190,7 +193,7 @@ public class RunSignupServiceTests
     }
 
     [Fact]
-    public async Task SignupAsync_HappyPath_PublicRun_ReturnsOkWithEntry()
+    public async Task SignupAsync_HappyPath_GuildRun_ReturnsOkWithEntry()
     {
         var (runsRepo, raidersRepo, _, _, sut) = MakeSut();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))

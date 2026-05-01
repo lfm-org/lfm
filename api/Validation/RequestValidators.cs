@@ -14,7 +14,7 @@ namespace Lfm.Api.Validation;
 public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunRequest>
 {
     private static readonly HashSet<string> ValidVisibilities =
-        new(StringComparer.Ordinal) { "PUBLIC", "GUILD" };
+        new(StringComparer.Ordinal) { "GUILD" };
 
     internal static readonly HashSet<string> ValidDifficulties =
         new(StringComparer.Ordinal)
@@ -57,7 +57,7 @@ public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunReque
         RuleFor(x => x.Visibility)
             .NotEmpty().WithMessage("visibility is required")
             .Must(v => v is null || ValidVisibilities.Contains(v))
-            .WithMessage("visibility must be PUBLIC or GUILD");
+            .WithMessage("visibility must be GUILD");
 
         RuleFor(x => x)
             .Must(x => x.InstanceId.HasValue || x.Difficulty == MythicKeystone)
@@ -84,13 +84,13 @@ public sealed class CreateRunRequestValidator : AbstractValidator<CreateRunReque
 public sealed class UpdateRunRequestValidator : AbstractValidator<UpdateRunRequest>
 {
     private static readonly HashSet<string> ValidVisibilities =
-        new(StringComparer.Ordinal) { "PUBLIC", "GUILD" };
+        new(StringComparer.Ordinal) { "GUILD" };
 
     public UpdateRunRequestValidator()
     {
         RuleFor(x => x.Visibility)
             .Must(v => v is null || ValidVisibilities.Contains(v))
-            .WithMessage("visibility must be PUBLIC or GUILD");
+            .WithMessage("visibility must be GUILD");
 
         RuleFor(x => x.StartTime)
             .MaximumLength(64).WithMessage("startTime must be at most 64 characters");
