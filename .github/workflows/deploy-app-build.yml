@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 concurrency:
   group: deploy-app-build-${{ github.ref }}
@@ -64,6 +66,19 @@ jobs:
           API_HOSTNAME: ${{ vars.API_HOSTNAME }}
         run: dotnet publish app/Lfm.App.csproj -c Release -o ./publish/app --no-build
 
+      - name: Generate SBOM
+        run: |
+          set -euo pipefail
+          dotnet tool restore
+          dotnet tool run dotnet-CycloneDX -- lfm.sln \
+            --configuration Release \
+            --disable-package-restore \
+            --exclude-test-projects \
+            --filename sbom.cdx.json \
+            --output ./publish \
+            --output-format Json
+          test -s ./publish/sbom.cdx.json
+
       - name: Install brotli
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends brotli
 
@@ -83,11 +98,20 @@ jobs:
           tar -cf ./publish/api/azurefunctions.tar -C ./publish/api .azurefunctions
           rm -rf ./publish/api/.azurefunctions
 
+      - name: Package deploy artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p ./publish/artifacts
+          tar -cf ./publish/artifacts/deploy-api.tar -C ./publish/api .
+          tar -cf ./publish/artifacts/deploy-app.tar -C ./publish/app .
+          test -s ./publish/artifacts/deploy-api.tar
+          test -s ./publish/artifacts/deploy-app.tar
+
       - name: Upload API publish artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: deploy-app-publish-api
-          path: ./publish/api
+          path: ./publish/artifacts/deploy-api.tar
           if-no-files-found: error
           retention-days: 1
 
@@ -95,6 +119,44 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: deploy-app-publish-app
-          path: ./publish/app
+          path: ./publish/artifacts/deploy-app.tar
           if-no-files-found: error
           retention-days: 1
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: deploy-app-sbom
+          path: ./publish/sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Attest API deploy artifact
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: ./publish/artifacts/deploy-api.tar
+          create-storage-record: false
+          show-summary: false
+
+      - name: Attest App deploy artifact
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: ./publish/artifacts/deploy-app.tar
+          create-storage-record: false
+          show-summary: false
+
+      - name: Attest API SBOM
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: ./publish/artifacts/deploy-api.tar
+          sbom-path: ./publish/sbom.cdx.json
+          create-storage-record: false
+          show-summary: false
+
+      - name: Attest App SBOM
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: ./publish/artifacts/deploy-app.tar
+          sbom-path: ./publish/sbom.cdx.json
+          create-storage-record: false
+          show-summary: false

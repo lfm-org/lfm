@@ -5,7 +5,6 @@ name: Deploy Infrastructure
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -13,7 +12,10 @@ permissions:
 
 jobs:
   infra:
+    if: github.ref == 'refs/heads/main'
+    environment: production
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -189,9 +191,9 @@ jobs:
               battleNetRegion="${{ vars.BATTLE_NET_REGION }}" \
               tags='{"project":"${{ vars.AZURE_RESOURCE_GROUP }}","environment":"production"}'
 
-      - name: Deploy metric alerts (tolerates first-run failure)
-        continue-on-error: true
+      - name: Deploy metric alerts
         run: |
+          set -euo pipefail
           az deployment group create \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --template-file infra/modules/alerts.bicep \
