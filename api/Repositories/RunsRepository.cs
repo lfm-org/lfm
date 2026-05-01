@@ -17,9 +17,8 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
     public async Task<RunsPage> ListForGuildAsync(
         string guildId, string battleNetId, int top, string? continuationToken, CancellationToken ct)
     {
-        // Mirrors the guild-scoped query in runs-list.ts:
-        //   PUBLIC runs | runs created by this user | GUILD runs from the same guild
-        //   Ordered by startTime ascending.
+        // Guild-only listing: normal discovery returns only GUILD runs created
+        // by the caller's selected-character guild.
         if (!int.TryParse(guildId, out var numericGuildId))
             throw new ArgumentException(
                 $"guildId '{guildId}' must be numeric; non-numeric values silently hide all runs from a user.",
@@ -27,15 +26,13 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
 
         const string query = """
             SELECT * FROM c
-            WHERE c.visibility = 'PUBLIC'
-               OR c.creatorBattleNetId = @battleNetId
-               OR (c.visibility = 'GUILD' AND c.creatorGuildId = @guildId)
+            WHERE c.visibility = 'GUILD'
+              AND c.creatorGuildId = @guildId
             ORDER BY c.startTime ASC
             """;
 
         return await QueryOnePageAsync(
             new QueryDefinition(query)
-                .WithParameter("@battleNetId", battleNetId)
                 .WithParameter("@guildId", numericGuildId),
             top,
             continuationToken,
@@ -45,22 +42,7 @@ public sealed class RunsRepository(CosmosClient client, IOptions<CosmosOptions> 
     public async Task<RunsPage> ListForUserAsync(
         string battleNetId, int top, string? continuationToken, CancellationToken ct)
     {
-        // Mirrors the no-guild branch in runs-list.ts:
-        //   PUBLIC runs | runs created by this user
-        //   Ordered by startTime ascending.
-        const string query = """
-            SELECT * FROM c
-            WHERE c.visibility = 'PUBLIC'
-               OR c.creatorBattleNetId = @battleNetId
-            ORDER BY c.startTime ASC
-            """;
-
-        return await QueryOnePageAsync(
-            new QueryDefinition(query)
-                .WithParameter("@battleNetId", battleNetId),
-            top,
-            continuationToken,
-            ct);
+        return await Task.FromResult(new RunsPage(Array.Empty<RunDocument>(), null));
     }
 
     // Reads exactly one page (up to `top` items) from Cosmos and returns it

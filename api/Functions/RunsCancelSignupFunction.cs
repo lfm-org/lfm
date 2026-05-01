@@ -24,7 +24,7 @@ namespace Lfm.Api.Functions;
 ///
 /// Logic:
 ///   1. Load the run — 404 if not found.
-///   2. For GUILD runs: check visibility access.
+///   2. Check guild-only visibility access.
 ///   3. Find the user's entry in runCharacters by raiderBattleNetId.
 ///   4. 404 if the user is not signed up.
 ///   5. Remove the entry from the array.
@@ -53,21 +53,15 @@ public class RunsCancelSignupFunction(
         if (run is null)
             return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
-        // 2. Visibility check for GUILD runs — mirrors runs-cancel-signup.ts:
-        //    if (run.visibility === "GUILD" && !isCreator && !isGuildMember)
-        //      return errorResponse(404, "Run not found");
-        if (run.Visibility == "GUILD")
-        {
-            // Derive the caller's guild from the raider's selected character.
-            var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
-            if (raider is null)
-                return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
+        // 2. Derive the caller's guild from the raider's selected character.
+        var raider = await raidersRepo.GetByBattleNetIdAsync(principal.BattleNetId, ct);
+        if (raider is null)
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
-            var (guildId, _) = GuildResolver.FromRaider(raider);
+        var (guildId, _) = GuildResolver.FromRaider(raider);
 
-            if (!RunAccessPolicy.CanView(run, principal.BattleNetId, guildId))
-                return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
-        }
+        if (!RunAccessPolicy.CanView(run, principal.BattleNetId, guildId))
+            return Problem.NotFound(req.HttpContext, "run-not-found", "Run not found.");
 
         // 3. Find the user's entry in runCharacters by raiderBattleNetId.
         var existingIndex = -1;

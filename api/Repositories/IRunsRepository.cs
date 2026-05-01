@@ -94,10 +94,8 @@ public interface IRunsRepository
 
     /// <summary>
     /// Returns one page of runs visible to a user who belongs to the given guild.
-    /// Visibility rules (mirrors runs-list.ts):
-    ///   - PUBLIC runs (visible to everyone)
+    /// Guild-only visibility rules:
     ///   - GUILD runs created by the same guild (creatorGuildId matches)
-    ///   - runs created by the user themselves (creatorBattleNetId matches)
     /// Ordered by startTime ascending. Caps the page at <paramref name="top"/> items
     /// via Cosmos <c>MaxItemCount</c>; returns a continuation token when more
     /// pages are available.
@@ -106,11 +104,7 @@ public interface IRunsRepository
 
     /// <summary>
     /// Returns one page of runs visible to a user who has no guild.
-    /// Visibility rules:
-    ///   - PUBLIC runs
-    ///   - runs created by the user themselves
-    /// Ordered by startTime ascending. Paginated the same way as
-    /// <see cref="ListForGuildAsync"/>.
+    /// Guild-only discovery returns an empty page for no-guild users.
     /// </summary>
     Task<RunsPage> ListForUserAsync(string battleNetId, int top, string? continuationToken, CancellationToken ct);
 

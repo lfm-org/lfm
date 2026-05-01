@@ -71,7 +71,7 @@ public class RunsUpdateFunctionTests
             SignupCloseTime: DateTimeOffset.UtcNow.AddHours(22).ToString("o"),
             Description: "Updated description",
             ModeKey: "NORMAL:10",
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "Test Guild",
             CreatorGuildId: 12345,
             InstanceId: 631,

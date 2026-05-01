@@ -23,7 +23,7 @@ public class CreateRunRequestValidatorTests
         new(StartTime: ValidStart,
             SignupCloseTime: null,
             Description: null,
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             InstanceId: 1200,
             InstanceName: "Liberation of Undermine",
             Difficulty: "HEROIC",
@@ -173,5 +173,36 @@ public class CreateRunRequestValidatorTests
         };
         var result = Sut.Validate(req);
         Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("keystoneLevel must be between 2 and 30"));
+    }
+
+    [Fact]
+    public void Rejects_public_visibility()
+    {
+        var request = Valid() with { Visibility = "PUBLIC" };
+
+        var result = Sut.Validate(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage == "visibility must be GUILD");
+    }
+
+    [Fact]
+    public void UpdateValidator_rejects_public_visibility()
+    {
+        var request = new UpdateRunRequest(
+            StartTime: null,
+            SignupCloseTime: null,
+            Description: null,
+            Visibility: "PUBLIC",
+            InstanceId: null,
+            InstanceName: null,
+            Difficulty: null,
+            Size: null,
+            KeystoneLevel: null);
+
+        var result = new UpdateRunRequestValidator().Validate(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage == "visibility must be GUILD");
     }
 }

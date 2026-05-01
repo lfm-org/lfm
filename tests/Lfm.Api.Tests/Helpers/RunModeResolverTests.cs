@@ -58,7 +58,7 @@ public class RunModeResolverTests
             SignupCloseTime: "",
             Description: "",
             ModeKey: modeKey,
-            Visibility: "PUBLIC",
+            Visibility: "GUILD",
             CreatorGuild: "",
             CreatorGuildId: null,
             InstanceId: 1200,

@@ -64,7 +64,7 @@ public class RunCreateServiceTests
             Locale: null,
             Characters: null);
 
-    private static CreateRunRequest MakeRequest(string visibility = "PUBLIC") =>
+    private static CreateRunRequest MakeRequest(string visibility = "GUILD") =>
         new CreateRunRequest(
             StartTime: FutureStartTime,
             SignupCloseTime: FutureSignupCloseTime,
@@ -103,7 +103,7 @@ public class RunCreateServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_GuildVisibilityWithoutGuild_ReturnsBadRequest()
+    public async Task CreateAsync_WithoutGuild_ReturnsBadRequest()
     {
         var (_, raidersRepo, _, sut) = MakeSut();
         var principal = MakePrincipal("bnet-admin");
@@ -111,14 +111,14 @@ public class RunCreateServiceTests
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-admin", It.IsAny<CancellationToken>()))
             .ReturnsAsync(raider);
 
-        var result = await sut.CreateAsync(MakeRequest("GUILD"), principal, CancellationToken.None);
+        var result = await sut.CreateAsync(MakeRequest(), principal, CancellationToken.None);
 
         var badRequest = Assert.IsType<RunOperationResult.BadRequest>(result);
         Assert.Equal("guild-required", badRequest.Code);
     }
 
     [Fact]
-    public async Task CreateAsync_GuildVisibilityWithoutPermission_ReturnsForbidden()
+    public async Task CreateAsync_WithoutPermission_ReturnsForbidden()
     {
         var (_, raidersRepo, guildPermissions, sut) = MakeSut();
         var principal = MakePrincipal("bnet-member");
@@ -128,7 +128,7 @@ public class RunCreateServiceTests
         guildPermissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var result = await sut.CreateAsync(MakeRequest("GUILD"), principal, CancellationToken.None);
+        var result = await sut.CreateAsync(MakeRequest(), principal, CancellationToken.None);
 
         var forbidden = Assert.IsType<RunOperationResult.Forbidden>(result);
         Assert.Equal("guild-rank-denied", forbidden.Code);
@@ -136,14 +136,15 @@ public class RunCreateServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_PublicRunHappyPath_ReturnsOkWithCreatedDocument()
+    public async Task CreateAsync_PersistsGuildVisibility_WhenLegacyClientSendsPublic()
     {
-        var (runsRepo, raidersRepo, _, sut) = MakeSut();
+        var (runsRepo, raidersRepo, guildPermissions, sut) = MakeSut();
         var principal = MakePrincipal("bnet-admin");
-        // Even with a guild, a PUBLIC run should not consult guild permissions.
         var raider = MakeRaiderWithGuild("bnet-admin");
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-admin", It.IsAny<CancellationToken>()))
             .ReturnsAsync(raider);
+        guildPermissions.Setup(p => p.CanCreateGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         runsRepo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((RunDocument doc, CancellationToken _) => doc);
 
@@ -153,7 +154,7 @@ public class RunCreateServiceTests
         Assert.NotNull(ok.Run.Id);
         Assert.NotEqual(string.Empty, ok.Run.Id);
         Assert.Equal("bnet-admin", ok.Run.CreatorBattleNetId);
-        Assert.Equal("PUBLIC", ok.Run.Visibility);
+        Assert.Equal("GUILD", ok.Run.Visibility);
         Assert.True(ok.Run.Ttl >= 86400);
         Assert.Equal("NORMAL:20", ok.Run.ModeKey);
         Assert.Empty(ok.Run.RunCharacters);

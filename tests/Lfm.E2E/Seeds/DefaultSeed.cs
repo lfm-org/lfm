@@ -210,7 +210,7 @@ public static class DefaultSeed
             ["signupCloseTime"] = signupCloseTime.ToString(Format),
             ["description"] = "E2E test run",
             ["modeKey"] = "NORMAL:25",
-            ["visibility"] = "PUBLIC",
+            ["visibility"] = "GUILD",
             ["creatorGuild"] = "Test Guild",
             ["creatorGuildId"] = 12345,
             ["instanceId"] = 67,

@@ -28,12 +28,10 @@ public sealed class RunFormState
     public DateTime? StartTimeLocal { get; set; }
     public DateTime? SignupCloseLocal { get; set; }
     public bool ShowSignupClose { get; set; }
-    public string Visibility { get; set; } = "PUBLIC";
+    public string Visibility { get; set; } = "GUILD";
     public string Description { get; set; } = string.Empty;
 
     public bool CanCreateGuildRuns { get; set; }
-    public bool CanShowGuildOption { get; set; }
-
     public IReadOnlyList<DifficultyOption> DifficultyOptions { get; private set; } = Array.Empty<DifficultyOption>();
 
     public IEnumerable<InstanceOption> FilteredInstances =>
