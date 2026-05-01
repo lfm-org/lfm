@@ -11,7 +11,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageReference Include="Microsoft.Playwright" Version="1.59.0" />
@@ -19,7 +19,7 @@
     <PackageReference Include="Testcontainers.CosmosDb" Version="4.11.0" />
     <PackageReference Include="Testcontainers.Azurite" Version="4.11.0" />
     <PackageReference Include="Deque.AxeCore.Playwright" Version="4.11.2" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.59.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
     <!-- WireMock.Net.Minimal (not the WireMock.Net meta-package) because our
          tests only use WireMock.Server / RequestBuilders / ResponseBuilders /
@@ -29,7 +29,7 @@
          removes the transitive OTel chain (and the CVEs it carried), so the
          previous direct pins on OpenTelemetry.Api and
          OpenTelemetry.Exporter.OpenTelemetryProtocol are no longer required. -->
-    <PackageReference Include="WireMock.Net.Minimal" Version="2.3.0" />
+    <PackageReference Include="WireMock.Net.Minimal" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">
