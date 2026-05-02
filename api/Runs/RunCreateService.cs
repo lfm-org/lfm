@@ -20,7 +20,8 @@ namespace Lfm.Api.Runs;
 public sealed class RunCreateService(
     IRunsRepository runsRepo,
     IRaidersRepository raidersRepo,
-    IGuildPermissions guildPermissions) : IRunCreateService
+    IGuildPermissions guildPermissions,
+    ISiteAdminService siteAdmin) : IRunCreateService
 {
     private const long RunTtlAfterStartMs = 7L * 24 * 3600 * 1000;
     private const int MinTtlSeconds = 86400; // 1 day minimum
@@ -45,7 +46,7 @@ public sealed class RunCreateService(
                 "A run requires an active character in a guild.");
 
         var canCreate = await guildPermissions.CanCreateGuildRunsAsync(raider, ct);
-        if (!canCreate)
+        if (!canCreate && !await siteAdmin.IsAdminAsync(principal.BattleNetId, ct))
             return new RunOperationResult.Forbidden(
                 "guild-rank-denied",
                 "Guild run creation is not enabled for your rank.",

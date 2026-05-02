@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Bunit;
+using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -646,8 +647,14 @@ public class RunsPagesTests : ComponentTestBase
         IReadOnlyList<ExpansionDto>? expansions = null,
         GuildDto? guild = null,
         TaskCompletionSource<IReadOnlyList<InstanceDto>>? instancesPending = null,
-        bool guildThrows = false)
+        bool guildThrows = false,
+        bool siteAdmin = false)
     {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        if (siteAdmin)
+            auth.SetRoles("SiteAdmin");
+
         var instancesClient = new Mock<IInstancesClient>();
         if (instancesPending is not null)
             instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
@@ -727,6 +734,21 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CreateRunPage_SiteAdmin_DoesNotShowGuildRankMessage_WhenRankCannotCreateRuns()
+    {
+        WireCreateRunServices(
+            instances: [MakeInstanceFixture()],
+            guild: MakeGuildDto(canCreateGuildRuns: false),
+            siteAdmin: true);
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("createRun.submit"), cut.Markup));
+        Assert.DoesNotContain(Loc("createRun.visibility.guildDisabledReason"), cut.Markup);
+    }
+
+    [Fact]
     public void CreateRunPage_DoesNotRenderExpansionSelector()
     {
         // The create-run form scopes its instance list to the Blizzard
@@ -758,6 +780,8 @@ public class RunsPagesTests : ComponentTestBase
     [Fact]
     public void CreateRunPage_HandleSubmit_Resets_Submitting_Flag_On_Success_Path()
     {
+        this.AddAuthorization().SetAuthorized("player#1234");
+
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.CreateAsync(It.IsAny<CreateRunRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeDetail());
