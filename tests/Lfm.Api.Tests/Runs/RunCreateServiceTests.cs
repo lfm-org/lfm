@@ -84,8 +84,44 @@ public class RunCreateServiceTests
         var runsRepo = new Mock<IRunsRepository>();
         var raidersRepo = new Mock<IRaidersRepository>();
         var guildPermissions = new Mock<IGuildPermissions>();
-        var sut = new RunCreateService(runsRepo.Object, raidersRepo.Object, guildPermissions.Object);
+        var siteAdmin = new Mock<ISiteAdminService>();
+        var sut = new RunCreateService(
+            runsRepo.Object,
+            raidersRepo.Object,
+            guildPermissions.Object,
+            siteAdmin.Object);
         return (runsRepo, raidersRepo, guildPermissions, sut);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SiteAdminWithGuild_BypassesGuildRankCreatePermission()
+    {
+        var runsRepo = new Mock<IRunsRepository>();
+        var raidersRepo = new Mock<IRaidersRepository>();
+        var guildPermissions = new Mock<IGuildPermissions>();
+        var siteAdmin = new Mock<ISiteAdminService>();
+        var sut = new RunCreateService(
+            runsRepo.Object,
+            raidersRepo.Object,
+            guildPermissions.Object,
+            siteAdmin.Object);
+        var principal = MakePrincipal("bnet-site-admin");
+        var raider = MakeRaiderWithGuild("bnet-site-admin", guildId: 123, guildName: "Test Guild");
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        guildPermissions.Setup(p => p.CanCreateGuildRunsAsync(raider, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        siteAdmin.Setup(s => s.IsAdminAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        runsRepo.Setup(r => r.CreateAsync(It.IsAny<RunDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, CancellationToken _) => doc);
+
+        var result = await sut.CreateAsync(MakeRequest(), principal, CancellationToken.None);
+
+        var ok = Assert.IsType<RunOperationResult.Ok>(result);
+        Assert.Equal("bnet-site-admin", ok.Run.CreatorBattleNetId);
+        Assert.Equal(123, ok.Run.CreatorGuildId);
+        Assert.Equal("GUILD", ok.Run.Visibility);
     }
 
     [Fact]
