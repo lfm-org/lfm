@@ -381,6 +381,9 @@ a, .btn-link {
  * `scrollbar-gutter: stable both-edges` prevents content jump when the
  * scrollbar appears. */
 .scroll-region {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
     overflow-x: auto;
     scrollbar-gutter: stable both-edges;
 }
