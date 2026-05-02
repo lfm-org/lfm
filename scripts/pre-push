@@ -10,6 +10,7 @@ cd "$REPO_ROOT"
 shell_scripts=(
   scripts/check-bundle-size.sh
   scripts/check-e2e-drift.sh
+  scripts/check-workflow-call-permissions.sh
   scripts/claude/stop-devsecops-audit.sh
   scripts/claude/stop-responsive-audit.sh
   scripts/claude/stop-test-audit.sh
@@ -26,6 +27,9 @@ if command -v shellcheck >/dev/null 2>&1; then
 else
   echo "[pre-push] shellcheck not found; skipping optional shell lint."
 fi
+
+echo "[pre-push] Workflow call permissions..."
+scripts/check-workflow-call-permissions.sh
 
 echo "[pre-push] Format check..."
 dotnet format lfm.sln --verify-no-changes --no-restore --severity error
