@@ -59,12 +59,12 @@ public class MeUpdateFunctionTests
         var repo = new Mock<IRaidersRepository>();
         repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
-        repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        repo.Setup(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), "\"etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing with { Locale = "fi", ETag = "\"etag-v2\"" });
 
         var fn = new MeUpdateFunction(repo.Object);
         var ctx = MakeFunctionContext(principal);
-        var req = MakeRequest(new { locale = "fi" });
+        var req = MakeRequest(new { locale = "fi" }, ifMatch: "\"etag-v1\"");
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
@@ -72,8 +72,9 @@ public class MeUpdateFunctionTests
         var response = Assert.IsType<UpdateMeResponse>(ok.Value);
         Assert.Equal("fi", response.Locale);
 
-        repo.Verify(r => r.UpsertAsync(
+        repo.Verify(r => r.ReplaceAsync(
             It.Is<RaiderDocument>(d => d.Locale == "fi" && d.BattleNetId == "bnet-1" && d.Ttl == 180 * 86400),
+            "\"etag-v1\"",
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -158,7 +159,7 @@ public class MeUpdateFunctionTests
     }
 
     [Fact]
-    public async Task Wildcard_if_match_falls_back_to_blind_upsert()
+    public async Task Missing_if_match_returns_428()
     {
         var principal = MakePrincipal();
         var existing = new RaiderDocument(
@@ -170,8 +171,31 @@ public class MeUpdateFunctionTests
         var repo = new Mock<IRaidersRepository>();
         repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
-        repo.Setup(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+
+        var fn = new MeUpdateFunction(repo.Object);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeRequest(new { locale = "fi" });
+
+        var result = await fn.Run(req, ctx, CancellationToken.None);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(428, objectResult.StatusCode);
+        repo.Verify(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Wildcard_if_match_returns_428()
+    {
+        var principal = MakePrincipal();
+        var existing = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: null,
+            Locale: "en");
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
 
         var fn = new MeUpdateFunction(repo.Object);
         var ctx = MakeFunctionContext(principal);
@@ -179,8 +203,8 @@ public class MeUpdateFunctionTests
 
         var result = await fn.Run(req, ctx, CancellationToken.None);
 
-        Assert.IsType<OkObjectResult>(result);
-        repo.Verify(r => r.UpsertAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(428, objectResult.StatusCode);
         repo.Verify(r => r.ReplaceAsync(It.IsAny<RaiderDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

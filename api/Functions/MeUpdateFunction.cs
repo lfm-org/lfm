@@ -48,11 +48,9 @@ public class MeUpdateFunction(IRaidersRepository repo)
                 new Dictionary<string, object?> { ["errors"] = errors });
         }
 
-        // Read-modify-write: load existing doc then persist the update. When the
-        // caller provides an If-Match header we use ReplaceAsync for optimistic
-        // concurrency; otherwise we fall back to UpsertAsync so the existing
-        // non-concurrent SPA flow keeps working. A future slice will tighten to
-        // require If-Match on every PATCH.
+        // Read-modify-write with optimistic concurrency. PATCH callers must
+        // echo the ETag from the previous GET /api/v1/me as If-Match so stale
+        // profile edits fail instead of overwriting newer state.
         var raider = await repo.GetByBattleNetIdAsync(principal.BattleNetId, cancellationToken);
         if (raider is null)
             return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
@@ -60,25 +58,23 @@ public class MeUpdateFunction(IRaidersRepository repo)
         var updated = raider with { Locale = body.Locale!, Ttl = TtlSeconds };
 
         var ifMatchEtag = ResolveIfMatch(req);
-        RaiderDocument persisted;
         if (ifMatchEtag is null)
+            return Problem.PreconditionRequired(
+                req.HttpContext,
+                "if-match-required",
+                "This resource requires an If-Match header echoing the ETag from a prior GET.");
+
+        RaiderDocument persisted;
+        try
         {
-            await repo.UpsertAsync(updated, cancellationToken);
-            persisted = updated;
+            persisted = await repo.ReplaceAsync(updated, ifMatchEtag, cancellationToken);
         }
-        else
+        catch (ConcurrencyConflictException)
         {
-            try
-            {
-                persisted = await repo.ReplaceAsync(updated, ifMatchEtag, cancellationToken);
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Problem.PreconditionFailed(
-                    req.HttpContext,
-                    "if-match-stale",
-                    "Your profile was modified since loaded. Reload and try again.");
-            }
+            return Problem.PreconditionFailed(
+                req.HttpContext,
+                "if-match-stale",
+                "Your profile was modified since loaded. Reload and try again.");
         }
 
         if (!string.IsNullOrEmpty(persisted.ETag))
@@ -100,9 +96,8 @@ public class MeUpdateFunction(IRaidersRepository repo)
         => Run(req, ctx, cancellationToken);
 
     /// <summary>
-    /// Returns the caller's <c>If-Match</c> ETag when present and non-wildcard.
-    /// A <c>*</c> wildcard is treated as "no precondition" so SPA flows that
-    /// haven't captured the ETag yet remain functional during migration.
+    /// Returns the caller's concrete <c>If-Match</c> ETag when present.
+    /// Missing, empty, and wildcard values fail the precondition contract.
     /// </summary>
     private static string? ResolveIfMatch(HttpRequest req)
     {
