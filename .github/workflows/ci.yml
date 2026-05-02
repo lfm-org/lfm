@@ -75,6 +75,15 @@ jobs:
         # tighten this to 2-3 MB.
         run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
 
+      - name: Upload bundle size report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bundle-size-report
+          path: ./artifacts/bundle-size
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Audit dependencies
         shell: bash
         run: |
