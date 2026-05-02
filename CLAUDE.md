@@ -36,6 +36,10 @@ Do not commit populated `.env` files or real credentials. See `example.env` for 
 ## Tool Configuration
 
 **dotnet:** Use `dotnet` CLI directly. The solution targets .NET 10.
+When changing `global.json` or SDK patch level, refresh and commit any
+`packages.lock.json` changes, then verify
+`env CI=true dotnet restore lfm.sln -m:1`; CI uses locked restore, so
+SDK/lockfile drift fails before build.
 
 **GitHub:** Use `mcp__github__*` MCP tools for **all** GitHub interactions — PRs, issues, reviews, branch creation, file contents, repo search, and **reading files/code from external repositories**. **Do not use the `gh` CLI.** **Do not use WebSearch/WebFetch to browse GitHub** — use `mcp__github__get_file_contents`, `mcp__github__search_code`, `mcp__github__get_repository_tree`, and other MCP read tools instead. They return structured data, avoid rate limits, and work reliably. Subagents must follow the same rule.
 
