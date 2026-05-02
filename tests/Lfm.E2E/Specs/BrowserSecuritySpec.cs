@@ -61,6 +61,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
     // Cheaper lanes cannot prove this because HttpOnly enforcement is browser cookie-jar behavior.
     // Shared data: read-only.
     [Fact]
+    [Trait("Category", E2ELanes.Smoke)]
     public async Task AuthCookie_NotAccessibleViaDocumentCookie()
     {
         // Pin the HttpOnly contract from the *browser's* perspective. The API
@@ -118,6 +119,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
     // Cheaper lanes cannot prove this because frame blocking is enforced by the browser.
     // Shared data: none.
     [Fact]
+    [Trait("Category", E2ELanes.Smoke)]
     public async Task IframeFromCrossOrigin_BlockedByXFrameOptions()
     {
         // The production staticwebapp.config.json sets X-Frame-Options: DENY,
@@ -159,6 +161,7 @@ public class BrowserSecuritySpec(BrowserSecurityFixture fixture, ITestOutputHelp
     // Cheaper lanes cannot prove this because CSP execution blocking is browser enforcement.
     // Shared data: none.
     [Fact]
+    [Trait("Category", E2ELanes.Smoke)]
     public async Task CspBlocksInjectedInlineScript()
     {
         // The production CSP `script-src 'self' 'wasm-unsafe-*'` does not include

@@ -120,6 +120,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // Cheaper lanes cannot prove this because dynamic rendered accessibility state needs browser evaluation.
     // Shared data: read-only.
     [Fact]
+    [Trait("Category", E2ELanes.Smoke)]
     public async Task RunsPage_MeetsWcag22AA()
     {
         await using var authContext = await AuthHelper.AuthenticatedContextAsync(
@@ -362,6 +363,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
     // Cheaper lanes cannot prove this because actual tab order is resolved by the browser.
     // Shared data: none.
     [Fact]
+    [Trait("Category", E2ELanes.Smoke)]
     public async Task TabFromBody_FirstStopIsSkipToContentLink()
     {
         // WCAG 2.4.1 (Bypass Blocks): the skip-to-content link must be the
@@ -386,6 +388,29 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
         Assert.Equal("A", firstTag);
         Assert.Equal("Skip to content", firstText);
+    }
+
+    // E2E scope: proves client-side navigation restores focus to the main landmark.
+    // Cheaper lanes cannot prove this because focus assignment after routing is browser-observable behavior.
+    // Shared data: none.
+    [Fact]
+    [Trait("Category", E2ELanes.Smoke)]
+    public async Task RouteNavigation_RestoresFocusToMainContent()
+    {
+        var loginPage = new LoginPage(Page!);
+        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await Assertions.Expect(loginPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        await Page!.GetByRole(AriaRole.Link, new() { Name = "Privacy Notice" }).ClickAsync();
+
+        await Assertions.Expect(Page).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/privacy$"),
+            new() { Timeout = 10000 });
+        await Assertions.Expect(
+            Page.GetByRole(AriaRole.Heading, new() { Name = "Privacy Policy" }))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(Page.Locator("#main-content"))
+            .ToBeFocusedAsync(new() { Timeout = 10000 });
     }
 
     // E2E scope: proves keyboard tabbing reaches the sign-in control.
