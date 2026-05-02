@@ -23,6 +23,10 @@ internal sealed class RaiderSeedBuilder
     private const string SpecializationKey = "specialization";
     private const string GuildIdKey = "guildId";
     private const string GuildNameKey = "guildName";
+    private const string FetchedAtKey = "fetchedAt";
+    private const string ProfileFetchedAtKey = "profileFetchedAt";
+    private const string SpecsFetchedAtKey = "specsFetchedAt";
+    private const string MediaFetchedAtKey = "mediaFetchedAt";
 
     private const string Region = "eu";
     private const string RealmSlug = "test-realm";
@@ -80,7 +84,7 @@ internal sealed class RaiderSeedBuilder
             [TtlKey] = -1,
             [AccountProfileRefreshedAtKey] = now,
             [AccountProfileFetchedAtKey] = now,
-            [CharactersKey] = characters.Select(BuildRaiderCharacter).ToList(),
+            [CharactersKey] = characters.Select(c => BuildRaiderCharacter(c, now)).ToList(),
             [AccountProfileSummaryKey] = new Dictionary<string, object?>
             {
                 [WowAccountsKey] = new List<object>
@@ -95,7 +99,7 @@ internal sealed class RaiderSeedBuilder
         };
     }
 
-    private static Dictionary<string, object?> BuildRaiderCharacter(CharacterSeed character)
+    private static Dictionary<string, object?> BuildRaiderCharacter(CharacterSeed character, string fetchedAt)
     {
         return new Dictionary<string, object?>
         {
@@ -104,6 +108,9 @@ internal sealed class RaiderSeedBuilder
             ["realm"] = RealmSlug,
             ["name"] = character.Name,
             ["portraitUrl"] = null,
+            ["classId"] = character.ClassId,
+            ["className"] = character.ClassName,
+            ["level"] = Level,
             [SpecializationsSummaryKey] = new Dictionary<string, object?>
             {
                 [ActiveSpecializationKey] = BuildSpecialization(character),
@@ -117,6 +124,10 @@ internal sealed class RaiderSeedBuilder
             },
             [GuildIdKey] = GuildId,
             [GuildNameKey] = GuildName,
+            [FetchedAtKey] = fetchedAt,
+            [ProfileFetchedAtKey] = fetchedAt,
+            [SpecsFetchedAtKey] = fetchedAt,
+            [MediaFetchedAtKey] = fetchedAt,
         };
     }
 
