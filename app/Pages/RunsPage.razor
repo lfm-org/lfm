@@ -178,17 +178,16 @@
                                                 }
                                             </FluentSelect>
 
-                                            <FluentSelect Id="signup-attendance-select"
-                                                          Label="@Loc["runs.signup.attendance"]"
-                                                          TOption="string"
-                                                          Value="@_selectedAttendance"
-                                                          ValueChanged="@OnSignupAttendanceChanged"
-                                                          Disabled="@_signupSubmitting">
-                                                @foreach (var option in SignupAttendanceOptions)
-                                                {
-                                                    <FluentOption TOption="string" Value="@option.Value">@Loc[option.LocKey]</FluentOption>
-                                                }
-                                            </FluentSelect>
+                                            <div class="run-signup-attendance-field">
+                                                <span id="signup-attendance-label" class="field__label">@Loc["runs.signup.attendance"]</span>
+                                                <ToggleGroup TValue="string"
+                                                             Options="@SignupAttendanceToggleOptions"
+                                                             Value="@_selectedAttendance"
+                                                             ValueChanged="@OnSignupAttendanceChanged"
+                                                             AriaLabelledBy="signup-attendance-label"
+                                                             Disabled="@_signupSubmitting"
+                                                             Class="run-signup-attendance-toggle" />
+                                            </div>
 
                                             <FluentButton Appearance="Appearance.Accent"
                                                           OnClick="@SubmitSignup"
@@ -276,6 +275,11 @@
         ("AWAY", "runs.attendance.away"),
         ("OUT", "runs.attendance.out"),
     ];
+
+    private IReadOnlyList<(string Value, string Label)> SignupAttendanceToggleOptions =>
+        SignupAttendanceOptions
+            .Select(option => (option.Value, Loc[option.LocKey].Value))
+            .ToList();
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
