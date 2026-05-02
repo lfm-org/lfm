@@ -1,5 +1,6 @@
 @page "/runs/new"
 @attribute [Authorize]
+@using Microsoft.AspNetCore.Components.Authorization
 @using Lfm.App.Components
 @using Lfm.App.Runs
 @using Lfm.App.Services
@@ -14,6 +15,7 @@
 @inject IRunsClient RunsClient
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>@Loc["createRun.title"]</PageTitle>
 
@@ -158,7 +160,7 @@
                     </FluentButton>
                 }
 
-                @if (!_form.CanCreateGuildRuns)
+                @if (!CanCreateRun)
                 {
                     <FluentMessageBar Intent="MessageIntent.Warning">
                         @Loc["createRun.visibility.guildDisabledReason"]
@@ -193,7 +195,7 @@
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                     <FluentButton Appearance="Appearance.Accent"
                                   OnClick="@HandleSubmit"
-                                  Disabled="@(!_form.CanSubmit || !_form.CanCreateGuildRuns || _submitting)">
+                                  Disabled="@(!_form.CanSubmit || !CanCreateRun || _submitting)">
                         @(_submitting ? Loc["createRun.creating"] : Loc["createRun.submit"])
                     </FluentButton>
                     <FluentButton Appearance="Appearance.Outline"
@@ -215,8 +217,11 @@
     // ── Page state ─────────────────────────────────────────────────────────
     private bool _loading = true;
     private bool _submitting;
+    private bool _isSiteAdmin;
     private string? _loadError;
     private RunError? _inlineError;
+
+    private bool CanCreateRun => _form.CanCreateGuildRuns || _isSiteAdmin;
 
     // ── Options for the ToggleGroups ───────────────────────────────────────
     private IReadOnlyList<(ActivityKind, string)> _activityOptions = [];
@@ -237,9 +242,11 @@
             var expansionsTask = ExpansionsClient.ListAsync(CancellationToken.None);
             var instancesTask = InstancesClient.ListAsync(CancellationToken.None);
             var guildTask = GuildClient.GetAsync(CancellationToken.None);
+            var authTask = AuthStateProvider.GetAuthenticationStateAsync();
             await Task.WhenAll(expansionsTask, instancesTask);
 
             _form.LoadOptions(InstanceOptions.Build(await instancesTask), await expansionsTask);
+            _isSiteAdmin = (await authTask).User.IsInRole("SiteAdmin");
 
             try { _guild = await guildTask; }
             catch { _guild = null; }
