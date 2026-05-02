@@ -11,6 +11,29 @@ text-expansion, forced-colors, focus behavior, viewport/container rules, and
 Core Web Vitals guidance. Use `CLAUDE.md` for repository workflow and
 architecture rules.
 
+## Current Responsive And Locale Boundary
+
+The current verified product scope is `en` and `fi` in left-to-right layouts.
+Responsive, accessibility, and i18n readiness claims in this repository apply
+to that scope unless a PR includes explicit readiness evidence for another
+locale.
+
+Any new locale file under `app/wwwroot/locales/` must include a matching
+`docs/locale-readiness/<locale>.md` note before merge. The note must cover:
+
+- Responsive sweep across phone, tablet, desktop, zoom, and reduced-width
+  states.
+- Text expansion for labels, navigation, form controls, cards, tables, and
+  operational run rows.
+- Locale parity for keys, fallback behavior, date/time/number formatting, and
+  validation/error strings.
+- Bidi/RTL behavior when the locale is right-to-left, or an explicit statement
+  that the locale is left-to-right.
+- Collation and sorting expectations for localized lists.
+
+`scripts/check-locale-readiness.sh` enforces the evidence file for any locale
+outside the current `en`/`fi` LTR scope.
+
 ## Design Character
 
 - **Operational, not decorative.** LFM is a raid and guild operations tool.
@@ -245,9 +268,13 @@ Run list items use:
 - `app/wwwroot/css/app.css` owns shared visual primitives, app-shell styling,
   and cross-page helper classes.
 - Page or component `.razor.css` files are allowed for page-specific or
-  reusable-component visual systems. This is the current accepted practice.
+  reusable-component visual systems. This is the current accepted practice;
+  prefer scoped CSS when the styling belongs to one page/component, needs
+  local state variants, or should not become a global primitive.
 - Inline `Style` is acceptable for small Fluent composition tweaks and
   one-off token usage.
+- Move styles from `.razor.css` to `app.css` when the class becomes shared
+  vocabulary, app-shell structure, or a cross-page helper.
 - Prefer named CSS classes when styling has state variants, domain meaning, or
   repeated visual language.
 - Keep class names domain-readable, usually with a BEM-like shape such as
