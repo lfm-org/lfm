@@ -339,4 +339,33 @@ public class RunsListFunctionTests
         Assert.Single(response.Items);
         Assert.Equal("next-page-token", response.ContinuationToken);
     }
+
+    [Fact]
+    public async Task Run_large_page_uses_single_raider_read_and_single_runs_query()
+    {
+        var principal = MakePrincipal(battleNetId: "bnet-1", guildId: "12345");
+        var docs = Enumerable.Range(1, 200)
+            .Select(i => MakeRunDoc(id: $"run-{i}", creatorGuildId: 12345))
+            .ToList();
+
+        var repo = new Mock<IRunsRepository>();
+        repo.Setup(r => r.ListForGuildAsync("12345", "bnet-1", 200, "page-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsPage(docs, "page-2"));
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc("bnet-1", guildId: 12345));
+
+        var ctx = new DefaultHttpContext();
+        ctx.Request.QueryString = new Microsoft.AspNetCore.Http.QueryString("?continuationToken=page-1");
+
+        var fn = new RunsListFunction(repo.Object, raidersRepo.Object);
+        var result = await fn.Run(ctx.Request, MakeFunctionContext(principal), CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<RunsListResponse>(ok.Value);
+        Assert.Equal(200, response.Items.Count);
+        Assert.Equal("page-2", response.ContinuationToken);
+        raidersRepo.Verify(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.ListForGuildAsync("12345", "bnet-1", 200, "page-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
