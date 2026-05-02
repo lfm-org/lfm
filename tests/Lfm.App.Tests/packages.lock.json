@@ -195,8 +195,8 @@
       },
       "Microsoft.DotNet.HotReload.WebAssembly.Browser": {
         "type": "Transitive",
-        "resolved": "10.0.104",
-        "contentHash": "OkWFygvFdm9emwxRW5ahcsU6saKO9EOYCFVNEXWl+23A4ssZy40VCQuqPhyurU7IyaPEhgA4iXh0/o7fhyNngA=="
+        "resolved": "10.0.106",
+        "contentHash": "8MzC43QmkOaut7+LL44MrLhtM3rcNeZOmqGtq92m5tbzJ+61bHExfWzE/6SL77ebzq8W+HVD58u+5pov6T1apg=="
       },
       "Microsoft.Extensions.Caching.Abstractions": {
         "type": "Transitive",
@@ -514,7 +514,7 @@
           "Lfm.Contracts": "[1.0.0, )",
           "Microsoft.AspNetCore.Components.WebAssembly": "[10.0.7, )",
           "Microsoft.AspNetCore.Components.WebAssembly.Authentication": "[10.0.7, )",
-          "Microsoft.DotNet.HotReload.WebAssembly.Browser": "[10.0.104, )",
+          "Microsoft.DotNet.HotReload.WebAssembly.Browser": "[10.0.106, )",
           "Microsoft.Extensions.Http": "[10.0.7, )",
           "Microsoft.Extensions.Localization": "[10.0.7, )",
           "Microsoft.Extensions.Logging.Configuration": "[10.0.7, )",
