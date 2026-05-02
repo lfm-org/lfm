@@ -81,6 +81,19 @@ public class RunVisualizationTests
     }
 
     [Theory]
+    [InlineData(-1, 0, false)]
+    [InlineData(1, 1, false)]
+    [InlineData(1, 2, true)]
+    [InlineData(2, 1, false)]
+    public void RoleCount_shortage_requires_positive_target_and_attending_below_target(
+        int attending,
+        int target,
+        bool expected)
+    {
+        Assert.Equal(expected, new RoleCount(attending, target).IsShortage);
+    }
+
+    [Theory]
     [InlineData("IN", true)]
     [InlineData("LATE", true)]
     [InlineData("BENCH", true)]
@@ -91,6 +104,22 @@ public class RunVisualizationTests
     public void IsAttending_covers_all_states(string? attendance, bool expected)
     {
         Assert.Equal(expected, RunVisualization.IsAttending(attendance));
+    }
+
+    [Theory]
+    [InlineData("TANK", "TANK")]
+    [InlineData("tank", "TANK")]
+    [InlineData("HEALER", "HEALER")]
+    [InlineData("HEAL", "HEALER")]
+    [InlineData("MELEE", "DPS")]
+    [InlineData("RANGED", "DPS")]
+    [InlineData("DPS", "DPS")]
+    [InlineData("unknown", "DPS")]
+    [InlineData("", "DPS")]
+    [InlineData(null, "DPS")]
+    public void NormalizeRole_maps_aliases_and_defaults_to_dps(string? role, string expected)
+    {
+        Assert.Equal(expected, RunVisualization.NormalizeRole(role));
     }
 
     [Fact]
@@ -119,6 +148,16 @@ public class RunVisualizationTests
         Assert.Equal(TimeHorizon.ThisWeek, RunVisualization.GetHorizon("2026-04-23T19:00:00+00:00", now));
         Assert.Equal(TimeHorizon.NextWeek, RunVisualization.GetHorizon("2026-04-29T19:00:00+00:00", now));
         Assert.Equal(TimeHorizon.Later, RunVisualization.GetHorizon("2026-05-15T19:00:00+00:00", now));
+    }
+
+    [Fact]
+    public void GetHorizon_uses_exclusive_week_boundaries()
+    {
+        var now = new DateTimeOffset(2026, 4, 20, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal(TimeHorizon.ThisWeek, RunVisualization.GetHorizon("2026-04-20T12:00:00+00:00", now));
+        Assert.Equal(TimeHorizon.NextWeek, RunVisualization.GetHorizon("2026-04-27T12:00:00+00:00", now));
+        Assert.Equal(TimeHorizon.Later, RunVisualization.GetHorizon("2026-05-04T12:00:00+00:00", now));
     }
 
     [Fact]

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Net;
+using System.Net.Http.Json;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
 using Lfm.Contracts.Me;
@@ -94,6 +95,53 @@ public class MeClientTests
         Assert.Equal(2, handler.CallCount);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.RequestTimeout)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    public async Task GetAsync_retries_each_transient_status_and_returns_me_response(HttpStatusCode transientStatus)
+    {
+        var responses = new Queue<HttpResponseMessage>([
+            new HttpResponseMessage(transientStatus),
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse())
+        ]);
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(_ => responses.Dequeue()));
+
+        var result = await client.GetAsync(CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_does_not_retry_non_transient_status()
+    {
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.BadRequest));
+
+        var result = await client.GetAsync(CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_returns_null_when_retry_delay_is_canceled()
+    {
+        using var cts = new CancellationTokenSource();
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(_ =>
+        {
+            cts.Cancel();
+            return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+        }));
+
+        var result = await client.GetAsync(cts.Token);
+
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
+    }
+
     [Fact]
     public async Task GetAsync_does_not_retry_401()
     {
@@ -103,6 +151,60 @@ public class MeClientTests
 
         Assert.Null(result);
         Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_unauthorized_clears_cached_etag_before_later_update()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var getResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse());
+        getResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v1\"");
+        var responses = new Queue<HttpResponseMessage>([
+            getResponse,
+            new HttpResponseMessage(HttpStatusCode.Unauthorized),
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, new UpdateMeResponse("en"))
+        ]);
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            return responses.Dequeue();
+        }));
+
+        await client.GetAsync(CancellationToken.None);
+        await client.GetAsync(CancellationToken.None);
+        await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
+
+        Assert.False(requests[2].Headers.Contains("If-Match"));
+    }
+
+    [Fact]
+    public async Task GetAsync_null_json_body_clears_cached_etag()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var getResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse());
+        getResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v1\"");
+        var nullGetResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create<MeResponse?>(null),
+        };
+        nullGetResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v2\"");
+        var responses = new Queue<HttpResponseMessage>([
+            getResponse,
+            nullGetResponse,
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, new UpdateMeResponse("en"))
+        ]);
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            return responses.Dequeue();
+        }));
+
+        await client.GetAsync(CancellationToken.None);
+        var nullResult = await client.GetAsync(CancellationToken.None);
+        await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
+
+        Assert.Null(nullResult);
+        Assert.False(requests[2].Headers.Contains("If-Match"));
     }
 
     // ── UpdateAsync ──────────────────────────────────────────────────────────
@@ -169,6 +271,37 @@ public class MeClientTests
 
         Assert.True(requests[2].Headers.TryGetValues("If-Match", out var ifMatch));
         Assert.Equal("\"me-etag-v2\"", ifMatch!.Single());
+    }
+
+    [Fact]
+    public async Task UpdateAsync_null_json_body_clears_cached_etag()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var getResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse());
+        getResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v1\"");
+        var nullPatchResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create<UpdateMeResponse?>(null),
+        };
+        nullPatchResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v2\"");
+        var responses = new Queue<HttpResponseMessage>([
+            getResponse,
+            nullPatchResponse,
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, new UpdateMeResponse("en"))
+        ]);
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            return responses.Dequeue();
+        }));
+
+        await client.GetAsync(CancellationToken.None);
+        var nullResult = await client.UpdateAsync(new UpdateMeRequest("fi"), CancellationToken.None);
+        await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
+
+        Assert.Null(nullResult);
+        Assert.True(requests[1].Headers.Contains("If-Match"));
+        Assert.False(requests[2].Headers.Contains("If-Match"));
     }
 
     [Fact]
@@ -293,6 +426,17 @@ public class MeClientTests
     public async Task EnrichCharacterAsync_returns_null_on_non_success()
     {
         var (client, handler) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.NotFound));
+
+        var result = await client.EnrichCharacterAsync("eu-silvermoon-sourgeezer", CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task EnrichCharacterAsync_returns_null_on_HttpRequestException()
+    {
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Throws(new HttpRequestException("network error")));
 
         var result = await client.EnrichCharacterAsync("eu-silvermoon-sourgeezer", CancellationToken.None);
 
