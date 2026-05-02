@@ -14,6 +14,18 @@ on:
           - infra
           - app
         default: all
+      allow_flex_y1_migration:
+        description: 'Maintenance: allow deleting legacy Flex Consumption app/plan before Bicep recreate'
+        type: boolean
+        default: false
+      allow_stale_rbac_cleanup:
+        description: 'Maintenance: allow stale RBAC cleanup with temporary delete-lock removal'
+        type: boolean
+        default: false
+      allow_app_insights_cleanup:
+        description: 'Maintenance: allow deleting orphaned App Insights managed resources/action groups'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -124,6 +136,10 @@ jobs:
       needs.analyze-infra.result == 'success' &&
       needs.detect-changes.outputs.infra == 'true'
     uses: ./.github/workflows/deploy-infra.yml
+    with:
+      allow_flex_y1_migration: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_flex_y1_migration }}
+      allow_stale_rbac_cleanup: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_stale_rbac_cleanup }}
+      allow_app_insights_cleanup: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_app_insights_cleanup }}
     secrets: inherit
 
   deploy-app:
