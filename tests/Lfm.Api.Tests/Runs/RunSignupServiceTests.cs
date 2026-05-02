@@ -415,6 +415,92 @@ public class RunSignupServiceTests
         Assert.Equal("char-1", entry.CharacterId);
     }
 
+    [Fact]
+    public async Task SignupAsync_SiteAdminWithRosteredCharacter_BypassesSelectedCharacterVisibility()
+    {
+        var (runsRepo, raidersRepo, guildPermissions, signupEligibility, _, sut) = MakeSut(siteAdmin: true);
+        var principal = MakePrincipal("bnet-site-admin");
+        var raider = MakeRaider("bnet-site-admin", characterId: "char-run-guild", guildId: 123) with
+        {
+            SelectedCharacterId = "char-alt",
+            Characters = [
+                new StoredSelectedCharacter(
+                    Id: "char-run-guild",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Guildmain",
+                    GuildId: 123,
+                    GuildName: "Test Guild"),
+                new StoredSelectedCharacter(
+                    Id: "char-alt",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Unguildedalt")
+            ],
+        };
+
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun(visibility: "GUILD", creatorGuildId: 123));
+        guildPermissions
+            .Setup(g => g.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-run-guild", desiredAttendance: "IN"),
+            principal,
+            CancellationToken.None);
+
+        var ok = Assert.IsType<RunOperationResult.Ok>(result);
+        var entry = Assert.Single(ok.Run.RunCharacters);
+        Assert.Equal("bnet-site-admin", entry.RaiderBattleNetId);
+        Assert.Equal("char-run-guild", entry.CharacterId);
+        signupEligibility.Verify(
+            s => s.IsSignupCharacterInRunGuildAsync(
+                It.IsAny<RunDocument>(),
+                It.Is<StoredSelectedCharacter>(c => c.Id == "char-run-guild"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SignupAsync_SiteAdmin_BypassesRosterEligibilityForOwnedCharacter()
+    {
+        var (runsRepo, raidersRepo, guildPermissions, signupEligibility, _, sut) = MakeSut(siteAdmin: true);
+        var principal = MakePrincipal("bnet-site-admin");
+        var raider = MakeRaider("bnet-site-admin", characterId: "char-alt", guildId: null);
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun(visibility: "GUILD", creatorGuildId: 123));
+        guildPermissions
+            .Setup(g => g.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        signupEligibility
+            .Setup(s => s.IsSignupCharacterInRunGuildAsync(
+                It.IsAny<RunDocument>(),
+                It.Is<StoredSelectedCharacter>(c => c.Id == "char-alt"),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-alt", desiredAttendance: "IN"),
+            principal,
+            CancellationToken.None);
+
+        var ok = Assert.IsType<RunOperationResult.Ok>(result);
+        var entry = Assert.Single(ok.Run.RunCharacters);
+        Assert.Equal("bnet-site-admin", entry.RaiderBattleNetId);
+        Assert.Equal("char-alt", entry.CharacterId);
+    }
+
     // ------------------------------------------------------------------
     // GUILD visibility — happy path: same guild + rank permission allows
     // the signup to land.

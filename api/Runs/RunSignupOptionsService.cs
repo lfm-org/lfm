@@ -33,15 +33,24 @@ public sealed class RunSignupOptionsService(
         if (run is null)
             return new RunSignupOptionsResult.NotFound("run-not-found", "Run not found.");
 
+        bool? callerIsSiteAdmin = null;
         var (callerGuildId, _) = GuildResolver.FromRaider(raider);
         if (!RunAccessPolicy.CanView(run, principal.BattleNetId, callerGuildId))
-            return new RunSignupOptionsResult.NotFound("run-not-found", "Run not found.");
+        {
+            callerIsSiteAdmin = await siteAdmin.IsAdminAsync(principal.BattleNetId, ct);
+            if (!callerIsSiteAdmin.Value)
+                return new RunSignupOptionsResult.NotFound("run-not-found", "Run not found.");
+        }
 
         var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
-        if (!canSignup && !await siteAdmin.IsAdminAsync(principal.BattleNetId, ct))
-            return new RunSignupOptionsResult.Forbidden(
-                "guild-rank-denied",
-                "Guild signup is not enabled for your rank.");
+        if (!canSignup)
+        {
+            callerIsSiteAdmin ??= await siteAdmin.IsAdminAsync(principal.BattleNetId, ct);
+            if (!callerIsSiteAdmin.Value)
+                return new RunSignupOptionsResult.Forbidden(
+                    "guild-rank-denied",
+                    "Guild signup is not enabled for your rank.");
+        }
 
         if (!BattleNetCharactersFunction.ShouldServeCachedAccountProfile(raider))
             return new RunSignupOptionsResult.NeedsRefresh();
@@ -53,7 +62,9 @@ public sealed class RunSignupOptionsService(
             raider.Characters,
             raider.PortraitCache);
 
-        var filtered = await FilterGuildCharactersAsync(run, characters, ct);
+        var filtered = callerIsSiteAdmin == true
+            ? characters
+            : await FilterGuildCharactersAsync(run, characters, ct);
         return new RunSignupOptionsResult.Ok(new RunSignupOptionsDto(filtered));
     }
 

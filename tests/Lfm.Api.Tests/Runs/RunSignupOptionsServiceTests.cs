@@ -92,7 +92,7 @@ public class RunSignupOptionsServiceTests
             Difficulty: "NORMAL",
             Size: 10);
 
-    private static GuildDocument MakeGuild() =>
+    private static GuildDocument MakeGuild(string memberName = "Guildmain") =>
         new(
             Id: "123",
             GuildId: 123,
@@ -101,7 +101,7 @@ public class RunSignupOptionsServiceTests
             BlizzardRosterRaw: new StoredGuildRoster([
                 new StoredGuildRosterMember(
                     new StoredGuildRosterMemberCharacter(
-                        Name: "Guildmain",
+                        Name: memberName,
                         Realm: new StoredGuildRosterRealm("silvermoon")),
                     Rank: 4)
             ]));
@@ -216,8 +216,67 @@ public class RunSignupOptionsServiceTests
         var result = await sut.GetAsync("run-1", MakePrincipal("bnet-site-admin"), CancellationToken.None);
 
         var ok = Assert.IsType<RunSignupOptionsResult.Ok>(result);
-        var character = Assert.Single(ok.Options.Characters);
-        Assert.Equal("Guildmain", character.Name);
+        Assert.Equal(2, ok.Options.Characters.Count);
+        Assert.Contains(ok.Options.Characters, c => c.Name == "Guildmain");
+        Assert.Contains(ok.Options.Characters, c => c.Name == "Unguildedalt");
+    }
+
+    [Fact]
+    public async Task GetAsync_site_admin_can_load_options_when_selected_character_is_not_run_guild()
+    {
+        var (runsRepo, raidersRepo, guildRepo, guildPermissions, sut) = MakeSut(siteAdmin: true);
+        var raider = MakeRaider(
+            battleNetId: "bnet-site-admin",
+            accountProfile: AccountProfile(),
+            refreshedAt: DateTimeOffset.UtcNow.AddMinutes(-2).ToString("o")) with
+        {
+            SelectedCharacterId = "char-alt",
+        };
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRun());
+        guildPermissions
+            .Setup(p => p.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        guildRepo.Setup(r => r.GetAsync("123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuild());
+
+        var result = await sut.GetAsync("run-1", MakePrincipal("bnet-site-admin"), CancellationToken.None);
+
+        var ok = Assert.IsType<RunSignupOptionsResult.Ok>(result);
+        Assert.Equal(2, ok.Options.Characters.Count);
+        Assert.Contains(ok.Options.Characters, c => c.Name == "Guildmain");
+        Assert.Contains(ok.Options.Characters, c => c.Name == "Unguildedalt");
+    }
+
+    [Fact]
+    public async Task GetAsync_site_admin_gets_account_characters_when_run_guild_roster_has_no_matches()
+    {
+        var (runsRepo, raidersRepo, guildRepo, guildPermissions, sut) = MakeSut(siteAdmin: true);
+        var raider = MakeRaider(
+            battleNetId: "bnet-site-admin",
+            accountProfile: AccountProfile(),
+            refreshedAt: DateTimeOffset.UtcNow.AddMinutes(-2).ToString("o")) with
+        {
+            SelectedCharacterId = "char-alt",
+        };
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRun());
+        guildPermissions
+            .Setup(p => p.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        guildRepo.Setup(r => r.GetAsync("123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuild(memberName: "Othermember"));
+
+        var result = await sut.GetAsync("run-1", MakePrincipal("bnet-site-admin"), CancellationToken.None);
+
+        var ok = Assert.IsType<RunSignupOptionsResult.Ok>(result);
+        Assert.Equal(2, ok.Options.Characters.Count);
+        Assert.Contains(ok.Options.Characters, c => c.Name == "Guildmain");
+        Assert.Contains(ok.Options.Characters, c => c.Name == "Unguildedalt");
     }
 
     [Fact]
