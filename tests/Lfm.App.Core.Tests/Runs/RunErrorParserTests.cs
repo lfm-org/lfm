@@ -20,6 +20,33 @@ public class RunErrorParserTests
     }
 
     [Fact]
+    public void BadRequest_with_errors_array_keeps_only_non_empty_strings()
+    {
+        var body = """{"errors":["startTime is required","",42,null,"modeKey is required"]}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.BadRequest, body);
+        Assert.Equal(RunErrorKind.Validation, result.Kind);
+        Assert.Equal(["startTime is required", "modeKey is required"], result.Messages);
+    }
+
+    [Fact]
+    public void BadRequest_with_non_array_errors_uses_detail_message()
+    {
+        var body = """{"errors":"not an array","detail":"Request body failed validation."}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.BadRequest, body);
+        Assert.Equal(RunErrorKind.Validation, result.Kind);
+        Assert.Equal("Request body failed validation.", Assert.Single(result.Messages));
+    }
+
+    [Fact]
+    public void BadRequest_with_non_string_detail_falls_back_to_raw_body()
+    {
+        var body = """{"detail":42}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.BadRequest, body);
+        Assert.Equal(RunErrorKind.Validation, result.Kind);
+        Assert.Equal(body, Assert.Single(result.Messages));
+    }
+
+    [Fact]
     public void BadRequest_with_detail_only_classifies_as_Validation_with_that_message()
     {
         var body = """{"type":"https://github.com/lfm-org/lfm/errors#guild-required","title":"Bad Request","status":400,"detail":"A guild run requires an active character in a guild."}""";
@@ -47,6 +74,15 @@ public class RunErrorParserTests
     }
 
     [Fact]
+    public void Forbidden_with_rank_denied_type_without_detail_uses_rank_fallback()
+    {
+        var body = """{"type":"https://github.com/lfm-org/lfm/errors#guild-rank-denied","title":"Forbidden","status":403}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, body);
+        Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
+        Assert.Equal("Guild run creation is not enabled for your rank.", Assert.Single(result.Messages));
+    }
+
+    [Fact]
     public void Forbidden_with_detail_but_unknown_type_still_surfaces_server_detail()
     {
         var body = """{"type":"https://github.com/lfm-org/lfm/errors#some-other-thing","title":"Forbidden","status":403,"detail":"Specific reason."}""";
@@ -56,11 +92,37 @@ public class RunErrorParserTests
     }
 
     [Fact]
+    public void Forbidden_with_non_string_type_still_surfaces_server_detail()
+    {
+        var body = """{"type":42,"detail":"Specific reason."}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, body);
+        Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
+        Assert.Equal("Specific reason.", Assert.Single(result.Messages));
+    }
+
+    [Fact]
+    public void Forbidden_with_non_string_detail_uses_forbidden_fallback()
+    {
+        var body = """{"type":"https://github.com/lfm-org/lfm/errors#some-other-thing","detail":42}""";
+        var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, body);
+        Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
+        Assert.Equal("Forbidden.", Assert.Single(result.Messages));
+    }
+
+    [Fact]
     public void Forbidden_with_empty_body_still_classifies_as_GuildRankDenied()
     {
         var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, null);
         Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
         Assert.NotEmpty(result.Messages);
+    }
+
+    [Fact]
+    public void Forbidden_with_malformed_body_uses_forbidden_fallback()
+    {
+        var result = RunErrorParser.Parse(HttpStatusCode.Forbidden, "not json at all");
+        Assert.Equal(RunErrorKind.GuildRankDenied, result.Kind);
+        Assert.Equal("Forbidden.", Assert.Single(result.Messages));
     }
 
     [Theory]
@@ -73,6 +135,7 @@ public class RunErrorParserTests
         var result = RunErrorParser.Parse(status, "doesn't matter");
         Assert.Equal(RunErrorKind.Network, result.Kind);
         Assert.True(result.IsNetwork);
+        Assert.Equal("Server error. Try again.", Assert.Single(result.Messages));
     }
 
     [Fact]
@@ -80,6 +143,7 @@ public class RunErrorParserTests
     {
         var result = RunErrorParser.Parse(HttpStatusCode.NotFound, null);
         Assert.Equal(RunErrorKind.Unknown, result.Kind);
+        Assert.Equal("Unexpected response (404).", Assert.Single(result.Messages));
     }
 
     [Fact]
@@ -88,6 +152,14 @@ public class RunErrorParserTests
         var result = RunErrorParser.Network(new HttpRequestException("connection refused"));
         Assert.Equal(RunErrorKind.Network, result.Kind);
         Assert.Equal("connection refused", Assert.Single(result.Messages));
+    }
+
+    [Fact]
+    public void Network_uses_fallback_when_exception_message_is_empty()
+    {
+        var result = RunErrorParser.Network(new Exception(""));
+        Assert.Equal(RunErrorKind.Network, result.Kind);
+        Assert.Equal("Network error.", Assert.Single(result.Messages));
     }
 
     [Fact]
