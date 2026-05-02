@@ -21,7 +21,7 @@ The model was recreated on 2026-05-01 with `souroldgeezer-design:architecture-de
 
 ![Application Cooperation](renders/id-view-app-cooperation.png)
 
-LFM-internal vs Blizzard-external trust boundary, drawn explicitly with two `Grouping`s. Inside LFM: `Lfm.App.Core` serves `Lfm.App` (Blazor WASM SPA); `Lfm.Contracts` (shared DTO library) serves all three internal projects; `Lfm.Api` (Azure Functions HTTP API) exposes the `REST API (/api/*)` interface that serves `Lfm.App`. Inside Blizzard: `Battle.net OAuth 2.0` serves `Lfm.Api` (login flow); `WoW Profile API` and `WoW Game Data API` serve `Lfm.Api` (character + reference data); the Blizzard Render CDN serves character render images directly to the SPA browser (CSP-allowlisted).
+LFM-internal vs Blizzard-external trust boundary, drawn explicitly with two `Grouping`s. Inside LFM: `Lfm.App.Core` serves `Lfm.App` (Blazor WASM SPA); `Lfm.Contracts` (shared DTO library) serves all three internal projects; `Lfm.Api` (Azure Functions HTTP API) exposes the `REST API (/api/*)` interface that serves `Lfm.App`. Canonical public routes are `/api/v1/...`; the unprefixed `/api/...` routes are transitional live aliases tracked in [`docs/api-versioning.md`](../api-versioning.md) until their telemetry-backed retirement criteria are met. Inside Blizzard: `Battle.net OAuth 2.0` serves `Lfm.Api` (login flow); `WoW Profile API` and `WoW Game Data API` serve `Lfm.Api` (character + reference data); the Blizzard Render CDN serves character render images directly to the SPA browser (CSP-allowlisted).
 
 ### 2. Technology Realisation (Hosting + Data Plane)
 
