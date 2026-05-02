@@ -8,12 +8,20 @@ namespace Lfm.App.Services;
 
 public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
 {
+    private string? _etag;
+
     public async Task<GuildDto?> GetAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
         try
         {
-            return await http.GetFromJsonAsync<GuildDto>("api/v1/guild", ct);
+            using var response = await http.GetAsync("api/v1/guild", ct);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var guild = await response.Content.ReadFromJsonAsync<GuildDto>(ct);
+            _etag = guild is null ? null : HttpEtag.Read(response);
+            return guild;
         }
         catch (HttpRequestException)
         {
@@ -25,16 +33,12 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
     {
         var http = factory.CreateClient("api");
 
-        // Transitional: send If-Match: * so the server knows the caller is
-        // aware of the ETag contract but does not yet round-trip the
-        // server-issued value. A future slice will capture the ETag on the
-        // preceding GET /api/guild and echo it here for full optimistic
-        // concurrency. `*` matches any non-deleted resource per RFC 9110.
         using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/v1/guild")
         {
             Content = JsonContent.Create(request),
         };
-        patch.Headers.TryAddWithoutValidation("If-Match", "*");
+        if (!string.IsNullOrWhiteSpace(_etag))
+            patch.Headers.TryAddWithoutValidation("If-Match", _etag);
 
         var response = await http.SendAsync(patch, ct);
         if (!response.IsSuccessStatusCode)
@@ -42,6 +46,8 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
             return null;
         }
 
-        return await response.Content.ReadFromJsonAsync<GuildDto>(ct);
+        var guild = await response.Content.ReadFromJsonAsync<GuildDto>(ct);
+        _etag = guild is null ? null : HttpEtag.Read(response);
+        return guild;
     }
 }
