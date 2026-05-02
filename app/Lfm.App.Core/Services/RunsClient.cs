@@ -37,7 +37,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         var dto = await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
         if (dto is null) return null;
 
-        var etag = ReadETag(response);
+        var etag = HttpEtag.Read(response);
         return new RunDetailWithEtag(dto, etag);
     }
 
@@ -74,7 +74,7 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         var dto = await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
         if (dto is null) return null;
 
-        return new RunDetailWithEtag(dto, ReadETag(response));
+        return new RunDetailWithEtag(dto, HttpEtag.Read(response));
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken ct)
@@ -122,13 +122,4 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
         return await response.Content.ReadFromJsonAsync<RunDetailDto>(ct);
     }
 
-    private static string? ReadETag(HttpResponseMessage response)
-    {
-        if (response.Headers.ETag?.Tag is { Length: > 0 } typed)
-            return typed;
-
-        return response.Headers.TryGetValues("ETag", out var values)
-            ? values.FirstOrDefault()
-            : null;
-    }
 }
