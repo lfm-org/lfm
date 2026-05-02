@@ -9,7 +9,8 @@ RUN dotnet restore api/Lfm.Api.csproj
 
 COPY shared/ shared/
 COPY api/ api/
-RUN dotnet publish api/Lfm.Api.csproj -c Release -o /app/publish
+ARG E2ETest=false
+RUN dotnet publish api/Lfm.Api.csproj -c Release -p:E2ETest=$E2ETest -o /app/publish
 
 FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0@sha256:bde119620c65d7a7dc333bb50d1ca0e23644409a9844288996e30a5766b0bbcd
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot

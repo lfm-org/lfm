@@ -12,6 +12,10 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Images;
+using DotNet.Testcontainers.Networks;
 using Testcontainers.Azurite;
 using Testcontainers.CosmosDb;
 using WireMock.RequestBuilders;
@@ -27,25 +31,19 @@ public class StackFixture : IAsyncLifetime
     public const string DatabaseName = "lfm-e2e";
 
     // Testcontainers 4.x removed the parameterless builder constructors; the
-    // image must be passed explicitly. Bind container port 8081 to host port
-    // 8081 so the SDK's endpoint-rediscovery (which always returns
-    // http://127.0.0.1:8081/ from the gateway's writableLocations) reaches
-    // the same socket Testcontainers exposed.
+    // image must be passed explicitly. Keep a fixed host binding for the host
+    // CosmosClient used by E2E seeders, and also attach the container to the
+    // E2E network so the API container can address it by alias. The API sets
+    // Cosmos__LimitToEndpoint=true so SDK endpoint discovery does not switch
+    // from that alias back to the emulator's advertised 127.0.0.1 endpoint.
     //
     // Pinned by digest (not just the floating `:vnext-preview` tag) so CI
     // pulls the same bytes every run and E2E behaviour doesn't shift when
     // Microsoft repushes the preview tag. See issue #46. Bump when a newer
     // vnext-preview is desired, or when a stable version tag finally ships
     // and we can drop digest pinning.
-    private readonly CosmosDbContainer _cosmos = new CosmosDbBuilder(
-        "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview"
-        + "@sha256:ed28d92b38aff69ccb4dbf439c584449f06432619f3415f429c09e4097cbe577")
-        .WithPortBinding(8081, 8081)
-        .WithStartupCallback(async (_, ct) =>
-        {
-            await Task.Delay(TimeSpan.FromSeconds(10), ct);
-        })
-        .Build();
+    private readonly INetwork _network;
+    private readonly CosmosDbContainer _cosmos;
 
     // Version tag + manifest-list digest, matching the Cosmos pin above. The
     // :3.35.0 tag documents which Azurite release the digest corresponds to;
@@ -53,13 +51,7 @@ public class StackFixture : IAsyncLifetime
     // same bytes every run and still resolves to the correct platform
     // manifest (linux/amd64 on CI, linux/arm64 on Apple-silicon dev). Bump
     // both together when upgrading.
-    private readonly AzuriteContainer _azurite = new AzuriteBuilder(
-        "mcr.microsoft.com/azure-storage/azurite:3.35.0"
-        + "@sha256:647c63a91102a9d8e8000aab803436e1fc85fbb285e7ce830a82ee5d6661cf37")
-        .WithPortBinding(10000, 10000)
-        .WithPortBinding(10001, 10001)
-        .WithPortBinding(10002, 10002)
-        .Build();
+    private readonly AzuriteContainer _azurite;
 
     public IBrowser Browser { get; private set; } = null!;
     public CosmosClient CosmosClient { get; private set; } = null!;
@@ -71,7 +63,7 @@ public class StackFixture : IAsyncLifetime
     public string BlobConnectionString => _azurite.GetConnectionString();
 
     /// <summary>
-    /// Recent API process stdout/stderr for test failure diagnostics. The
+    /// Recent API container stdout/stderr for test failure diagnostics. The
     /// buffer accumulates for the lifetime of the fixture; tests that need
     /// to dump the log on failure can read this property and pass it to
     /// their test output helper.
@@ -80,14 +72,49 @@ public class StackFixture : IAsyncLifetime
 
     private const int DefaultApiPort = 7171;
     private const int DefaultAppPort = 5199;
+    private const int ApiContainerPort = 80;
+    private const string AzuriteNetworkAlias = "azurite";
+    private const string CosmosNetworkAlias = "cosmos";
+    private const string HostGatewayName = "host.docker.internal";
     private int _apiPort = DefaultApiPort;
     private int _appPort = DefaultAppPort;
 
-    private Process? _apiProcess;
+    private IFutureDockerImage? _apiImage;
+    private IContainer? _apiContainer;
     private WebApplication? _appHost;
     private WireMockServer? _oauthStub;
     private IPlaywright? _playwright;
     private readonly StringBuilder _apiOutput = new();
+    private string? _runtimeRoot;
+
+    public StackFixture()
+    {
+        _network = new NetworkBuilder()
+            .WithName($"lfm-e2e-{Guid.NewGuid():N}")
+            .Build();
+
+        _cosmos = new CosmosDbBuilder(
+            "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview"
+            + "@sha256:ed28d92b38aff69ccb4dbf439c584449f06432619f3415f429c09e4097cbe577")
+            .WithNetwork(_network)
+            .WithNetworkAliases(CosmosNetworkAlias)
+            .WithPortBinding(8081, 8081)
+            .WithStartupCallback(async (_, ct) =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), ct);
+            })
+            .Build();
+
+        _azurite = new AzuriteBuilder(
+            "mcr.microsoft.com/azure-storage/azurite:3.35.0"
+            + "@sha256:647c63a91102a9d8e8000aab803436e1fc85fbb285e7ce830a82ee5d6661cf37")
+            .WithNetwork(_network)
+            .WithNetworkAliases(AzuriteNetworkAlias)
+            .WithPortBinding(10000, 10000)
+            .WithPortBinding(10001, 10001)
+            .WithPortBinding(10002, 10002)
+            .Build();
+    }
 
     /// <summary>
     /// Base URL of the in-process WireMock server that stubs the Battle.net
@@ -101,11 +128,26 @@ public class StackFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        try
+        {
+            await InitializeCoreAsync();
+        }
+        catch
+        {
+            try { await DisposeAsync(); } catch { /* preserve original startup failure */ }
+            throw;
+        }
+    }
+
+    private async Task InitializeCoreAsync()
+    {
         var repoRoot = FindRepoRoot();
+        _runtimeRoot = CreateRuntimeRoot(repoRoot);
 
         _apiPort = DefaultApiPort + Random.Shared.Next(0, 100);
         _appPort = DefaultAppPort + Random.Shared.Next(0, 100);
 
+        await _network.CreateAsync();
         await Task.WhenAll(_cosmos.StartAsync(), _azurite.StartAsync());
 
         CosmosClient = new CosmosClient(
@@ -129,59 +171,16 @@ public class StackFixture : IAsyncLifetime
                 },
             });
 
-        // Start the OAuth stub server before publishing the API so we know its
-        // URL when constructing the func-start environment variables.
+        // Start the OAuth stub server before launching the API so we know its
+        // URL when constructing the container environment variables.
         _oauthStub = StartOAuthStub();
 
-        // Publish API
-        var apiPublishDir = Path.Combine(Path.GetTempPath(), $"lfm-e2e-api-{_apiPort}");
-        var publishExitCode = RunProcess("dotnet",
-            $"publish {Path.Combine(repoRoot, "api", "Lfm.Api.csproj")} -c Release -p:E2ETest=true -o {apiPublishDir}",
-            repoRoot, timeoutSec: 120);
-        if (publishExitCode != 0)
-            throw new InvalidOperationException($"dotnet publish failed with exit code {publishExitCode}");
-
-        // Start Functions host. CORS is handled by CorsMiddleware in the worker pipeline.
-        // Do NOT use --cors flag — it conflicts with middleware by adding its own handler
-        // that omits Access-Control-Allow-Credentials.
-        _apiProcess = StartBackground("func", $"start --port {_apiPort} --no-build",
-            apiPublishDir,
-            new Dictionary<string, string>
-            {
-                ["Cosmos__Endpoint"] = ExtractConnectionStringPart(_cosmos.GetConnectionString(), "AccountEndpoint"),
-                ["Cosmos__AuthKey"] = ExtractConnectionStringPart(_cosmos.GetConnectionString(), "AccountKey"),
-                ["Cosmos__DatabaseName"] = DatabaseName,
-                ["Cosmos__ConnectionMode"] = "Gateway",
-                ["Cosmos__SkipCertValidation"] = "true",
-                ["AzureWebJobsStorage"] = "UseDevelopmentStorage=true",
-                // Storage__BlobConnectionString drives BlobReferenceClient in
-                // api/Program.cs. Must point at the same Azurite the seeder
-                // uploads reference fixtures into — otherwise /api/wow/reference/instances
-                // and /api/wow/reference/specializations see an empty container.
-                ["Storage__BlobConnectionString"] = _azurite.GetConnectionString(),
-                ["Storage__WowContainerName"] = Seeds.WowReferenceSeed.ContainerName,
-                ["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated",
-                ["E2E_TEST_MODE"] = "true",
-                ["Auth__CookieName"] = "battlenet_token",
-                ["Auth__CookieMaxAgeHours"] = "24",
-                ["Blizzard__ClientId"] = "e2e-stub",
-                ["Blizzard__ClientSecret"] = "e2e-stub",
-                ["Blizzard__Region"] = "eu",
-                ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
-                ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
-                ["Blizzard__OAuthBaseUrl"] = _oauthStub.Url ?? throw new InvalidOperationException(
-                    "WireMock OAuth stub did not return a base URL after start"),
-                ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
-                ["PRIVACY_EMAIL"] = "privacy@e2e.test",
-                ["PrivacyContact__Email"] = "privacy@e2e.test",
-                ["RateLimit__Enabled"] = "false",
-            },
-            _apiOutput);
+        await StartApiContainerAsync(repoRoot);
 
         // Publish the Blazor WASM app so we serve precompiled wwwroot files —
         // the same shape Static Web Apps serves in production. Avoids the dev
         // server entirely and the orphan-grandchild process tree it produced.
-        var appPublishDir = Path.Combine(Path.GetTempPath(), $"lfm-e2e-app-{_appPort}");
+        var appPublishDir = Path.Combine(_runtimeRoot, $"app-{_appPort}");
         var appPublishExitCode = RunProcess("dotnet",
             $"publish {Path.Combine(repoRoot, "app", "Lfm.App.csproj")} -c Release -o {appPublishDir}",
             repoRoot, timeoutSec: 240);
@@ -234,8 +233,10 @@ public class StackFixture : IAsyncLifetime
         }
         catch (TimeoutException)
         {
+            await CaptureApiContainerLogsAsync();
+            WriteApiLogArtifact();
             throw new TimeoutException(
-                $"Timed out waiting for API.\n" +
+                $"API container started, but the app did not answer /api/health on port {_apiPort}.\n" +
                 $"--- API output (port {_apiPort}) ---\n{_apiOutput}");
         }
 
@@ -261,10 +262,10 @@ public class StackFixture : IAsyncLifetime
     {
         // Order matters: stop the browser first (drops any pending requests),
         // then the in-process app host (so it stops accepting new requests
-        // before its dependencies disappear), then the API process, then the
-        // backing data stores. The composition lets us sequence cleanly with
-        // none of the dev-server grandchild orphan races the old `dotnet run`
-        // approach forced us to brute-force around.
+        // before its dependencies disappear), then the API container, then
+        // the backing data stores. The composition lets us sequence cleanly
+        // without host-local Functions Core Tools or dev-server grandchild
+        // process races.
         if (Browser is not null) await Browser.CloseAsync();
         _playwright?.Dispose();
         if (_appHost is not null)
@@ -272,14 +273,26 @@ public class StackFixture : IAsyncLifetime
             try { await _appHost.StopAsync(); } catch { /* best effort */ }
             await _appHost.DisposeAsync();
         }
-        KillProcess(_apiProcess);
+        await CaptureApiContainerLogsAsync();
+        if (_apiContainer is not null)
+        {
+            try { await _apiContainer.StopAsync(); } catch { /* best effort */ }
+            try { await _apiContainer.DisposeAsync(); } catch { /* best effort */ }
+        }
+        if (_apiImage is not null)
+        {
+            try { await _apiImage.DeleteAsync(); } catch { /* best effort */ }
+        }
         // The OAuth stub has no state that survives the process, so we can
         // stop it after the API without risk of in-flight requests hanging.
         _oauthStub?.Stop();
         _oauthStub?.Dispose();
         WriteApiLogArtifact();
         CosmosClient?.Dispose();
-        await Task.WhenAll(_azurite.StopAsync(), _cosmos.StopAsync());
+        try { await _azurite.StopAsync(); } catch { /* best effort */ }
+        try { await _cosmos.StopAsync(); } catch { /* best effort */ }
+        try { await _network.DeleteAsync(); } catch { /* best effort */ }
+        DeleteRuntimeRoot();
     }
 
     private static string FindRepoRoot()
@@ -308,25 +321,184 @@ public class StackFixture : IAsyncLifetime
             $"Could not extract {key} from connection string: {connectionString}");
     }
 
-    private static Process StartBackground(
-        string fileName, string args, string workingDir,
-        Dictionary<string, string> env, StringBuilder output)
+    private async Task StartApiContainerAsync(string repoRoot)
     {
-        var psi = new ProcessStartInfo(fileName, args)
+        _apiImage = new ImageFromDockerfileBuilder()
+            .WithName($"lfm-e2e-api:{Guid.NewGuid():N}")
+            .WithDockerfileDirectory(repoRoot)
+            .WithDockerfile(Path.Combine("api", "Dockerfile"))
+            .WithBuildArgument("E2ETest", "true")
+            .Build();
+
+        try
         {
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
+            await _apiImage.CreateAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Failed to build the E2E API Docker image through Testcontainers. " +
+                "Check that Docker is running and the pinned base images are available.",
+                ex);
+        }
+
+        var apiEnvironment = CreateApiEnvironment();
+        _apiContainer = new ContainerBuilder(_apiImage)
+            .WithName($"lfm-e2e-api-{_apiPort}-{Guid.NewGuid():N}")
+            .WithNetwork(_network)
+            .WithNetworkAliases("api")
+            .WithPortBinding(_apiPort, ApiContainerPort)
+            .WithExtraHost(HostGatewayName, "host-gateway")
+            .WithEnvironment(apiEnvironment)
+            .WithCleanUp(true)
+            .WithAutoRemove(true)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilExternalTcpPortIsAvailable(
+                ApiContainerPort,
+                wait => wait.WithTimeout(TimeSpan.FromSeconds(120))))
+            .Build();
+
+        try
+        {
+            await _apiContainer.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            await CaptureApiContainerLogsAsync();
+            WriteApiLogArtifact();
+            throw new InvalidOperationException(
+                "Failed to start the E2E API container through Testcontainers. " +
+                "Check Docker container startup and the API container logs in artifacts/e2e-results/api.log.",
+                ex);
+        }
+    }
+
+    private Dictionary<string, string> CreateApiEnvironment()
+    {
+        var cosmosConnectionString = _cosmos.GetConnectionString();
+        var apiStorageConnectionString = ToNetworkAliasConnectionString(
+            _azurite.GetConnectionString(),
+            AzuriteNetworkAlias);
+        var oauthBaseUrl = _oauthStub?.Url
+            ?? throw new InvalidOperationException("WireMock OAuth stub did not return a base URL after start");
+
+        // CORS is handled by CorsMiddleware in the worker pipeline. Do NOT use
+        // the Functions host --cors flag; it conflicts with middleware by
+        // adding its own handler that omits Access-Control-Allow-Credentials.
+        return new Dictionary<string, string>
+        {
+            ["Cosmos__Endpoint"] = ToNetworkAliasUrl(
+                ExtractConnectionStringPart(cosmosConnectionString, "AccountEndpoint"),
+                CosmosNetworkAlias),
+            ["Cosmos__AuthKey"] = ExtractConnectionStringPart(cosmosConnectionString, "AccountKey"),
+            ["Cosmos__DatabaseName"] = DatabaseName,
+            ["Cosmos__ConnectionMode"] = "Gateway",
+            ["Cosmos__LimitToEndpoint"] = "true",
+            ["Cosmos__SkipCertValidation"] = "true",
+            ["AzureWebJobsStorage"] = apiStorageConnectionString,
+            // Storage__BlobConnectionString drives BlobReferenceClient in
+            // api/Program.cs. Must point at the same Azurite the seeder uploads
+            // reference fixtures into; inside the API container, the same
+            // Azurite container is reached through Docker network DNS.
+            ["Storage__BlobConnectionString"] = apiStorageConnectionString,
+            ["Storage__WowContainerName"] = Seeds.WowReferenceSeed.ContainerName,
+            ["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated",
+            ["E2E_TEST_MODE"] = "true",
+            ["Auth__CookieName"] = "battlenet_token",
+            ["Auth__CookieMaxAgeHours"] = "24",
+            ["Blizzard__ClientId"] = "e2e-stub",
+            ["Blizzard__ClientSecret"] = "e2e-stub",
+            ["Blizzard__Region"] = "eu",
+            ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
+            ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
+            ["Blizzard__OAuthBaseUrl"] = ToHostGatewayUrl(oauthBaseUrl),
+            ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
+            ["PRIVACY_EMAIL"] = "privacy@e2e.test",
+            ["PrivacyContact__Email"] = "privacy@e2e.test",
+            ["RateLimit__Enabled"] = "false",
         };
-        foreach (var (k, v) in env) psi.Environment[k] = v;
-        var proc = Process.Start(psi)
-            ?? throw new InvalidOperationException($"Failed to start {fileName} in {workingDir}");
-        proc.OutputDataReceived += (_, e) => { if (e.Data is not null) output.AppendLine(e.Data); };
-        proc.ErrorDataReceived += (_, e) => { if (e.Data is not null) output.AppendLine($"ERR: {e.Data}"); };
-        proc.BeginOutputReadLine();
-        proc.BeginErrorReadLine();
-        return proc;
+    }
+
+    private static string ToNetworkAliasUrl(string url, string alias)
+    {
+        var builder = new UriBuilder(url)
+        {
+            Host = alias,
+        };
+
+        return builder.Uri.ToString().TrimEnd('/');
+    }
+
+    private static string ToHostGatewayUrl(string url)
+    {
+        var builder = new UriBuilder(url)
+        {
+            Host = HostGatewayName,
+        };
+
+        return builder.Uri.ToString().TrimEnd('/');
+    }
+
+    private static string ToNetworkAliasConnectionString(string connectionString, string alias)
+    {
+        return connectionString
+            .Replace("127.0.0.1", alias, StringComparison.OrdinalIgnoreCase)
+            .Replace("localhost", alias, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string CreateRuntimeRoot(string repoRoot)
+    {
+        var runtimeRoot = Path.Combine(
+            repoRoot,
+            ".cache",
+            "e2e-runtime",
+            $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(runtimeRoot);
+        return runtimeRoot;
+    }
+
+    private async Task CaptureApiContainerLogsAsync()
+    {
+        if (_apiContainer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var (stdout, stderr) = await _apiContainer.GetLogsAsync(default, default, timestampsEnabled: true);
+            _apiOutput.Clear();
+            if (!string.IsNullOrWhiteSpace(stdout))
+            {
+                _apiOutput.AppendLine(stdout);
+            }
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+            {
+                _apiOutput.AppendLine("--- stderr ---");
+                _apiOutput.AppendLine(stderr);
+            }
+        }
+        catch (Exception ex)
+        {
+            _apiOutput.AppendLine($"Failed to read API container logs: {ex.Message}");
+        }
+    }
+
+    private void DeleteRuntimeRoot()
+    {
+        if (string.IsNullOrWhiteSpace(_runtimeRoot) || !Directory.Exists(_runtimeRoot))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.Delete(_runtimeRoot, recursive: true);
+        }
+        catch
+        {
+            // Best effort — a failed cleanup should not hide the test result.
+        }
     }
 
     private static int RunProcess(string fileName, string args, string workingDir, int timeoutSec = 60)
@@ -345,13 +517,6 @@ public class StackFixture : IAsyncLifetime
             throw new TimeoutException($"{fileName} did not exit within {timeoutSec}s");
         }
         return proc.ExitCode;
-    }
-
-    private static void KillProcess(Process? proc)
-    {
-        if (proc is null || proc.HasExited) return;
-        try { proc.Kill(entireProcessTree: true); }
-        catch { /* best effort */ }
     }
 
     private void WriteApiLogArtifact()

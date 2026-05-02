@@ -127,6 +127,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30),
         // WAF/Security: prefer managed identity; fall back to key only for local dev.
         ApplicationName = "Lfm.Api",
+        LimitToEndpoint = opts.LimitToEndpoint,
     };
     // Cosmos emulator uses a self-signed TLS cert — bypass validation when configured.
     // NEVER set SkipCertValidation in production (enforced by App Service TLS minimum).
