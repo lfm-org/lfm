@@ -53,6 +53,12 @@ check_absent \
   'modekey-input' \
   tests/Lfm.E2E/Pages
 
+check_absent \
+  "removed visibility selector in E2E specs/page objects" \
+  '#visibility-select' \
+  tests/Lfm.E2E/Specs \
+  tests/Lfm.E2E/Pages
+
 check_review \
   "page-object #instance-select usage must match CreateRunPage/EditRunPage Id" \
   '#instance-select' \

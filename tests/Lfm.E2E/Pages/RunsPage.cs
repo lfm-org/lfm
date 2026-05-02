@@ -60,6 +60,14 @@ public class RunsPage(IPage page)
     public ILocator SelectRunPlaceholder =>
         _page.GetByText("Select a run to see details.");
 
+    /// <summary>Character dropdown in the run detail signup panel.</summary>
+    public ILocator SignupCharacterSelect =>
+        _page.Locator("#signup-character-select").First;
+
+    /// <summary>"Sign up" button in the run detail signup panel.</summary>
+    public ILocator SignupButton =>
+        _page.GetByRole(AriaRole.Button, new() { Name = "Sign up" });
+
     // ---- Create Run form (/runs/new) ----
 
     /// <summary>Instance dropdown on the create-run form.</summary>
@@ -77,10 +85,6 @@ public class RunsPage(IPage page)
     /// <summary>Signup Close Time native &lt;input type="datetime-local"&gt; element.</summary>
     public ILocator SignupCloseTimeInput =>
         _page.Locator("#signupclose-input");
-
-    /// <summary>Visibility dropdown on the create-run form.</summary>
-    public ILocator VisibilitySelect =>
-        _page.Locator("#visibility-select").First;
 
     /// <summary>Description text area web component.</summary>
     public ILocator DescriptionInput =>
@@ -162,6 +166,13 @@ public class RunsPage(IPage page)
     {
         await FillDescriptionAsync(description);
         await SaveChangesButton.ClickAsync();
+    }
+
+    public async Task<IReadOnlyList<string>> SignupCharacterOptionTextsAsync()
+    {
+        var options = _page.Locator("#signup-character-select fluent-option");
+        return await options.EvaluateAllAsync<string[]>(
+            "elements => elements.map(e => (e.textContent || '').trim()).filter(Boolean)");
     }
 
     public async Task FillDescriptionAsync(string description)

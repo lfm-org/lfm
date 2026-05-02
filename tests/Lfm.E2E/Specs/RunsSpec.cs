@@ -247,6 +247,39 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             new() { Timeout = 15000 });
     }
 
+    // E2E scope: proves the browser signup journey uses run-scoped guild roster
+    // options, persists the signup through the API, and re-renders the run roster.
+    // Cheaper lanes cover the individual filters and service outcomes; only E2E
+    // proves the composed user path from rendered options to persisted roster.
+    // Shared data: disposable.
+    [Fact]
+    public async Task Signup_GuildRosteredCharacter_AppearsInRoster()
+    {
+        var page = Page!;
+        var runsPage = new RunsPage(page);
+        var createdRunId = await CreateFreshRunAsync(runsPage);
+
+        await Assertions.Expect(runsPage.SignupButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        var optionTexts = await runsPage.SignupCharacterOptionTextsAsync();
+        Assert.Contains(optionTexts, text => text.Contains("Aelrin", StringComparison.Ordinal));
+        Assert.DoesNotContain(optionTexts, text => text.Contains("Aelrinalt", StringComparison.Ordinal));
+
+        await runsPage.SignupButton.ClickAsync();
+
+        await Assertions.Expect(page.GetByText("Signed up as Aelrin."))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.AttendingHeading)
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+        var attendingText = await runsPage.AttendingHeading.InnerTextAsync();
+        Assert.Contains("(1)", attendingText);
+
+        await Assertions.Expect(
+            runsPage.RosterCharacterRows.GetByText("Aelrin", new() { Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RunItem(createdRunId)).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
     /// <summary>
     /// Creates a fresh run via the create-run form and returns the new run id.
     /// Callers use this to scope destructive mutations to a per-test document so
