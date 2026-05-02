@@ -13,8 +13,8 @@ namespace Lfm.Api.Runs;
 /// <summary>
 /// Implements the run-signup policy: load the raider, verify character
 /// ownership, and run a read-modify-write loop with optimistic concurrency
-/// that loads the run, gates every signup on guild view + canSignupGuildRuns
-/// rank permission with a site-admin override, upserts the
+/// that loads the run, gates every signup on guild view, canSignupGuildRuns
+/// rank permission, and roster eligibility with a site-admin override, upserts the
 /// <see cref="RunCharacterEntry"/> (handling the rejection-list IN->OUT
 /// default flip), and persists the document.
 ///
@@ -95,7 +95,11 @@ public sealed class RunSignupService(
 
             // 3c. Guild-only visibility and rank checks.
             if (!RunAccessPolicy.CanView(run, principal.BattleNetId, callerGuildId))
-                return new RunOperationResult.NotFound("run-not-found", "Run not found.");
+            {
+                callerIsSiteAdmin ??= await siteAdmin.IsAdminAsync(principal.BattleNetId, ct);
+                if (!callerIsSiteAdmin.Value)
+                    return new RunOperationResult.NotFound("run-not-found", "Run not found.");
+            }
 
             var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
             if (!canSignup)
@@ -116,9 +120,13 @@ public sealed class RunSignupService(
                 ct);
             if (!signupCharacterInGuild)
             {
-                return new RunOperationResult.BadRequest(
-                    "character-not-in-guild",
-                    "Character is not on this guild roster.");
+                callerIsSiteAdmin ??= await siteAdmin.IsAdminAsync(principal.BattleNetId, ct);
+                if (!callerIsSiteAdmin.Value)
+                {
+                    return new RunOperationResult.BadRequest(
+                        "character-not-in-guild",
+                        "Character is not on this guild roster.");
+                }
             }
 
             // 3d. Upsert the RunCharacterEntry — one per battleNetId per run.
