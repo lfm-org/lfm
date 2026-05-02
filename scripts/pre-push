@@ -10,6 +10,7 @@ cd "$REPO_ROOT"
 shell_scripts=(
   scripts/check-bundle-size.sh
   scripts/check-e2e-drift.sh
+  scripts/check-locale-readiness.sh
   scripts/check-workflow-call-permissions.sh
   scripts/claude/stop-devsecops-audit.sh
   scripts/claude/stop-responsive-audit.sh
@@ -30,6 +31,9 @@ fi
 
 echo "[pre-push] Workflow call permissions..."
 scripts/check-workflow-call-permissions.sh
+
+echo "[pre-push] Locale readiness..."
+scripts/check-locale-readiness.sh
 
 echo "[pre-push] Format check..."
 dotnet format lfm.sln --verify-no-changes --no-restore --severity error
