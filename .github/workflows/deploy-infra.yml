@@ -5,6 +5,22 @@ name: Deploy Infrastructure
 
 on:
   workflow_call:
+    inputs:
+      allow_flex_y1_migration:
+        description: 'Allow one-time deletion of legacy Flex Consumption app/plan before Bicep recreate.'
+        required: false
+        type: boolean
+        default: false
+      allow_stale_rbac_cleanup:
+        description: 'Allow stale RBAC cleanup that temporarily removes CanNotDelete locks.'
+        required: false
+        type: boolean
+        default: false
+      allow_app_insights_cleanup:
+        description: 'Allow deletion of orphaned App Insights managed resources and action groups.'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -42,6 +58,7 @@ jobs:
           fi
 
       - name: Migrate Flex Consumption back to Y1 Consumption (one-time)
+        if: ${{ inputs.allow_flex_y1_migration }}
         run: |
           APP="${{ vars.FUNCTION_APP_NAME }}"
           PLAN="${APP}-plan"
@@ -62,13 +79,44 @@ jobs:
             echo "Plan '$PLAN' is '$SKU_TIER' (not FlexConsumption) — no migration needed."
           fi
 
+      - name: Skip Flex Consumption migration cleanup
+        if: ${{ !inputs.allow_flex_y1_migration }}
+        run: |
+          echo "Skipping legacy Flex Consumption migration cleanup."
+          echo "Set allow_flex_y1_migration=true on a manual deploy only when this historical migration is intentionally required."
+
       - name: Clean up stale role assignments from previous managed identity
+        if: ${{ inputs.allow_stale_rbac_cleanup }}
         env:
           APP: ${{ vars.FUNCTION_APP_NAME }}
           RG: ${{ vars.AZURE_RESOURCE_GROUP }}
           KV: ${{ vars.KEY_VAULT_NAME }}
           STORAGE: ${{ vars.STORAGE_ACCOUNT_NAME }}
         run: |
+          set -euo pipefail
+
+          REMOVED_LOCKS=()
+          restore_locks() {
+            if ((${#REMOVED_LOCKS[@]} == 0)); then
+              return
+            fi
+
+            echo "Restoring ${#REMOVED_LOCKS[@]} temporarily removed CanNotDelete lock(s)..."
+            for ENTRY in "${REMOVED_LOCKS[@]}"; do
+              IFS='|' read -r LOCK_RG LOCK_RTYPE LOCK_RNAME LOCK_NAME RESOURCE_ID <<< "$ENTRY"
+              echo "Restoring lock '$LOCK_NAME' on resource $RESOURCE_ID"
+              az lock create \
+                --name "$LOCK_NAME" \
+                --lock-type CanNotDelete \
+                --resource-group "$LOCK_RG" \
+                --resource-type "$LOCK_RTYPE" \
+                --resource-name "$LOCK_RNAME" \
+                --notes "Restored by deploy-infra stale RBAC cleanup" \
+                >/dev/null || true
+            done
+          }
+          trap restore_locks EXIT
+
           CURRENT_PRINCIPAL=$(az functionapp identity show \
             --name "$APP" --resource-group "$RG" \
             --query "principalId" -o tsv 2>/dev/null || echo "")
@@ -91,15 +139,18 @@ jobs:
             "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Insights/components/${APP}-insights"
           )
 
-          # Helper: remove CanNotDelete lock on a resource, returning the lock name
+          # Helper: remove CanNotDelete lock on a resource, recording enough
+          # detail for the EXIT trap to restore it even if cleanup fails.
           remove_lock() {
-            local rg="$1" rtype="$2" rname="$3"
-            local lock_name
-            lock_name=$(az lock list --resource-group "$rg" \
+            local rg="$1" rtype="$2" rname="$3" resource_id="$4"
+            local lock_row lock_name lock_id
+            lock_row=$(az lock list --resource-group "$rg" \
               --resource-name "$rname" --resource-type "$rtype" \
-              --query "[?level=='CanNotDelete'].name | [0]" -o tsv 2>/dev/null || echo "")
-            if [ -n "$lock_name" ]; then
-              echo "Temporarily removing lock '$lock_name' on $rname..."
+              --query "[?level=='CanNotDelete'] | [0].[name,id]" -o tsv 2>/dev/null || echo "")
+            if [ -n "$lock_row" ]; then
+              IFS=$'\t' read -r lock_name lock_id <<< "$lock_row"
+              echo "Temporarily removing lock '$lock_name' on resource $resource_id (lock id: $lock_id)..."
+              REMOVED_LOCKS+=("$rg|$rtype|$rname|$lock_name|$resource_id")
               az lock delete --name "$lock_name" --resource-group "$rg" \
                 --resource-name "$rname" --resource-type "$rtype"
             fi
@@ -112,7 +163,7 @@ jobs:
               -o tsv 2>/dev/null || echo "")
             if [ -n "$STALE" ]; then
               IFS=' ' read -r RTYPE RNAME <<< "${LOCKED_SCOPES[$SCOPE]}"
-              remove_lock "$RG" "$RTYPE" "$RNAME"
+              remove_lock "$RG" "$RTYPE" "$RNAME" "$SCOPE"
               for ID in $STALE; do
                 echo "Deleting stale RBAC assignment: $ID"
                 az role assignment delete --ids "$ID" 2>/dev/null || true
@@ -139,7 +190,8 @@ jobs:
               --account-name "$COSMOS_ACCOUNT" --resource-group "$RG" \
               --query "[?principalId!='$CURRENT_PRINCIPAL'].id" -o tsv 2>/dev/null || echo "")
             if [ -n "$STALE_COSMOS" ]; then
-              remove_lock "$RG" "Microsoft.DocumentDB/databaseAccounts" "$COSMOS_ACCOUNT"
+              COSMOS_SCOPE="/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.DocumentDB/databaseAccounts/$COSMOS_ACCOUNT"
+              remove_lock "$RG" "Microsoft.DocumentDB/databaseAccounts" "$COSMOS_ACCOUNT" "$COSMOS_SCOPE"
               for ID in $STALE_COSMOS; do
                 echo "Deleting stale Cosmos SQL role assignment: $ID"
                 az cosmosdb sql role assignment delete \
@@ -149,7 +201,13 @@ jobs:
             fi
           fi
 
-          echo "Bicep will recreate any removed locks during deployment."
+          echo "Removed locks are restored by the EXIT trap; Bicep will also reconcile declared locks during deployment."
+
+      - name: Skip stale RBAC cleanup
+        if: ${{ !inputs.allow_stale_rbac_cleanup }}
+        run: |
+          echo "Skipping stale RBAC cleanup."
+          echo "Set allow_stale_rbac_cleanup=true on a manual deploy only when removing historical assignments is intentionally required."
 
       - name: Preview infrastructure changes (what-if)
         run: |
@@ -287,6 +345,7 @@ jobs:
           fi
 
       - name: Clean up auto-created App Insights resources
+        if: ${{ inputs.allow_app_insights_cleanup }}
         run: |
           # Azure auto-creates a managed RG + workspace when migrating classic App
           # Insights. Now that App Insights is workspace-linked, the managed RG is
@@ -314,3 +373,9 @@ jobs:
           else
             echo "No auto-created action group found."
           fi
+
+      - name: Skip App Insights managed-resource cleanup
+        if: ${{ !inputs.allow_app_insights_cleanup }}
+        run: |
+          echo "Skipping orphaned App Insights managed-resource cleanup."
+          echo "Set allow_app_insights_cleanup=true on a manual deploy only when historical cleanup is intentionally required."
