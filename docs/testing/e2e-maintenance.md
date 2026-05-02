@@ -4,6 +4,19 @@ E2E tests are reserved for behavior that only a real browser and full local
 stack can prove. Prefer unit, API, app-core, or bUnit tests when those lanes can
 prove the same contract.
 
+## Local Stack
+
+The E2E fixture owns the full local runtime. Testcontainers starts Cosmos DB,
+Azurite, and the API container built from `api/Dockerfile`; the Blazor
+`wwwroot` publish output is served by an in-process Kestrel host. The API
+container reaches Cosmos DB and Azurite through shared Docker network aliases,
+not host-local emulator URLs. A running Docker engine is required, but
+host-local Azure Functions Core Tools (`func`) is not.
+
+Runtime publish output lives under `.cache/e2e-runtime/`, and normal fixture
+disposal removes its own run directory. Diagnostics are written under
+`artifacts/e2e-results/` so failed runs do not leave tracked-file pollution.
+
 ## Lanes
 
 | Lane | Use E2E for | Move down when |
