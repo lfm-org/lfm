@@ -273,6 +273,76 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_Signup_Renders_Attendance_As_Radiogroup()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.signup.action"), cut.Markup));
+
+        var group = cut.Find("[role='radiogroup'][aria-labelledby='signup-attendance-label']");
+        Assert.Contains("run-signup-attendance-toggle", group.ClassName ?? string.Empty);
+
+        var radios = cut.FindAll("[role='radiogroup'][aria-labelledby='signup-attendance-label'] [role='radio']");
+        Assert.Equal(5, radios.Count);
+        Assert.Equal(Loc("runs.attendance.in"), radios[0].TextContent.Trim());
+        Assert.Equal(Loc("runs.attendance.late"), radios[1].TextContent.Trim());
+        Assert.Equal(Loc("runs.attendance.bench"), radios[2].TextContent.Trim());
+        Assert.Equal(Loc("runs.attendance.away"), radios[3].TextContent.Trim());
+        Assert.Equal(Loc("runs.attendance.out"), radios[4].TextContent.Trim());
+        Assert.Equal("true", radios[0].GetAttribute("aria-checked"));
+        Assert.Empty(cut.FindAll("#signup-attendance-select"));
+    }
+
+    [Fact]
+    public void RunsPage_Signup_Submits_Attendance_Selected_From_Radiogroup()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail());
+        client.Setup(c => c.SignupAsync("run-1", It.IsAny<SignupRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Aelrin", classId: 5, className: "Priest", role: "HEALER", spec: "Holy", isCurrentUser: true),
+            }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.signup.action"), cut.Markup));
+
+        var bench = cut.FindAll("[role='radio']")
+            .Single(r => r.TextContent.Trim() == Loc("runs.attendance.bench"));
+        bench.Click();
+
+        var signupButton = cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.action"), StringComparison.Ordinal));
+        signupButton.Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.SignupAsync(
+                "run-1",
+                It.Is<SignupRequest>(r =>
+                    r.CharacterId == "eu-silvermoon-aelrin" &&
+                    r.DesiredAttendance == "BENCH" &&
+                    r.SpecId == 257),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+    }
+
+    [Fact]
     public void RunsPage_Signup_AutoRefreshes_Characters_When_Cache_NeedsRefresh()
     {
         var client = new Mock<IRunsClient>();
