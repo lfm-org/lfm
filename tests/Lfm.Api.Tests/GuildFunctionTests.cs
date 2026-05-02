@@ -256,14 +256,14 @@ public class GuildFunctionTests
     public async Task GuildUpdate_returns_ok_when_caller_is_admin()
     {
         var principal = MakePrincipal();
-        var guildDoc = MakeGuildDoc();
+        var guildDoc = MakeGuildDoc() with { ETag = "\"guild-etag-v1\"" };
         var raiderDoc = MakeRaiderDoc();
 
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
-        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        guildRepo.Setup(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), "\"guild-etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDocument d, string _, CancellationToken _) => d with { ETag = "\"guild-etag-v2\"" });
 
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
@@ -283,15 +283,16 @@ public class GuildFunctionTests
             timezone = "Europe/London",
             locale = "en-gb",
             slogan = "Updated slogan",
-        });
+        }, ifMatch: "\"guild-etag-v1\"");
 
         var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.IsType<GuildDto>(ok.Value);
 
-        guildRepo.Verify(r => r.UpsertAsync(
+        guildRepo.Verify(r => r.ReplaceAsync(
             It.Is<GuildDocument>(d => d.Setup!.Timezone == "Europe/London" && d.Setup.Locale == "en-gb"),
+            "\"guild-etag-v1\"",
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -352,8 +353,8 @@ public class GuildFunctionTests
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
-        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        guildRepo.Setup(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), "\"guild-etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDocument d, string _, CancellationToken _) => d with { ETag = "\"guild-etag-v2\"" });
 
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
@@ -372,7 +373,7 @@ public class GuildFunctionTests
             timezone = "Europe/London",
             locale = "en-gb",
             slogan = "Updated slogan",
-        });
+        }, ifMatch: "\"guild-etag-v1\"");
 
         // Act
         await fn.GuildUpdate(req, ctx, CancellationToken.None);
@@ -406,9 +407,9 @@ public class GuildFunctionTests
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
         GuildDocument? captured = null;
-        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
-            .Callback<GuildDocument, CancellationToken>((d, _) => captured = d)
-            .Returns(Task.CompletedTask);
+        guildRepo.Setup(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), "\"guild-etag-v1\"", It.IsAny<CancellationToken>()))
+            .Callback<GuildDocument, string, CancellationToken>((d, _, _) => captured = d)
+            .ReturnsAsync((GuildDocument d, string _, CancellationToken _) => d with { ETag = "\"guild-etag-v2\"" });
 
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
@@ -427,7 +428,7 @@ public class GuildFunctionTests
             timezone = "Europe/London",
             locale = "en-gb",
             slogan = XssSlogan,
-        });
+        }, ifMatch: "\"guild-etag-v1\"");
 
         var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
@@ -537,7 +538,7 @@ public class GuildFunctionTests
     }
 
     [Fact]
-    public async Task GuildUpdate_wildcard_if_match_falls_back_to_blind_upsert()
+    public async Task GuildUpdate_missing_if_match_returns_428()
     {
         var principal = MakePrincipal();
         var guildDoc = MakeGuildDoc();
@@ -545,9 +546,6 @@ public class GuildFunctionTests
         var guildRepo = new Mock<IGuildRepository>();
         guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
-        guildRepo.Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
         var raidersRepo = new Mock<IRaidersRepository>();
         raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeRaiderDoc());
@@ -560,12 +558,41 @@ public class GuildFunctionTests
 
         var fn = MakeFunction(guildRepo, raidersRepo, permissions);
         var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" });
+
+        var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(428, objectResult.StatusCode);
+        guildRepo.Verify(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GuildUpdate_wildcard_if_match_returns_428()
+    {
+        var principal = MakePrincipal();
+        var guildDoc = MakeGuildDoc();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaiderDoc());
+
+        var permissions = new Mock<IGuildPermissions>();
+        permissions.Setup(p => p.IsAdminAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions);
+        var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" }, ifMatch: "*");
 
         var result = await fn.GuildUpdate(req, ctx, CancellationToken.None);
 
-        Assert.IsType<OkObjectResult>(result);
-        guildRepo.Verify(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()), Times.Once);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(428, objectResult.StatusCode);
         guildRepo.Verify(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

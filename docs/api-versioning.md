@@ -67,6 +67,72 @@ route once:
 
 Until all three are true, keep the alias in place.
 
+## Alias retirement tracker
+
+The compatibility window started on **2026-04-25** with commit `460bf65`
+(`Flip SPA, openapi, and docs to /api/v1/ as the canonical path`). The current
+machine-readable state lives in
+[`api-alias-retirement.json`](api-alias-retirement.json). Keep
+`legacyAliasesAllowed` set to `true` until the removal criteria above are met.
+When they are met, set it to `false` in the same PR that removes the remaining
+unprefixed production routes and run:
+
+```bash
+scripts/check-api-alias-retirement.sh
+```
+
+The check intentionally fails if `legacyAliasesAllowed=false` while any
+unprefixed production `[HttpTrigger(... Route = "...")]` declarations remain.
+It ignores the test-only `e2e/` route and the CORS catch-all route because they
+are not legacy public API aliases.
+
+### Telemetry query
+
+Use Application Insights over the final 7-day observation window:
+
+```kusto
+requests
+| where timestamp >= ago(7d)
+| extend path = tostring(parse_url(url).Path)
+| where path startswith "/api/"
+| where path !startswith "/api/v1/"
+| where path !startswith "/api/e2e/"
+| where path != "/api/{*path}"
+| summarize requestCount = count() by operation_Name, path
+| order by requestCount desc
+```
+
+The removal PR should include the query window, result summary, and the
+production deployment marker that proves at least one deploy cycle has passed
+since the SPA cutover.
+
+### Current live legacy aliases
+
+These are transitional live interfaces until the tracker is flipped and the
+routes are removed:
+
+- Health: `GET /api/health`, `GET /api/health/ready`.
+- Me: `GET /api/me`, `PATCH /api/me`, `DELETE /api/me`.
+- Guild: `GET /api/guild`, `PATCH /api/guild`, `GET /api/guild/admin`.
+- Runs: `GET /api/runs`, `POST /api/runs`, `GET /api/runs/{id}`,
+  `PUT /api/runs/{id}`, `DELETE /api/runs/{id}`,
+  `POST /api/runs/{id}/signup`, `DELETE /api/runs/{id}/signup`,
+  `GET /api/runs/{id}/signup/options`,
+  `POST /api/admin/runs/migrate-schema`.
+- Raider characters: `POST /api/raider/character`,
+  `PUT /api/raider/characters/{id}`,
+  `POST /api/raider/characters/{id}/enrich`.
+- Battle.net: `GET /api/battlenet/login`,
+  `GET /api/battlenet/callback`, `GET /api/battlenet/logout`,
+  `GET /api/battlenet/characters`,
+  `POST /api/battlenet/characters/refresh`,
+  `POST /api/battlenet/character-portraits`.
+- WoW reference: `GET /api/wow/reference/expansions`,
+  `GET /api/wow/reference/instances`,
+  `GET /api/wow/reference/specializations`,
+  `POST /api/wow/reference/refresh`.
+- Privacy: `GET /api/privacy-contact/email`.
+
 ## Why alias-by-second-function rather than middleware rewrite
 
 The Azure Functions isolated worker dispatches routes at the host layer

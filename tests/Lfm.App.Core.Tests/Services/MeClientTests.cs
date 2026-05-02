@@ -124,20 +124,51 @@ public class MeClientTests
     }
 
     [Fact]
-    public async Task UpdateAsync_sends_wildcard_if_match_header()
+    public async Task UpdateAsync_sends_etag_captured_from_get()
     {
-        // Contract: the API requires callers to declare awareness of the
-        // ETag contract. Until this client round-trips the server-issued
-        // ETag, it sends `*` to claim the current server state without
-        // checking a specific version.
-        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(
-            HttpStatusCode.OK,
-            new UpdateMeResponse("en")));
+        var requests = new List<HttpRequestMessage>();
+        var responses = new Queue<HttpResponseMessage>();
+        var getResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse());
+        getResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v1\"");
+        responses.Enqueue(getResponse);
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, new UpdateMeResponse("en")));
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            return responses.Dequeue();
+        }));
 
+        await client.GetAsync(CancellationToken.None);
         await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
 
-        Assert.True(handler.LastRequest!.Headers.TryGetValues("If-Match", out var ifMatch));
-        Assert.Equal("*", ifMatch!.Single());
+        Assert.True(requests[1].Headers.TryGetValues("If-Match", out var ifMatch));
+        Assert.Equal("\"me-etag-v1\"", ifMatch!.Single());
+    }
+
+    [Fact]
+    public async Task UpdateAsync_replaces_cached_etag_from_patch_response()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var responses = new Queue<HttpResponseMessage>();
+        var getResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeMeResponse());
+        getResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v1\"");
+        responses.Enqueue(getResponse);
+        var firstPatchResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, new UpdateMeResponse("fi"));
+        firstPatchResponse.Headers.TryAddWithoutValidation("ETag", "\"me-etag-v2\"");
+        responses.Enqueue(firstPatchResponse);
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, new UpdateMeResponse("en")));
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            return responses.Dequeue();
+        }));
+
+        await client.GetAsync(CancellationToken.None);
+        await client.UpdateAsync(new UpdateMeRequest("fi"), CancellationToken.None);
+        await client.UpdateAsync(new UpdateMeRequest("en"), CancellationToken.None);
+
+        Assert.True(requests[2].Headers.TryGetValues("If-Match", out var ifMatch));
+        Assert.Equal("\"me-etag-v2\"", ifMatch!.Single());
     }
 
     [Fact]
