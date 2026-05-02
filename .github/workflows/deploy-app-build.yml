@@ -85,6 +85,15 @@ jobs:
       - name: Check bundle size budget
         run: ./scripts/check-bundle-size.sh ./publish/app/wwwroot 5
 
+      - name: Upload bundle size report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: deploy-app-bundle-size-report
+          path: ./artifacts/bundle-size
+          if-no-files-found: ignore
+          retention-days: 1
+
       # dotnet publish emits `.azurefunctions/` (FunctionMetadataLoader + worker
       # extensions). upload-artifact defaults `include-hidden-files: false` on
       # purpose — setting it to true would widen the artifact to any hidden
