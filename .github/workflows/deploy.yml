@@ -109,6 +109,10 @@ jobs:
       github.ref == 'refs/heads/main' &&
       needs.secrets-scan.result == 'success' &&
       needs.detect-changes.outputs.app == 'true'
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     uses: ./.github/workflows/deploy-app-build.yml
     secrets: inherit
 
@@ -132,5 +136,9 @@ jobs:
       needs.build-app.result == 'success' &&
       needs.detect-changes.outputs.app == 'true' &&
       (needs.deploy-infra.result == 'success' || needs.deploy-infra.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
+      attestations: read
     uses: ./.github/workflows/deploy-app.yml
     secrets: inherit
