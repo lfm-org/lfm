@@ -187,8 +187,19 @@
 
 @media (min-width: 48em) {
     .run-signup-form {
-        grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.7fr) auto;
+        grid-template-columns: minmax(12rem, 1fr) minmax(18rem, max-content) auto;
     }
+}
+
+.run-signup-attendance-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-inline-size: 0;
+}
+
+::deep .run-signup-attendance-toggle {
+    max-inline-size: 100%;
 }
 
 .run-signup-status {
