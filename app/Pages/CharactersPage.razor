@@ -12,7 +12,7 @@
 <PageTitle>@Loc["characters.title"] — @Loc["nav.logo"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="align-items:center">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" Style="align-items:center">
         <FluentLabel Typo="Typography.H1" Style="flex:1">@Loc["characters.title"]</FluentLabel>
         <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshCharacters" Disabled="@loading">
             @Loc["characters.refresh"]

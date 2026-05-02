@@ -7,6 +7,7 @@ public static class E2ELanes
 {
     public const string Functional = "Functional";
     public const string Accessibility = "Accessibility";
+    public const string LayoutIntegrity = "Layout integrity";
     public const string Security = "Security";
     public const string AuthFlow = "Auth flow";
 }
