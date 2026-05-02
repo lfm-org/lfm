@@ -234,4 +234,68 @@ public class RunSignupOptionsServiceTests
         var notFound = Assert.IsType<RunSignupOptionsResult.NotFound>(result);
         Assert.Equal("run-not-found", notFound.Code);
     }
+
+    [Fact]
+    public async Task GetAsync_large_roster_uses_single_lookup_per_dependency()
+    {
+        var accountCharacters = Enumerable.Range(1, 75)
+            .Select(i => new StoredBlizzardAccountCharacter(
+                Name: $"Guildmain{i}",
+                Level: 80,
+                Realm: new StoredBlizzardRealmRef("silvermoon", "Silvermoon"),
+                PlayableClass: new StoredBlizzardNamedRef(5, "Priest")))
+            .ToArray();
+        var selectedCharacters = accountCharacters
+            .Select((character, index) => new StoredSelectedCharacter(
+                Id: $"char-{index + 1}",
+                Region: "eu",
+                Realm: character.Realm.Slug,
+                Name: character.Name,
+                GuildId: 123,
+                GuildName: "Test Guild",
+                ClassId: 5,
+                ClassName: "Priest"))
+            .ToArray();
+        var rosterMembers = accountCharacters
+            .Select(character => new StoredGuildRosterMember(
+                new StoredGuildRosterMemberCharacter(
+                    Name: character.Name,
+                    Realm: new StoredGuildRosterRealm("silvermoon")),
+                Rank: 4))
+            .ToArray();
+
+        var raider = new RaiderDocument(
+            Id: "bnet-user",
+            BattleNetId: "bnet-user",
+            SelectedCharacterId: "char-1",
+            Locale: null,
+            Characters: selectedCharacters,
+            AccountProfileSummary: new StoredBlizzardAccountProfile([
+                new StoredBlizzardWowAccount(1, accountCharacters)
+            ]),
+            AccountProfileRefreshedAt: DateTimeOffset.UtcNow.AddMinutes(-2).ToString("o"));
+        var guild = new GuildDocument(
+            Id: "123",
+            GuildId: 123,
+            RealmSlug: "silvermoon",
+            BlizzardRosterFetchedAt: DateTimeOffset.UtcNow.AddMinutes(-5).ToString("o"),
+            BlizzardRosterRaw: new StoredGuildRoster(rosterMembers));
+
+        var (runsRepo, raidersRepo, guildRepo, guildPermissions, sut) = MakeSut();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRun());
+        guildRepo.Setup(r => r.GetAsync("123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guild);
+
+        var result = await sut.GetAsync("run-1", MakePrincipal(), CancellationToken.None);
+
+        var ok = Assert.IsType<RunSignupOptionsResult.Ok>(result);
+        Assert.Equal(75, ok.Options.Characters.Count);
+        raidersRepo.Verify(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()), Times.Once);
+        runsRepo.Verify(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()), Times.Once);
+        guildPermissions.Verify(p => p.CanSignupGuildRunsAsync(raider, It.IsAny<CancellationToken>()), Times.Once);
+        guildRepo.Verify(r => r.GetAsync("123", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
