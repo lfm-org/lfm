@@ -32,6 +32,9 @@ jobs:
 
       - uses: ./.github/actions/setup-dotnet-cached
 
+      - name: Workflow call permissions
+        run: ./scripts/check-workflow-call-permissions.sh
+
       - name: Restore
         run: dotnet restore lfm.sln -m:1
 
