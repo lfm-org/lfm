@@ -31,6 +31,7 @@ on:
         options:
           - full
           - smoke
+          - performance
 
 permissions:
   contents: read
@@ -93,6 +94,8 @@ jobs:
           filter_args=()
           if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.lane }}" = "smoke" ]; then
             filter_args+=(--filter "Category=Smoke")
+          elif [ "${{ inputs.lane }}" = "performance" ]; then
+            filter_args+=(--filter "Category=Performance")
           fi
 
           dotnet test tests/Lfm.E2E/Lfm.E2E.csproj \
