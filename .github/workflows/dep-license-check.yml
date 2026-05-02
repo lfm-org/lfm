@@ -40,7 +40,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore NuGet packages
-        run: dotnet restore lfm.sln
+        run: dotnet restore lfm.sln -m:1
 
       - name: Run nuget-license against allowlist
         run: |
