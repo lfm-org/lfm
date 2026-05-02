@@ -11,6 +11,7 @@ namespace Lfm.App.Services;
 public sealed class MeClient(IHttpClientFactory factory) : IMeClient
 {
     private const int GetMeMaxAttempts = 4;
+    private string? _etag;
 
     public async Task<MeResponse?> GetAsync(CancellationToken ct)
     {
@@ -21,9 +22,16 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
             {
                 using var response = await http.GetAsync("api/v1/me", ct);
                 if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                {
+                    _etag = null;
                     return null;
+                }
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<MeResponse>(cancellationToken: ct);
+                {
+                    var me = await response.Content.ReadFromJsonAsync<MeResponse>(cancellationToken: ct);
+                    _etag = me is null ? null : HttpEtag.Read(response);
+                    return me;
+                }
                 if (!IsTransientStatus(response.StatusCode) || attempt == GetMeMaxAttempts)
                     return null;
             }
@@ -70,20 +78,18 @@ public sealed class MeClient(IHttpClientFactory factory) : IMeClient
         var http = factory.CreateClient("api");
         try
         {
-            // Transitional: send If-Match: * so the server knows the caller is
-            // aware of the ETag contract but does not yet round-trip the
-            // server-issued value. A future slice will capture the ETag on the
-            // preceding GET /api/me and echo it here for full optimistic
-            // concurrency. `*` matches any non-deleted resource per RFC 9110.
             using var patch = new HttpRequestMessage(HttpMethod.Patch, "api/v1/me")
             {
                 Content = JsonContent.Create(request),
             };
-            patch.Headers.TryAddWithoutValidation("If-Match", "*");
+            if (!string.IsNullOrWhiteSpace(_etag))
+                patch.Headers.TryAddWithoutValidation("If-Match", _etag);
 
             var response = await http.SendAsync(patch, ct);
             if (!response.IsSuccessStatusCode) return null;
-            return await response.Content.ReadFromJsonAsync<UpdateMeResponse>(cancellationToken: ct);
+            var updated = await response.Content.ReadFromJsonAsync<UpdateMeResponse>(cancellationToken: ct);
+            _etag = updated is null ? null : HttpEtag.Read(response);
+            return updated;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
