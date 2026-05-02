@@ -1,0 +1,11 @@
+{
+  "legacyAliasesAllowed": true,
+  "compatibilityWindowStarted": "2026-04-25",
+  "compatibilityWindowStartedBy": "460bf65 Flip SPA, openapi, and docs to /api/v1/ as the canonical path",
+  "telemetryWindowDays": 7,
+  "removalCriteria": [
+    "At least one production deploy cycle has completed since the SPA started using /api/v1 routes.",
+    "Application Insights shows effectively zero production traffic to unprefixed /api routes over the last 7 days.",
+    "api/openapi.yaml lists only canonical /api/v1 public routes."
+  ]
+}
