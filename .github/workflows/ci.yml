@@ -35,6 +35,9 @@ jobs:
       - name: Workflow call permissions
         run: ./scripts/check-workflow-call-permissions.sh
 
+      - name: Locale readiness
+        run: ./scripts/check-locale-readiness.sh
+
       - name: Restore
         run: dotnet restore lfm.sln -m:1
 
