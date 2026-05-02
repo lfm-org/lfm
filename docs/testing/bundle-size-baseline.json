@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-05-02T21:09:33Z",
+  "totalBrotliBytes": 3655812,
+  "budgetBytes": 5242880,
+  "assetCount": 118,
+  "assets": [
+    {
+      "path": "_framework/dotnet.native.4zyobjtzg3.wasm",
+      "brotliBytes": 977166
+    },
+    {
+      "path": "_framework/System.Private.CoreLib.67h9thw2p8.wasm",
+      "brotliBytes": 568347
+    },
+    {
+      "path": "_framework/icudt_CJK.tjcz0u77k5.dat",
+      "brotliBytes": 248840
+    },
+    {
+      "path": "_framework/icudt_no_CJK.lfu7j35m59.dat",
+      "brotliBytes": 222250
+    },
+    {
+      "path": "_framework/icudt_EFIGS.tptq2av103.dat",
+      "brotliBytes": 143983
+    },
+    {
+      "path": "_framework/Microsoft.FluentUI.AspNetCore.Components.ke65hkz4g4.wasm",
+      "brotliBytes": 141213
+    },
+    {
+      "path": "_framework/System.Text.Json.jx89emn5zu.wasm",
+      "brotliBytes": 133143
+    },
+    {
+      "path": "_framework/System.Linq.Expressions.v81oi5wpes.wasm",
+      "brotliBytes": 113422
+    },
+    {
+      "path": "_framework/Microsoft.AspNetCore.Components.78wjyfg7td.wasm",
+      "brotliBytes": 100070
+    },
+    {
+      "path": "_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js",
+      "brotliBytes": 74825
+    }
+  ],
+  "note": "Baseline for scripts/check-bundle-size.sh growth warnings; update only after intentional bundle changes."
+}
