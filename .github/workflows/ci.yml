@@ -33,7 +33,7 @@ jobs:
       - uses: ./.github/actions/setup-dotnet-cached
 
       - name: Restore
-        run: dotnet restore lfm.sln
+        run: dotnet restore lfm.sln -m:1
 
       - name: Format
         run: dotnet format lfm.sln --verify-no-changes --no-restore --severity error

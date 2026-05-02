@@ -60,7 +60,7 @@ jobs:
         uses: ./.github/actions/setup-dotnet-cached
 
       - name: Restore
-        run: dotnet restore lfm.sln
+        run: dotnet restore lfm.sln -m:1
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@e46ed2cbd01164d986452f91f178727624ae40d7 # v4
