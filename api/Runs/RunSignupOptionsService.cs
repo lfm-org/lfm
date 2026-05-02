@@ -18,6 +18,7 @@ public sealed class RunSignupOptionsService(
     IRaidersRepository raidersRepo,
     IGuildRepository guildRepo,
     IGuildPermissions guildPermissions,
+    ISiteAdminService siteAdmin,
     IOptions<BlizzardOptions> blizzardOptions) : IRunSignupOptionsService
 {
     private readonly BlizzardOptions _blizzardOptions = blizzardOptions.Value;
@@ -37,7 +38,7 @@ public sealed class RunSignupOptionsService(
             return new RunSignupOptionsResult.NotFound("run-not-found", "Run not found.");
 
         var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
-        if (!canSignup)
+        if (!canSignup && !await siteAdmin.IsAdminAsync(principal.BattleNetId, ct))
             return new RunSignupOptionsResult.Forbidden(
                 "guild-rank-denied",
                 "Guild signup is not enabled for your rank.");
