@@ -97,7 +97,7 @@ public class RunSignupServiceTests
         Mock<IGuildPermissions> guildPermissions,
         Mock<IRunSignupEligibility> signupEligibility,
         Mock<ILogger<RunSignupService>> logger,
-        RunSignupService sut) MakeSut()
+        RunSignupService sut) MakeSut(bool siteAdmin = false)
     {
         var runsRepo = new Mock<IRunsRepository>();
         var raidersRepo = new Mock<IRaidersRepository>();
@@ -112,11 +112,16 @@ public class RunSignupServiceTests
                 It.IsAny<StoredSelectedCharacter>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        var siteAdminService = new Mock<ISiteAdminService>();
+        siteAdminService
+            .Setup(s => s.IsAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(siteAdmin);
         var logger = new Mock<ILogger<RunSignupService>>();
         var sut = new RunSignupService(
             runsRepo.Object,
             raidersRepo.Object,
             guildPermissions.Object,
+            siteAdminService.Object,
             signupEligibility.Object,
             logger.Object);
         return (runsRepo, raidersRepo, guildPermissions, signupEligibility, logger, sut);
@@ -381,6 +386,33 @@ public class RunSignupServiceTests
         runsRepo.Verify(
             r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task SignupAsync_SiteAdminWithGuild_BypassesGuildRankSignupPermission()
+    {
+        var (runsRepo, raidersRepo, guildPermissions, _, _, sut) = MakeSut(siteAdmin: true);
+        var principal = MakePrincipal("bnet-site-admin");
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-site-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaider("bnet-site-admin", characterId: "char-1", guildId: 123));
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun(visibility: "GUILD", creatorGuildId: 123));
+        guildPermissions
+            .Setup(g => g.CanSignupGuildRunsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-1", desiredAttendance: "IN"),
+            principal,
+            CancellationToken.None);
+
+        var ok = Assert.IsType<RunOperationResult.Ok>(result);
+        var entry = Assert.Single(ok.Run.RunCharacters);
+        Assert.Equal("bnet-site-admin", entry.RaiderBattleNetId);
+        Assert.Equal("char-1", entry.CharacterId);
     }
 
     // ------------------------------------------------------------------

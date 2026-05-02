@@ -14,8 +14,9 @@ namespace Lfm.Api.Runs;
 /// Implements the run-signup policy: load the raider, verify character
 /// ownership, and run a read-modify-write loop with optimistic concurrency
 /// that loads the run, gates every signup on guild view + canSignupGuildRuns
-/// rank permission, upserts the <see cref="RunCharacterEntry"/> (handling the
-/// rejection-list IN->OUT default flip), and persists the document.
+/// rank permission with a site-admin override, upserts the
+/// <see cref="RunCharacterEntry"/> (handling the rejection-list IN->OUT
+/// default flip), and persists the document.
 ///
 /// Returns a <see cref="RunOperationResult"/> that the Function adapter
 /// translates to HTTP. Audit emission for the success and forbidden paths
@@ -28,6 +29,7 @@ public sealed class RunSignupService(
     IRunsRepository runsRepo,
     IRaidersRepository raidersRepo,
     IGuildPermissions guildPermissions,
+    ISiteAdminService siteAdmin,
     IRunSignupEligibility signupEligibility,
     ILogger<RunSignupService> logger) : IRunSignupService
 {
@@ -75,6 +77,7 @@ public sealed class RunSignupService(
 
         // 3. Read-modify-write loop with optimistic concurrency.
         //    On ConcurrencyConflictException the loop re-reads the run and retries.
+        bool? callerIsSiteAdmin = null;
         for (var attempt = 0; attempt < MaxAttempts; attempt++)
         {
             // 3a. Load existing run.
@@ -97,10 +100,14 @@ public sealed class RunSignupService(
             var canSignup = await guildPermissions.CanSignupGuildRunsAsync(raider, ct);
             if (!canSignup)
             {
-                return new RunOperationResult.Forbidden(
-                    "guild-rank-denied",
-                    "Guild signup is not enabled for your rank.",
-                    AuditReason: "guild rank denied");
+                callerIsSiteAdmin ??= await siteAdmin.IsAdminAsync(principal.BattleNetId, ct);
+                if (!callerIsSiteAdmin.Value)
+                {
+                    return new RunOperationResult.Forbidden(
+                        "guild-rank-denied",
+                        "Guild signup is not enabled for your rank.",
+                        AuditReason: "guild rank denied");
+                }
             }
 
             var signupCharacterInGuild = await signupEligibility.IsSignupCharacterInRunGuildAsync(
