@@ -108,7 +108,8 @@ Requires a running Docker engine — Testcontainers spins up Cosmos + Azurite; t
 
 Maintenance guidance: see [E2E Maintenance](docs/testing/e2e-maintenance.md)
 for lane selection, seed mutation rules, drift checks, and diagnostics
-expectations.
+expectations. Performance policy and production query guidance lives in
+[Performance Testing](docs/testing/performance.md).
 
 ## Deployment
 
