@@ -38,7 +38,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore solution
-        run: dotnet restore lfm.sln
+        run: dotnet restore lfm.sln -m:1
 
       - name: Build (Release)
         run: dotnet build lfm.sln -c Release --no-restore
