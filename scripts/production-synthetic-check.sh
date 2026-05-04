@@ -8,6 +8,7 @@
 set -euo pipefail
 
 timeout_seconds="${SYNTHETIC_TIMEOUT_SECONDS:-10}"
+probe_samples="${SYNTHETIC_PROBE_SAMPLES:-3}"
 output_path="${SYNTHETIC_OUTPUT:-artifacts/production-synthetic/production-synthetic-report.json}"
 
 if ! command -v jq >/dev/null 2>&1; then
@@ -18,6 +19,17 @@ fi
 case "$timeout_seconds" in
   ''|*[!0-9]*)
     echo "FAIL: SYNTHETIC_TIMEOUT_SECONDS must be an integer." >&2
+    exit 2
+    ;;
+esac
+
+case "$probe_samples" in
+  ''|*[!0-9]*)
+    echo "FAIL: SYNTHETIC_PROBE_SAMPLES must be an integer." >&2
+    exit 2
+    ;;
+  0)
+    echo "FAIL: SYNTHETIC_PROBE_SAMPLES must be greater than zero." >&2
     exit 2
     ;;
 esac
@@ -66,12 +78,13 @@ printf '[]\n' > "$samples_file"
 
 append_sample() {
   local name="$1"
-  local url="$2"
-  local expected_status="$3"
-  local status_code="$4"
-  local elapsed_ms="$5"
-  local success="$6"
-  local error="$7"
+  local sequence="$2"
+  local url="$3"
+  local expected_status="$4"
+  local status_code="$5"
+  local elapsed_ms="$6"
+  local success="$7"
+  local error="$8"
   local status_json="null"
 
   if [[ "$status_code" =~ ^[0-9]+$ ]]; then
@@ -80,6 +93,7 @@ append_sample() {
 
   jq \
     --arg name "$name" \
+    --argjson sequence "$sequence" \
     --arg method "GET" \
     --arg url "$url" \
     --argjson expectedStatus "$expected_status" \
@@ -89,6 +103,7 @@ append_sample() {
     --arg error "$error" \
     '. += [{
       name: $name,
+      sequence: $sequence,
       method: $method,
       url: $url,
       expectedStatus: $expectedStatus,
@@ -108,56 +123,88 @@ probes=(
 
 for probe in "${probes[@]}"; do
   IFS='|' read -r name url expected_status <<< "$probe"
-  start_ns="$(date +%s%N)"
-  status_code=""
-  error=""
-  success=false
+  for sequence in $(seq 1 "$probe_samples"); do
+    start_ns="$(date +%s%N)"
+    status_code=""
+    error=""
+    success=false
 
-  if status_code="$(curl \
-    --silent \
-    --show-error \
-    --location \
-    --max-time "$timeout_seconds" \
-    --output /dev/null \
-    --write-out "%{http_code}" \
-    "$url" 2>"$curl_error_file")"; then
-    if [ "$status_code" = "$expected_status" ]; then
-      success=true
+    if status_code="$(curl \
+      --silent \
+      --show-error \
+      --location \
+      --max-time "$timeout_seconds" \
+      --output /dev/null \
+      --write-out "%{http_code}" \
+      "$url" 2>"$curl_error_file")"; then
+      if [ "$status_code" = "$expected_status" ]; then
+        success=true
+      else
+        error="expected HTTP ${expected_status}, got ${status_code}"
+      fi
     else
-      error="expected HTTP ${expected_status}, got ${status_code}"
+      status_code="${status_code:-000}"
+      error="$(tr '\n' ' ' < "$curl_error_file")"
     fi
-  else
-    status_code="${status_code:-000}"
-    error="$(tr '\n' ' ' < "$curl_error_file")"
-  fi
 
-  end_ns="$(date +%s%N)"
-  elapsed_ms=$(((end_ns - start_ns) / 1000000))
-  append_sample "$name" "$url" "$expected_status" "$status_code" "$elapsed_ms" "$success" "$error"
+    end_ns="$(date +%s%N)"
+    elapsed_ms=$(((end_ns - start_ns) / 1000000))
+    append_sample "$name" "$sequence" "$url" "$expected_status" "$status_code" "$elapsed_ms" "$success" "$error"
+  done
 done
 
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-request_count="${#probes[@]}"
+request_count=$((${#probes[@]} * probe_samples))
 failure_count="$(jq '[.[] | select(.success != true)] | length' "$samples_file")"
 
 jq -n \
   --arg generatedAt "$generated_at" \
-  --arg policy "Anonymous production availability only; low volume and not a load test, capacity test, or production SLO." \
+  --arg policy "Anonymous production availability plus advisory timing percentiles; low volume and not a load test, capacity test, or production SLO." \
   --argjson timeoutSeconds "$timeout_seconds" \
+  --argjson samplesPerProbe "$probe_samples" \
   --argjson requestCount "$request_count" \
   --argjson failureCount "$failure_count" \
-  --slurpfile probes "$samples_file" \
-  '{
-    schemaVersion: 1,
+  --slurpfile samples "$samples_file" \
+  'def percentile($p):
+    sort as $sorted
+    | if ($sorted | length) == 0 then null
+      else
+        (($p / 100) * (($sorted | length) - 1)) as $rank
+        | ($rank | floor) as $lower
+        | (if $rank == ($rank | floor) then ($rank | floor) else (($rank | floor) + 1) end) as $upper
+        | if $lower == $upper then $sorted[$lower]
+          else (($sorted[$lower] + (($sorted[$upper] - $sorted[$lower]) * ($rank - $lower))) | round)
+          end
+      end;
+  ($samples[0]) as $all
+  | {
+    schemaVersion: 2,
     generatedAt: $generatedAt,
     policy: $policy,
     run: {
       target: "production",
       timeoutSeconds: $timeoutSeconds,
+      samplesPerProbe: $samplesPerProbe,
       requestCount: $requestCount,
-      failureCount: $failureCount
+      failureCount: $failureCount,
+      gatePolicy: "Availability/status failures fail; timing percentiles are advisory."
     },
-    probes: $probes[0]
+    probes: (
+      $all
+      | group_by(.name)
+      | map({
+        name: .[0].name,
+        method: .[0].method,
+        url: .[0].url,
+        expectedStatus: .[0].expectedStatus,
+        requestCount: length,
+        failureCount: ([.[] | select(.success != true)] | length),
+        p50Ms: (map(.elapsedMs) | percentile(50)),
+        p75Ms: (map(.elapsedMs) | percentile(75)),
+        maxMs: (map(.elapsedMs) | max),
+        samples: .
+      })
+    )
   }' > "$output_path"
 
 jq '.' "$output_path"

@@ -21,6 +21,7 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   NUGET_XMLDOC_MODE: skip
   PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+  LFM_E2E_PERFORMANCE_SAMPLES: 4
 
 jobs:
   collect:
@@ -79,7 +80,12 @@ jobs:
           API_HOSTNAME: ${{ vars.API_HOSTNAME }}
           SYNTHETIC_OUTPUT: artifacts/production-synthetic/production-synthetic-report.json
           SYNTHETIC_TIMEOUT_SECONDS: 10
+          SYNTHETIC_PROBE_SAMPLES: 3
         run: bash ./scripts/production-synthetic-check.sh
+
+      - name: Write performance summary
+        if: always()
+        run: bash ./scripts/write-performance-summary.sh
 
       - name: Upload performance reports
         if: always()
