@@ -12,4 +12,5 @@ public static class E2ELanes
     public const string Security = "Security";
     public const string AuthFlow = "Auth flow";
     public const string Performance = "Performance";
+    public const string PerformanceLoad = "PerformanceLoad";
 }

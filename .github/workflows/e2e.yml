@@ -32,6 +32,7 @@ on:
           - full
           - smoke
           - performance
+          - performance-load
 
 permissions:
   contents: read
@@ -96,6 +97,8 @@ jobs:
             filter_args+=(--filter "Category=Smoke")
           elif [ "${{ inputs.lane }}" = "performance" ]; then
             filter_args+=(--filter "Category=Performance")
+          elif [ "${{ inputs.lane }}" = "performance-load" ]; then
+            filter_args+=(--filter "Category=PerformanceLoad")
           fi
 
           dotnet test tests/Lfm.E2E/Lfm.E2E.csproj \
