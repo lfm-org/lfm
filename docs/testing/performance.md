@@ -50,6 +50,11 @@ samples, gate policy, and threshold source. LCP/CLS thresholds are based on
 web.dev Core Web Vitals poor thresholds. Controlled interaction duration is a
 local lab proxy for route/form responsiveness, not a claim of production INP.
 
+`expired-session-protected-route-redirect` measures the user-visible path when
+a browser session has expired and a protected route must redirect to `/login`.
+The journey intentionally allows the `/api/v1/me` 401 that proves the session is
+expired; other 4xx/5xx responses remain diagnostic failures.
+
 ## Local Load Smoke
 
 The `PerformanceLoad` E2E lane is a smoke probe for local-stack request health,
