@@ -20,7 +20,7 @@ namespace Lfm.E2E.Specs;
 public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
     : E2ETestBase(output), IAsyncLifetime
 {
-    private const int ReportSchemaVersion = 1;
+    private const int ReportSchemaVersion = 2;
     private const int DefaultSampleCount = 2;
 
     private static readonly PerformanceViewport[] Viewports =
@@ -71,6 +71,18 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             diagnosticFailures.Length == 0,
             "Performance journeys emitted unexpected browser/network failures:\n"
             + string.Join("\n", diagnosticFailures));
+
+        var poorThresholdFailures = _results
+            .SelectMany(result => PerformanceMetricsHelper.EvaluatePoorThresholds(
+                result.Name,
+                result.Viewport.Name,
+                result.BrowserMetrics))
+            .ToArray();
+
+        Assert.True(
+            poorThresholdFailures.Length == 0,
+            "Performance journeys exceeded local browser poor-threshold gates:\n"
+            + string.Join("\n", poorThresholdFailures));
     }
 
     private async Task MeasureColdPublicLandingAsync(PerformanceViewport viewport)
@@ -103,7 +115,13 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             }
         }
 
-        AddResult("cold-public-landing", TimeSpan.FromSeconds(60), viewport, samples);
+        AddResult(
+            "cold-public-landing",
+            TimeSpan.FromSeconds(60),
+            viewport,
+            "cold-context",
+            "anonymous",
+            samples);
     }
 
     private async Task MeasureAuthenticatedRoutesAsync(PerformanceViewport viewport)
@@ -270,7 +288,13 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             }
         }
 
-        AddResult(name, budget, viewport, samples);
+        AddResult(
+            name,
+            budget,
+            viewport,
+            measureRouteTransition ? "warm-spa-route" : "warm-auth-context-new-page",
+            "authenticated",
+            samples);
     }
 
     private static async Task StubCharacterPortraitsAsync(IPage page)
@@ -296,6 +320,7 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
     {
         var diagnostics = new BrowserDiagnostics(name);
         diagnostics.Attach(page);
+        await PerformanceMetricsHelper.StartCollectionAsync(page);
 
         double? routeTransitionDurationMs = null;
         if (measureRouteTransition)
@@ -315,6 +340,7 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         var navigationDurationMs = measureRouteTransition
             ? null
             : await ReadNavigationDurationMsAsync(page);
+        var browserMetrics = await PerformanceMetricsHelper.ReadAsync(page, routeTransitionDurationMs);
 
         return new PerformanceSample(
             sample,
@@ -322,6 +348,7 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             (long)budget.TotalMilliseconds,
             navigationDurationMs,
             routeTransitionDurationMs,
+            browserMetrics,
             diagnostics.RequestFailures.ToArray(),
             diagnostics.HttpFailures.ToArray(),
             diagnostics.ConsoleErrors.ToArray());
@@ -331,6 +358,8 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         string name,
         TimeSpan budget,
         PerformanceViewport viewport,
+        string cacheState,
+        string userState,
         IReadOnlyList<PerformanceSample> samples)
     {
         var elapsedValues = samples.Select(sample => sample.ElapsedMs).ToArray();
@@ -346,13 +375,22 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         _results.Add(new PerformanceJourneyResult(
             name,
             viewport,
+            cacheState,
+            userState,
+            PerformanceMetricsHelper.MetricSource,
+            PerformanceMetricsHelper.GatePolicy,
+            PerformanceMetricsHelper.ThresholdSource,
             (long)budget.TotalMilliseconds,
-            Percentile(elapsedValues, 50),
+            PerformanceMetricsHelper.Percentile(elapsedValues, 50),
+            PerformanceMetricsHelper.Percentile(elapsedValues, 75),
             elapsedValues.Max(),
             PercentileOrNull(navigationValues, 50),
+            PercentileOrNull(navigationValues, 75),
             MaxOrNull(navigationValues),
             PercentileOrNull(routeValues, 50),
+            PercentileOrNull(routeValues, 75),
             MaxOrNull(routeValues),
+            PerformanceMetricsHelper.Summarize(samples.Select(sample => sample.BrowserMetrics).ToArray()),
             samples));
     }
 
@@ -549,6 +587,7 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         long BudgetMs,
         double? NavigationDurationMs,
         double? RouteTransitionDurationMs,
+        BrowserPerformanceMetrics BrowserMetrics,
         IReadOnlyCollection<PerformanceDiagnostic> RequestFailures,
         IReadOnlyCollection<PerformanceDiagnostic> HttpFailures,
         IReadOnlyCollection<PerformanceDiagnostic> ConsoleErrors);
@@ -557,6 +596,8 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         string StackTarget,
         string BrowserName,
         string BrowserVersion,
+        string Runner,
+        string OperatingSystem,
         string? Commit,
         string? Ref,
         int SampleCount,
@@ -566,19 +607,30 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         int SchemaVersion,
         DateTimeOffset GeneratedAt,
         PerformanceRunMetadata Run,
-        string BudgetPolicy,
+        string MetricSource,
+        string GatePolicy,
+        string ThresholdSource,
         IReadOnlyList<PerformanceJourneyResult> Journeys);
 
     private sealed record PerformanceJourneyResult(
         string Name,
         PerformanceViewport Viewport,
+        string CacheState,
+        string UserState,
+        string MetricSource,
+        string GatePolicy,
+        string ThresholdSource,
         long BudgetMs,
         long P50ElapsedMs,
+        long P75ElapsedMs,
         long MaxElapsedMs,
         double? P50NavigationDurationMs,
+        double? P75NavigationDurationMs,
         double? MaxNavigationDurationMs,
         double? P50RouteTransitionDurationMs,
+        double? P75RouteTransitionDurationMs,
         double? MaxRouteTransitionDurationMs,
+        BrowserPerformanceMetricSummary BrowserMetrics,
         IReadOnlyList<PerformanceSample> Samples);
 
     private PerformanceRunMetadata CreateRunMetadata()
@@ -587,6 +639,8 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             "local-stack",
             ReadBrowserName(fixture.Stack.Browser),
             ReadBrowserVersion(fixture.Stack.Browser),
+            ReadRunnerName(),
+            Environment.OSVersion.Platform.ToString(),
             ReadFirstEnvironmentValue("GITHUB_SHA", "BUILD_SOURCEVERSION"),
             ReadFirstEnvironmentValue("GITHUB_REF", "GITHUB_HEAD_REF", "BUILD_SOURCEBRANCH"),
             _sampleCount,
@@ -617,6 +671,14 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         return null;
     }
 
+    private static string ReadRunnerName()
+    {
+        if (string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase))
+            return "github-actions";
+
+        return "local";
+    }
+
     private void WriteReport()
     {
         var repoRoot = FindRepoRoot();
@@ -627,7 +689,9 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             ReportSchemaVersion,
             DateTimeOffset.UtcNow,
             CreateRunMetadata(),
-            "Catastrophic local-stack regression guard; timing drift remains advisory until baseline promotion.",
+            PerformanceMetricsHelper.MetricSource,
+            PerformanceMetricsHelper.GatePolicy,
+            PerformanceMetricsHelper.ThresholdSource,
             _results);
 
         var path = Path.Combine(outputDir, "performance-report.json");
