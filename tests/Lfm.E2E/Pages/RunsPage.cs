@@ -68,6 +68,18 @@ public class RunsPage(IPage page)
     public ILocator SignupButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Sign up" });
 
+    /// <summary>"Cancel signup" button shown after the current user has signed up.</summary>
+    public ILocator CancelSignupButton =>
+        _page.GetByRole(AriaRole.Button, new() { Name = "Cancel signup" });
+
+    /// <summary>Current-user signup confirmation label in the run detail signup panel.</summary>
+    public ILocator SignedUpAs(string characterName) =>
+        _page.GetByText($"Signed up as {characterName}.");
+
+    /// <summary>"No signups yet." placeholder in the run detail roster.</summary>
+    public ILocator NoSignupsMessage =>
+        _page.GetByText("No signups yet.");
+
     // ---- Create Run form (/runs/new) ----
 
     /// <summary>Instance dropdown on the create-run form.</summary>
@@ -114,7 +126,8 @@ public class RunsPage(IPage page)
 
     /// <summary>"Cancel" button in the delete confirmation card.</summary>
     public ILocator DeleteCancelButton =>
-        _page.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
+        _page.Locator("dialog.confirm-dialog")
+            .GetByRole(AriaRole.Button, new() { Name = "Cancel" });
 
     /// <summary>"Run saved successfully." success banner.</summary>
     public ILocator SaveSuccessBanner =>
