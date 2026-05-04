@@ -135,6 +135,34 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         Log("Guild admin settings form is visible");
     }
 
+    // E2E scope: proves a production-like guild with a fresh roster but no
+    // stored rankPermissions still renders permission configuration controls.
+    // Cheaper lanes prove the default permission values; the browser journey
+    // proves the admin route receives usable controls instead of hiding the
+    // whole Rank Permissions section.
+    // Shared data: read-only.
+    [Fact]
+    public async Task GuildAdmin_UnconfiguredRankPermissions_DisplaysDefaultPermissionControls()
+    {
+        await using var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl,
+            battleNetId: DefaultSeed.UnconfiguredGuildAdminBattleNetId,
+            redirect: "/guild/admin");
+        var page = await authContext.NewPageAsync();
+
+        var guildAdminPage = new GuildAdminPage(page);
+
+        await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+
+        await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(guildAdminPage.RankPermissionsHeading)
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(guildAdminPage.RankLabel(0)).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(guildAdminPage.RankLabel(5)).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
     // E2E scope: proves guild admin browser edits persist and reload into the form.
     // Cheaper lanes cannot prove this because form binding, API patch, storage, and page reload must round-trip.
     // Shared data: restored.

@@ -12,9 +12,11 @@ public static class DefaultSeed
     public const string SecondaryBattleNetId = "test-bnet-id-2";
     public const string DisposableBattleNetId = "test-bnet-id-delete";
     public const string SiteAdminBattleNetId = "test-bnet-id-admin";
+    public const string UnconfiguredGuildAdminBattleNetId = "test-bnet-id-unconfigured-guild-admin";
     // Must match the guildId assigned by E2ELoginFunction for non-admin test users.
     // Must be numeric — RunsRepository.ListForGuildAsync does int.TryParse on it.
     public const string TestGuildId = "12345";
+    private const string UnconfiguredGuildId = "67890";
     public const string TestRunId = "e2e-run-001";
 
     public static async Task SeedAsync(CosmosClient client, string databaseName)
@@ -32,6 +34,7 @@ public static class DefaultSeed
         await SeedSecondaryRaiderAsync(raidersContainer);
         await SeedDisposableRaiderAsync(raidersContainer);
         await SeedSiteAdminRaiderAsync(raidersContainer);
+        await SeedUnconfiguredGuildAdminRaiderAsync(raidersContainer);
 
         // --- Guilds container (partition key: /id) ---
         var guildsContainer = (await RetryAsync(
@@ -39,6 +42,7 @@ public static class DefaultSeed
                 new ContainerProperties("guilds", "/id")))).Container;
 
         await SeedGuildAsync(guildsContainer);
+        await SeedUnconfiguredGuildAsync(guildsContainer);
 
         // --- Runs container (partition key: /id) ---
         var runsContainer = (await RetryAsync(
@@ -124,6 +128,23 @@ public static class DefaultSeed
             () => container.UpsertItemAsync(raider, new PartitionKey(SiteAdminBattleNetId)));
     }
 
+    private static async Task SeedUnconfiguredGuildAdminRaiderAsync(Container container)
+    {
+        var raider = new RaiderSeedBuilder(UnconfiguredGuildAdminBattleNetId, accountId: 5)
+            .WithGuild(id: 67890, name: "Unconfigured Guild")
+            .AddCharacter(
+                id: "eu-test-realm-veyra",
+                name: "Veyra",
+                classId: 11,
+                className: "Druid",
+                specializationId: 105,
+                specializationName: "Restoration")
+            .Build();
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(raider, new PartitionKey(UnconfiguredGuildAdminBattleNetId)));
+    }
+
     private static async Task SeedGuildAsync(Container container)
     {
         var guild = new Dictionary<string, object?>
@@ -202,6 +223,66 @@ public static class DefaultSeed
 
         await RetryAsync(
             () => container.UpsertItemAsync(guild, new PartitionKey(TestGuildId)));
+    }
+
+    private static async Task SeedUnconfiguredGuildAsync(Container container)
+    {
+        var guild = new Dictionary<string, object?>
+        {
+            ["id"] = UnconfiguredGuildId,
+            ["guildId"] = 67890,
+            ["realmSlug"] = "test-realm",
+            ["slogan"] = "Unconfigured permissions",
+            ["setup"] = new Dictionary<string, object?>
+            {
+                ["initializedAt"] = "2026-03-01T00:00:00.0000000Z",
+                ["timezone"] = "Europe/London",
+                ["locale"] = "en_GB",
+            },
+            ["blizzardProfileRaw"] = new Dictionary<string, object?>
+            {
+                ["name"] = "Unconfigured Guild",
+                ["realm"] = new Dictionary<string, object?>
+                {
+                    ["slug"] = "test-realm",
+                    ["name"] = "Test Realm",
+                },
+                ["faction"] = new Dictionary<string, object?>
+                {
+                    ["name"] = "Alliance",
+                },
+                ["memberCount"] = 12,
+                ["achievementPoints"] = 900,
+            },
+            ["blizzardRosterFetchedAt"] = DateTimeOffset.UtcNow.ToString("O"),
+            ["blizzardRosterRaw"] = new Dictionary<string, object?>
+            {
+                ["members"] = new List<object>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["rank"] = 0,
+                        ["character"] = new Dictionary<string, object?>
+                        {
+                            ["name"] = "Veyra",
+                            ["realm"] = new Dictionary<string, object?> { ["slug"] = "test-realm" },
+                        },
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["rank"] = 5,
+                        ["character"] = new Dictionary<string, object?>
+                        {
+                            ["name"] = "Guildmate",
+                            ["realm"] = new Dictionary<string, object?> { ["slug"] = "test-realm" },
+                        },
+                    },
+                },
+            },
+        };
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(guild, new PartitionKey(UnconfiguredGuildId)));
     }
 
     private static async Task SeedRunAsync(Container container)
