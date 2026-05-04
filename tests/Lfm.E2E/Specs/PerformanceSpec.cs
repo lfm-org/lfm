@@ -8,7 +8,6 @@ using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Pages;
-using Lfm.E2E.Seeds;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -47,6 +46,7 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         foreach (var viewport in Viewports)
         {
             await MeasureColdPublicLandingAsync(viewport);
+            await MeasureExpiredSessionRedirectAsync(viewport);
             await MeasureAuthenticatedRoutesAsync(viewport);
         }
 
@@ -124,6 +124,69 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             samples);
     }
 
+    private async Task MeasureExpiredSessionRedirectAsync(PerformanceViewport viewport)
+    {
+        var samples = new List<PerformanceSample>();
+        for (var i = 1; i <= _sampleCount; i++)
+        {
+            var context = await CreateContextAsync(viewport);
+            var page = await context.NewPageAsync();
+            try
+            {
+                await AuthHelper.AuthenticateThroughOAuthAsync(
+                    page,
+                    fixture.Stack.AppBaseUrl);
+                await WaitForNetworkIdleAsync(page);
+
+                var original = (await context.CookiesAsync())
+                    .First(cookie => cookie.Name == "battlenet_token");
+                await context.AddCookiesAsync(
+                [
+                    new Cookie
+                    {
+                        Name = original.Name,
+                        Value = original.Value,
+                        Domain = original.Domain,
+                        Path = original.Path,
+                        HttpOnly = original.HttpOnly,
+                        Secure = original.Secure,
+                        SameSite = original.SameSite,
+                        Expires = DateTimeOffset.UtcNow.AddMinutes(-5).ToUnixTimeSeconds(),
+                    },
+                ]);
+
+                samples.Add(await MeasureAsync(
+                    "expired-session-protected-route-redirect",
+                    i,
+                    TimeSpan.FromSeconds(30),
+                    page,
+                    async measuredPage =>
+                    {
+                        await measuredPage.GotoAsync(fixture.Stack.AppBaseUrl + "/runs");
+                        await Assertions.Expect(measuredPage).ToHaveURLAsync(
+                            new System.Text.RegularExpressions.Regex(@"/login\?redirect=%2Fruns"),
+                            new() { Timeout = 15000 });
+                        await Assertions.Expect(
+                                measuredPage.GetByRole(AriaRole.Button, new() { Name = "Sign in with Battle.net" }))
+                            .ToBeVisibleAsync(new() { Timeout = 15000 });
+                        await WaitForNetworkIdleAsync(measuredPage);
+                    }));
+            }
+            finally
+            {
+                await context.CloseAsync();
+            }
+        }
+
+        AddResult(
+            "expired-session-protected-route-redirect",
+            TimeSpan.FromSeconds(30),
+            viewport,
+            "warm-provider-session-expired-cookie",
+            "expired-session",
+            samples);
+    }
+
     private async Task MeasureAuthenticatedRoutesAsync(PerformanceViewport viewport)
     {
         var context = await CreateAuthenticatedContextAsync(viewport);
@@ -137,12 +200,12 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
                 null,
                 async page =>
                 {
+                    var runsResponse = WaitForApiResponseAsync(page, "/api/v1/runs");
                     var runsPage = new RunsPage(page);
                     await runsPage.GotoAsync(fixture.Stack.AppBaseUrl);
                     await Assertions.Expect(runsPage.CreateRunButton)
                         .ToBeVisibleAsync(new() { Timeout = 15000 });
-                    await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId))
-                        .ToBeVisibleAsync(new() { Timeout = 15000 });
+                    await runsResponse;
                     await WaitForNetworkIdleAsync(page);
                 },
                 measureRouteTransition: false);
@@ -224,9 +287,8 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         var authPage = await context.NewPageAsync();
         try
         {
-            await AuthHelper.AuthenticatePageAsync(
+            await AuthHelper.AuthenticateThroughOAuthAsync(
                 authPage,
-                fixture.Stack.ApiBaseUrl,
                 fixture.Stack.AppBaseUrl);
         }
         catch
@@ -267,6 +329,7 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             var page = await context.NewPageAsync();
             try
             {
+                await StubCharactersAsync(page);
                 await StubCharacterPortraitsAsync(page);
                 if (setup is not null)
                 {
@@ -306,6 +369,33 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
                 Status = 200,
                 ContentType = "application/json",
                 Body = "{\"portraits\":{}}",
+            });
+        });
+    }
+
+    private static async Task StubCharactersAsync(IPage page)
+    {
+        await page.RouteAsync("**/api/v1/battlenet/characters", async route =>
+        {
+            await route.FulfillAsync(new()
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """
+                [
+                  {
+                    "name": "Aelrin",
+                    "realm": "test-realm",
+                    "realmName": "Test Realm",
+                    "level": 80,
+                    "region": "eu",
+                    "classId": 8,
+                    "className": "Mage",
+                    "activeSpecId": 62,
+                    "specName": "Arcane"
+                  }
+                ]
+                """,
             });
         });
     }
@@ -537,12 +627,15 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
 
         private bool IsAllowedHttpFailure(IResponse response)
         {
-            // The anonymous landing page probes identity at startup; 401 from
-            // /api/v1/me is the expected unauthenticated contract for that page.
-            return journey == "cold-public-landing"
-                && response.Status == 401
-                && Uri.TryCreate(response.Url, UriKind.Absolute, out var uri)
-                && uri.AbsolutePath == "/api/v1/me";
+            if (response.Status != 401
+                || !Uri.TryCreate(response.Url, UriKind.Absolute, out var uri)
+                || uri.AbsolutePath != "/api/v1/me")
+            {
+                return false;
+            }
+
+            return journey is "cold-public-landing"
+                or "expired-session-protected-route-redirect";
         }
 
         private bool IsAllowedRequestFailure(IRequest request)
@@ -572,7 +665,8 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
         {
             // Chromium can surface the same expected anonymous /api/v1/me 401
             // fetch as a generic console error without the URL in message text.
-            return journey == "cold-public-landing"
+            return (journey is "cold-public-landing"
+                    or "expired-session-protected-route-redirect")
                 && text.Contains("401", StringComparison.OrdinalIgnoreCase);
         }
     }
