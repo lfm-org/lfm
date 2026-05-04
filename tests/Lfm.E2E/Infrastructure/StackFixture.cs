@@ -18,10 +18,6 @@ using DotNet.Testcontainers.Images;
 using DotNet.Testcontainers.Networks;
 using Testcontainers.Azurite;
 using Testcontainers.CosmosDb;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
-using WireMock.Server;
-using WireMock.Settings;
 using Xunit;
 
 namespace Lfm.E2E.Infrastructure;
@@ -82,7 +78,7 @@ public class StackFixture : IAsyncLifetime
     private IFutureDockerImage? _apiImage;
     private IContainer? _apiContainer;
     private WebApplication? _appHost;
-    private WireMockServer? _oauthStub;
+    private MockOAuth2ProviderContainer? _oauthProvider;
     private IPlaywright? _playwright;
     private readonly StringBuilder _apiOutput = new();
     private string? _runtimeRoot;
@@ -116,15 +112,8 @@ public class StackFixture : IAsyncLifetime
             .Build();
     }
 
-    /// <summary>
-    /// Base URL of the in-process WireMock server that stubs the Battle.net
-    /// OAuth endpoints (<c>/oauth/authorize</c>, <c>/oauth/token</c>,
-    /// <c>/oauth/userinfo</c>). The API's OAuth client is pointed at this URL
-    /// via the <c>Blizzard__OAuthBaseUrl</c> env var so the production callback
-    /// flow can be exercised end-to-end without touching real Battle.net.
-    /// </summary>
-    public string OAuthStubBaseUrl => _oauthStub?.Url
-        ?? throw new InvalidOperationException("OAuth stub has not been started yet.");
+    public string OAuthProviderAuthorizeEndpoint => _oauthProvider?.BrowserAuthorizeEndpoint
+        ?? throw new InvalidOperationException("OAuth provider has not been started yet.");
 
     public async Task InitializeAsync()
     {
@@ -171,9 +160,10 @@ public class StackFixture : IAsyncLifetime
                 },
             });
 
-        // Start the OAuth stub server before launching the API so we know its
-        // URL when constructing the container environment variables.
-        _oauthStub = StartOAuthStub();
+        // Start the OAuth provider before launching the API so endpoint URLs
+        // are known when constructing the container environment variables.
+        _oauthProvider = new MockOAuth2ProviderContainer(repoRoot);
+        await _oauthProvider.StartAsync();
 
         await StartApiContainerAsync(repoRoot);
 
@@ -283,10 +273,10 @@ public class StackFixture : IAsyncLifetime
         {
             try { await _apiImage.DeleteAsync(); } catch { /* best effort */ }
         }
-        // The OAuth stub has no state that survives the process, so we can
-        // stop it after the API without risk of in-flight requests hanging.
-        _oauthStub?.Stop();
-        _oauthStub?.Dispose();
+        if (_oauthProvider is not null)
+        {
+            await _oauthProvider.DisposeAsync();
+        }
         WriteApiLogArtifact();
         CosmosClient?.Dispose();
         try { await _azurite.StopAsync(); } catch { /* best effort */ }
@@ -378,8 +368,8 @@ public class StackFixture : IAsyncLifetime
         var apiStorageConnectionString = ToNetworkAliasConnectionString(
             _azurite.GetConnectionString(),
             AzuriteNetworkAlias);
-        var oauthBaseUrl = _oauthStub?.Url
-            ?? throw new InvalidOperationException("WireMock OAuth stub did not return a base URL after start");
+        var oauthProvider = _oauthProvider
+            ?? throw new InvalidOperationException("OAuth provider was not started before API configuration");
 
         // CORS is handled by CorsMiddleware in the worker pipeline. Do NOT use
         // the Functions host --cors flag; it conflicts with middleware by
@@ -411,7 +401,9 @@ public class StackFixture : IAsyncLifetime
             ["Blizzard__Region"] = "eu",
             ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
             ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
-            ["Blizzard__OAuthBaseUrl"] = ToHostGatewayUrl(oauthBaseUrl),
+            ["Blizzard__AuthorizationEndpoint"] = oauthProvider.BrowserAuthorizeEndpoint,
+            ["Blizzard__TokenEndpoint"] = oauthProvider.ApiTokenEndpoint,
+            ["Blizzard__UserInfoEndpoint"] = oauthProvider.ApiUserInfoEndpoint,
             ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
             ["PRIVACY_EMAIL"] = "privacy@e2e.test",
             ["PrivacyContact__Email"] = "privacy@e2e.test",
@@ -424,16 +416,6 @@ public class StackFixture : IAsyncLifetime
         var builder = new UriBuilder(url)
         {
             Host = alias,
-        };
-
-        return builder.Uri.ToString().TrimEnd('/');
-    }
-
-    private static string ToHostGatewayUrl(string url)
-    {
-        var builder = new UriBuilder(url)
-        {
-            Host = HostGatewayName,
         };
 
         return builder.Uri.ToString().TrimEnd('/');
@@ -532,63 +514,6 @@ public class StackFixture : IAsyncLifetime
         {
             // Best effort — never hide the original test result.
         }
-    }
-
-    /// <summary>
-    /// Start an in-process WireMock server that stubs the three Battle.net
-    /// OAuth endpoints the API hits during the login flow:
-    ///   - <c>GET /oauth/authorize</c>   — returns a 302 back to the API
-    ///     callback URL with <c>code=&lt;fake&gt;&amp;state=&lt;echoed&gt;</c>
-    ///     so the API's state validation passes.
-    ///   - <c>POST /oauth/token</c>      — returns a canned access token.
-    ///   - <c>GET /oauth/userinfo</c>    — returns a canned Battle.net user.
-    /// The API's OAuth client is pointed at this server via
-    /// <c>Blizzard__OAuthBaseUrl</c>. Replaces the real
-    /// <c>https://{region}.battle.net</c> host so E2E tests can exercise the
-    /// production callback flow hermetically.
-    /// </summary>
-    private static WireMockServer StartOAuthStub()
-    {
-        var server = WireMockServer.Start(new WireMockServerSettings
-        {
-            UseSSL = false,
-            // Bind to an ephemeral port; the test infrastructure reads Url
-            // back out and hands it to the API via the env var.
-            StartAdminInterface = false,
-        });
-
-        // GET /oauth/authorize — echo state back to the API callback.
-        // The Location template uses Handlebars so request.query.state and
-        // request.query.redirect_uri come from the inbound request. WireMock
-        // URL-decodes query parameters before exposing them to templates, so
-        // the rendered Location is a real absolute URL (not double-encoded).
-        server
-            .Given(Request.Create().WithPath("/oauth/authorize").UsingGet())
-            .RespondWith(Response.Create()
-                .WithStatusCode(302)
-                .WithHeader("Location",
-                    "{{request.query.redirect_uri}}?code=e2e-fake-code&state={{request.query.state}}")
-                .WithTransformer());
-
-        // POST /oauth/token — canned access token.
-        server
-            .Given(Request.Create().WithPath("/oauth/token").UsingPost())
-            .RespondWith(Response.Create()
-                .WithStatusCode(200)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody("""{"access_token":"e2e-fake-access-token","token_type":"Bearer","expires_in":3600}"""));
-
-        // GET /oauth/userinfo — canned Battle.net identity. The id is chosen
-        // so the raider upsert creates a fresh raider in Cosmos for every run;
-        // a numeric ID chosen to not collide with DefaultSeed's known ids.
-        server
-            .Given(Request.Create().WithPath("/oauth/userinfo").UsingGet())
-            .RespondWith(Response.Create()
-                .WithStatusCode(200)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody("""{"id":987654321,"battletag":"OAuthTest#1234"}"""));
-
-        return server;
     }
 
     /// <summary>
