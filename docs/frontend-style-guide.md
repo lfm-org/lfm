@@ -162,9 +162,14 @@ Fluent contrast pairs.
 
 ## Spacing And Density
 
-Prefer compact, repeated spacing over large editorial gaps.
+Prefer compact, repeated spacing over large editorial gaps. The values below
+are design-reference equivalents at the default root size. In authored CSS,
+prefer Fluent component spacing, logical properties (`gap`, `padding-inline`,
+`padding-block`, `margin-inline`, `margin-block`), and scalable units where the
+value affects text or layout. Use fixed `px` intentionally for borders, bitmap
+media dimensions, and small visual details that should not scale with text.
 
-| Use | Value |
+| Use | Default visual equivalent |
 | --- | --- |
 | Inline icon/text gap | `4px` |
 | Compact stack gap | `8px` |
@@ -177,6 +182,9 @@ Prefer compact, repeated spacing over large editorial gaps.
 
 Let Fluent components provide their own internal control spacing unless a
 component-specific style already exists.
+
+When a spacing value becomes shared vocabulary, move it into a CSS class or
+Fluent token usage instead of repeating inline numbers across Razor markup.
 
 ## Component Styling
 
