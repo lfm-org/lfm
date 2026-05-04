@@ -11,6 +11,7 @@ public static class DefaultSeed
     public const string PrimaryBattleNetId = "test-bnet-id";
     public const string SecondaryBattleNetId = "test-bnet-id-2";
     public const string DisposableBattleNetId = "test-bnet-id-delete";
+    public const string SiteAdminBattleNetId = "test-bnet-id-admin";
     // Must match the guildId assigned by E2ELoginFunction for non-admin test users.
     // Must be numeric — RunsRepository.ListForGuildAsync does int.TryParse on it.
     public const string TestGuildId = "12345";
@@ -30,6 +31,7 @@ public static class DefaultSeed
         await SeedPrimaryRaiderAsync(raidersContainer);
         await SeedSecondaryRaiderAsync(raidersContainer);
         await SeedDisposableRaiderAsync(raidersContainer);
+        await SeedSiteAdminRaiderAsync(raidersContainer);
 
         // --- Guilds container (partition key: /id) ---
         var guildsContainer = (await RetryAsync(
@@ -104,6 +106,22 @@ public static class DefaultSeed
 
         await RetryAsync(
             () => container.UpsertItemAsync(raider, new PartitionKey(DisposableBattleNetId)));
+    }
+
+    private static async Task SeedSiteAdminRaiderAsync(Container container)
+    {
+        var raider = new RaiderSeedBuilder(SiteAdminBattleNetId, accountId: 4)
+            .AddCharacter(
+                id: "eu-test-realm-seralyth",
+                name: "Seralyth",
+                classId: 6,
+                className: "Death Knight",
+                specializationId: 250,
+                specializationName: "Blood")
+            .Build();
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(raider, new PartitionKey(SiteAdminBattleNetId)));
     }
 
     private static async Task SeedGuildAsync(Container container)
