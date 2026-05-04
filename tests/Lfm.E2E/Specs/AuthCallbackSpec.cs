@@ -20,13 +20,16 @@ namespace Lfm.E2E.Specs;
 // when a real user tried to sign in.
 //
 // This spec drives the **production** callback path end-to-end against a local
-// OAuth stub:
+// OAuth Testcontainer:
 //   1. Browser navigates to /login and clicks Sign in with Battle.net
-//   2. API's BattleNetLoginFunction redirects to the WireMock /oauth/authorize
-//   3. WireMock returns a 302 back to the API callback with a fake code
-//      and the state echoed from the authorize request
+//   2. API's BattleNetLoginFunction redirects to the NAV mock-oauth2-server
+//      authorize endpoint
+//   3. The test submits the mock provider login form, and the provider returns
+//      a 302 back to the API callback with a fake code and the state echoed
+//      from the authorize request
 //   4. API's BattleNetCallbackFunction exchanges the code for a token
-//      (WireMock /oauth/token), fetches the user (WireMock /oauth/userinfo),
+//      (Testcontainer token endpoint), fetches the user (Testcontainer
+//      userinfo endpoint),
 //      upserts the raider, sets the auth cookie, and redirects to the app
 //   5. Browser lands on the authenticated home page
 //
@@ -76,12 +79,13 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
 
         // Click the real sign-in button. In production this hits /api/v1/battlenet/login
         // which redirects through the Battle.net OAuth authorize / token / userinfo
-        // endpoints. Locally, Blizzard__OAuthBaseUrl points at the WireMock stub,
-        // so every outbound Battle.net call resolves against the stub instead of
-        // the real provider — but the API code path (state generation, cookie
-        // protection, code exchange, userinfo fetch, raider upsert, session cookie,
-        // redirect to app) is exactly what production runs.
+        // endpoints. Locally, the three Blizzard endpoint overrides point at
+        // the NAV OAuth Testcontainer instead of the real provider — but the
+        // API code path (state generation, cookie protection, code exchange,
+        // userinfo fetch, raider upsert, session cookie, redirect to app) is
+        // exactly what production runs.
         await loginPage.ClickSignInAsync();
+        await CompleteMockOAuthLoginAsync();
 
         // Wait for the browser to land back on the app after the full OAuth
         // redirect chain. The default post-login redirect is /runs.
@@ -126,6 +130,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         });
 
         await loginPage.ClickSignInAsync();
+        await CompleteMockOAuthLoginAsync();
         await Assertions.Expect(Page!).ToHaveURLAsync(
             new System.Text.RegularExpressions.Regex(@"/runs(\?|$)"),
             new() { Timeout = 30000 });
@@ -133,5 +138,11 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         var navBar = new NavBar(Page!);
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
         Assert.Equal(1, meFailuresInjected);
+    }
+
+    private async Task CompleteMockOAuthLoginAsync()
+    {
+        await Page!.GetByRole(AriaRole.Button, new() { Name = "Continue" })
+            .ClickAsync(new() { Timeout = 15000 });
     }
 }
