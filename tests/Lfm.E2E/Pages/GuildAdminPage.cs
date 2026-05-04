@@ -17,6 +17,12 @@ public class GuildAdminPage(IPage page)
     public ILocator OverrideSettingsHeading =>
         _page.GetByText("Override Settings");
 
+    public ILocator RankPermissionsHeading =>
+        _page.GetByText("Rank Permissions");
+
+    public ILocator RankLabel(int rank) =>
+        _page.GetByText($"Rank {rank}", new() { Exact = true });
+
     // FluentTextArea — target inner textarea for FillAsync to work.
     public ILocator SloganField =>
         _page.Locator("#guild-slogan textarea");

@@ -32,18 +32,25 @@ internal sealed class RaiderSeedBuilder
     private const string RealmSlug = "test-realm";
     private const string RealmName = "Test Realm";
     private const int Level = 80;
-    private const int GuildId = 12345;
-    private const string GuildName = "Test Guild";
     private const string LastSeenAt = "2026-03-18T12:00:00.0000000Z";
 
     private readonly string battleNetId;
     private readonly int accountId;
     private readonly List<CharacterSeed> characters = [];
+    private int guildId = 12345;
+    private string guildName = "Test Guild";
 
     public RaiderSeedBuilder(string battleNetId, int accountId)
     {
         this.battleNetId = battleNetId;
         this.accountId = accountId;
+    }
+
+    public RaiderSeedBuilder WithGuild(int id, string name)
+    {
+        guildId = id;
+        guildName = name;
+        return this;
     }
 
     public RaiderSeedBuilder AddCharacter(
@@ -99,7 +106,7 @@ internal sealed class RaiderSeedBuilder
         };
     }
 
-    private static Dictionary<string, object?> BuildRaiderCharacter(CharacterSeed character, string fetchedAt)
+    private Dictionary<string, object?> BuildRaiderCharacter(CharacterSeed character, string fetchedAt)
     {
         return new Dictionary<string, object?>
         {
@@ -122,8 +129,8 @@ internal sealed class RaiderSeedBuilder
                     },
                 },
             },
-            [GuildIdKey] = GuildId,
-            [GuildNameKey] = GuildName,
+            [GuildIdKey] = guildId,
+            [GuildNameKey] = guildName,
             [FetchedAtKey] = fetchedAt,
             [ProfileFetchedAtKey] = fetchedAt,
             [SpecsFetchedAtKey] = fetchedAt,
