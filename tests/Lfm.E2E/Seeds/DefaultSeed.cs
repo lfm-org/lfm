@@ -13,6 +13,7 @@ public static class DefaultSeed
     public const string DisposableBattleNetId = "test-bnet-id-delete";
     public const string SiteAdminBattleNetId = "test-bnet-id-admin";
     public const string UnconfiguredGuildAdminBattleNetId = "test-bnet-id-unconfigured-guild-admin";
+    public const string OAuthBattleNetId = "987654321";
     // Must match the guildId assigned by E2ELoginFunction for non-admin test users.
     // Must be numeric — RunsRepository.ListForGuildAsync does int.TryParse on it.
     public const string TestGuildId = "12345";
@@ -35,6 +36,7 @@ public static class DefaultSeed
         await SeedDisposableRaiderAsync(raidersContainer);
         await SeedSiteAdminRaiderAsync(raidersContainer);
         await SeedUnconfiguredGuildAdminRaiderAsync(raidersContainer);
+        await SeedOAuthRaiderAsync(raidersContainer);
 
         // --- Guilds container (partition key: /id) ---
         var guildsContainer = (await RetryAsync(
@@ -143,6 +145,22 @@ public static class DefaultSeed
 
         await RetryAsync(
             () => container.UpsertItemAsync(raider, new PartitionKey(UnconfiguredGuildAdminBattleNetId)));
+    }
+
+    private static async Task SeedOAuthRaiderAsync(Container container)
+    {
+        var raider = new RaiderSeedBuilder(OAuthBattleNetId, accountId: 987654321)
+            .AddCharacter(
+                id: "eu-test-realm-oauth-aelrin",
+                name: "Aelrin",
+                classId: 8,
+                className: "Mage",
+                specializationId: 62,
+                specializationName: "Arcane")
+            .Build();
+
+        await RetryAsync(
+            () => container.UpsertItemAsync(raider, new PartitionKey(OAuthBattleNetId)));
     }
 
     private static async Task SeedGuildAsync(Container container)
