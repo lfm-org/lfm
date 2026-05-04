@@ -47,6 +47,9 @@ public class FunctionAuthorizationContractTests
         // Public privacy contact — the SPA reveals this only on user click.
         "privacy-email",
         "privacy-email-v1",
+        // Anonymous browser RUM ingestion. Payload is capped and non-identifying:
+        // no user ids, Battle.net ids, query strings, fragments, or raw URLs.
+        "diagnostics-web-vitals",
         // Catch-all OPTIONS preflight handler — short-circuited by CorsMiddleware.
         "cors-preflight",
     };
