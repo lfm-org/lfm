@@ -25,6 +25,12 @@ disposal removes its own run directory. Diagnostics are written under
 | Accessibility | axe scans and keyboard/focus states that need browser rendering | Static labels or component markup can be checked in bUnit |
 | Security | Browser-enforced CORS, CSP, iframe, cookie, and redirect behavior | Server-only status/header logic can be tested in API tests |
 | Auth flow | Real redirect/callback/session behavior | `/api/e2e/login` is enough and the browser adds no signal |
+| Performance | Browser Web Vitals-style lab metrics, route interaction timing, resource/API counts, and local request-health probes | A bundle check, API operation-count assertion, or production telemetry query proves the same regression |
+
+Performance E2E reports local lab signals, not production SLOs. Browser metrics
+and local load-smoke timing can fail only at documented hybrid gates; production
+timing remains advisory unless promoted by a separate issue with enough
+baseline evidence.
 
 ## Required Test Comment
 
@@ -51,6 +57,8 @@ Centralize these in helpers rather than specs:
 - Selectors: page objects under `tests/Lfm.E2E/Pages/`.
 - Cosmos seed shapes: typed builders under `tests/Lfm.E2E/Seeds/`.
 - Artifact naming and capture: `tests/Lfm.E2E/Infrastructure/E2ETestBase.cs`.
+- Performance metric injection, aggregation, and thresholds:
+  `tests/Lfm.E2E/Helpers/PerformanceMetricsHelper.cs`.
 
 ## Drift Audit
 
