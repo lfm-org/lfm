@@ -124,20 +124,32 @@ These colors are domain constants. Do not tune them to fit a page palette.
 Apply them through named helpers, CSS classes, or shared domain functions rather
 than scattering literals through Razor markup.
 
-| Domain cue | Visual treatment |
-| --- | --- |
-| Character class | `WowClasses.GetColor(classId)` as a row/card side accent or compact text chip |
-| Dungeon run kind | `#0070dd` side accent |
-| Raid run kind | `#1eff00` side accent |
-| Mythic / Mythic+ difficulty | `#ff8000` filled difficulty pill |
-| Heroic difficulty | `#a335ee` filled difficulty pill |
-| Normal / LFR difficulty | Neutral outline pill |
-| Signed-up marker | Compact star/glyph in the run row metadata area |
+Domain colors must not be the only source of meaning. Pair them with text,
+shape, position, iconography, or component structure so the cue survives low
+contrast, color-vision differences, and `forced-colors: active`. When a
+brand-canonical WoW color cannot meet contrast as a meaningful UI boundary,
+treat it as decorative reinforcement and make the actual meaning available
+through text or another non-color cue.
+
+| Domain cue | Visual treatment | Required non-color cue |
+| --- | --- | --- |
+| Character class | `WowClasses.GetColor(classId)` as a row/card side accent or compact text chip | Character name plus class/spec text |
+| Dungeon run kind | `#0070dd` side accent | Run-kind label or role-composition context |
+| Raid run kind | `#1eff00` side accent | Run-kind label or role-composition context |
+| Mythic / Mythic+ difficulty | `#ff8000` filled difficulty pill | Difficulty label inside the pill |
+| Heroic difficulty | `#a335ee` filled difficulty pill | Difficulty label inside the pill |
+| Normal / LFR difficulty | Neutral outline pill | Difficulty label inside the pill |
+| Signed-up marker | Compact star/glyph in the run row metadata area | Signup text or status metadata in the detail pane |
 
 ### Attendance Status
 
 Attendance status is shown as a filled rounded pill. Keep labels short and use
 the existing status vocabulary.
+
+The status label is mandatory; the fill color is supporting evidence. Do not
+render attendance as a color-only dot or border. In forced-colors mode, the pill
+must keep a visible boundary and readable label using system colors or inherited
+Fluent contrast pairs.
 
 | Status | Fill |
 | --- | --- |
