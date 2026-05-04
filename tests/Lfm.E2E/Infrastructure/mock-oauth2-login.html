@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Battle.net Test Login</title>
+  </head>
+  <body>
+    <main>
+      <h1>Battle.net Test Login</h1>
+      <form method="post">
+        <label>
+          Username
+          <input name="username" value="oauth-test-user">
+        </label>
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('form')?.requestSubmit();
+      });
+    </script>
+  </body>
+</html>
