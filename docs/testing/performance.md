@@ -11,6 +11,7 @@ Application Insights remains the operational production signal.
 | Bundle size | `scripts/check-bundle-size.sh` after `dotnet publish app/Lfm.App.csproj -c Release` | Every CI and deploy-app build | Hard fail over 5 MB brotli; warning over 10% growth from baseline |
 | Browser journey timing | `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Performance"` | Manual dispatch and local investigation | Advisory timing guard with loose budgets; hard fail on browser/network errors |
 | Local load smoke | `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=PerformanceLoad"` | Manual dispatch and local investigation | Hard fail only when bounded local-stack requests exceed the explicit error threshold |
+| Scheduled synthetic | `.github/workflows/performance-synthetic.yml` | Daily at 03:17 UTC and manual dispatch | Visible workflow status; not wired into PR, deploy, or release blocking |
 | Backend latency | API tests plus Application Insights queries below | Unit/API tests on PR; production queries during operations | Operation-count tests are hard gates; production percentiles are operational evidence |
 | Manual load/investigation | Temporary local harnesses documented here before use | Only when a regression needs diagnosis | Advisory; no always-on paid load service without an explicit cost note |
 
@@ -53,6 +54,26 @@ status codes, and raw samples. Timing percentiles are evidence for comparison;
 the gate fails only when request errors or unexpected statuses exceed the
 explicit threshold.
 
+## Scheduled Synthetic Collection
+
+`Performance Synthetic` runs once per day at 03:17 UTC and can also be started
+manually from GitHub Actions. It runs the local-stack `Performance` and
+`PerformanceLoad` E2E categories in one test invocation, then performs three
+anonymous production GET checks: the public frontend root, `/api/health`, and
+`/api/v1/health`.
+
+The workflow uploads `performance-synthetic-reports` for 30 days. The artifact
+contains the browser timing report, load-smoke report, TRX result, and
+production synthetic report when those files are available. Daily runner cost is
+capped by a 45-minute timeout and is expected to stay in the same range as a
+manual performance E2E run; production checks add only three anonymous requests
+with a 10-second per-request timeout.
+
+Scheduled synthetic failures are intentionally visible in their own workflow
+status but initially non-blocking for deploys, releases, and PR smoke E2E. Do
+not add authenticated production flows or managed test credentials here without
+a separate approved issue.
+
 ## Evidence Rules
 
 - Bundle-size output is a hard build signal. The report should show total bytes,
@@ -68,6 +89,9 @@ explicit threshold.
   records bounded request counts, failure counts, p50, p95, max, tested
   endpoints/journeys, expected status codes, and raw samples. It is not a
   capacity test and must not be used as a production SLO.
+- Scheduled synthetic production checks are anonymous availability probes only.
+  They collect a small JSON report and must stay low-volume, unauthenticated,
+  and outside PR/deploy blocking until a separate issue promotes the signal.
 - Backend elapsed-ms logs and dependency telemetry are operational evidence.
   They are not a full load test and should be read as percentiles, not anecdotes.
 - Bundle optimization belongs in #27 after approved production evidence or
