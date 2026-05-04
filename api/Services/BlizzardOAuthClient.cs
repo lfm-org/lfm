@@ -83,7 +83,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
             { "response_type",        "code" },
             { "client_id",            _opts.ClientId },
             { "redirect_uri",         _opts.RedirectUri },
-            { "scope",                "wow.profile" },
+            { "scope",                _opts.Scope },
             { "state",                state },
             { "code_challenge",       codeChallenge },
             { "code_challenge_method","S256" }

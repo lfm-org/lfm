@@ -401,6 +401,7 @@ public class StackFixture : IAsyncLifetime
             ["Blizzard__Region"] = "eu",
             ["Blizzard__RedirectUri"] = $"http://localhost:{_apiPort}/api/battlenet/callback",
             ["Blizzard__AppBaseUrl"] = $"http://localhost:{_appPort}",
+            ["Blizzard__Scope"] = "openid wow.profile",
             ["Blizzard__AuthorizationEndpoint"] = oauthProvider.BrowserAuthorizeEndpoint,
             ["Blizzard__TokenEndpoint"] = oauthProvider.ApiTokenEndpoint,
             ["Blizzard__UserInfoEndpoint"] = oauthProvider.ApiUserInfoEndpoint,

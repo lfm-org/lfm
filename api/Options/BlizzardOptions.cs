@@ -11,6 +11,7 @@ public sealed class BlizzardOptions
     public required string Region { get; init; }
     public required string RedirectUri { get; init; }
     public required string AppBaseUrl { get; init; }
+    public string Scope { get; init; } = "wow.profile";
 
     /// <summary>
     /// Optional override for the Battle.net OAuth host. When set, replaces
