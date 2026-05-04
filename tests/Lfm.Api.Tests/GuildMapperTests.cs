@@ -48,6 +48,53 @@ public class GuildMapperTests
     }
 
     [Fact]
+    public void MapToDto_AdminWithNoStoredRankPermissions_PopulatesDefaultSettingsFromRosterRanks()
+    {
+        var perms = new GuildEffectivePermissions(
+            IsAdmin: true,
+            CanCreateGuildRuns: true,
+            CanSignupGuildRuns: true,
+            CanDeleteGuildRuns: true);
+        var doc = SampleDoc() with
+        {
+            RankPermissions = null,
+            BlizzardRosterRaw = new StoredGuildRoster(
+            [
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
+                        Name: "Aelrin",
+                        Realm: new StoredGuildRosterRealm("ravencrest")),
+                    Rank: 0),
+                new StoredGuildRosterMember(
+                    Character: new StoredGuildRosterMemberCharacter(
+                        Name: "Kaldris",
+                        Realm: new StoredGuildRosterRealm("ravencrest")),
+                    Rank: 5),
+            ]),
+        };
+
+        var dto = GuildMapper.MapToDto(doc, perms);
+
+        Assert.NotNull(dto.Settings);
+        Assert.Collection(
+            dto.Settings.RankPermissions,
+            rank0 =>
+            {
+                Assert.Equal(0, rank0.Rank);
+                Assert.True(rank0.CanCreateGuildRuns);
+                Assert.True(rank0.CanSignupGuildRuns);
+                Assert.True(rank0.CanDeleteGuildRuns);
+            },
+            rank5 =>
+            {
+                Assert.Equal(5, rank5.Rank);
+                Assert.False(rank5.CanCreateGuildRuns);
+                Assert.True(rank5.CanSignupGuildRuns);
+                Assert.False(rank5.CanDeleteGuildRuns);
+            });
+    }
+
+    [Fact]
     public void MapToDto_NonAdmin_OmitsSettings_PopulatesMemberPermissions()
     {
         var perms = new GuildEffectivePermissions(
