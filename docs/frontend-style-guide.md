@@ -124,6 +124,9 @@ These colors are domain constants. Do not tune them to fit a page palette.
 Apply them through named helpers, CSS classes, or shared domain functions rather
 than scattering literals through Razor markup.
 
+Color previews use checked-in SVG swatches so repository Markdown previews show
+the actual hue consistently.
+
 Domain colors must not be the only source of meaning. Pair them with text,
 shape, position, iconography, or component structure so the cue survives low
 contrast, color-vision differences, and `forced-colors: active`. When a
@@ -131,15 +134,15 @@ brand-canonical WoW color cannot meet contrast as a meaningful UI boundary,
 treat it as decorative reinforcement and make the actual meaning available
 through text or another non-color cue.
 
-| Domain cue | Visual treatment | Required non-color cue |
-| --- | --- | --- |
-| Character class | `WowClasses.GetColor(classId)` as a row/card side accent or compact text chip | Character name plus class/spec text |
-| Dungeon run kind | `#0070dd` side accent | Explicit dungeon label, icon with accessible name, or row/card accessible name |
-| Raid run kind | `#1eff00` side accent | Explicit raid label, icon with accessible name, or row/card accessible name |
-| Mythic / Mythic+ difficulty | `#ff8000` filled difficulty pill | Difficulty label inside the pill |
-| Heroic difficulty | `#a335ee` filled difficulty pill | Difficulty label inside the pill |
-| Normal / LFR difficulty | Neutral outline pill | Difficulty label inside the pill |
-| Signed-up marker | Compact star/glyph in the run row metadata area | Signup text or status metadata in the detail pane |
+| Domain cue | Preview | Visual treatment | Required non-color cue |
+| --- | --- | --- | --- |
+| Character class | Class-dependent | `WowClasses.GetColor(classId)` as a row/card side accent or compact text chip | Character name plus class/spec text |
+| Dungeon run kind | ![#0070dd swatch](assets/swatches/0070dd.svg) | `#0070dd` side accent | Explicit dungeon label, icon with accessible name, or row/card accessible name |
+| Raid run kind | ![#1eff00 swatch](assets/swatches/1eff00.svg) | `#1eff00` side accent | Explicit raid label, icon with accessible name, or row/card accessible name |
+| Mythic / Mythic+ difficulty | ![#ff8000 swatch](assets/swatches/ff8000.svg) | `#ff8000` filled difficulty pill | Difficulty label inside the pill |
+| Heroic difficulty | ![#a335ee swatch](assets/swatches/a335ee.svg) | `#a335ee` filled difficulty pill | Difficulty label inside the pill |
+| Normal / LFR difficulty | Neutral | Neutral outline pill | Difficulty label inside the pill |
+| Signed-up marker | Glyph | Compact star/glyph in the run row metadata area | Signup text or status metadata in the detail pane |
 
 ### Attendance Status
 
@@ -151,14 +154,14 @@ render attendance as a color-only dot or border. In forced-colors mode, the pill
 must keep a visible boundary and readable label using system colors or inherited
 Fluent contrast pairs.
 
-| Status | Fill |
-| --- | --- |
-| In | `#1d8049` |
-| Late | `#a05900` |
-| Bench | `#6c757d` |
-| Out | `#c0392b` |
-| Away | `#ad4400` |
-| Unknown | Neutral fill and neutral text |
+| Status | Preview | Fill |
+| --- | --- | --- |
+| In | ![#1d8049 swatch](assets/swatches/1d8049.svg) | `#1d8049` |
+| Late | ![#a05900 swatch](assets/swatches/a05900.svg) | `#a05900` |
+| Bench | ![#6c757d swatch](assets/swatches/6c757d.svg) | `#6c757d` |
+| Out | ![#c0392b swatch](assets/swatches/c0392b.svg) | `#c0392b` |
+| Away | ![#ad4400 swatch](assets/swatches/ad4400.svg) | `#ad4400` |
+| Unknown | Neutral | Neutral fill and neutral text |
 
 ## Spacing And Density
 
