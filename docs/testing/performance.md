@@ -2,15 +2,14 @@
 
 LFM treats performance as several cheap regression signals plus production
 telemetry. Local and CI checks should catch obvious regressions before merge;
-Application Insights and future Web Vitals/RUM data remain the product truth.
+Application Insights remains the operational production signal.
 
 ## Lanes
 
 | Lane | Runner | Cadence | Gate |
 |------|--------|---------|------|
 | Bundle size | `scripts/check-bundle-size.sh` after `dotnet publish app/Lfm.App.csproj -c Release` | Every CI and deploy-app build | Hard fail over 5 MB brotli; warning over 10% growth from baseline |
-| Browser journey timing | `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Performance"` | Manual dispatch and local investigation | Advisory regression guard with loose budgets and JSON artifact |
-| RUM/Core Web Vitals | Issue #189 | Production once instrumented | Product truth; review percentile trends before optimization work |
+| Browser journey timing | `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Performance"` | Manual dispatch and local investigation | Advisory timing guard with loose budgets; hard fail on browser/network errors |
 | Backend latency | API tests plus Application Insights queries below | Unit/API tests on PR; production queries during operations | Operation-count tests are hard gates; production percentiles are operational evidence |
 | Manual load/investigation | Temporary local harnesses documented here before use | Only when a regression needs diagnosis | Advisory; no always-on paid load service without an explicit cost note |
 
@@ -31,19 +30,27 @@ the recurring cost first.
 | Warm route navigation | 20 seconds | Local-stack browser guard |
 | Backend p95/p99 | Placeholder until production baseline exists | Use the KQL below to establish normal ranges |
 
-The browser budgets intentionally allow slow CI machines and first-run WASM
-startup. Tighten them only after several clean baseline runs.
+Browser journeys run in desktop and mobile viewport profiles and collect two
+samples per journey by default. Override locally with
+`LFM_E2E_PERFORMANCE_SAMPLES` when investigating a regression. The browser
+budgets intentionally allow slow CI machines and first-run WASM startup.
+Tighten them only after several clean baseline runs.
 
 ## Evidence Rules
 
 - Bundle-size output is a hard build signal. The report should show total bytes,
   top assets, baseline total, and growth percentage on every run.
-- Browser performance E2E is a regression signal. It records timing artifacts,
-  request failures, and loose budget results, but it is not a production SLO.
-- RUM/Core Web Vitals from #189 will be the source of client-side product truth.
+- Browser performance E2E is a regression signal. Its versioned JSON report
+  records browser metadata, viewport profile, p50/max timing, raw samples,
+  request failures, unexpected HTTP 4xx/5xx responses, and console errors. It
+  is not a production SLO.
+- Browser performance E2E fails on unexpected request failures, unexpected HTTP
+  4xx/5xx responses, and console errors unless the spec has a narrow commented
+  allowlist for the expected case.
 - Backend elapsed-ms logs and dependency telemetry are operational evidence.
   They are not a full load test and should be read as percentiles, not anecdotes.
-- Bundle optimization belongs in #27 after RUM establishes a real-user baseline.
+- Bundle optimization belongs in #27 after approved production evidence or
+  scheduled synthetic baselines establish the problem shape.
 
 ## Feature Ownership
 
@@ -98,16 +105,6 @@ requests
 | where timestamp > ago(24h)
 | where resultCode == "429"
 | summarize count() by name, bin(timestamp, 15m)
-| order by timestamp desc
-```
-
-Web Vitals percentiles after #189:
-
-```kusto
-customMetrics
-| where timestamp > ago(24h)
-| where name in ("webvital_lcp", "webvital_inp", "webvital_cls")
-| summarize p50=percentile(value, 50), p75=percentile(value, 75), p95=percentile(value, 95) by name, bin(timestamp, 1h)
 | order by timestamp desc
 ```
 
