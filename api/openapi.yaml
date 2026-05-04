@@ -29,8 +29,9 @@ info:
 
     Authentication is a Battle.net OAuth 2.1 code flow that culminates in
     an encrypted session cookie. All endpoints except `/api/battlenet/login`,
-    `/api/battlenet/callback`, `/api/health`, `/api/health/ready`, and
-    `/api/privacy-contact/email` require the session cookie.
+    `/api/battlenet/callback`, `/api/health`, `/api/health/ready`,
+    `/api/privacy-contact/email`, and `/api/v1/diagnostics/web-vitals`
+    require the session cookie.
   license:
     name: AGPL-3.0-or-later
     identifier: AGPL-3.0-or-later
@@ -65,6 +66,8 @@ tags:
     description: Site-administrator-only endpoints.
   - name: Privacy
     description: Privacy-policy helper endpoints (contact email reveal).
+  - name: Diagnostics
+    description: Anonymous browser runtime diagnostics.
 
 security:
   - sessionCookie: []
@@ -275,6 +278,34 @@ paths:
               schema: { $ref: '#/components/schemas/PrivacyEmailResponse' }
         '404':
           $ref: '#/components/responses/ProblemNotFound'
+        '429':
+          $ref: '#/components/responses/ProblemTooManyRequests'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Diagnostics
+  # ─────────────────────────────────────────────────────────────────────────
+
+  /api/v1/diagnostics/web-vitals:
+    post:
+      tags: [Diagnostics]
+      summary: Capture anonymous browser Web Vitals.
+      description: |
+        Accepts capped, non-identifying Core Web Vitals measurements from the
+        SPA and emits them to Application Insights. The API records only a
+        path without query string or fragment; user ids, Battle.net ids, and
+        raw URLs are not part of the contract.
+      operationId: postDiagnosticsWebVitals
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebVitalsRequest' }
+      responses:
+        '202':
+          description: Metric accepted for telemetry ingestion.
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
         '429':
           $ref: '#/components/responses/ProblemTooManyRequests'
 
@@ -959,6 +990,50 @@ components:
       required: [email]
       properties:
         email: { type: string, format: email }
+
+    # ── Diagnostics ────────────────────────────────────────────────────────
+    WebVitalsRequest:
+      type: object
+      required: [name, value]
+      properties:
+        name:
+          type: string
+          enum: [lcp, inp, cls, fcp, ttfb]
+        value:
+          type: number
+          minimum: 0
+        id:
+          type: string
+          maxLength: 128
+        navigationType:
+          type: string
+          maxLength: 32
+        path:
+          type: string
+          description: Browser path only; query strings and fragments are stripped before telemetry.
+          maxLength: 256
+        viewport:
+          $ref: '#/components/schemas/WebVitalsViewport'
+        effectiveConnectionType:
+          type: string
+          enum: [slow-2g, 2g, 3g, 4g, unknown]
+        timestamp:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    WebVitalsViewport:
+      type: object
+      properties:
+        width:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        height:
+          type: integer
+          minimum: 1
+          maximum: 10000
+      additionalProperties: false
 
     # ── Guild ─────────────────────────────────────────────────────────────
     GuildDto:
