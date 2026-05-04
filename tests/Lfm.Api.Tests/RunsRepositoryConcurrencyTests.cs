@@ -112,12 +112,14 @@ public class RunsRepositoryConcurrencyTests
             Times.Once);
 
         // Every Cosmos op must emit the four structured log fields so App
-        // Insights can aggregate RU-per-endpoint; regression guard for
-        // Slice 6.1.
-        Assert.Contains(logger.Entries, e =>
+        // Insights can aggregate RU-per-endpoint without exposing raw
+        // partition keys.
+        var chargeEntry = Assert.Single(logger.Entries, e =>
             e.Properties.TryGetValue("CosmosOp", out var op) && (op?.ToString() == "replace")
             && e.Properties.TryGetValue("CosmosContainer", out var container) && (container?.ToString() == "runs")
-            && e.Properties.TryGetValue("CosmosPartitionKey", out var pk) && (pk?.ToString() == "run-1")
             && e.Properties.TryGetValue("CosmosRequestCharge", out var ru) && ((double)ru! == 3.14));
+        var partitionKey = Assert.IsType<string>(chargeEntry.Properties["CosmosPartitionKey"]);
+        Assert.NotEqual("run-1", partitionKey);
+        Assert.Matches("^[0-9A-F]{16}$", partitionKey);
     }
 }
