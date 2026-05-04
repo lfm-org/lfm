@@ -201,7 +201,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
     private string ResolveEndpoint(string? endpointOverride, string productionPath)
     {
         if (!string.IsNullOrWhiteSpace(endpointOverride))
-            return endpointOverride.TrimEnd('/');
+            return endpointOverride.Trim();
 
         return OAuthHost() + productionPath;
     }
