@@ -10,6 +10,7 @@ Application Insights remains the operational production signal.
 |------|--------|---------|------|
 | Bundle size | `scripts/check-bundle-size.sh` after `dotnet publish app/Lfm.App.csproj -c Release` | Every CI and deploy-app build | Hard fail over 5 MB brotli; warning over 10% growth from baseline |
 | Browser journey timing | `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Performance"` | Manual dispatch and local investigation | Advisory timing guard with loose budgets; hard fail on browser/network errors |
+| Local load smoke | `dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=PerformanceLoad"` | Manual dispatch and local investigation | Hard fail only when bounded local-stack requests exceed the explicit error threshold |
 | Backend latency | API tests plus Application Insights queries below | Unit/API tests on PR; production queries during operations | Operation-count tests are hard gates; production percentiles are operational evidence |
 | Manual load/investigation | Temporary local harnesses documented here before use | Only when a regression needs diagnosis | Advisory; no always-on paid load service without an explicit cost note |
 
@@ -36,6 +37,22 @@ samples per journey by default. Override locally with
 budgets intentionally allow slow CI machines and first-run WASM startup.
 Tighten them only after several clean baseline runs.
 
+## Local Load Smoke
+
+The `PerformanceLoad` E2E lane is a smoke probe for local-stack request health,
+not a capacity test and not a production SLO. It uses the seeded E2E stack only:
+local app host, local API container, Cosmos emulator, Azurite, and test-mode
+auth. It must not call real Battle.net or any hosted load provider.
+
+The lane keeps load bounded by code constants: low concurrency, a fixed request
+count per probe, a total request limit, a per-request timeout, and a per-probe
+timeout. Its JSON report is written to
+`artifacts/e2e-results/performance-load-report.json` and records each tested
+endpoint/journey with request count, failure count, p50, p95, max, expected
+status codes, and raw samples. Timing percentiles are evidence for comparison;
+the gate fails only when request errors or unexpected statuses exceed the
+explicit threshold.
+
 ## Evidence Rules
 
 - Bundle-size output is a hard build signal. The report should show total bytes,
@@ -47,6 +64,10 @@ Tighten them only after several clean baseline runs.
 - Browser performance E2E fails on unexpected request failures, unexpected HTTP
   4xx/5xx responses, and console errors unless the spec has a narrow commented
   allowlist for the expected case.
+- Local load smoke E2E is a request-health probe. Its versioned JSON report
+  records bounded request counts, failure counts, p50, p95, max, tested
+  endpoints/journeys, expected status codes, and raw samples. It is not a
+  capacity test and must not be used as a production SLO.
 - Backend elapsed-ms logs and dependency telemetry are operational evidence.
   They are not a full load test and should be read as percentiles, not anecdotes.
 - Bundle optimization belongs in #27 after approved production evidence or
