@@ -77,14 +77,17 @@ is for accent-colored text or icons on a neutral surface.
 
 ## Typography
 
-Use Fluent typography through `FluentLabel` unless the element must be a native
-heading or control label.
+Use semantic HTML for document structure. Route titles and section titles must
+render as the appropriate native heading level (`<h1>`, `<h2>`, `<h3>`, and so
+on). Fluent typography is the visual treatment, not the proof of heading
+semantics. If a Fluent component is used for a heading, bUnit coverage must prove
+the rendered markup contains the intended heading element.
 
-| Purpose | Style |
+| Purpose | Semantic element and visual style |
 | --- | --- |
-| Route title | `Typography.H1` |
-| Product mark / compact page brand | `Typography.H3` |
-| Card or section title | `Typography.H4` or `Typography.H5` |
+| Route title | One rendered `<h1>` per routable page, styled as `Typography.H1` or equivalent |
+| Product mark / compact page brand | Non-heading text unless it is the page title; style like `Typography.H3` |
+| Card or section title | Native heading at the next valid level, styled like `Typography.H4` or `Typography.H5` |
 | Body copy | `Typography.Body` or default `FluentLabel` |
 | Metadata / helper text | `--neutral-foreground-hint-rest`, usually `0.85em` to `0.9em` |
 | Numeric role counts | `font-variant-numeric: tabular-nums` |
