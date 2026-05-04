@@ -3,6 +3,8 @@
 
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Lfm.Api.Repositories;
 
@@ -21,14 +23,14 @@ internal static class CosmosRequestChargeLogger
     {
         logger.LogInformation(
             "Cosmos op={CosmosOp} container={CosmosContainer} pk={CosmosPartitionKey} ru={CosmosRequestCharge}",
-            op, container, partitionKey, response.RequestCharge);
+            op, container, HashPartitionKey(partitionKey), response.RequestCharge);
     }
 
     public static void LogRequestCharge<T>(this ILogger logger, FeedResponse<T> response, string op, string container, string partitionKey)
     {
         logger.LogInformation(
             "Cosmos op={CosmosOp} container={CosmosContainer} pk={CosmosPartitionKey} ru={CosmosRequestCharge}",
-            op, container, partitionKey, response.RequestCharge);
+            op, container, HashPartitionKey(partitionKey), response.RequestCharge);
     }
 
     /// <summary>
@@ -42,5 +44,11 @@ internal static class CosmosRequestChargeLogger
         logger.LogInformation(
             "Cosmos op={CosmosOp} container={CosmosContainer} pk={CosmosPartitionKey} ru={CosmosRequestCharge}",
             op, container, "*cross-partition*", requestCharge);
+    }
+
+    private static string HashPartitionKey(string partitionKey)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(partitionKey));
+        return Convert.ToHexString(bytes)[..16];
     }
 }
