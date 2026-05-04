@@ -8,6 +8,7 @@ using Lfm.E2E.Fixtures;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Pages;
+using Lfm.E2E.Seeds;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -206,6 +207,8 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
                     await Assertions.Expect(runsPage.CreateRunButton)
                         .ToBeVisibleAsync(new() { Timeout = 15000 });
                     await runsResponse;
+                    await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId))
+                        .ToBeVisibleAsync(new() { Timeout = 15000 });
                     await WaitForNetworkIdleAsync(page);
                 },
                 measureRouteTransition: false);
@@ -329,7 +332,6 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
             var page = await context.NewPageAsync();
             try
             {
-                await StubCharactersAsync(page);
                 await StubCharacterPortraitsAsync(page);
                 if (setup is not null)
                 {
@@ -369,33 +371,6 @@ public class PerformanceSpec(RunsFixture fixture, ITestOutputHelper output)
                 Status = 200,
                 ContentType = "application/json",
                 Body = "{\"portraits\":{}}",
-            });
-        });
-    }
-
-    private static async Task StubCharactersAsync(IPage page)
-    {
-        await page.RouteAsync("**/api/v1/battlenet/characters", async route =>
-        {
-            await route.FulfillAsync(new()
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = """
-                [
-                  {
-                    "name": "Aelrin",
-                    "realm": "test-realm",
-                    "realmName": "Test Realm",
-                    "level": 80,
-                    "region": "eu",
-                    "classId": 8,
-                    "className": "Mage",
-                    "activeSpecId": 62,
-                    "specName": "Arcane"
-                  }
-                ]
-                """,
             });
         });
     }
