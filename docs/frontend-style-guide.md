@@ -294,8 +294,19 @@ Run list items use:
   reusable-component visual systems. This is the current accepted practice;
   prefer scoped CSS when the styling belongs to one page/component, needs
   local state variants, or should not become a global primitive.
-- Inline `Style` is acceptable for small Fluent composition tweaks and
-  one-off token usage.
+- Inline `Style` is acceptable only for small, non-repeated Fluent composition
+  tweaks or one-off token plumbing, and it must use logical properties when it
+  affects spacing or placement. Examples: `Style="flex:1"` on a local title in
+  a `FluentStack`, or `Style="margin-inline-start:auto"` for a single toolbar
+  spacer.
+- Do not use inline `Style` for state variants, selected states, domain colors,
+  badges, repeated layout patterns, or reusable density decisions. Those belong
+  in named CSS classes or shared helpers.
+- Inline custom-property plumbing is allowed when it feeds a named CSS class or
+  shared helper that owns the visual treatment. Example:
+  `style="--class-color:..."` may provide a per-character color value to
+  `.character-row`; the inline style must not directly apply the domain color
+  treatment itself.
 - Move styles from `.razor.css` to `app.css` when the class becomes shared
   vocabulary, app-shell structure, or a cross-page helper.
 - Prefer named CSS classes when styling has state variants, domain meaning, or
