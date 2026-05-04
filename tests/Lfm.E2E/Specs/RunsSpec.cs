@@ -6,6 +6,7 @@ using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Pages;
 using Lfm.E2E.Seeds;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -114,6 +115,10 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         await runsPage.SelectRunAsync(runId);
         await Assertions.Expect(Page.GetByText(uniqueRunName)).ToBeVisibleAsync(
             new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.EditButton).ToBeVisibleAsync(
+            new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.NoSignupsMessage).ToBeVisibleAsync(
+            new() { Timeout = 10000 });
     }
 
     // E2E scope: proves list-click navigation renders the seeded run roster and signup count.
@@ -248,17 +253,21 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             new() { Timeout = 15000 });
     }
 
-    // E2E scope: proves the browser signup journey uses run-scoped guild roster
-    // options, persists the signup through the API, and re-renders the run roster.
-    // Cheaper lanes cover the individual filters and service outcomes; only E2E
-    // proves the composed user path from rendered options to persisted roster.
+    // E2E scope: proves the primary raider can manage their own run signup in the browser.
+    // Cheaper lanes cover the individual filters and service outcomes; only E2E proves eligible
+    // option rendering, signup persistence, cancellation, and roster re-rendering compose.
     // Shared data: disposable.
     [Fact]
-    public async Task Signup_GuildRosteredCharacter_AppearsInRoster()
+    public async Task Signup_GuildRosteredCharacter_CanManageOwnSignup()
     {
         var page = Page!;
         var runsPage = new RunsPage(page);
-        var createdRunId = await CreateFreshRunAsync(runsPage);
+        var createdRunId = await SeedDisposableSignupRunAsync();
+
+        await runsPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await Assertions.Expect(runsPage.RunItem(createdRunId))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+        await runsPage.SelectRunAsync(createdRunId);
 
         await Assertions.Expect(runsPage.SignupButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
@@ -279,6 +288,51 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             runsPage.RosterCharacterRows.GetByText("Aelrin", new() { Exact = true }))
             .ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(runsPage.RunItem(createdRunId)).ToBeVisibleAsync(new() { Timeout = 10000 });
+
+        await Assertions.Expect(runsPage.CancelSignupButton)
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await runsPage.CancelSignupButton.ClickAsync();
+
+        await Assertions.Expect(runsPage.SignupButton)
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.SignedUpAs("Aelrin"))
+            .Not.ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.NoSignupsMessage)
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RosterCharacterRows)
+            .ToHaveCountAsync(0, new() { Timeout = 10000 });
+    }
+
+    private async Task<string> SeedDisposableSignupRunAsync()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var startTime = now.AddDays(21);
+        var signupCloseTime = startTime.AddMinutes(-30);
+        var createdAt = now.AddMinutes(-5);
+        var runId = $"e2e-signup-{Guid.NewGuid():N}";
+        const string Format = "yyyy-MM-ddTHH:mm:ss.fffffffZ";
+
+        var run = new Dictionary<string, object?>
+        {
+            ["id"] = runId,
+            ["startTime"] = startTime.ToString(Format),
+            ["signupCloseTime"] = signupCloseTime.ToString(Format),
+            ["description"] = "E2E primary signup management",
+            ["modeKey"] = "NORMAL:25",
+            ["visibility"] = "GUILD",
+            ["creatorGuild"] = "Test Guild",
+            ["creatorGuildId"] = 12345,
+            ["instanceId"] = 67,
+            ["instanceName"] = "Liberation of Undermine",
+            ["creatorBattleNetId"] = DefaultSeed.PrimaryBattleNetId,
+            ["createdAt"] = createdAt.ToString(Format),
+            ["ttl"] = 2592000,
+            ["runCharacters"] = new List<object>(),
+        };
+
+        var container = fixture.Stack.CosmosClient.GetContainer(StackFixture.DatabaseName, "runs");
+        await container.UpsertItemAsync(run, new PartitionKey(runId));
+        return runId;
     }
 
     /// <summary>
@@ -363,6 +417,15 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await Assertions.Expect(runsPage.DeleteRunButton).ToBeVisibleAsync(new() { Timeout = 15000 });
             await runsPage.DeleteRunButton.ClickAsync();
 
+            await Assertions.Expect(runsPage.ConfirmDeleteButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+            await Assertions.Expect(runsPage.DeleteCancelButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+            await runsPage.DeleteCancelButton.ClickAsync();
+
+            await Assertions.Expect(runsPage.ConfirmDeleteButton).Not.ToBeVisibleAsync(
+                new() { Timeout = 10000 });
+            await Assertions.Expect(runsPage.DeleteRunButton).ToBeVisibleAsync(new() { Timeout = 10000 });
+
+            await runsPage.DeleteRunButton.ClickAsync();
             await Assertions.Expect(runsPage.ConfirmDeleteButton).ToBeVisibleAsync(new() { Timeout = 10000 });
             await runsPage.ConfirmDeleteButton.ClickAsync();
 
