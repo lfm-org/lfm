@@ -405,6 +405,7 @@ public class StackFixture : IAsyncLifetime
             ["E2E_TEST_MODE"] = "true",
             ["Auth__CookieName"] = "battlenet_token",
             ["Auth__CookieMaxAgeHours"] = "24",
+            ["Auth__KeyVaultUrl"] = "https://lfm-e2e-vault.vault.azure.net/",
             ["Blizzard__ClientId"] = "e2e-stub",
             ["Blizzard__ClientSecret"] = "e2e-stub",
             ["Blizzard__Region"] = "eu",

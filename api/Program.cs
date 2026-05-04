@@ -177,7 +177,16 @@ builder.Services.AddScoped<Lfm.Api.Repositories.ISpecializationsRepository, Lfm.
 builder.Services.AddScoped<Lfm.Api.Repositories.IRaidersRepository, Lfm.Api.Repositories.RaidersRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IRunsRepository, Lfm.Api.Repositories.RunsRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IGuildRepository, Lfm.Api.Repositories.GuildRepository>();
-builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services.KeyVaultSecretResolver>();
+#if E2E
+if (string.Equals(builder.Configuration["E2E_TEST_MODE"], "true", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services.E2ESecretResolver>();
+}
+else
+#endif
+{
+    builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services.KeyVaultSecretResolver>();
+}
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
 builder.Services.AddSingleton<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
