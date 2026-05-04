@@ -20,4 +20,22 @@ public sealed class BlizzardOptions
     /// touching the real Battle.net endpoints.
     /// </summary>
     public string? OAuthBaseUrl { get; init; }
+
+    /// <summary>
+    /// Optional full authorize endpoint override. Unset in production; set in E2E
+    /// when the browser must navigate to a Testcontainers-managed OAuth provider.
+    /// </summary>
+    public string? AuthorizationEndpoint { get; init; }
+
+    /// <summary>
+    /// Optional full token endpoint override. Unset in production; set in E2E when
+    /// the API container must call a provider through Docker host networking.
+    /// </summary>
+    public string? TokenEndpoint { get; init; }
+
+    /// <summary>
+    /// Optional full userinfo endpoint override. Unset in production; set in E2E
+    /// when the API container must call a provider through Docker host networking.
+    /// </summary>
+    public string? UserInfoEndpoint { get; init; }
 }
