@@ -170,6 +170,18 @@ public class BlizzardOAuthClientTests
     }
 
     [Fact]
+    public void BuildAuthorizeUrl_preserves_trailing_slash_in_authorization_endpoint_override()
+    {
+        var client = MakeClient(
+            authorizationEndpoint: "http://localhost:18080/bnet/authorize/");
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
+
+        var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
+
+        Assert.Equal("/bnet/authorize/", new Uri(url).AbsolutePath);
+    }
+
+    [Fact]
     public void BuildAuthorizeUrl_prefers_authorization_endpoint_over_OAuthBaseUrl()
     {
         var client = MakeClient(
