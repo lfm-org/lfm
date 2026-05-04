@@ -27,6 +27,11 @@ disposal removes its own run directory. Diagnostics are written under
 | Auth flow | Real redirect/callback/session behavior | `/api/e2e/login` is enough and the browser adds no signal |
 | Performance | Browser Web Vitals-style lab metrics, route interaction timing, resource/API counts, and local request-health probes | A bundle check, API operation-count assertion, or production telemetry query proves the same regression |
 
+Auth-sensitive E2E tests should use the Testcontainers-managed OAuth provider
+and drive the app's real sign-in button, provider authorize page, callback,
+session cookie, and post-callback `/api/v1/me` probe. Use `/api/e2e/login`
+only when authentication is incidental setup for a non-auth browser journey.
+
 Performance E2E reports local lab signals, not production SLOs. Browser metrics
 and local load-smoke timing can fail only at documented hybrid gates; production
 timing remains advisory unless promoted by a separate issue with enough
