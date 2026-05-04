@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using Lfm.E2E.Fixtures;
+using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
 using Lfm.E2E.Seeds;
 using Xunit;
@@ -16,7 +17,7 @@ namespace Lfm.E2E.Specs;
 [Trait("Category", E2ELanes.PerformanceLoad)]
 public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper output)
 {
-    private const int ReportSchemaVersion = 1;
+    private const int ReportSchemaVersion = 2;
     private const int Concurrency = 2;
     private const int RequestsPerProbe = 6;
     private const int AllowedFailureThreshold = 0;
@@ -47,6 +48,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
         {
             new LoadProbe(
                 "public-landing",
+                "frontend",
                 "anonymous public landing static host",
                 anonymousClient,
                 HttpMethod.Get,
@@ -54,6 +56,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "api-live-health",
+                "api-health",
                 "anonymous API live health",
                 anonymousClient,
                 HttpMethod.Get,
@@ -61,6 +64,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "api-ready-health",
+                "api-health",
                 "anonymous API readiness",
                 anonymousClient,
                 HttpMethod.Get,
@@ -68,6 +72,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "authenticated-runs-api",
+                "authenticated-api",
                 "authenticated runs list",
                 authenticatedClient,
                 HttpMethod.Get,
@@ -75,6 +80,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "run-create-guild-dependency",
+                "authenticated-api",
                 "authenticated create-run guild dependency",
                 authenticatedClient,
                 HttpMethod.Get,
@@ -82,6 +88,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "run-create-expansions-dependency",
+                "authenticated-reference-api",
                 "authenticated create-run expansions dependency",
                 authenticatedClient,
                 HttpMethod.Get,
@@ -89,6 +96,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "run-create-instances-dependency",
+                "authenticated-reference-api",
                 "authenticated create-run instances dependency",
                 authenticatedClient,
                 HttpMethod.Get,
@@ -96,6 +104,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "characters-list-api",
+                "authenticated-api",
                 "authenticated cached characters list",
                 authenticatedClient,
                 HttpMethod.Get,
@@ -103,6 +112,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
                 [200]),
             new LoadProbe(
                 "signup-options-api",
+                "authenticated-api",
                 "authenticated seeded run signup options",
                 authenticatedClient,
                 HttpMethod.Get,
@@ -117,7 +127,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
             probeReports.Add(report);
             output.WriteLine(
                 $"[PERFLOAD] {report.Name}: requests={report.RequestCount}, failures={report.FailureCount}, " +
-                $"p50={report.P50Ms}ms, p95={report.P95Ms}ms, max={report.MaxMs}ms");
+                $"p50={report.P50Ms}ms, p75={report.P75Ms}ms, p95={report.P95Ms}ms, max={report.MaxMs}ms");
         }
 
         var loadReport = new PerformanceLoadReport(
@@ -184,6 +194,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
 
         return new ProbeReport(
             probe.Name,
+            probe.Group,
             probe.Journey,
             probe.Method.Method,
             probe.Url.AbsolutePath,
@@ -191,8 +202,9 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
             probe.ExpectedStatusCodes,
             samples.Length,
             samples.Count(sample => !sample.Success),
-            Percentile(elapsed, 50),
-            Percentile(elapsed, 95),
+            PerformanceMetricsHelper.Percentile(elapsed, 50),
+            PerformanceMetricsHelper.Percentile(elapsed, 75),
+            PerformanceMetricsHelper.Percentile(elapsed, 95),
             elapsed.Max(),
             samples);
     }
@@ -260,21 +272,6 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
         return path;
     }
 
-    private static long Percentile(IReadOnlyList<long> values, int percentile)
-    {
-        if (values.Count == 0)
-            return 0;
-
-        var sorted = values.OrderBy(value => value).ToArray();
-        var rank = (percentile / 100d) * (sorted.Length - 1);
-        var lower = (int)Math.Floor(rank);
-        var upper = (int)Math.Ceiling(rank);
-        if (lower == upper)
-            return sorted[lower];
-
-        return (long)Math.Round(sorted[lower] + ((sorted[upper] - sorted[lower]) * (rank - lower)));
-    }
-
     private static string FindRepoRoot()
     {
         var dir = AppContext.BaseDirectory;
@@ -291,6 +288,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
 
     private sealed record LoadProbe(
         string Name,
+        string Group,
         string Journey,
         HttpClient Client,
         HttpMethod Method,
@@ -315,6 +313,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
 
     private sealed record ProbeReport(
         string Name,
+        string Group,
         string Journey,
         string Method,
         string Endpoint,
@@ -323,6 +322,7 @@ public sealed class PerformanceLoadSpec(RunsFixture fixture, ITestOutputHelper o
         int RequestCount,
         int FailureCount,
         long P50Ms,
+        long P75Ms,
         long P95Ms,
         long MaxMs,
         IReadOnlyList<LoadSample> Samples);
