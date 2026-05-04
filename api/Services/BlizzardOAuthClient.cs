@@ -76,7 +76,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         if (string.IsNullOrEmpty(codeChallenge))
             throw new ArgumentException("Code challenge must not be empty.", nameof(codeChallenge));
 
-        var host = OAuthHost() + "/oauth/authorize";
+        var host = AuthorizeEndpoint();
 
         var qb = new QueryBuilder
         {
@@ -90,18 +90,6 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         };
 
         return host + qb.ToQueryString();
-    }
-
-    /// <summary>
-    /// Resolves the OAuth base host. Returns <see cref="BlizzardOptions.OAuthBaseUrl"/>
-    /// when set (E2E test override) or the production region-specific Battle.net host.
-    /// </summary>
-    private string OAuthHost()
-    {
-        if (!string.IsNullOrEmpty(_opts.OAuthBaseUrl))
-            return _opts.OAuthBaseUrl.TrimEnd('/');
-        var region = _opts.Region.ToLowerInvariant();
-        return $"https://{region}.battle.net";
     }
 
     /// <inheritdoc/>
@@ -147,7 +135,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         string codeVerifier,
         CancellationToken cancellationToken = default)
     {
-        var tokenUrl = OAuthHost() + "/oauth/token";
+        var tokenUrl = TokenEndpoint();
 
         var requestBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -182,7 +170,7 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
         string accessToken,
         CancellationToken cancellationToken = default)
     {
-        var userInfoUrl = OAuthHost() + "/oauth/userinfo";
+        var userInfoUrl = UserInfoEndpoint();
 
         var request = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -200,6 +188,36 @@ public sealed class BlizzardOAuthClient : IBlizzardOAuthClient
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
+
+    private string AuthorizeEndpoint() =>
+        ResolveEndpoint(_opts.AuthorizationEndpoint, "/oauth/authorize");
+
+    private string TokenEndpoint() =>
+        ResolveEndpoint(_opts.TokenEndpoint, "/oauth/token");
+
+    private string UserInfoEndpoint() =>
+        ResolveEndpoint(_opts.UserInfoEndpoint, "/oauth/userinfo");
+
+    private string ResolveEndpoint(string? endpointOverride, string productionPath)
+    {
+        if (!string.IsNullOrWhiteSpace(endpointOverride))
+            return endpointOverride.TrimEnd('/');
+
+        return OAuthHost() + productionPath;
+    }
+
+    /// <summary>
+    /// Resolves the OAuth base host. Returns <see cref="BlizzardOptions.OAuthBaseUrl"/>
+    /// when set (E2E test override) or the production region-specific Battle.net host.
+    /// </summary>
+    private string OAuthHost()
+    {
+        if (!string.IsNullOrWhiteSpace(_opts.OAuthBaseUrl))
+            return _opts.OAuthBaseUrl.TrimEnd('/');
+
+        var region = _opts.Region.ToLowerInvariant();
+        return $"https://{region}.battle.net";
+    }
 
     /// <summary>Computes a PKCE S256 code challenge from a verifier.</summary>
     public static string ComputeCodeChallenge(string codeVerifier)
