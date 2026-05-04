@@ -86,27 +86,30 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
     public async Task ProductionCallback_TransientMe503AfterCallback_RetriesAndShowsSignedIn()
     {
         var meFailuresInjected = 0;
-        await Page!.RouteAsync("**/api/v1/me", async route =>
-        {
-            if (meFailuresInjected == 0)
-            {
-                meFailuresInjected++;
-                await route.FulfillAsync(new()
-                {
-                    Status = 503,
-                    ContentType = "text/plain",
-                    Body = "Service Unavailable"
-                });
-                return;
-            }
-
-            await route.ContinueAsync();
-        });
 
         await AuthHelper.AuthenticateThroughOAuthAsync(
             Page!,
             fixture.Stack.AppBaseUrl,
-            redirect: "/runs");
+            redirect: "/runs",
+            beforeSignInClick: async page =>
+            {
+                await page.RouteAsync("**/api/v1/me", async route =>
+                {
+                    if (meFailuresInjected == 0)
+                    {
+                        meFailuresInjected++;
+                        await route.FulfillAsync(new()
+                        {
+                            Status = 503,
+                            ContentType = "text/plain",
+                            Body = "Service Unavailable"
+                        });
+                        return;
+                    }
+
+                    await route.ContinueAsync();
+                });
+            });
 
         var navBar = new NavBar(Page!);
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
