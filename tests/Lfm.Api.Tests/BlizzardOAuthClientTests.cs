@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using Lfm.Api.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
@@ -24,7 +27,11 @@ public class BlizzardOAuthClientTests
         string clientId = "test-client",
         string region = "eu",
         string redirectUri = "https://example.com/api/battlenet/callback",
-        string? oauthBaseUrl = null)
+        string? oauthBaseUrl = null,
+        string? authorizationEndpoint = null,
+        string? tokenEndpoint = null,
+        string? userInfoEndpoint = null,
+        HttpClient? httpClient = null)
     {
         var opts = MsOptions.Create(new BlizzardOptions
         {
@@ -34,13 +41,16 @@ public class BlizzardOAuthClientTests
             RedirectUri = redirectUri,
             AppBaseUrl = "https://example.com",
             OAuthBaseUrl = oauthBaseUrl,
+            AuthorizationEndpoint = authorizationEndpoint,
+            TokenEndpoint = tokenEndpoint,
+            UserInfoEndpoint = userInfoEndpoint,
         });
 
         // Use ephemeral Data Protection for unit tests (no Azure storage required).
         var dpProvider = new EphemeralDataProtectionProvider();
 
         return new BlizzardOAuthClient(
-            new HttpClient(),
+            httpClient ?? new HttpClient(),
             dpProvider,
             opts);
     }
@@ -145,6 +155,74 @@ public class BlizzardOAuthClientTests
     }
 
     [Fact]
+    public void BuildAuthorizeUrl_uses_authorization_endpoint_override_when_set()
+    {
+        var client = MakeClient(
+            authorizationEndpoint: "http://localhost:18080/bnet/authorize");
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
+
+        var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
+
+        var uri = new Uri(url);
+        Assert.Equal("localhost", uri.Host);
+        Assert.Equal(18080, uri.Port);
+        Assert.Equal("/bnet/authorize", uri.AbsolutePath);
+    }
+
+    [Fact]
+    public void BuildAuthorizeUrl_prefers_authorization_endpoint_over_OAuthBaseUrl()
+    {
+        var client = MakeClient(
+            oauthBaseUrl: "http://localhost:9999",
+            authorizationEndpoint: "http://localhost:18080/bnet/authorize");
+        var codeChallenge = BlizzardOAuthClient.ComputeCodeChallenge(client.GenerateCodeVerifier());
+
+        var url = client.BuildAuthorizeUrl(client.GenerateState(), codeChallenge);
+
+        Assert.Equal("/bnet/authorize", new Uri(url).AbsolutePath);
+    }
+
+    [Fact]
+    public async Task ExchangeCodeAsync_uses_token_endpoint_override_when_set()
+    {
+        using var handler = new RecordingHandler(
+            """{"access_token":"access-123","token_type":"Bearer","expires_in":3600}""");
+        using var httpClient = new HttpClient(handler);
+        var client = MakeClient(
+            tokenEndpoint: "http://host.docker.internal:18080/bnet/token",
+            httpClient: httpClient);
+
+        var token = await client.ExchangeCodeAsync("code-123", "verifier-123");
+
+        Assert.Equal("access-123", token.AccessToken);
+        Assert.Equal("http://host.docker.internal:18080/bnet/token", handler.RequestUri!.ToString());
+        Assert.Equal(HttpMethod.Post, handler.Method);
+        Assert.NotNull(handler.Authorization);
+        Assert.Equal("Basic", handler.Authorization!.Scheme);
+        Assert.Contains("code=code-123", handler.Body);
+        Assert.Contains("code_verifier=verifier-123", handler.Body);
+    }
+
+    [Fact]
+    public async Task GetUserInfoAsync_uses_userinfo_endpoint_override_when_set()
+    {
+        using var handler = new RecordingHandler(
+            """{"id":987654321,"battletag":"OAuthTest#1234"}""");
+        using var httpClient = new HttpClient(handler);
+        var client = MakeClient(
+            userInfoEndpoint: "http://host.docker.internal:18080/bnet/userinfo",
+            httpClient: httpClient);
+
+        var user = await client.GetUserInfoAsync("access-123");
+
+        Assert.Equal(987654321, user.Id);
+        Assert.Equal("OAuthTest#1234", user.BattleTag);
+        Assert.Equal("http://host.docker.internal:18080/bnet/userinfo", handler.RequestUri!.ToString());
+        Assert.Equal("Bearer", handler.Authorization!.Scheme);
+        Assert.Equal("access-123", handler.Authorization.Parameter);
+    }
+
+    [Fact]
     public void ProtectLoginState_then_UnprotectLoginState_round_trips_without_redirect()
     {
         var client = MakeClient();
@@ -197,5 +275,31 @@ public class BlizzardOAuthClientTests
         const string expected = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 
         Assert.Equal(expected, BlizzardOAuthClient.ComputeCodeChallenge(verifier));
+    }
+
+    private sealed class RecordingHandler(string responseJson) : HttpMessageHandler, IDisposable
+    {
+        public Uri? RequestUri { get; private set; }
+        public HttpMethod? Method { get; private set; }
+        public AuthenticationHeaderValue? Authorization { get; private set; }
+        public string Body { get; private set; } = string.Empty;
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            RequestUri = request.RequestUri;
+            Method = request.Method;
+            Authorization = request.Headers.Authorization;
+            if (request.Content is not null)
+            {
+                Body = await request.Content.ReadAsStringAsync(cancellationToken);
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseJson, Encoding.UTF8, "application/json"),
+            };
+        }
     }
 }
