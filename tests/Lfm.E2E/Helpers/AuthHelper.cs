@@ -40,12 +40,13 @@ public static class AuthHelper
     public static async Task<IBrowserContext> OAuthAuthenticatedContextAsync(
         IBrowser browser,
         string appBaseUrl,
-        string redirect = "/runs")
+        string redirect = "/runs",
+        Func<IPage, Task>? beforeSignInClick = null)
     {
         var context = await browser.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await AuthenticateThroughOAuthAsync(page, appBaseUrl, redirect);
+        await AuthenticateThroughOAuthAsync(page, appBaseUrl, redirect, beforeSignInClick);
         await page.CloseAsync();
 
         return context;
@@ -54,13 +55,20 @@ public static class AuthHelper
     public static async Task AuthenticateThroughOAuthAsync(
         IPage page,
         string appBaseUrl,
-        string redirect = "/runs")
+        string redirect = "/runs",
+        Func<IPage, Task>? beforeSignInClick = null)
     {
         var loginUrl = $"{appBaseUrl}/login?redirect={Uri.EscapeDataString(redirect)}";
         await page.GotoAsync(loginUrl, new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "Sign in with Battle.net" })
-            .ClickAsync();
+        // Drives the real login/callback path; shortcut auth remains in AuthenticatePageAsync.
+        var signInButton = page.GetByRole(AriaRole.Button, new() { Name = "Sign in with Battle.net" });
+        await Assertions.Expect(signInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
+
+        if (beforeSignInClick is not null)
+            await beforeSignInClick(page);
+
+        await signInButton.ClickAsync();
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Continue" })
             .ClickAsync(new() { Timeout = 15000 });
