@@ -30,6 +30,7 @@
         <button type="button" class="dismiss" aria-label="Dismiss">×</button>
     </div>
     <script src="js/lfm-interop.js"></script>
+    <script src="js/web-vitals.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 

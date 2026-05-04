@@ -102,7 +102,10 @@ jobs:
         env:
           API_HOSTNAME: ${{ vars.API_HOSTNAME }}
         run: |
-          jq --arg url "https://${API_HOSTNAME}" '.ApiBaseUrl = $url' \
+          jq --arg url "https://${API_HOSTNAME}" \
+            '.ApiBaseUrl = $url
+             | .Diagnostics.WebVitalsEnabled = true
+             | .Diagnostics.WebVitalsSampleRate = 1.0' \
             ./publish/app/wwwroot/appsettings.json > tmp.json \
             && mv tmp.json ./publish/app/wwwroot/appsettings.json
           rm -f ./publish/app/wwwroot/appsettings.json.br \

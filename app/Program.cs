@@ -108,4 +108,20 @@ catch
     // Keep the ThemeService default (Dark).
 }
 
+try
+{
+    var diagnostics = builder.Configuration.GetSection("Diagnostics");
+    var endpoint = new Uri(new Uri(apiBaseUrl), "api/v1/diagnostics/web-vitals").ToString();
+    await js.InvokeVoidAsync("lfmStartWebVitals", new
+    {
+        enabled = diagnostics.GetValue("WebVitalsEnabled", false),
+        sampleRate = diagnostics.GetValue("WebVitalsSampleRate", 0.0),
+        endpoint
+    });
+}
+catch
+{
+    // Diagnostics must never block app startup.
+}
+
 await host.RunAsync();
