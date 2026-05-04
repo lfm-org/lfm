@@ -67,31 +67,10 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
     [Fact]
     public async Task ProductionCallback_StubbedOAuthProvider_SignsInAndLandsOnRuns()
     {
-        var loginPage = new LoginPage(Page!);
-
-        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        // 30s timeout — this is typically the first test in the suite to hit
-        // the /login page on a cold CI runner, so the Blazor WASM bootstrap +
-        // FluentUI component registration + the <fluent-button> upgrade all
-        // happen inside this wait. AuthSpec.SignIn_ClickButton_RedirectsToBattleNetOAuth
-        // hits the same forceLoad edge without completing the callback. See #45.
-        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
-
-        // Click the real sign-in button. In production this hits /api/v1/battlenet/login
-        // which redirects through the Battle.net OAuth authorize / token / userinfo
-        // endpoints. Locally, the three Blizzard endpoint overrides point at
-        // the NAV OAuth Testcontainer instead of the real provider — but the
-        // API code path (state generation, cookie protection, code exchange,
-        // userinfo fetch, raider upsert, session cookie, redirect to app) is
-        // exactly what production runs.
-        await loginPage.ClickSignInAsync();
-        await CompleteMockOAuthLoginAsync();
-
-        // Wait for the browser to land back on the app after the full OAuth
-        // redirect chain. The default post-login redirect is /runs.
-        await Assertions.Expect(Page!).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/runs(\?|$)"),
-            new() { Timeout = 30000 });
+        await AuthHelper.AuthenticateThroughOAuthAsync(
+            Page!,
+            fixture.Stack.AppBaseUrl,
+            redirect: "/runs");
 
         // Assert the user is signed in — the Sign Out button is only rendered
         // inside <AuthorizeView><Authorized>, so its presence proves the auth
@@ -106,11 +85,6 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
     [Fact]
     public async Task ProductionCallback_TransientMe503AfterCallback_RetriesAndShowsSignedIn()
     {
-        var loginPage = new LoginPage(Page!);
-
-        await loginPage.GotoAsync(fixture.Stack.AppBaseUrl);
-        await Assertions.Expect(loginPage.SignInButton).ToBeVisibleAsync(new() { Timeout = 30000 });
-
         var meFailuresInjected = 0;
         await Page!.RouteAsync("**/api/v1/me", async route =>
         {
@@ -129,20 +103,13 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
             await route.ContinueAsync();
         });
 
-        await loginPage.ClickSignInAsync();
-        await CompleteMockOAuthLoginAsync();
-        await Assertions.Expect(Page!).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(@"/runs(\?|$)"),
-            new() { Timeout = 30000 });
+        await AuthHelper.AuthenticateThroughOAuthAsync(
+            Page!,
+            fixture.Stack.AppBaseUrl,
+            redirect: "/runs");
 
         var navBar = new NavBar(Page!);
         await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
         Assert.Equal(1, meFailuresInjected);
-    }
-
-    private async Task CompleteMockOAuthLoginAsync()
-    {
-        await Page!.GetByRole(AriaRole.Button, new() { Name = "Continue" })
-            .ClickAsync(new() { Timeout = 15000 });
     }
 }
