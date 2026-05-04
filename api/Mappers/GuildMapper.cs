@@ -70,14 +70,7 @@ internal static class GuildMapper
         GuildSettingsDto? settings = null;
         if (permissions.IsAdmin)
         {
-            var rankPerms = (doc.RankPermissions ?? Array.Empty<GuildRankPermission>())
-                .Select(rp => new GuildRankPermissionDto(
-                    Rank: rp.Rank,
-                    CanCreateGuildRuns: rp.CanCreateGuildRuns,
-                    CanSignupGuildRuns: rp.CanSignupGuildRuns,
-                    CanDeleteGuildRuns: rp.CanDeleteGuildRuns))
-                .ToList();
-            settings = new GuildSettingsDto(RankPermissions: rankPerms);
+            settings = new GuildSettingsDto(RankPermissions: MapRankPermissions(doc));
         }
 
         return new GuildDto(
@@ -93,5 +86,28 @@ internal static class GuildMapper
         if (doc.BlizzardRosterFetchedAt is null) return false;
         if (!DateTimeOffset.TryParse(doc.BlizzardRosterFetchedAt, out var fetchedAt)) return false;
         return DateTimeOffset.UtcNow - fetchedAt < TimeSpan.FromHours(1);
+    }
+
+    private static IReadOnlyList<GuildRankPermissionDto> MapRankPermissions(GuildDocument doc)
+    {
+        var storedPermissions = doc.RankPermissions ?? Array.Empty<GuildRankPermission>();
+        var rosterRanks = doc.BlizzardRosterRaw?.Members?.Select(m => m.Rank) ?? [];
+        var ranks = storedPermissions
+            .Select(p => p.Rank)
+            .Concat(rosterRanks)
+            .Distinct()
+            .Order();
+
+        return ranks
+            .Select(rank =>
+            {
+                var stored = storedPermissions.FirstOrDefault(p => p.Rank == rank);
+                return new GuildRankPermissionDto(
+                    Rank: rank,
+                    CanCreateGuildRuns: stored?.CanCreateGuildRuns ?? rank == 0,
+                    CanSignupGuildRuns: stored?.CanSignupGuildRuns ?? true,
+                    CanDeleteGuildRuns: stored?.CanDeleteGuildRuns ?? rank == 0);
+            })
+            .ToList();
     }
 }
