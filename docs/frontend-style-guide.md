@@ -86,7 +86,7 @@ the rendered markup contains the intended heading element.
 | Purpose | Semantic element and visual style |
 | --- | --- |
 | Route title | One rendered `<h1>` per routable page, styled as `Typography.H1` or equivalent |
-| Product mark / compact page brand | Non-heading text unless it is the page title; style like `Typography.H3` |
+| Product mark / compact page brand | Native non-heading text, or a component whose rendered markup is proven not to be a heading, styled like `Typography.H3`; use a heading-rendering wrapper only when the mark is the page title |
 | Card or section title | Native heading at the next valid level, styled like `Typography.H4` or `Typography.H5` |
 | Body copy | `Typography.Body` or default `FluentLabel` |
 | Metadata / helper text | `--neutral-foreground-hint-rest`, usually `0.85em` to `0.9em` |
@@ -134,8 +134,8 @@ through text or another non-color cue.
 | Domain cue | Visual treatment | Required non-color cue |
 | --- | --- | --- |
 | Character class | `WowClasses.GetColor(classId)` as a row/card side accent or compact text chip | Character name plus class/spec text |
-| Dungeon run kind | `#0070dd` side accent | Run-kind label or role-composition context |
-| Raid run kind | `#1eff00` side accent | Run-kind label or role-composition context |
+| Dungeon run kind | `#0070dd` side accent | Explicit dungeon label, icon with accessible name, or row/card accessible name |
+| Raid run kind | `#1eff00` side accent | Explicit raid label, icon with accessible name, or row/card accessible name |
 | Mythic / Mythic+ difficulty | `#ff8000` filled difficulty pill | Difficulty label inside the pill |
 | Heroic difficulty | `#a335ee` filled difficulty pill | Difficulty label inside the pill |
 | Normal / LFR difficulty | Neutral outline pill | Difficulty label inside the pill |
