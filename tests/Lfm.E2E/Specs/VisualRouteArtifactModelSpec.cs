@@ -28,7 +28,8 @@ public class VisualRouteArtifactModelSpec
             VisualAccessMode.Authenticated,
             VisualAnonymousExpectation.RedirectToLogin,
             "/login?redirect=%2Fruns%2Fe2e-run-001",
-            "runs-detail-authenticated");
+            "runs-detail-authenticated",
+            _ => Task.CompletedTask);
 
         var relativePath = VisualRouteArtifactPaths.ScreenshotRelativePath(variant, viewport, state);
 
