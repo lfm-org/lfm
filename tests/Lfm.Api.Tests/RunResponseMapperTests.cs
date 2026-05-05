@@ -57,14 +57,50 @@ public class RunResponseMapperTests
             {
                 CharacterId = "eu-silvermoon-arthas",
                 SpecId = 71,
+            },
+            MakeCharacterEntry("entry-peer", "Jaina", "bnet-peer") with
+            {
+                CharacterId = "eu-silvermoon-jaina",
+                SpecId = 62,
             }
         ]);
 
         var dto = RunResponseMapper.ToDetail(doc, "bnet-current");
 
-        var character = Assert.Single(dto.RunCharacters);
-        Assert.Equal("eu-silvermoon-arthas", character.CharacterId);
-        Assert.Equal(71, character.SpecId);
+        var own = Assert.Single(dto.RunCharacters, c => c.IsCurrentUser);
+        Assert.Equal("eu-silvermoon-arthas", own.CharacterId);
+        Assert.Equal(71, own.SpecId);
+
+        var peer = Assert.Single(dto.RunCharacters, c => !c.IsCurrentUser);
+        Assert.Null(peer.CharacterId);
+        Assert.Null(peer.SpecId);
+    }
+
+    [Fact]
+    public void ToSummary_Projects_CharacterId_And_SpecId_For_Current_User_Only()
+    {
+        var doc = MakeRunDoc(runCharacters: [
+            MakeCharacterEntry("entry-own", "Arthas", "bnet-current") with
+            {
+                CharacterId = "eu-silvermoon-arthas",
+                SpecId = 71,
+            },
+            MakeCharacterEntry("entry-peer", "Jaina", "bnet-peer") with
+            {
+                CharacterId = "eu-silvermoon-jaina",
+                SpecId = 62,
+            }
+        ]);
+
+        var dto = RunResponseMapper.ToSummary(doc, "bnet-current");
+
+        var own = Assert.Single(dto.RunCharacters, c => c.IsCurrentUser);
+        Assert.Equal("eu-silvermoon-arthas", own.CharacterId);
+        Assert.Equal(71, own.SpecId);
+
+        var peer = Assert.Single(dto.RunCharacters, c => !c.IsCurrentUser);
+        Assert.Null(peer.CharacterId);
+        Assert.Null(peer.SpecId);
     }
 
     private static RunDocument MakeRunDoc(IReadOnlyList<RunCharacterEntry> runCharacters) =>

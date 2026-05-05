@@ -30,11 +30,11 @@ Do not port these as-is:
 
 ## Target File Map
 
-- `shared/Lfm.Contracts/Characters/CharacterDto.cs` - extend signup-option characters with available specialization choices.
-- `shared/Lfm.Contracts/Runs/RunCharacterDto.cs` - expose current signup identity/spec fields needed by the Blazor signup editor.
+- `shared/Lfm.Contracts/Characters/CharacterDto.cs` - extend signup-option characters with available specialization choices; `CharacterDto.Specializations` is a planned near-term reservation for the run signup spec selector until Task 2 consumes it.
+- `shared/Lfm.Contracts/Runs/RunCharacterDto.cs` - expose nullable current-user-only signup identity/spec fields needed by the Blazor signup editor.
 - `shared/Lfm.Contracts/Runs/RunSignupOptionsDto.cs` - continue to wrap run-scoped signup options after character DTO enrichment.
 - `api/Mappers/AccountCharacterMapper.cs` - map stored specialization summaries into character DTOs.
-- `api/Mappers/RunResponseMapper.cs` - project run signup character id and spec id for frontend consumers.
+- `api/Mappers/RunResponseMapper.cs` - project run signup character id and spec id only for the current user's roster row; peer rows must receive null.
 - `api/Runs/RunSignupOptionsService.cs` - keep guild filtering and return enriched options.
 - `api/Mappers/GuildMapper.cs` - restore correct `RequiresSetup` semantics for existing guilds.
 - `api/Functions/GuildAdminFunction.cs` - add site-admin update endpoint for arbitrary guild settings.
@@ -92,17 +92,20 @@ Do not port these as-is:
 
 - [ ] **Step 2: Write failing mapper test for current signup identity.**
 
-  Add a mapper test proving `RunResponseMapper.ToDetail` exposes `CharacterId` and `SpecId` for the current user's signup:
+  Add mapper tests proving `RunResponseMapper.ToDetail` and `ToSummary` expose
+  `CharacterId` and `SpecId` for the current user's signup and null them for
+  non-current roster rows:
 
   ```csharp
   [Fact]
   public void ToDetail_Projects_CharacterId_And_SpecId_For_Run_Characters()
   {
-      // Arrange RunDocument with RunCharacterEntry CharacterId "eu-silvermoon-arthas",
-      // SpecId 71, and RaiderBattleNetId matching currentBattleNetId.
+      // Arrange RunDocument with current-user and peer RunCharacterEntry rows.
+      // The current-user row has CharacterId "eu-silvermoon-arthas", SpecId 71,
+      // and RaiderBattleNetId matching currentBattleNetId.
       // Act RunResponseMapper.ToDetail(run, "player#1234").
-      // Assert dto.RunCharacters.Single().CharacterId == "eu-silvermoon-arthas"
-      // and dto.RunCharacters.Single().SpecId == 71.
+      // Assert the current-user dto has CharacterId "eu-silvermoon-arthas"
+      // and SpecId 71, while the peer dto has CharacterId and SpecId null.
   }
   ```
 
@@ -135,11 +138,13 @@ Do not port these as-is:
       IReadOnlyList<CharacterSpecializationDto>? Specializations = null);
   ```
 
-  Update `RunCharacterDto` so the new fields are live consumers, not reservations:
+  Update `RunCharacterDto` so the new fields are live current-user-only
+  consumers. `CharacterId` and `SpecId` are nullable and must be null for
+  non-current roster rows:
 
   ```csharp
   public sealed record RunCharacterDto(
-      string CharacterId,
+      string? CharacterId,
       string CharacterName,
       string CharacterRealm,
       int CharacterClassId,
@@ -152,7 +157,13 @@ Do not port these as-is:
       bool IsCurrentUser);
   ```
 
-  Update `AccountCharacterMapper` to fill `Specializations` from `StoredSpecializationsSummary.Specializations`. Update `RunResponseMapper.ToCharacter` to pass `character.CharacterId` and `character.SpecId`.
+  Add an XML doc-comment on `CharacterDto.Specializations` naming it as the
+  planned near-term reservation for the run signup spec selector until Task 2
+  consumes it. Update `AccountCharacterMapper` to fill `Specializations` from
+  `StoredSpecializationsSummary.Specializations`. Update
+  `RunResponseMapper.ToCharacter` to pass `character.CharacterId` and
+  `character.SpecId` only when `character.RaiderBattleNetId` matches the current
+  user; otherwise pass null.
 
 - [ ] **Step 4: Run focused API tests.**
 
@@ -252,7 +263,7 @@ Do not port these as-is:
 
 - [ ] **Step 3: Add existing-signup update behavior.**
 
-  In the panel, when the current user already has a signup and the change-character editor is closed, clicking an attendance toggle submits:
+  In the panel, when the current user already has a signup and the change-character editor is closed, clicking an attendance toggle submits. Treat `CurrentSignup.CharacterId` and `CurrentSignup.SpecId` as expected-present only when `CurrentSignup.IsCurrentUser` is true; they are intentionally null on peer roster rows.
 
   ```csharp
   new SignupRequest(
@@ -265,7 +276,7 @@ Do not port these as-is:
 
 - [ ] **Step 4: Add change-character and spec selection.**
 
-  Show a compact current-signup row with character name, spec icon when available, and a change-character button. When opened, show character select, spec select populated from `CharacterDto.Specializations`, and a back button. Default to the current signup character if available; otherwise default to `/api/v1/me` selected character; otherwise first eligible option.
+  Show a compact current-signup row with character name, spec icon when available, and a change-character button. When opened, show character select, spec select populated from `CharacterDto.Specializations`, consuming the Task 1 near-term reservation, and a back button. Default to the current signup character if available; otherwise default to `/api/v1/me` selected character; otherwise first eligible option.
 
 - [ ] **Step 5: Add cancel confirmation.**
 
@@ -841,4 +852,4 @@ Each PR should stay under the guidance thresholds where possible. If a task grow
 - Spec coverage: covers old signup edit/change-character/spec/cancel flow, character sort/page/redirect, unsaved changes, guild setup guard, guild home editor, site-admin cross-guild admin, selected-character account menu, and runs pagination continuation.
 - Intentional gaps: `/login/success` is excluded because current auth callback does not need it; old run manual sort is excluded because current horizon grouping is the better primary model; old React/MUI primitives are translated into Fluent UI and focused Blazor components.
 - Placeholder scan: no placeholder tasks remain; every task has files, tests, commands, and expected outcomes.
-- Type consistency: contract additions are named consistently across API, app-core, and app tasks: `CharacterSpecializationDto`, `CharacterDto.Specializations`, `RunCharacterDto.CharacterId`, `RunCharacterDto.SpecId`, `IGuildClient.GetAdminAsync`, and `IGuildClient.UpdateAdminAsync`.
+- Type consistency: contract additions are named consistently across API, app-core, and app tasks: `CharacterSpecializationDto`, `CharacterDto.Specializations`, nullable current-user-only `RunCharacterDto.CharacterId`, nullable current-user-only `RunCharacterDto.SpecId`, `IGuildClient.GetAdminAsync`, and `IGuildClient.UpdateAdminAsync`.

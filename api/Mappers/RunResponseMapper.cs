@@ -51,17 +51,20 @@ internal static class RunResponseMapper
 
     private static RunCharacterDto ToCharacter(
         RunCharacterEntry character,
-        string currentBattleNetId) =>
-        new(
-            CharacterId: character.CharacterId,
+        string currentBattleNetId)
+    {
+        var isCurrentUser = character.RaiderBattleNetId == currentBattleNetId;
+        return new RunCharacterDto(
+            CharacterId: isCurrentUser ? character.CharacterId : null,
             CharacterName: character.CharacterName,
             CharacterRealm: character.CharacterRealm,
             CharacterClassId: character.CharacterClassId,
             CharacterClassName: character.CharacterClassName,
             DesiredAttendance: character.DesiredAttendance,
             ReviewedAttendance: character.ReviewedAttendance,
-            SpecId: character.SpecId,
+            SpecId: isCurrentUser ? character.SpecId : null,
             SpecName: character.SpecName,
             Role: character.Role,
-            IsCurrentUser: character.RaiderBattleNetId == currentBattleNetId);
+            IsCurrentUser: isCurrentUser);
+    }
 }
