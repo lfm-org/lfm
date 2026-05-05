@@ -143,7 +143,10 @@ public class GuildPagesTests : ComponentTestBase
         var cut = Render<GuildPage>();
 
         cut.WaitForAssertion(() =>
-            Assert.Contains(Loc("guild.rankSyncStale"), cut.Markup));
+        {
+            Assert.Contains(Loc("guild.chip.rankSyncStale"), cut.Markup);
+            Assert.Contains(Loc("guild.rankSyncStale"), cut.Markup);
+        });
     }
 
     [Fact]
@@ -189,6 +192,47 @@ public class GuildPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
             Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
         Assert.DoesNotContain(Loc("unsavedChanges.title"), cut.Markup);
+    }
+
+    [Fact]
+    public void GuildPage_Setup_Query_Explanation_Clears_After_Initial_Setup_Save()
+    {
+        var initial = MakeGuildDto(
+            isInitialized: false,
+            requiresSetup: true,
+            canEdit: true,
+            slogan: "Old slogan");
+        var updated = MakeGuildDto(
+            isInitialized: true,
+            requiresSetup: false,
+            canEdit: true,
+            slogan: "Ready slogan");
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(initial);
+        client.Setup(c => c.UpdateAsync(It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updated);
+        Services.AddSingleton(client.Object);
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/guild?setup=required");
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guild.setupRequiredExplanation"), cut.Markup));
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.settings.save"), StringComparison.Ordinal));
+        saveButton.Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.UpdateAsync(
+                It.IsAny<UpdateGuildRequest>(),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+        cut.WaitForAssertion(() =>
+            Assert.DoesNotContain(Loc("guild.setupRequiredExplanation"), cut.Markup));
     }
 
     // ── GuildAdminPage ───────────────────────────────────────────────────────

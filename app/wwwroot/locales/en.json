@@ -245,7 +245,7 @@
     "guild.chip.editable": "Editable",
     "guild.chip.readOnly": "Read-only",
     "guild.chip.rankSyncFresh": "Rank sync fresh",
-    "guild.chip.rankSyncNotConfigured": "Rank sync not configured yet",
+    "guild.chip.rankSyncStale": "Rank sync stale",
     "guild.chip.members": "{0} members",
     "guild.chip.ranksDetected": "{0} ranks detected",
     "guild.chip.canCreate": "You can create guild runs",
