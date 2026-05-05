@@ -1,0 +1,40 @@
+@if (Open)
+{
+    <dialog class="confirm-dialog"
+            open
+            role="alertdialog"
+            aria-labelledby="@TitleId"
+            aria-describedby="@BodyId">
+        <div class="confirm-dialog__surface">
+            <h2 id="@TitleId" class="confirm-dialog__title">@Title</h2>
+            <p id="@BodyId" class="confirm-dialog__body">@Body</p>
+            <div class="confirm-dialog__actions">
+                <FluentButton Appearance="Appearance.Accent"
+                              OnClick="@OnConfirm"
+                              Disabled="@ConfirmDisabled">
+                    @ConfirmText
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Outline"
+                              OnClick="@OnCancel"
+                              Disabled="@ConfirmDisabled">
+                    @CancelText
+                </FluentButton>
+            </div>
+        </div>
+    </dialog>
+}
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Body { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ConfirmText { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string CancelText { get; set; } = string.Empty;
+    [Parameter] public bool ConfirmDisabled { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private readonly string _id = Guid.NewGuid().ToString("N");
+    private string TitleId => $"confirm-dialog-title-{_id}";
+    private string BodyId => $"confirm-dialog-body-{_id}";
+}
