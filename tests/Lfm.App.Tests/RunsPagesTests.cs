@@ -6,6 +6,7 @@ using Bunit.TestDoubles;
 using AngleSharp.Dom;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Lfm.App.Components;
 using Moq;
 using Lfm.App.Components.Runs;
 using Lfm.App.Pages;
@@ -813,6 +814,61 @@ public class RunsPagesTests : ComponentTestBase
             Assert.DoesNotContain(
                 cut.FindAll("fluent-button"),
                 button => button.TextContent.Trim() == Loc("runs.signup.cancel")));
+    }
+
+    [Theory]
+    [InlineData("onclose")]
+    [InlineData("oncancel")]
+    public void ConfirmDialog_Native_Dismiss_Notifies_Cancel_And_Allows_Reopen(string nativeEventName)
+    {
+        var dialogModule = JSInterop.SetupModule("./js/dialog.js");
+        var open = true;
+        var cancelCount = 0;
+        var cut = Render<ConfirmDialog>(parameters => parameters
+            .Add(p => p.Open, open)
+            .Add(p => p.Title, "Cancel signup")
+            .Add(p => p.Body, "Remove this signup?")
+            .Add(p => p.ConfirmText, "Remove")
+            .Add(p => p.CancelText, "Keep signup")
+            .Add(p => p.OnCancel, EventCallback.Factory.Create(this, () =>
+            {
+                cancelCount++;
+                open = false;
+            })));
+
+        cut.WaitForAssertion(() => dialogModule.VerifyInvoke("showModal"));
+
+        cut.Find("dialog.confirm-dialog").TriggerEvent(nativeEventName, EventArgs.Empty);
+
+        Assert.False(open);
+        Assert.Equal(1, cancelCount);
+
+        cut.Render(parameters => parameters.Add(p => p.Open, open));
+        open = true;
+        cut.Render(parameters => parameters.Add(p => p.Open, open));
+
+        cut.WaitForAssertion(() => dialogModule.VerifyInvoke("showModal", 2));
+    }
+
+    [Fact]
+    public void ConfirmDialog_Prefers_Safe_Action_For_Initial_Focus()
+    {
+        JSInterop.SetupModule("./js/dialog.js");
+        var cut = Render<ConfirmDialog>(parameters => parameters
+            .Add(p => p.Open, true)
+            .Add(p => p.Title, "Cancel signup")
+            .Add(p => p.Body, "Remove this signup?")
+            .Add(p => p.ConfirmText, "Remove")
+            .Add(p => p.CancelText, "Keep signup"));
+
+        var buttons = cut.FindAll("fluent-button").ToList();
+        var confirmButton = buttons.Single(button => button.TextContent.Contains("Remove", StringComparison.Ordinal));
+        var cancelButton = buttons.Single(button => button.TextContent.Contains("Keep signup", StringComparison.Ordinal));
+        var confirmIndex = buttons.IndexOf(confirmButton);
+        var cancelIndex = buttons.IndexOf(cancelButton);
+
+        Assert.True(cancelIndex < confirmIndex || cancelButton.HasAttribute("autofocus"));
+        Assert.False(confirmButton.HasAttribute("autofocus"));
     }
 
     [Fact]
