@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Text.Json;
 using Lfm.E2E.Helpers;
 using Lfm.E2E.Infrastructure;
 using Xunit;
@@ -109,14 +110,43 @@ public class VisualRouteArtifactModelSpec
                     Screenshot: "visual-routes/default/desktop/landing.png",
                     Status: "captured",
                     SkipReason: null),
+                new VisualRouteArtifactEntry(
+                    Route: "/runs",
+                    State: "runs",
+                    AccessMode: "public",
+                    AnonymousExpectation: "redirect-to-login",
+                    Viewport: "mobile",
+                    Width: 390,
+                    Height: 844,
+                    Variant: "dark",
+                    Url: "http://localhost/runs",
+                    Screenshot: "visual-routes/dark/mobile/runs.png",
+                    Status: "captured",
+                    SkipReason: "not eligible"),
             };
 
             await VisualRouteArtifactWriter.WriteIndexAsync(outputRoot, entries);
 
             var indexPath = Path.Combine(outputRoot, "artifacts", "e2e-results", "visual-routes", "index.json");
             var json = await File.ReadAllTextAsync(indexPath);
-            Assert.Contains("\"route\": \"/\"", json);
-            Assert.Contains("\"status\": \"captured\"", json);
+            using var document = JsonDocument.Parse(json);
+
+            var root = document.RootElement;
+            Assert.Equal(2, root.GetProperty("count").GetInt32());
+            Assert.False(root.TryGetProperty("generatedAtUtc", out _));
+
+            var writtenEntries = root.GetProperty("entries");
+            Assert.Equal(2, writtenEntries.GetArrayLength());
+
+            Assert.Equal("dark", writtenEntries[0].GetProperty("variant").GetString());
+            Assert.Equal("mobile", writtenEntries[0].GetProperty("viewport").GetString());
+            Assert.Equal("runs", writtenEntries[0].GetProperty("state").GetString());
+            Assert.Equal("not eligible", writtenEntries[0].GetProperty("skipReason").GetString());
+
+            Assert.Equal("default", writtenEntries[1].GetProperty("variant").GetString());
+            Assert.Equal("desktop", writtenEntries[1].GetProperty("viewport").GetString());
+            Assert.Equal("landing", writtenEntries[1].GetProperty("state").GetString());
+            Assert.False(writtenEntries[1].TryGetProperty("skipReason", out _));
         }
         finally
         {
