@@ -57,6 +57,9 @@
       <SecurityPolicyUrl Condition="'$(SecurityPolicyUrl)' == ''">https://example.com/SECURITY.md</SecurityPolicyUrl>
       <ApiHostname Condition="'$(ApiHostname)' == ''">$(API_HOSTNAME)</ApiHostname>
       <ApiHostname Condition="'$(ApiHostname)' == ''">api.localhost</ApiHostname>
+      <AssetVersion Condition="'$(AssetVersion)' == ''">$(APP_ASSET_VERSION)</AssetVersion>
+      <AssetVersion Condition="'$(AssetVersion)' == ''">$(GITHUB_SHA)</AssetVersion>
+      <AssetVersion Condition="'$(AssetVersion)' == ''">dev</AssetVersion>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -85,6 +88,7 @@
 
     <Exec Command="bash -c &quot;sed \
         -e 's|{{API_HOSTNAME}}|$(ApiHostname)|g' \
+        -e 's|{{ASSET_VERSION}}|$(AssetVersion)|g' \
         '$(IndexHtmlSource)' &gt; '$(IndexHtmlDest)'&quot;"
           Condition="Exists('$(IndexHtmlSource)')" />
   </Target>
