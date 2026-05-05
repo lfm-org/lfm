@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -54,6 +56,20 @@ public class GuildAdminFunctionTests
         var httpContext = new DefaultHttpContext();
         if (guildId is not null)
             httpContext.Request.QueryString = new QueryString($"?guildId={guildId}");
+        return httpContext.Request;
+    }
+
+    private static HttpRequest MakePatchRequest(string? guildId, object body, string? ifMatch = null)
+    {
+        var json = JsonSerializer.Serialize(body);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Method = HttpMethods.Patch;
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        httpContext.Request.ContentType = "application/json";
+        if (guildId is not null)
+            httpContext.Request.QueryString = new QueryString($"?guildId={guildId}");
+        if (ifMatch is not null)
+            httpContext.Request.Headers.IfMatch = ifMatch;
         return httpContext.Request;
     }
 
@@ -171,6 +187,85 @@ public class GuildAdminFunctionTests
         Assert.Equal(404, notFound.StatusCode);
         var problem = Assert.IsType<ProblemDetails>(notFound.Value);
         Assert.Equal("https://github.com/lfm-org/lfm/errors#guild-not-found", problem.Type);
+    }
+
+    [Fact]
+    public async Task PatchV1_Updates_ArbitraryGuild_WhenCallerIsSiteAdmin()
+    {
+        var principal = MakePrincipal("admin-1");
+        var guildDoc = MakeGuildDoc("99") with
+        {
+            Setup = null,
+            ETag = "\"guild-etag-v1\"",
+        };
+        GuildDocument? captured = null;
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("admin-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guildDoc);
+        guildRepo.Setup(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), "\"guild-etag-v1\"", It.IsAny<CancellationToken>()))
+            .Callback<GuildDocument, string, CancellationToken>((doc, _, _) => captured = doc)
+            .ReturnsAsync((GuildDocument doc, string _, CancellationToken _) => doc with { ETag = "\"guild-etag-v2\"" });
+
+        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest("99", new
+        {
+            timezone = "Europe/London",
+            locale = "en-gb",
+            slogan = "Updated by site admin",
+            rankPermissions = new[]
+            {
+                new { rank = 0, canCreateGuildRuns = true, canSignupGuildRuns = true, canDeleteGuildRuns = true },
+                new { rank = 5, canCreateGuildRuns = false, canSignupGuildRuns = true, canDeleteGuildRuns = false },
+            },
+        }, "\"guild-etag-v1\"");
+
+        var result = await fn.RunV1(req, ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<GuildDto>(ok.Value);
+        Assert.NotNull(captured);
+        Assert.Equal("99", captured!.Id);
+        Assert.Equal("Europe/London", captured.Setup!.Timezone);
+        Assert.Equal("en-gb", captured.Setup.Locale);
+        Assert.False(string.IsNullOrWhiteSpace(captured.Setup.InitializedAt));
+        Assert.Equal("Updated by site admin", captured.Slogan);
+        Assert.Equal(2, captured.RankPermissions?.Count);
+        Assert.Equal("\"guild-etag-v2\"", req.HttpContext.Response.Headers.ETag.ToString());
+        guildRepo.Verify(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PatchV1_Returns403_WhenCallerIsNotSiteAdmin()
+    {
+        var principal = MakePrincipal("raider-1");
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("raider-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var guildRepo = new Mock<IGuildRepository>();
+
+        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakePatchRequest("99", new
+        {
+            timezone = "Europe/London",
+            locale = "en-gb",
+        }, "\"guild-etag-v1\"");
+
+        var result = await fn.RunV1(req, ctx, CancellationToken.None);
+
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, forbidden.StatusCode);
+        guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        guildRepo.Verify(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        guildRepo.Verify(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
 }

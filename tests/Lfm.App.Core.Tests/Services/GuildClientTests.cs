@@ -162,4 +162,69 @@ public class GuildClientTests
         Assert.True(requests[2].Headers.TryGetValues("If-Match", out var ifMatch));
         Assert.Equal("\"guild-etag-v2\"", ifMatch!.Single());
     }
+
+    // ── Admin GET/PATCH ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAdminAsync_calls_admin_url_and_returns_guild_dto()
+    {
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeGuildDto()));
+
+        var result = await client.GetAdminAsync("guild 99", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("Stormchasers", result!.Guild!.Name);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/v1/guild/admin?guildId=guild%2099", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task UpdateAdminAsync_calls_patch_admin_url_with_json_body_and_returns_guild_dto()
+    {
+        string? body = null;
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers Reborn"));
+        }));
+        var request = new UpdateGuildRequest(
+            Timezone: "Europe/London",
+            Locale: "en-gb",
+            Slogan: "Admin slogan",
+            RankPermissions: null);
+
+        var result = await client.UpdateAdminAsync("guild 99", request, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("Stormchasers Reborn", result!.Guild!.Name);
+        Assert.Equal(HttpMethod.Patch, handler.LastRequest!.Method);
+        Assert.Equal("/api/v1/guild/admin?guildId=guild%2099", handler.LastRequest.RequestUri!.PathAndQuery);
+        Assert.Equal("application/json", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
+        Assert.Contains("\"timezone\":\"Europe/London\"", body);
+        Assert.Contains("\"locale\":\"en-gb\"", body);
+        Assert.Contains("\"slogan\":\"Admin slogan\"", body);
+    }
+
+    [Fact]
+    public async Task UpdateAdminAsync_sends_etag_captured_from_admin_get_for_same_guild()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var responses = new Queue<HttpResponseMessage>();
+        var getResponse = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers"));
+        getResponse.Headers.TryAddWithoutValidation("ETag", "\"admin-guild-etag-v1\"");
+        responses.Enqueue(getResponse);
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers")));
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            return responses.Dequeue();
+        }));
+        var request = new UpdateGuildRequest("Europe/Helsinki", "fi", "slogan", null);
+
+        await client.GetAdminAsync("99", CancellationToken.None);
+        await client.UpdateAdminAsync("99", request, CancellationToken.None);
+
+        Assert.True(requests[1].Headers.TryGetValues("If-Match", out var ifMatch));
+        Assert.Equal("\"admin-guild-etag-v1\"", ifMatch!.Single());
+    }
 }
