@@ -240,6 +240,7 @@ public class GuildPagesTests : ComponentTestBase
     [Fact]
     public void GuildAdminPage_Shows_Title()
     {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
         var client = new Mock<IGuildClient>();
         Services.AddSingleton(client.Object);
 
@@ -249,8 +250,114 @@ public class GuildPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void GuildAdminPage_NonSiteAdmin_DoesNotRenderAdminEditorControls()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var client = new Mock<IGuildClient>();
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildAdminPage>();
+
+        Assert.DoesNotContain(Loc("guildAdmin.loadButton"), cut.Markup);
+        Assert.DoesNotContain(Loc("guildAdmin.settings.save"), cut.Markup);
+        client.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(c => c.GetAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(c => c.UpdateAsync(It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(c => c.UpdateAdminAsync(It.IsAny<string>(), It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void GuildAdminPage_SiteAdmin_Loads_Guild_By_Entered_GuildId()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var dto = MakeGuildDto(canEdit: true);
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>())).ReturnsAsync(dto);
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildAdminPage>();
+
+        cut.Find("#guild-admin-guild-id").Change("99");
+        var loadButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.loadButton"), StringComparison.Ordinal));
+        loadButton.Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>()), Times.Once));
+        Assert.Contains("Stormchasers", cut.Markup);
+    }
+
+    [Fact]
+    public void GuildAdminPage_Save_Uses_UpdateAdminAsync_For_Loaded_GuildId()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var initial = MakeGuildDto(canEdit: true, slogan: "Old slogan");
+        var updated = MakeGuildDto(canEdit: true, slogan: "New slogan");
+        UpdateGuildRequest? captured = null;
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(initial);
+        client.Setup(c => c.UpdateAdminAsync("99", It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<string, UpdateGuildRequest, CancellationToken>((_, request, _) => captured = request)
+            .ReturnsAsync(updated);
+        Services.AddSingleton(client.Object);
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+
+        var cut = Render<GuildAdminPage>();
+
+        cut.Find("#guild-admin-guild-id").Change("99");
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.loadButton"), StringComparison.Ordinal))
+            .Click();
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup));
+        cut.Find("#guild-slogan").Change("New slogan");
+
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.settings.save"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.UpdateAdminAsync(
+                "99",
+                It.IsAny<UpdateGuildRequest>(),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+        client.Verify(c => c.UpdateAsync(It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.NotNull(captured);
+        Assert.Equal("New slogan", captured!.Slogan);
+    }
+
+    [Fact]
+    public void GuildAdminPage_Renders_Identity_Id_Rank_And_Member_Chips_After_Load()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(canEdit: true));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildAdminPage>();
+
+        cut.Find("#guild-admin-guild-id").Change("99");
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.loadButton"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Stormchasers", cut.Markup);
+            Assert.Contains(Loc("guildAdmin.guildIdChip", "99"), cut.Markup);
+            Assert.Contains(Loc("guild.chip.rankSyncFresh"), cut.Markup);
+            Assert.Contains(Loc("guild.chip.members", 120), cut.Markup);
+            Assert.Contains(Loc("guild.chip.ranksDetected", 10), cut.Markup);
+        });
+    }
+
+    [Fact]
     public void GuildAdminPage_DirtySettings_BlocksInternalNavigation_AndLeaveContinues()
     {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
         var dto = new GuildDto(
             Guild: new GuildInfoDto(1, "Stormchasers", "Old slogan", "Silvermoon", "Alliance",
                 120, 10, null, null),
@@ -263,7 +370,7 @@ public class GuildPagesTests : ComponentTestBase
             MemberPermissions: new GuildMemberPermissionsDto(true, true, true));
 
         var client = new Mock<IGuildClient>();
-        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
+        client.Setup(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>())).ReturnsAsync(dto);
         Services.AddSingleton(client.Object);
         JSInterop.SetupModule("./js/unsavedChanges.js");
         JSInterop.SetupModule("./js/dialog.js");
@@ -271,6 +378,10 @@ public class GuildPagesTests : ComponentTestBase
 
         var cut = Render<GuildAdminPage>();
 
+        cut.Find("#guild-admin-guild-id").Change("99");
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.loadButton"), StringComparison.Ordinal))
+            .Click();
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup));
         cut.Find("#guild-slogan").Change("New slogan");

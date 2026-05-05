@@ -347,20 +347,75 @@ paths:
   /api/v1/guild/admin:
     get:
       tags: [Guild]
-      summary: Guild admin view (raw roster + rank setup).
+      summary: Site-admin guild view by guild id.
       operationId: getGuildAdmin
+      parameters:
+        - in: query
+          name: guildId
+          required: true
+          schema: { type: string }
       responses:
         '200':
           description: Admin view.
+          headers:
+            ETag:
+              description: Strong ETag mirroring the Cosmos `_etag`.
+              schema: { type: string }
           content:
             application/json:
-              schema: { type: object, additionalProperties: true }
+              schema: { $ref: '#/components/schemas/GuildDto' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
           $ref: '#/components/responses/ProblemUnauthorized'
         '403':
           $ref: '#/components/responses/ProblemForbidden'
         '404':
           $ref: '#/components/responses/ProblemNotFound'
+    patch:
+      tags: [Guild]
+      summary: Site-admin guild settings update by guild id.
+      description: |
+        Site-admin-only override for editing any guild by explicit `guildId`.
+        Uses the same request body and optimistic `If-Match` contract as
+        PATCH `/api/v1/guild`.
+      operationId: updateGuildAdmin
+      parameters:
+        - in: query
+          name: guildId
+          required: true
+          schema: { type: string }
+        - in: header
+          name: If-Match
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateGuildRequest' }
+      responses:
+        '200':
+          description: Updated admin guild view.
+          headers:
+            ETag:
+              description: Strong ETag for subsequent PATCH calls.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuildDto' }
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '412':
+          $ref: '#/components/responses/ProblemPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ProblemPreconditionRequired'
 
   # ─────────────────────────────────────────────────────────────────────────
   # Runs
@@ -966,18 +1021,22 @@ components:
       description: |
         Either a populated guild view or a `NoGuildDto` — the `guild` field
         is null in the no-guild case.
+      required: [guild, setup, settings, editor, memberPermissions]
       properties:
         guild:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/GuildInfoDto'
         setup:
+          $ref: '#/components/schemas/GuildSetupDto'
+        settings:
           nullable: true
           allOf:
-            - $ref: '#/components/schemas/GuildSetupDto'
-        rankPermissions:
-          type: array
-          items: { $ref: '#/components/schemas/GuildRankPermissionDto' }
+            - $ref: '#/components/schemas/GuildSettingsDto'
+        editor:
+          $ref: '#/components/schemas/GuildEditorDto'
+        memberPermissions:
+          $ref: '#/components/schemas/GuildMemberPermissionsDto'
 
     GuildInfoDto:
       type: object
@@ -1012,6 +1071,28 @@ components:
         canSignupGuildRuns: { type: boolean }
         canDeleteGuildRuns: { type: boolean }
 
+    GuildSettingsDto:
+      type: object
+      required: [rankPermissions]
+      properties:
+        rankPermissions:
+          type: array
+          items: { $ref: '#/components/schemas/GuildRankPermissionDto' }
+
+    GuildEditorDto:
+      type: object
+      required: [canEdit]
+      properties:
+        canEdit: { type: boolean }
+
+    GuildMemberPermissionsDto:
+      type: object
+      required: [canCreateGuildRuns, canSignupGuildRuns, canDeleteGuildRuns]
+      properties:
+        canCreateGuildRuns: { type: boolean }
+        canSignupGuildRuns: { type: boolean }
+        canDeleteGuildRuns: { type: boolean }
+
     UpdateGuildRequest:
       type: object
       properties:
@@ -1024,7 +1105,16 @@ components:
         rankPermissions:
           type: array
           nullable: true
-          items: { $ref: '#/components/schemas/GuildRankPermissionDto' }
+          items: { $ref: '#/components/schemas/UpdateGuildRankPermission' }
+
+    UpdateGuildRankPermission:
+      type: object
+      required: [rank, canCreateGuildRuns, canSignupGuildRuns, canDeleteGuildRuns]
+      properties:
+        rank: { type: integer }
+        canCreateGuildRuns: { type: boolean }
+        canSignupGuildRuns: { type: boolean }
+        canDeleteGuildRuns: { type: boolean }
 
     # ── Runs ──────────────────────────────────────────────────────────────
     RunCharacterDto:
