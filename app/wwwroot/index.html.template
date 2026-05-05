@@ -10,9 +10,9 @@
     <title>Lfm.App</title>
     <base href="/" />
     <link rel="preconnect" href="https://{{API_HOSTNAME}}" crossorigin />
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/app.css?v={{ASSET_VERSION}}" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="Lfm.App.styles.css" rel="stylesheet" />
+    <link href="Lfm.App.styles.css?v={{ASSET_VERSION}}" rel="stylesheet" />
 </head>
 
 <body>
@@ -29,8 +29,8 @@
         <a href="." class="reload">Reload</a>
         <button type="button" class="dismiss" aria-label="Dismiss">×</button>
     </div>
-    <script src="js/lfm-interop.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="js/lfm-interop.js?v={{ASSET_VERSION}}"></script>
+    <script src="_framework/blazor.webassembly.js?v={{ASSET_VERSION}}"></script>
 </body>
 
 </html>
