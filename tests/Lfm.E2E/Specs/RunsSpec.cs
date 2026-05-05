@@ -198,8 +198,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         var runsPage = new RunsPage(Page);
         await Assertions.Expect(runsPage.SaveChangesButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        // Verify the seeded character is shown in the roster on the edit page
-        await Assertions.Expect(Page.GetByText("Aelrin", new() { Exact = true }))
+        // Verify the seeded character is shown in the edit-page roster, not only in the account menu.
+        await Assertions.Expect(Page.GetByLabel("Roster for IN").GetByText("Aelrin", new() { Exact = true }))
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 

@@ -76,7 +76,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
         // inside <AuthorizeView><Authorized>, so its presence proves the auth
         // cookie the real callback set is being honoured by the Blazor client.
         var navBar = new NavBar(Page!);
-        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(navBar.AccountMenuButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
     // E2E scope: proves the browser recovers from a transient post-callback /me failure.
@@ -112,7 +112,7 @@ public class AuthCallbackSpec(AuthCallbackFixture fixture, ITestOutputHelper out
             });
 
         var navBar = new NavBar(Page!);
-        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(navBar.AccountMenuButton).ToBeVisibleAsync(new() { Timeout = 15000 });
         Assert.Equal(1, meFailuresInjected);
     }
 }

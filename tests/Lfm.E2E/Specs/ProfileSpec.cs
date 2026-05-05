@@ -79,9 +79,9 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         // must return both and the page must render one card per character.
         await Assertions.Expect(charactersPage.CharacterList)
             .ToHaveCountAsync(2, new() { Timeout = 15000 });
-        await Assertions.Expect(Page.GetByText("Aelrin", new() { Exact = true }))
+        await Assertions.Expect(charactersPage.CharacterCard("Aelrin"))
             .ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(Page.GetByText("Aelrinalt", new() { Exact = true }))
+        await Assertions.Expect(charactersPage.CharacterCard("Aelrinalt"))
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 

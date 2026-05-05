@@ -96,7 +96,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
         // timeout because Blazor WASM's <fluent-button> component upgrade can
         // lag behind the /runs navigation on a cold CI runner (see #45).
         var navBar = new NavBar(Page);
-        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(navBar.AccountMenuButton).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
     // E2E scope: proves sign-out clears the browser session and protected routes redirect.
@@ -118,7 +118,7 @@ public class AuthSpec(AuthFixture fixture, ITestOutputHelper output)
             var navBar = new NavBar(authPage);
             // Explicit 15s timeout — <fluent-button> component upgrade can lag
             // behind Blazor bootstrap on a cold CI runner (see #45).
-            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Assertions.Expect(navBar.AccountMenuButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
             // Sign out navigates to /api/battlenet/logout (forceLoad)
             // which clears the cookie and redirects to app base URL.
