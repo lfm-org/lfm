@@ -105,6 +105,7 @@ public class WowReferenceRefreshFunctionTests
 
         Assert.Equal(200, http.Response.StatusCode);
         Assert.Equal("application/x-ndjson", http.Response.ContentType);
+        Assert.Equal("private, no-store, no-transform", http.Response.Headers["Cache-Control"].ToString());
 
         var done = RequireDoneLine(lines);
         var results = done.GetProperty("response").GetProperty("results");
