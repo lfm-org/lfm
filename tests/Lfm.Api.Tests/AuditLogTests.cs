@@ -68,4 +68,26 @@ public class AuditLogTests
         Assert.Equal("failure", entry.Properties[AuditProperties.Result]);
         Assert.Equal("missing login_state cookie", entry.Properties[AuditProperties.Detail]);
     }
+
+    [Fact]
+    public void Emit_removes_line_breaks_from_user_controlled_audit_fields()
+    {
+        var logger = new TestLogger<AuditLogTests>();
+        var evt = new AuditEvent(
+            Action: "run.update",
+            ActorId: "111222333",
+            TargetId: "run-42\r\nforged=true",
+            Result: "failure",
+            Detail: "invalid\rsecond\nthird");
+
+        AuditLog.Emit(logger, evt);
+
+        var entry = Assert.Single(logger.Entries);
+        var targetId = Assert.IsType<string>(entry.Properties[AuditProperties.TargetId]);
+        var detail = Assert.IsType<string>(entry.Properties[AuditProperties.Detail]);
+        Assert.Equal("run-42 forged=true", targetId);
+        Assert.Equal("invalid second third", detail);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+    }
 }
