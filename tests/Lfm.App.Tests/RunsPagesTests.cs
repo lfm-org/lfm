@@ -131,6 +131,37 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_LoadMore_Appends_Runs()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListPageAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsListResponse([MakeSummary("run-1")], "next-token"));
+        client.Setup(c => c.ListPageAsync("next-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsListResponse([MakeSummary("run-2") with { InstanceName = "Nerub-ar Palace" }], null));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Liberation of Undermine", cut.Markup);
+            Assert.Contains(Loc("runs.loadMore"), cut.Markup);
+        });
+
+        var loadMore = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("runs.loadMore"), StringComparison.Ordinal));
+        loadMore.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            client.Verify(c => c.ListPageAsync("next-token", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Contains("Liberation of Undermine", cut.Markup);
+            Assert.Contains("Nerub-ar Palace", cut.Markup);
+            Assert.DoesNotContain(Loc("runs.loadMore"), cut.Markup);
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunListItem_Has_Accessible_Name_Combining_Instance_And_Date()
     {
         // Screen-reader users navigating the run list hear a concise aria-label

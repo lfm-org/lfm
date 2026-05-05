@@ -94,6 +94,14 @@
                             @(_showPast ? Loc["runs.hidePast"] : Loc["runs.showPast", pastCount])
                         </button>
                     }
+                    @if (!string.IsNullOrEmpty(_continuationToken))
+                    {
+                        <FluentButton Appearance="Appearance.Outline"
+                                      OnClick="@LoadMoreRuns"
+                                      Disabled="@_loadingMore">
+                            @(_loadingMore ? Loc["common.loading"] : Loc["runs.loadMore"])
+                        </FluentButton>
+                    }
                 </div>
 
                 <div class="runs-detail">
@@ -200,7 +208,9 @@
 
     private LoadingState<IReadOnlyList<RunSummaryDto>> state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Idle();
     private bool _refreshing;
+    private bool _loadingMore;
     private bool _showPast;
+    private string? _continuationToken;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
     private IReadOnlyList<CharacterDto> _signupCharacters = [];
@@ -256,8 +266,9 @@
 
         try
         {
-            var items = await RunsClient.ListAsync(CancellationToken.None);
-            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(items);
+            var page = await ListInitialRunsPageAsync();
+            _continuationToken = page.ContinuationToken;
+            state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(page.Items);
 
             if (selectedRunId != null)
             {
@@ -277,6 +288,44 @@
         finally
         {
             _refreshing = false;
+        }
+    }
+
+    private async Task<RunsListResponse> ListInitialRunsPageAsync()
+    {
+        var pageTask = RunsClient.ListPageAsync(null, CancellationToken.None);
+        if (pageTask is not null)
+        {
+            var page = await pageTask;
+            if (page is not null)
+                return page;
+        }
+
+        // Backward-compatible guard for older test doubles or alternate
+        // clients that still implement only the pre-pagination list method.
+        var items = await RunsClient.ListAsync(CancellationToken.None);
+        return new RunsListResponse(items, null);
+    }
+
+    private async Task LoadMoreRuns()
+    {
+        if (_loadingMore || string.IsNullOrEmpty(_continuationToken))
+            return;
+
+        _loadingMore = true;
+        try
+        {
+            var page = await RunsClient.ListPageAsync(_continuationToken, CancellationToken.None);
+            _continuationToken = page.ContinuationToken;
+            if (state is LoadingState<IReadOnlyList<RunSummaryDto>>.Success s)
+            {
+                state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(
+                    s.Value.Concat(page.Items).ToList());
+            }
+        }
+        finally
+        {
+            _loadingMore = false;
         }
     }
 
