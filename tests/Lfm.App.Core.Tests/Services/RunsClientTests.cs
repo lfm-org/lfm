@@ -239,11 +239,21 @@ public class RunsClientTests
     [Fact]
     public async Task GetSignupOptionsAsync_returns_error_on_non_success_status()
     {
-        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Forbidden));
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.InternalServerError));
 
         var result = await client.GetSignupOptionsAsync("run-1", CancellationToken.None);
 
         Assert.IsType<CharactersFetchResult.Error>(result);
+    }
+
+    [Fact]
+    public async Task GetSignupOptionsAsync_returns_forbidden_on_403()
+    {
+        var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.Forbidden));
+
+        var result = await client.GetSignupOptionsAsync("run-1", CancellationToken.None);
+
+        Assert.IsType<CharactersFetchResult.Forbidden>(result);
     }
 
     [Fact]

@@ -100,6 +100,8 @@ public sealed class RunsClient(IHttpClientFactory factory) : IRunsClient
             var response = await http.GetAsync($"api/v1/runs/{Uri.EscapeDataString(runId)}/signup/options", ct);
             if (response.StatusCode == HttpStatusCode.NoContent)
                 return new CharactersFetchResult.NeedsRefresh();
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                return new CharactersFetchResult.Forbidden();
             if (!response.IsSuccessStatusCode)
                 return new CharactersFetchResult.Error();
 
