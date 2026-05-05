@@ -1,6 +1,8 @@
 @using Lfm.App.Services
 @using Lfm.Contracts.Guild
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IGuildClient GuildClient
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
 
@@ -23,10 +25,17 @@ else
 @code {
     [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
 
-    private bool _loading = true;
+    private bool _loading;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        _loading = true;
         GuildDto? dto = null;
 
         try

@@ -308,6 +308,24 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void GuildSetupGate_Does_Not_Fetch_Guild_Before_Unauthorized_Runs_Redirect()
+    {
+        this.AddAuthorization();
+        var guildClient = new Mock<IGuildClient>();
+        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(canEdit: true, requiresSetup: true, isInitialized: false));
+        Services.AddSingleton(guildClient.Object);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/runs");
+
+        var cut = Render<App>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/login?redirect=%2Fruns", new Uri(nav.Uri).PathAndQuery));
+        guildClient.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public void GuildSetupGate_Does_Not_Redirect_NonEditors()
     {
         WireAppRouteServices(MakeGuildDto(canEdit: false, requiresSetup: true, isInitialized: false));
