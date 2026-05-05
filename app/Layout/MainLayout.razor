@@ -53,7 +53,6 @@
                                           Class="account-menu-trigger"
                                           Title="@SelectedCharacterName(accountAuth.User)"
                                           aria-label="@Loc["nav.accountMenu", SelectedCharacterName(accountAuth.User)]"
-                                          aria-haspopup="menu"
                                           aria-expanded="@(_showAccountMenu ? "true" : "false")"
                                           OnClick="@ToggleAccountMenu">
                                 @if (SelectedCharacterPortraitUrl(accountAuth.User) is { } portraitUrl)
@@ -69,22 +68,20 @@
                                 <span class="account-character-name">@SelectedCharacterName(accountAuth.User)</span>
                             </FluentButton>
                             <div class="account-menu @(_showAccountMenu ? "open" : "")"
-                                 role="menu"
                                  aria-hidden="@(!_showAccountMenu)">
-                                <a class="account-menu-item" role="menuitem" href="/characters" @onclick="@CloseMenus">
+                                <a class="account-menu-item" href="/characters" @onclick="@CloseMenus">
                                     @Loc["nav.characters"]
                                 </a>
-                                <a class="account-menu-item" role="menuitem" href="/guild" @onclick="@CloseMenus">
+                                <a class="account-menu-item" href="/guild" @onclick="@CloseMenus">
                                     @Loc["nav.guild"]
                                 </a>
                                 <AuthorizeView Roles="SiteAdmin" Context="adminAccountAuth">
-                                    <a class="account-menu-item" role="menuitem" href="/admin/reference" @onclick="@CloseMenus">
+                                    <a class="account-menu-item" href="/admin/reference" @onclick="@CloseMenus">
                                         @Loc["nav.admin"]
                                     </a>
                                 </AuthorizeView>
                                 <FluentButton Appearance="Appearance.Stealth"
                                               Class="account-menu-item account-sign-out"
-                                              role="menuitem"
                                               OnClick="@HandleLogout">
                                     @Loc["nav.signOut"]
                                 </FluentButton>
