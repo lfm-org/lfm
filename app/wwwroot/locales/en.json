@@ -260,6 +260,9 @@
     "guild.error.loadFailed": "Failed to load guild data.",
 
     "guildAdmin.title": "Guild Admin",
+    "guildAdmin.guildIdLabel": "Guild ID",
+    "guildAdmin.loadButton": "Load guild",
+    "guildAdmin.guildIdChip": "Guild ID {0}",
     "guildAdmin.overrideSettings": "Override Settings",
     "guildAdmin.rankSyncStale": "Rank sync data is stale. Settings cannot be saved until rank data is refreshed.",
     "guildAdmin.members": "Members:",

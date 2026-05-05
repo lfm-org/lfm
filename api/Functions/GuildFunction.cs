@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -13,7 +12,6 @@ using Lfm.Api.Mappers;
 using Lfm.Api.Middleware;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
-using Lfm.Api.Validation;
 using Lfm.Contracts.Guild;
 
 namespace Lfm.Api.Functions;
@@ -38,9 +36,6 @@ namespace Lfm.Api.Functions;
 /// </summary>
 public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
 {
-    private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNameCaseInsensitive = true };
-
     // ------------------------------------------------------------------
     // GET /api/guild
     // ------------------------------------------------------------------
@@ -73,8 +68,7 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
 
         // Emit the Cosmos _etag so the SPA can echo it as If-Match on PATCH /guild
         // for optimistic concurrency.
-        if (!string.IsNullOrEmpty(guildDoc.ETag))
-            req.HttpContext.Response.Headers.ETag = guildDoc.ETag;
+        GuildSettingsUpdate.EmitEtag(req, guildDoc);
 
         return new OkObjectResult(GuildMapper.MapToDto(guildDoc, permissions));
     }
@@ -119,56 +113,17 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
             return Problem.Forbidden(req.HttpContext, "guild-admin-only", "Guild admin access required.");
         }
 
-        var body = await JsonSerializer.DeserializeAsync<UpdateGuildRequest>(
-            req.Body,
-            JsonOptions,
-            cancellationToken: cancellationToken);
-
-        if (body is null)
-            return Problem.BadRequest(req.HttpContext, "invalid-body", "Request body is invalid or missing.");
-
-        var validator = new UpdateGuildRequestValidator();
-        var validationResult = await validator.ValidateAsync(body, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToArray();
-            return Problem.BadRequest(
-                req.HttpContext,
-                "validation-failed",
-                "Request body failed validation.",
-                new Dictionary<string, object?> { ["errors"] = errors });
-        }
+        var (body, validationError) = await GuildSettingsUpdate.ReadValidatedRequestAsync(req, cancellationToken);
+        if (validationError is not null)
+            return validationError;
 
         var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
         if (guildDoc is null)
             return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
 
-        var updatedSetup = guildDoc.Setup is not null
-            ? guildDoc.Setup with
-            {
-                InitializedAt = guildDoc.Setup.InitializedAt ?? DateTimeOffset.UtcNow.ToString("o"),
-                Timezone = body.Timezone!,
-                Locale = body.Locale!,
-            }
-            : new GuildSetup(
-                InitializedAt: DateTimeOffset.UtcNow.ToString("o"),
-                Timezone: body.Timezone!,
-                Locale: body.Locale!);
+        var updatedDoc = GuildSettingsUpdate.Apply(guildDoc, body!);
 
-        var updatedRankPermissions = body.RankPermissions is not null
-            ? body.RankPermissions
-                .Select(rp => new GuildRankPermission(rp.Rank, rp.CanCreateGuildRuns, rp.CanSignupGuildRuns, rp.CanDeleteGuildRuns))
-                .ToList()
-            : guildDoc.RankPermissions;
-
-        var updatedDoc = guildDoc with
-        {
-            Slogan = body.Slogan ?? guildDoc.Slogan,
-            Setup = updatedSetup,
-            RankPermissions = updatedRankPermissions,
-        };
-
-        var ifMatchEtag = ResolveIfMatch(req);
+        var ifMatchEtag = GuildSettingsUpdate.ResolveIfMatch(req);
         if (ifMatchEtag is null)
             return Problem.PreconditionRequired(
                 req.HttpContext,
@@ -191,8 +146,7 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
 
         AuditLog.Emit(logger, new AuditEvent("guild.update", principal.BattleNetId, guildId, "success", null));
 
-        if (!string.IsNullOrEmpty(persisted.ETag))
-            req.HttpContext.Response.Headers.ETag = persisted.ETag;
+        GuildSettingsUpdate.EmitEtag(req, persisted);
 
         var permissions = await guildPermissions.GetEffectivePermissionsAsync(raider, cancellationToken);
         return new OkObjectResult(GuildMapper.MapToDto(persisted, permissions));
@@ -210,17 +164,4 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
         CancellationToken cancellationToken)
         => GuildUpdate(req, ctx, cancellationToken);
 
-    /// <summary>
-    /// Returns the caller's concrete <c>If-Match</c> ETag when present.
-    /// Missing, empty, and wildcard values fail the precondition contract.
-    /// </summary>
-    private static string? ResolveIfMatch(HttpRequest req)
-    {
-        if (!req.Headers.TryGetValue("If-Match", out var values))
-            return null;
-        var value = values.ToString();
-        if (string.IsNullOrWhiteSpace(value) || value == "*")
-            return null;
-        return value;
-    }
 }

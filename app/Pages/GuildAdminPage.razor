@@ -2,7 +2,7 @@
 @using Lfm.App.Services
 @using Lfm.App.Components.Guild
 @using Lfm.Contracts.Guild
-@attribute [Authorize]
+@attribute [Authorize(Roles = "SiteAdmin")]
 @inject IGuildClient GuildClient
 @inject ToastHelper Toast
 @inject IStringLocalizer Loc
@@ -11,61 +11,102 @@
 
 <PageTitle>@Loc["guildAdmin.title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.H1">@Loc["guildAdmin.title"]</FluentLabel>
+<AuthorizeView Roles="SiteAdmin">
+    <Authorized>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+            <FluentLabel Typo="Typography.H1">@Loc["guildAdmin.title"]</FluentLabel>
 
-    @if (loadError != null)
-    {
-        <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
-    }
+            <FluentCard>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextField
+                        Id="guild-admin-guild-id"
+                        Label="@Loc["guildAdmin.guildIdLabel"]"
+                        Value="@guildIdInput"
+                        ValueChanged="@(v => guildIdInput = v)"
+                        Disabled="@loading"
+                        Style="max-width:260px" />
+                    <FluentButton
+                        Type="ButtonType.Button"
+                        Appearance="Appearance.Accent"
+                        OnClick="@LoadGuildAsync"
+                        Disabled="@(loading || string.IsNullOrWhiteSpace(guildIdInput))">
+                        @Loc["guildAdmin.loadButton"]
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
 
-    @if (loading)
-    {
-        <FluentProgressRing />
-    }
+            @if (loadError != null)
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@loadError</FluentMessageBar>
+            }
 
-    @if (guildData != null && guildData.Guild != null)
-    {
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                <FluentLabel Typo="Typography.H4">@guildData.Guild.Name</FluentLabel>
-                @if (!string.IsNullOrEmpty(guildData.Guild.Slogan))
-                {
-                    <FluentLabel>@guildData.Guild.Slogan</FluentLabel>
-                }
-                <FluentLabel>@guildData.Guild.RealmName@(guildData.Guild.FactionName != null ? $" · {guildData.Guild.FactionName}" : "")</FluentLabel>
-                @if (guildData.Guild.MemberCount.HasValue)
-                {
-                    <FluentLabel>@Loc["guildAdmin.members"] @guildData.Guild.MemberCount</FluentLabel>
-                }
-            </FluentStack>
-        </FluentCard>
+            @if (loading)
+            {
+                <FluentProgressRing />
+            }
 
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.overrideSettings"]</FluentLabel>
+            @if (guildData is { Guild: not null } && loadedGuildId is not null)
+            {
+                <FluentCard>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentLabel Typo="Typography.H4">@guildData.Guild.Name</FluentLabel>
+                        @if (!string.IsNullOrEmpty(guildData.Guild.Slogan))
+                        {
+                            <FluentLabel>@guildData.Guild.Slogan</FluentLabel>
+                        }
+                        <FluentLabel>@guildData.Guild.RealmName@(guildData.Guild.FactionName != null ? $" \u00b7 {guildData.Guild.FactionName}" : "")</FluentLabel>
+                        @if (guildData.Guild.CrestEmblemUrl != null)
+                        {
+                            <img src="@guildData.Guild.CrestEmblemUrl"
+                                 alt="@Loc["guild.crestAlt"]"
+                                 class="guild-crest"
+                                 width="88"
+                                 height="88"
+                                 loading="lazy"
+                                 decoding="async" />
+                        }
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            @StatusChip(Loc["guildAdmin.guildIdChip", loadedGuildId])
+                            @StatusChip(guildData.Setup.RankDataFresh ? Loc["guild.chip.rankSyncFresh"] : Loc["guild.chip.rankSyncStale"])
+                            @if (guildData.Guild.MemberCount.HasValue)
+                            {
+                                @StatusChip(Loc["guild.chip.members", guildData.Guild.MemberCount.Value])
+                            }
+                            @if (guildData.Guild.RankCount.HasValue)
+                            {
+                                @StatusChip(Loc["guild.chip.ranksDetected", guildData.Guild.RankCount.Value])
+                            }
+                        </FluentStack>
+                    </FluentStack>
+                </FluentCard>
 
-                @if (!guildData.Setup.RankDataFresh)
-                {
-                    <FluentMessageBar Intent="MessageIntent.Error">@Loc["guildAdmin.rankSyncStale"]</FluentMessageBar>
-                }
+                <FluentCard>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                        <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.overrideSettings"]</FluentLabel>
 
-                <GuildSettingsEditor
-                    Timezone="@draftTimezone"
-                    TimezoneChanged="@(v => draftTimezone = v)"
-                    Locale="@draftLocale"
-                    LocaleChanged="@(v => draftLocale = v)"
-                    Slogan="@draftSlogan"
-                    SloganChanged="@(v => draftSlogan = v)"
-                    RankPermissions="@draftPermissions"
-                    OnPermissionChange="@HandlePermissionChange"
-                    Saving="@saving"
-                    RankDataFresh="@guildData.Setup.RankDataFresh"
-                    OnSave="@HandleSave" />
-            </FluentStack>
-        </FluentCard>
-    }
-</FluentStack>
+                        @if (!guildData.Setup.RankDataFresh)
+                        {
+                            <FluentMessageBar Intent="MessageIntent.Error">@Loc["guildAdmin.rankSyncStale"]</FluentMessageBar>
+                        }
+
+                        <GuildSettingsEditor
+                            Timezone="@draftTimezone"
+                            TimezoneChanged="@(v => draftTimezone = v)"
+                            Locale="@draftLocale"
+                            LocaleChanged="@(v => draftLocale = v)"
+                            Slogan="@draftSlogan"
+                            SloganChanged="@(v => draftSlogan = v)"
+                            RankPermissions="@draftPermissions"
+                            OnPermissionChange="@HandlePermissionChange"
+                            Saving="@saving"
+                            RankDataFresh="@guildData.Setup.RankDataFresh"
+                            OnSave="@HandleSave" />
+                    </FluentStack>
+                </FluentCard>
+            }
+        </FluentStack>
+    </Authorized>
+</AuthorizeView>
 
 @if (UnsavedGuard.IsConfirmationVisible)
 {
@@ -82,6 +123,8 @@
     private bool loading;
     private bool saving;
     private string? loadError;
+    private string guildIdInput = string.Empty;
+    private string? loadedGuildId;
     private GuildDto? guildData;
     private GuildSettingsSnapshot? savedSettingsSnapshot;
     private UnsavedChangesGuard.Registration? unsavedChangesRegistration;
@@ -91,42 +134,6 @@
     private string draftSlogan = string.Empty;
     private IReadOnlyList<UpdateGuildRankPermission> draftPermissions = [];
 
-    protected override async Task OnInitializedAsync()
-    {
-        loading = true;
-        loadError = null;
-        guildData = null;
-
-        try
-        {
-            var dto = await GuildClient.GetAsync(CancellationToken.None);
-            if (dto is null)
-            {
-                loadError = "Failed to load guild data.";
-            }
-            else
-            {
-                guildData = dto;
-                draftTimezone = dto.Setup.Timezone;
-                draftLocale = dto.Setup.Locale;
-                draftSlogan = dto.Guild?.Slogan ?? string.Empty;
-                draftPermissions = dto.Settings?.RankPermissions
-                    .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
-                    .ToList()
-                    ?? [];
-                RegisterUnsavedChangesGuard();
-            }
-        }
-        catch
-        {
-            loadError = "Failed to load guild.";
-        }
-        finally
-        {
-            loading = false;
-        }
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (unsavedChangesRegistration is not null)
@@ -134,6 +141,61 @@
             await UnsavedGuard.RefreshAsync();
         }
     }
+
+    private async Task LoadGuildAsync()
+    {
+        var requestedGuildId = guildIdInput.Trim();
+        if (string.IsNullOrWhiteSpace(requestedGuildId))
+            return;
+
+        loading = true;
+        loadError = null;
+        guildData = null;
+        loadedGuildId = null;
+        await DisposeUnsavedChangesGuardAsync();
+
+        try
+        {
+            var dto = await GuildClient.GetAdminAsync(requestedGuildId, CancellationToken.None);
+            if (dto is null)
+            {
+                loadError = Loc["guildAdmin.loadFailed"];
+            }
+            else
+            {
+                loadedGuildId = requestedGuildId;
+                ApplyGuildData(dto);
+                guildData = dto;
+                RegisterUnsavedChangesGuard();
+            }
+        }
+        catch
+        {
+            loadError = Loc["guildAdmin.loadGuildFailed"];
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ApplyGuildData(GuildDto dto)
+    {
+        draftTimezone = dto.Setup.Timezone;
+        draftLocale = dto.Setup.Locale;
+        draftSlogan = dto.Guild?.Slogan ?? string.Empty;
+        draftPermissions = dto.Settings?.RankPermissions
+            .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
+            .ToList()
+            ?? [];
+    }
+
+    private static RenderFragment StatusChip(string label) => __builder =>
+    {
+        <span style="display:inline-flex;align-items:center;border:1px solid var(--neutral-stroke-rest);border-radius:999px;padding:2px 10px;min-height:28px">
+            @label
+        </span>
+    };
 
     private void HandlePermissionChange((int Rank, string Field, bool Checked) args)
     {
@@ -149,26 +211,23 @@
 
     private async Task HandleSave()
     {
+        if (loadedGuildId is null)
+            return;
+
         saving = true;
 
         try
         {
             var request = new UpdateGuildRequest(draftTimezone, draftLocale, draftSlogan, draftPermissions);
-            var updated = await GuildClient.UpdateAsync(request, CancellationToken.None);
+            var updated = await GuildClient.UpdateAdminAsync(loadedGuildId, request, CancellationToken.None);
             if (updated is null)
             {
                 Toast.ShowError(Loc["guildAdmin.saveFailed"]);
             }
             else
             {
+                ApplyGuildData(updated);
                 guildData = updated;
-                draftTimezone = updated.Setup.Timezone;
-                draftLocale = updated.Setup.Locale;
-                draftSlogan = updated.Guild?.Slogan ?? string.Empty;
-                draftPermissions = updated.Settings?.RankPermissions
-                    .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
-                    .ToList()
-                    ?? [];
                 savedSettingsSnapshot = CurrentSettingsSnapshot();
                 await UnsavedGuard.RefreshAsync();
                 Toast.ShowSuccess(Loc["guildAdmin.saveSuccess"]);

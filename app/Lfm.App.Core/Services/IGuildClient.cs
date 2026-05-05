@@ -9,4 +9,6 @@ public interface IGuildClient
 {
     Task<GuildDto?> GetAsync(CancellationToken ct);
     Task<GuildDto?> UpdateAsync(UpdateGuildRequest request, CancellationToken ct);
+    Task<GuildDto?> GetAdminAsync(string guildId, CancellationToken ct);
+    Task<GuildDto?> UpdateAdminAsync(string guildId, UpdateGuildRequest request, CancellationToken ct);
 }
