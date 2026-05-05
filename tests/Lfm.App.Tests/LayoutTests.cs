@@ -184,6 +184,25 @@ public class LayoutTests : ComponentTestBase
     }
 
     [Fact]
+    public void MainLayout_Account_Disclosure_Does_Not_Advertise_Menu_Pattern()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            var trigger = cut.Find("fluent-button.account-menu-trigger");
+            Assert.NotEqual("menu", trigger.GetAttribute("aria-haspopup"));
+            Assert.Empty(cut.FindAll("[role='menu']"));
+            Assert.Empty(cut.FindAll("[role='menuitem']"));
+        });
+    }
+
+    [Fact]
     public void MainLayout_Keeps_Theme_Locale_Source_And_Sign_Out_Controls_With_Account_Menu()
     {
         var auth = this.AddAuthorization();
