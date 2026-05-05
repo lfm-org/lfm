@@ -1182,6 +1182,71 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_RunCards_Render_Mobile_Detail_Toggles()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto>
+            {
+                MakeSummary("run-1"),
+                MakeSummary("run-2") with { InstanceName = "Nerub-ar Palace", Difficulty = "MYTHIC" },
+            });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Tankington", classId: 1, className: "Warrior", role: "TANK", spec: "Protection"),
+            }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.NotNull(cut.Find("[data-testid='run-card-run-1']")));
+
+        var selectedToggle = cut.Find("[data-testid='run-mobile-detail-toggle-run-1']");
+        var collapsedToggle = cut.Find("[data-testid='run-mobile-detail-toggle-run-2']");
+
+        Assert.Equal("true", selectedToggle.GetAttribute("aria-expanded"));
+        Assert.Contains(Loc("runs.hideDetails"), selectedToggle.TextContent);
+        Assert.Equal("false", collapsedToggle.GetAttribute("aria-expanded"));
+        Assert.Contains(Loc("runs.showDetails"), collapsedToggle.TextContent);
+    }
+
+    [Fact]
+    public void RunsPage_Mobile_Detail_Toggle_Collapses_Selected_Run()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary("run-1") });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Tankington", classId: 1, className: "Warrior", role: "TANK", spec: "Protection"),
+            }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(client);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.hideDetails"), cut.Find("[data-testid='run-mobile-detail-toggle-run-1']").TextContent));
+
+        cut.Find("[data-testid='run-mobile-detail-toggle-run-1']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var toggle = cut.Find("[data-testid='run-mobile-detail-toggle-run-1']");
+            Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
+            Assert.Contains(Loc("runs.showDetails"), toggle.TextContent);
+            Assert.Contains(Loc("runs.selectPrompt"), cut.Find("[data-testid='run-detail-panel']").TextContent);
+        });
+        Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath);
+        client.Verify(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public void RunsPage_NotAttendingSection_RendersOutAndAwayCharacters()
     {
         var client = new Mock<IRunsClient>();
