@@ -2,6 +2,7 @@
 @page "/runs/{RunId}"
 @attribute [Authorize]
 @using Lfm.App.Components
+@using Lfm.App.Components.Runs
 @using Lfm.App.Runs
 @using Lfm.App.Services
 @using Lfm.Contracts.Characters
@@ -128,75 +129,19 @@
                                     var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
                                 }
 
-                                <div class="run-signup-panel" aria-labelledby="run-signup-heading">
-                                    <h3 id="run-signup-heading" class="run-signup-title">@Loc["runs.signup.title"]</h3>
-
-                                    @if (!string.IsNullOrEmpty(_signupError))
-                                    {
-                                        <FluentMessageBar Intent="MessageIntent.Error">@_signupError</FluentMessageBar>
-                                    }
-
-                                    @if (currentSignup is not null)
-                                    {
-                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" Style="align-items:center">
-                                            <FluentLabel>@Loc["runs.signup.signedUpAs", currentSignup.CharacterName]</FluentLabel>
-                                            <FluentButton Appearance="Appearance.Outline"
-                                                          OnClick="@CancelSignup"
-                                                          Disabled="@(_signupSubmitting || _cancelSubmitting)">
-                                                @Loc["runs.signup.cancel"]
-                                            </FluentButton>
-                                        </FluentStack>
-                                    }
-                                    else if (IsSignupClosed(selectedRun.SignupCloseTime))
-                                    {
-                                        <FluentMessageBar Intent="MessageIntent.Warning">@Loc["runs.signup.closed"]</FluentMessageBar>
-                                    }
-                                    else if (_signupOptionsLoading)
-                                    {
-                                        <div class="run-signup-status" role="status" aria-live="polite">
-                                            <FluentProgressRing Style="width:20px;height:20px" />
-                                            <span>@Loc["common.loading"]</span>
-                                        </div>
-                                    }
-                                    else if (_signupCharacters.Count == 0)
-                                    {
-                                        <FluentMessageBar Intent="MessageIntent.Info">@Loc["runs.signup.noCharacters"]</FluentMessageBar>
-                                    }
-                                    else
-                                    {
-                                        <div class="run-signup-form">
-                                            <FluentSelect Id="signup-character-select"
-                                                          Label="@Loc["runs.signup.character"]"
-                                                          TOption="string"
-                                                          Value="@(_selectedSignupCharacterId ?? string.Empty)"
-                                                          ValueChanged="@OnSignupCharacterChanged"
-                                                          Disabled="@_signupSubmitting">
-                                                @foreach (var character in _signupCharacters)
-                                                {
-                                                    var characterId = CharacterId(character);
-                                                    <FluentOption TOption="string" Value="@characterId">@CharacterLabel(character)</FluentOption>
-                                                }
-                                            </FluentSelect>
-
-                                            <div class="run-signup-attendance-field">
-                                                <span id="signup-attendance-label" class="field__label">@Loc["runs.signup.attendance"]</span>
-                                                <ToggleGroup TValue="string"
-                                                             Options="@SignupAttendanceToggleOptions"
-                                                             Value="@_selectedAttendance"
-                                                             ValueChanged="@OnSignupAttendanceChanged"
-                                                             AriaLabelledBy="signup-attendance-label"
-                                                             Disabled="@_signupSubmitting"
-                                                             Class="run-signup-attendance-toggle" />
-                                            </div>
-
-                                            <FluentButton Appearance="Appearance.Accent"
-                                                          OnClick="@SubmitSignup"
-                                                          Disabled="@(_signupSubmitting || string.IsNullOrEmpty(_selectedSignupCharacterId))">
-                                                @Loc["runs.signup.action"]
-                                            </FluentButton>
-                                        </div>
-                                    }
-                                </div>
+                                <RunSignupPanel RunId="@selectedRun.Id"
+                                                CurrentSignup="@currentSignup"
+                                                Characters="@_signupCharacters"
+                                                SignupClosed="@IsSignupClosed(selectedRun.SignupCloseTime)"
+                                                OptionsLoading="@_signupOptionsLoading"
+                                                OptionsForbidden="@_signupOptionsForbidden"
+                                                PreferredCharacterId="@_preferredSignupCharacterId"
+                                                SignupError="@_signupError"
+                                                SignupSubmitting="@_signupSubmitting"
+                                                CancelSubmitting="@_cancelSubmitting"
+                                                OnSignup="@SubmitSignup"
+                                                OnCancelConfirmed="@CancelSignup"
+                                                OnOptionsRequested="@EnsureSignupOptionsLoaded" />
 
                                 @if (selectedRun.RunCharacters.Count == 0)
                                 {
@@ -261,25 +206,11 @@
     private IReadOnlyList<CharacterDto> _signupCharacters = [];
     private bool _signupOptionsLoaded;
     private bool _signupOptionsLoading;
-    private string? _selectedSignupCharacterId;
-    private string _selectedAttendance = "IN";
+    private bool _signupOptionsForbidden;
+    private string? _preferredSignupCharacterId;
     private string? _signupError;
     private bool _signupSubmitting;
     private bool _cancelSubmitting;
-
-    private static readonly IReadOnlyList<(string Value, string LocKey)> SignupAttendanceOptions =
-    [
-        ("IN", "runs.attendance.in"),
-        ("LATE", "runs.attendance.late"),
-        ("BENCH", "runs.attendance.bench"),
-        ("AWAY", "runs.attendance.away"),
-        ("OUT", "runs.attendance.out"),
-    ];
-
-    private IReadOnlyList<(string Value, string Label)> SignupAttendanceToggleOptions =>
-        SignupAttendanceOptions
-            .Select(option => (option.Value, Loc[option.LocKey].Value))
-            .ToList();
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
@@ -367,6 +298,11 @@
                 return;
             }
 
+            if (selectedRun?.Id != detail.Id)
+            {
+                ResetSignupOptions();
+            }
+
             ApplyRunDetail(detail);
             _signupError = null;
             if (!HasCurrentUserSignup(detail) && !IsSignupClosed(detail.SignupCloseTime))
@@ -386,6 +322,7 @@
             return;
 
         _signupOptionsLoading = true;
+        _signupOptionsForbidden = false;
         _signupError = null;
         StateHasChanged();
         try
@@ -397,12 +334,12 @@
             var meTask = MeClient.GetAsync(CancellationToken.None);
             var charactersResult = await RunsClient.GetSignupOptionsAsync(runId, CancellationToken.None);
             var me = await meTask;
+            _preferredSignupCharacterId = me?.SelectedCharacterId;
 
             if (charactersResult is CharactersFetchResult.Cached cached)
             {
                 _signupCharacters = cached.Characters;
                 _signupOptionsLoaded = true;
-                SelectDefaultSignupCharacter(me?.SelectedCharacterId);
             }
             else if (charactersResult is CharactersFetchResult.NeedsRefresh)
             {
@@ -420,7 +357,12 @@
                     {
                         _signupCharacters = refreshedCached.Characters;
                         _signupOptionsLoaded = true;
-                        SelectDefaultSignupCharacter(me?.SelectedCharacterId);
+                    }
+                    else if (refreshedOptions is CharactersFetchResult.Forbidden)
+                    {
+                        _signupCharacters = [];
+                        _signupOptionsLoaded = true;
+                        _signupOptionsForbidden = true;
                     }
                     else
                     {
@@ -429,6 +371,12 @@
                         _signupError = Loc["runs.signup.charactersLoadFailed"].Value;
                     }
                 }
+            }
+            else if (charactersResult is CharactersFetchResult.Forbidden)
+            {
+                _signupCharacters = [];
+                _signupOptionsLoaded = true;
+                _signupOptionsForbidden = true;
             }
             else
             {
@@ -448,45 +396,24 @@
         }
     }
 
-    private void SelectDefaultSignupCharacter(string? selectedCharacterId)
+    private void ResetSignupOptions()
     {
-        if (_signupCharacters.Count == 0)
-        {
-            _selectedSignupCharacterId = null;
-            return;
-        }
-
-        _selectedSignupCharacterId = !string.IsNullOrEmpty(selectedCharacterId)
-                                     && _signupCharacters.Any(c => CharacterId(c) == selectedCharacterId)
-            ? selectedCharacterId
-            : CharacterId(_signupCharacters[0]);
+        _signupCharacters = [];
+        _signupOptionsLoaded = false;
+        _signupOptionsLoading = false;
+        _signupOptionsForbidden = false;
+        _preferredSignupCharacterId = null;
     }
 
-    private void OnSignupCharacterChanged(string value)
+    private async Task SubmitSignup(SignupRequest request)
     {
-        _selectedSignupCharacterId = value;
-    }
-
-    private void OnSignupAttendanceChanged(string value)
-    {
-        if (SignupAttendanceOptions.Any(o => o.Value == value))
-            _selectedAttendance = value;
-    }
-
-    private async Task SubmitSignup()
-    {
-        if (selectedRun is null || _signupSubmitting || string.IsNullOrEmpty(_selectedSignupCharacterId))
+        if (selectedRun is null || _signupSubmitting || string.IsNullOrEmpty(request.CharacterId))
             return;
 
         _signupSubmitting = true;
         _signupError = null;
         try
         {
-            var character = _signupCharacters.FirstOrDefault(c => CharacterId(c) == _selectedSignupCharacterId);
-            var enriched = await TryEnrichSignupCharacter(_selectedSignupCharacterId);
-            character = enriched ?? character;
-
-            var request = new SignupRequest(_selectedSignupCharacterId, _selectedAttendance, character?.ActiveSpecId);
             var updated = await RunsClient.SignupAsync(selectedRun.Id, request, CancellationToken.None);
             if (updated is null)
             {
@@ -503,18 +430,6 @@
         finally
         {
             _signupSubmitting = false;
-        }
-    }
-
-    private async Task<CharacterDto?> TryEnrichSignupCharacter(string characterId)
-    {
-        try
-        {
-            return await MeClient.EnrichCharacterAsync(characterId, CancellationToken.None);
-        }
-        catch
-        {
-            return null;
         }
     }
 
@@ -659,14 +574,4 @@
         return DateTimeOffset.TryParse(signupCloseTime, out var closeTime) && closeTime < DateTimeOffset.UtcNow;
     }
 
-    private static string CharacterId(CharacterDto character) =>
-        $"{character.Region.ToLowerInvariant()}-{character.Realm.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
-
-    private static string CharacterLabel(CharacterDto character)
-    {
-        var label = $"{character.Name} - {character.RealmName}";
-        return string.IsNullOrWhiteSpace(character.SpecName)
-            ? label
-            : $"{label} ({character.SpecName})";
-    }
 }

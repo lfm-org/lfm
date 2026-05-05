@@ -1,0 +1,403 @@
+@using Lfm.Contracts.Characters
+@using Lfm.Contracts.Runs
+@inject IStringLocalizer Loc
+
+<div class="run-signup-panel" aria-labelledby="run-signup-heading">
+    <h3 id="run-signup-heading" class="run-signup-title">@Loc["runs.signup.title"]</h3>
+
+    @if (!string.IsNullOrEmpty(SignupError))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@SignupError</FluentMessageBar>
+    }
+
+    @if (CurrentSignup is not null && !_editorOpen)
+    {
+        <div class="run-signup-current">
+            <div class="run-signup-current__summary">
+                <FluentLabel>@Loc["runs.signup.signedUpAs", CurrentSignup.CharacterName]</FluentLabel>
+                <span class="run-signup-current__spec">
+                    <SpecIcon SpecName="@CurrentSpecLabel" />
+                    <span>@CurrentSpecLabel</span>
+                </span>
+            </div>
+            <div class="run-signup-current__actions">
+                <FluentButton Appearance="Appearance.Outline"
+                              OnClick="@OpenEditorAsync"
+                              Disabled="@(_signupControlsDisabled || SignupClosed)">
+                    @Loc["runs.signup.changeCharacter"]
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Outline"
+                              OnClick="@ShowCancelConfirm"
+                              Disabled="@CancelSubmitting">
+                    @Loc["runs.signup.cancel"]
+                </FluentButton>
+            </div>
+        </div>
+
+        <div class="run-signup-attendance-field">
+            <span id="signup-attendance-label" class="field__label">@Loc["runs.signup.attendance"]</span>
+            <ToggleGroup TValue="string"
+                         Options="@SignupAttendanceToggleOptions"
+                         Value="@_selectedAttendance"
+                         ValueChanged="@OnAttendanceChangedAsync"
+                         AriaLabelledBy="signup-attendance-label"
+                         Disabled="@_signupControlsDisabled"
+                         Class="run-signup-attendance-toggle" />
+        </div>
+    }
+    else if (SignupClosed)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning">@Loc["runs.signup.closed"]</FluentMessageBar>
+    }
+    else if (OptionsLoading)
+    {
+        <div class="run-signup-status" role="status" aria-live="polite">
+            <FluentProgressRing Style="width:20px;height:20px" />
+            <span>@Loc["common.loading"]</span>
+        </div>
+    }
+    else if (OptionsForbidden)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning">@Loc["runs.signup.guildRankBlocked"]</FluentMessageBar>
+    }
+    else if (Characters.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Loc["runs.signup.noCharacters"]</FluentMessageBar>
+    }
+    else
+    {
+        <div class="run-signup-form">
+            <FluentSelect Id="signup-character-select"
+                          Label="@Loc["runs.signup.character"]"
+                          TOption="string"
+                          Value="@SelectedCharacterValue"
+                          ValueChanged="@OnCharacterChangedAsync"
+                          Disabled="@_signupControlsDisabled">
+                @foreach (var character in Characters)
+                {
+                    var characterId = CharacterId(character);
+                    <FluentOption TOption="string" Value="@characterId">@CharacterLabel(character)</FluentOption>
+                }
+            </FluentSelect>
+
+            <FluentSelect Id="signup-spec-select"
+                          Label="@Loc["runs.signup.spec"]"
+                          TOption="string"
+                          Value="@SelectedSpecValue"
+                          ValueChanged="@OnSpecChangedAsync"
+                          Disabled="@_signupControlsDisabled">
+                @if (SelectedSpecOptions.Count == 0)
+                {
+                    <FluentOption TOption="string" Value="">@Loc["runs.signup.unknownSpec"]</FluentOption>
+                }
+                else
+                {
+                    @foreach (var spec in SelectedSpecOptions)
+                    {
+                        <FluentOption TOption="string" Value="@spec.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                            @spec.Name
+                        </FluentOption>
+                    }
+                }
+            </FluentSelect>
+
+            <div class="run-signup-attendance-field">
+                <span id="signup-attendance-label" class="field__label">@Loc["runs.signup.attendance"]</span>
+                <ToggleGroup TValue="string"
+                             Options="@SignupAttendanceToggleOptions"
+                             Value="@_selectedAttendance"
+                             ValueChanged="@OnAttendanceChangedAsync"
+                             AriaLabelledBy="signup-attendance-label"
+                             Disabled="@_signupControlsDisabled"
+                             Class="run-signup-attendance-toggle" />
+            </div>
+
+            <div class="run-signup-form__actions">
+                @if (CurrentSignup is not null)
+                {
+                    <FluentButton Appearance="Appearance.Outline"
+                                  OnClick="@CloseEditor"
+                                  Disabled="@_signupControlsDisabled">
+                        @Loc["runs.signup.back"]
+                    </FluentButton>
+                }
+                <FluentButton Appearance="Appearance.Accent"
+                              OnClick="@SubmitAsync"
+                              Disabled="@(_signupControlsDisabled || string.IsNullOrEmpty(_selectedCharacterId))">
+                    @Loc["runs.signup.action"]
+                </FluentButton>
+            </div>
+        </div>
+    }
+
+    <ConfirmDialog Open="@_showCancelConfirm"
+                   Title="@Loc["runs.signup.cancelConfirmTitle"]"
+                   Body="@Loc["runs.signup.cancelConfirmBody"]"
+                   ConfirmText="@Loc["runs.signup.cancelConfirmConfirm"]"
+                   CancelText="@Loc["runs.signup.cancelConfirmCancel"]"
+                   ConfirmDisabled="@CancelSubmitting"
+                   OnConfirm="@ConfirmCancelAsync"
+                   OnCancel="@DismissCancelConfirm" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string RunId { get; set; } = string.Empty;
+    [Parameter] public RunCharacterDto? CurrentSignup { get; set; }
+    [Parameter] public IReadOnlyList<CharacterDto> Characters { get; set; } = [];
+    [Parameter] public bool SignupClosed { get; set; }
+    [Parameter] public bool OptionsLoading { get; set; }
+    [Parameter] public bool OptionsForbidden { get; set; }
+    [Parameter] public string? PreferredCharacterId { get; set; }
+    [Parameter] public string? SignupError { get; set; }
+    [Parameter] public bool SignupSubmitting { get; set; }
+    [Parameter] public bool CancelSubmitting { get; set; }
+    [Parameter] public EventCallback<SignupRequest> OnSignup { get; set; }
+    [Parameter] public EventCallback OnCancelConfirmed { get; set; }
+    [Parameter] public EventCallback OnOptionsRequested { get; set; }
+
+    private bool _editorOpen;
+    private bool _showCancelConfirm;
+    private string? _selectedCharacterId;
+    private int? _selectedSpecId;
+    private string _selectedAttendance = DefaultAttendance;
+    private string? _lastRunId;
+    private string? _lastSignupCharacterId;
+    private string? _lastSignupAttendance;
+    private int? _lastSignupSpecId;
+
+    private const string DefaultAttendance = "IN";
+
+    private bool _signupControlsDisabled => SignupSubmitting || CancelSubmitting;
+
+    private static readonly IReadOnlyList<(string Value, string LocKey)> SignupAttendanceOptions =
+    [
+        ("IN", "runs.attendance.in"),
+        ("LATE", "runs.attendance.late"),
+        ("BENCH", "runs.attendance.bench"),
+        ("AWAY", "runs.attendance.away"),
+        ("OUT", "runs.attendance.out"),
+    ];
+
+    private IReadOnlyList<(string Value, string Label)> SignupAttendanceToggleOptions =>
+        SignupAttendanceOptions
+            .Select(option => (option.Value, Loc[option.LocKey].Value))
+            .ToList();
+
+    private string CurrentSpecLabel =>
+        string.IsNullOrWhiteSpace(CurrentSignup?.SpecName)
+            ? Loc["runs.signup.unknownSpec"].Value
+            : CurrentSignup.SpecName;
+
+    private string SelectedCharacterValue => _selectedCharacterId ?? string.Empty;
+
+    private string SelectedSpecValue =>
+        _selectedSpecId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+
+    private CharacterDto? SelectedCharacter =>
+        Characters.FirstOrDefault(character => CharacterId(character) == _selectedCharacterId);
+
+    private IReadOnlyList<CharacterSpecializationDto> SelectedSpecOptions =>
+        GetSpecOptions(SelectedCharacter);
+
+    protected override void OnParametersSet()
+    {
+        var runChanged = _lastRunId != RunId;
+        var signupChanged = _lastSignupCharacterId != CurrentSignup?.CharacterId ||
+                            _lastSignupAttendance != CurrentSignup?.DesiredAttendance ||
+                            _lastSignupSpecId != CurrentSignup?.SpecId;
+
+        if (runChanged)
+        {
+            _editorOpen = false;
+            _showCancelConfirm = false;
+            _selectedCharacterId = null;
+            _selectedSpecId = null;
+        }
+
+        if ((runChanged || signupChanged) && !_editorOpen)
+        {
+            _selectedAttendance = CurrentSignup?.DesiredAttendance ?? DefaultAttendance;
+        }
+
+        if (_editorOpen || CurrentSignup is null)
+        {
+            EnsureCharacterSelection();
+        }
+
+        _lastRunId = RunId;
+        _lastSignupCharacterId = CurrentSignup?.CharacterId;
+        _lastSignupAttendance = CurrentSignup?.DesiredAttendance;
+        _lastSignupSpecId = CurrentSignup?.SpecId;
+    }
+
+    private async Task OpenEditorAsync()
+    {
+        _editorOpen = true;
+        EnsureCharacterSelection();
+        await OnOptionsRequested.InvokeAsync();
+    }
+
+    private void CloseEditor()
+    {
+        _editorOpen = false;
+        _selectedAttendance = CurrentSignup?.DesiredAttendance ?? DefaultAttendance;
+        EnsureCharacterSelection();
+    }
+
+    private void ShowCancelConfirm()
+    {
+        _showCancelConfirm = true;
+    }
+
+    private void DismissCancelConfirm()
+    {
+        _showCancelConfirm = false;
+    }
+
+    private async Task ConfirmCancelAsync()
+    {
+        _showCancelConfirm = false;
+        await OnCancelConfirmed.InvokeAsync();
+    }
+
+    private async Task OnCharacterChangedAsync(string value)
+    {
+        _selectedCharacterId = string.IsNullOrEmpty(value) ? null : value;
+        _selectedSpecId = DefaultSpecIdFor(SelectedCharacter);
+        await Task.CompletedTask;
+    }
+
+    private async Task OnSpecChangedAsync(string value)
+    {
+        _selectedSpecId = int.TryParse(value, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out var specId)
+            ? specId
+            : null;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnAttendanceChangedAsync(string value)
+    {
+        if (!SignupAttendanceOptions.Any(option => option.Value == value))
+            return;
+
+        if (CurrentSignup is not null && !_editorOpen)
+        {
+            if (value == CurrentSignup.DesiredAttendance)
+                return;
+
+            _selectedAttendance = value;
+            if (string.IsNullOrEmpty(CurrentSignup.CharacterId))
+                return;
+
+            await OnSignup.InvokeAsync(new SignupRequest(
+                CurrentSignup.CharacterId,
+                value,
+                CurrentSignup.SpecId));
+            return;
+        }
+
+        _selectedAttendance = value;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedCharacterId))
+            return;
+
+        await OnSignup.InvokeAsync(new SignupRequest(
+            _selectedCharacterId,
+            _selectedAttendance,
+            _selectedSpecId));
+
+        if (CurrentSignup is not null)
+        {
+            _editorOpen = false;
+        }
+    }
+
+    private void EnsureCharacterSelection()
+    {
+        if (Characters.Count == 0)
+        {
+            _selectedCharacterId = null;
+            _selectedSpecId = null;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_selectedCharacterId) ||
+            Characters.All(character => CharacterId(character) != _selectedCharacterId))
+        {
+            _selectedCharacterId = ResolveDefaultCharacterId();
+            _selectedSpecId = DefaultSpecIdFor(SelectedCharacter);
+            return;
+        }
+
+        var specOptions = SelectedSpecOptions;
+        if (_selectedSpecId is null ||
+            (specOptions.Count > 0 && specOptions.All(spec => spec.Id != _selectedSpecId)))
+        {
+            _selectedSpecId = DefaultSpecIdFor(SelectedCharacter);
+        }
+    }
+
+    private string ResolveDefaultCharacterId()
+    {
+        if (!string.IsNullOrEmpty(CurrentSignup?.CharacterId) &&
+            Characters.Any(character => CharacterId(character) == CurrentSignup.CharacterId))
+        {
+            return CurrentSignup.CharacterId;
+        }
+
+        if (!string.IsNullOrEmpty(PreferredCharacterId) &&
+            Characters.Any(character => CharacterId(character) == PreferredCharacterId))
+        {
+            return PreferredCharacterId;
+        }
+
+        return CharacterId(Characters[0]);
+    }
+
+    private static int? DefaultSpecIdFor(CharacterDto? character)
+    {
+        if (character is null)
+            return null;
+
+        if (character.Specializations is { Count: > 0 } specializations)
+        {
+            if (character.ActiveSpecId is int activeSpecId &&
+                specializations.Any(spec => spec.Id == activeSpecId))
+            {
+                return activeSpecId;
+            }
+
+            return specializations[0].Id;
+        }
+
+        return character.ActiveSpecId;
+    }
+
+    private IReadOnlyList<CharacterSpecializationDto> GetSpecOptions(CharacterDto? character)
+    {
+        if (character is null)
+            return [];
+
+        if (character.Specializations is { Count: > 0 } specializations)
+            return specializations;
+
+        return character.ActiveSpecId is int activeSpecId
+            ? [new CharacterSpecializationDto(activeSpecId, character.SpecName ?? Loc["runs.signup.unknownSpec"].Value)]
+            : [];
+    }
+
+    private static string CharacterId(CharacterDto character) =>
+        $"{character.Region.ToLowerInvariant()}-{character.Realm.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
+
+    private static string CharacterLabel(CharacterDto character)
+    {
+        var label = $"{character.Name} - {character.RealmName}";
+        return string.IsNullOrWhiteSpace(character.SpecName)
+            ? label
+            : $"{label} ({character.SpecName})";
+    }
+}
