@@ -38,7 +38,9 @@ internal sealed record VisualRouteState(
     VisualAccessMode AccessMode,
     VisualAnonymousExpectation AnonymousExpectation,
     string? ExpectedAnonymousPathAndQuery,
-    string Slug);
+    string Slug,
+    Func<IPage, Task> WaitForReadyAsync,
+    Func<IPage, string, string, Task>? PrepareAsync = null);
 
 internal sealed record VisualRouteArtifactEntry(
     string Route,
