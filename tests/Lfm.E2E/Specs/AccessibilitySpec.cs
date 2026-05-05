@@ -621,9 +621,12 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
 
     // -------------------------------------------------------------------------
     // Modal / dialog tests
-    // Note: No modal dialogs exist in the current Blazor app. Blazor WASM uses
-    // FluentUI components and inline state instead of overlay dialogs. These
-    // tests are therefore omitted. If modals are introduced in future, add:
-    //   ModalDialogs_TrapFocus and ModalDialogs_EscapeCloses here.
+    // Native dialog coverage lives with the flows that open them:
+    // - component tests cover ConfirmDialog native close/cancel events and
+    //   safe initial focus;
+    // - ProfileSpec covers the guild-admin unsaved-changes browser path;
+    // - RunsSpec covers signup cancellation.
+    // Add a generic modal-dialog E2E only when a shared dialog framework needs
+    // browser-level focus-trap or Escape behavior beyond native <dialog>.
     // -------------------------------------------------------------------------
 }
