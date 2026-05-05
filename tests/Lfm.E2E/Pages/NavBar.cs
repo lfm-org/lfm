@@ -9,8 +9,11 @@ public class NavBar(IPage page)
 {
     private readonly IPage _page = page;
 
+    public ILocator AccountMenuButton =>
+        _page.Locator(".account-menu-trigger");
+
     public ILocator SignOutButton =>
-        _page.GetByRole(AriaRole.Button, new() { Name = "Sign Out" });
+        _page.Locator(".account-menu").GetByRole(AriaRole.Button, new() { Name = "Sign Out" });
 
     public ILocator SignInLink =>
         _page.Locator("fluent-anchor[href='/login']");
@@ -31,6 +34,7 @@ public class NavBar(IPage page)
 
     public async Task ClickSignOutAsync()
     {
+        await AccountMenuButton.ClickAsync();
         await SignOutButton.ClickAsync();
     }
 }

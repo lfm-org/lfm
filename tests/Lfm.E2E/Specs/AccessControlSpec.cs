@@ -80,7 +80,7 @@ public class AccessControlSpec(AccessControlFixture fixture, ITestOutputHelper o
 
             // Verify authenticated nav is visible — confirms auth state
             var navBar = new NavBar(authPage);
-            await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync();
+            await Assertions.Expect(navBar.AccountMenuButton).ToBeVisibleAsync();
         }
         finally
         {

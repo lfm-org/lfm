@@ -180,16 +180,26 @@ public sealed class LayoutIntegritySpec(LayoutIntegrityFixture fixture, ITestOut
     {
         await SetViewportAsync(viewport);
         var page = Page!;
-        await page.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild/admin", new() { WaitUntil = WaitUntilState.NetworkIdle });
+        await AuthHelper.AuthenticatePageAsync(
+            page,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl,
+            DefaultSeed.SiteAdminBattleNetId,
+            "/guild/admin");
         await Assertions.Expect(page.GetByRole(
             AriaRole.Heading,
             new() { NameRegex = new("Guild Admin|Killan hallinta") }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
         var guildAdminPage = new GuildAdminPage(page);
+        await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
         await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 10000 });
         await guildAdminPage.SloganField.FillAsync($"E2E layout dirty {Guid.NewGuid():N}");
         await page.Keyboard.PressAsync("Tab");
         await ScanCurrentPageAsync($"/guild/admin dirty ({viewport.Name})");
+        await AuthHelper.AuthenticatePageAsync(
+            page,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
     }
 
     private async Task ScanInstancesAsync(LayoutViewport viewport)

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 
 namespace Lfm.E2E.Pages;
 
@@ -27,7 +28,7 @@ public class GuildAdminPage(IPage page)
         _page.Locator("#guild-admin-guild-id");
 
     public ILocator LoadButton =>
-        _page.GetByRole(AriaRole.Button, new() { Name = "Load guild" });
+        _page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Load guild|Lataa kilta") });
 
     public ILocator GuildName(string name) =>
         _page.GetByText(name, new() { Exact = true });
