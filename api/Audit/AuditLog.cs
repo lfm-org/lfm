@@ -37,13 +37,22 @@ public static class AuditLog
 
     public static void Emit(ILogger logger, AuditEvent evt)
     {
-        var actor = _hasher.Hash(evt.ActorId);
+        var actor = ToLogSafeValue(_hasher.Hash(evt.ActorId));
         logger.LogInformation(
             "Audit: {AuditAction} actor={AuditActorId} target={AuditTargetId} result={AuditResult} detail={AuditDetail}",
-            evt.Action,
+            ToLogSafeValue(evt.Action),
             actor,
-            evt.TargetId ?? "-",
-            evt.Result,
-            evt.Detail ?? "-");
+            ToLogSafeOptionalValue(evt.TargetId),
+            ToLogSafeValue(evt.Result),
+            ToLogSafeOptionalValue(evt.Detail));
     }
+
+    private static string ToLogSafeOptionalValue(string? value) =>
+        value is null ? "-" : ToLogSafeValue(value);
+
+    private static string ToLogSafeValue(string value) =>
+        value
+            .Replace("\r\n", " ", StringComparison.Ordinal)
+            .Replace('\r', ' ')
+            .Replace('\n', ' ');
 }
