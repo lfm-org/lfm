@@ -5,7 +5,9 @@
         class="confirm-dialog"
         role="alertdialog"
         aria-labelledby="@TitleId"
-        aria-describedby="@BodyId">
+        aria-describedby="@BodyId"
+        @onclose="HandleNativeDismissAsync"
+        @oncancel="HandleNativeDismissAsync">
     <div class="confirm-dialog__surface">
         <h2 id="@TitleId" class="confirm-dialog__title">@Title</h2>
         <p id="@BodyId" class="confirm-dialog__body">@Body</p>
@@ -17,7 +19,8 @@
             </FluentButton>
             <FluentButton Appearance="Appearance.Outline"
                           OnClick="@OnCancel"
-                          Disabled="@ConfirmDisabled">
+                          Disabled="@ConfirmDisabled"
+                          autofocus="true">
                 @CancelText
             </FluentButton>
         </div>
@@ -38,13 +41,22 @@
     private ElementReference _dialogRef;
     private IJSObjectReference? _dialogModule;
     private bool _shown;
+    private bool _dismissedNatively;
 
     private string TitleId => $"confirm-dialog-title-{_id}";
     private string BodyId => $"confirm-dialog-body-{_id}";
 
+    protected override void OnParametersSet()
+    {
+        if (!Open)
+        {
+            _dismissedNatively = false;
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (Open && !_shown)
+        if (Open && !_shown && !_dismissedNatively)
         {
             _dialogModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/dialog.js");
             await _dialogModule.InvokeVoidAsync("showModal", _dialogRef);
@@ -55,6 +67,18 @@
             await _dialogModule.InvokeVoidAsync("close", _dialogRef);
             _shown = false;
         }
+    }
+
+    private async Task HandleNativeDismissAsync()
+    {
+        if (!_shown)
+        {
+            return;
+        }
+
+        _shown = false;
+        _dismissedNatively = true;
+        await OnCancel.InvokeAsync();
     }
 
     public async ValueTask DisposeAsync()
