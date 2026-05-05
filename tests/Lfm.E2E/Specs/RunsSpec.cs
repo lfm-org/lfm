@@ -289,9 +289,29 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             .ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(runsPage.RunItem(createdRunId)).ToBeVisibleAsync(new() { Timeout = 10000 });
 
+        await Assertions.Expect(runsPage.SignupAttendanceOption("In"))
+            .ToHaveAttributeAsync("aria-checked", "true", new() { Timeout = 10000 });
+        var benchUpdate = page.WaitForResponseAsync(response =>
+            response.Url.Contains($"/api/v1/runs/{Uri.EscapeDataString(createdRunId)}/signup", StringComparison.Ordinal)
+            && response.Request.Method == "POST"
+            && response.Ok);
+        await runsPage.SignupAttendanceOption("Bench").ClickAsync();
+        await benchUpdate;
+        await Assertions.Expect(runsPage.SignupAttendanceOption("Bench"))
+            .ToHaveAttributeAsync("aria-checked", "true", new() { Timeout = 15000 });
+
+        await runsPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await Assertions.Expect(runsPage.RunItem(createdRunId)).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await runsPage.SelectRunAsync(createdRunId);
+        await Assertions.Expect(runsPage.SignupAttendanceOption("Bench"))
+            .ToHaveAttributeAsync("aria-checked", "true", new() { Timeout = 15000 });
+
         await Assertions.Expect(runsPage.CancelSignupButton)
             .ToBeVisibleAsync(new() { Timeout = 10000 });
         await runsPage.CancelSignupButton.ClickAsync();
+        await Assertions.Expect(runsPage.ConfirmCancelSignupButton)
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await runsPage.ConfirmCancelSignupButton.ClickAsync();
 
         await Assertions.Expect(runsPage.SignupButton)
             .ToBeVisibleAsync(new() { Timeout = 15000 });
