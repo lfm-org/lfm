@@ -49,7 +49,6 @@ internal static class VisualRouteArtifactWriter
             .ToArray();
 
         var index = new VisualRouteArtifactIndex(
-            GeneratedAtUtc: DateTimeOffset.UtcNow,
             Count: ordered.Length,
             Entries: ordered);
 
@@ -57,7 +56,6 @@ internal static class VisualRouteArtifactWriter
     }
 
     private sealed record VisualRouteArtifactIndex(
-        DateTimeOffset GeneratedAtUtc,
         int Count,
         IReadOnlyCollection<VisualRouteArtifactEntry> Entries);
 }
