@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
-using System.Collections.Concurrent;
 using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +37,25 @@ public class CharactersPagesTests : ComponentTestBase
             PortraitUrl: null,
             ActiveSpecId: 71,
             SpecName: "Arms");
+
+    private (Mock<IBattleNetClient> BattleNet, Mock<IMeClient> Me) RegisterCharactersPageClients(
+        IReadOnlyList<CharacterDto> chars,
+        MeResponse? meResponse = null)
+    {
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(meResponse);
+
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+        return (battleNet, me);
+    }
 
     // ── CharactersPage ────────────────────────────────────────────────────────
 
@@ -214,6 +232,120 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CharactersPage_Sorts_By_Name_When_Query_Sort_Name()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        RegisterCharactersPageClients(new List<CharacterDto>
+        {
+            MakeChar("Zed"),
+            MakeChar("Aelrin"),
+        });
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/characters?sort=name");
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var aelrinIndex = cut.Markup.IndexOf("Aelrin", StringComparison.Ordinal);
+            var zedIndex = cut.Markup.IndexOf("Zed", StringComparison.Ordinal);
+
+            Assert.True(aelrinIndex >= 0, "Aelrin should be rendered.");
+            Assert.True(zedIndex >= 0, "Zed should be rendered.");
+            Assert.True(aelrinIndex < zedIndex, $"Expected Aelrin before Zed. Markup: {cut.Markup}");
+        });
+    }
+
+    [Fact]
+    public void CharactersPage_Paginates_Characters_And_Updates_Query()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        RegisterCharactersPageClients(Enumerable.Range(1, 4)
+            .Select(i => MakeChar($"Char{i}"))
+            .ToList());
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/characters");
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Char1", cut.Markup);
+            Assert.DoesNotContain("Char4", cut.Markup);
+        });
+
+        var nextButton = Assert.Single(
+            cut.FindAll("fluent-button"),
+            b => b.GetAttribute("aria-label") == Loc("common.next"));
+        nextButton.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("page=2", nav.Uri);
+            Assert.Contains("Char4", cut.Markup);
+            Assert.DoesNotContain("Char1", cut.Markup);
+        });
+
+        cut.Find("#characters-sort").Change("name");
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("sort=name", nav.Uri);
+            Assert.DoesNotContain("page=", nav.Uri);
+        });
+    }
+
+    [Fact]
+    public void CharactersPage_Navigates_To_Safe_Redirect_After_Select()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var (_, me) = RegisterCharactersPageClients(
+            new List<CharacterDto> { MakeChar("Aelrin") },
+            MakeMeResponse());
+        me.Setup(m => m.SelectCharacterAsync("eu-silvermoon-aelrin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/characters?redirect=%2Fruns%2Fnew");
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-char-id='eu-silvermoon-aelrin']"));
+
+        cut.Find("[data-char-id='eu-silvermoon-aelrin']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            me.Verify(m => m.SelectCharacterAsync("eu-silvermoon-aelrin", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.True(nav.Uri.EndsWith("/runs/new", StringComparison.Ordinal), nav.Uri);
+        });
+    }
+
+    [Theory]
+    [InlineData("https%3A%2F%2Fevil.test")]
+    [InlineData("%2F%2Fevil.test")]
+    public void CharactersPage_Falls_Back_To_Runs_For_Unsafe_Redirect(string encodedRedirect)
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var (_, me) = RegisterCharactersPageClients(
+            new List<CharacterDto> { MakeChar("Aelrin") },
+            MakeMeResponse());
+        me.Setup(m => m.SelectCharacterAsync("eu-silvermoon-aelrin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo($"/characters?redirect={encodedRedirect}");
+
+        var cut = Render<CharactersPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-char-id='eu-silvermoon-aelrin']"));
+
+        cut.Find("[data-char-id='eu-silvermoon-aelrin']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            me.Verify(m => m.SelectCharacterAsync("eu-silvermoon-aelrin", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.True(nav.Uri.EndsWith("/runs", StringComparison.Ordinal), nav.Uri);
+            Assert.DoesNotContain("evil.test", nav.Uri);
+        });
+    }
+
+    [Fact]
     public void CharactersPage_Renders_Forget_Me_Section()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
@@ -368,7 +500,7 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void Eager_enriches_first_three_pending_cards_on_init()
+    public async Task Eager_enriches_first_visible_page_only_on_init()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
 
@@ -412,27 +544,25 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
 
-        var cut = Render<CharactersPage>();
+        Render<CharactersPage>();
 
-        // Assert: EnrichCharacterAsync eventually called for all 5 keys.
-        // The first 3 are enriched eagerly in parallel; the remaining 2 are drained
-        // by the paced queue worker. We just verify all were called at least once.
-        var allKeys = chars.Select(c => $"eu-silvermoon-{c.Name.ToLowerInvariant()}").ToList();
-
-        cut.WaitForAssertion(() =>
+        await Task.Delay(TimeSpan.FromMilliseconds(350));
+        for (var i = 1; i <= 3; i++)
         {
-            foreach (var key in allKeys)
-                me.Verify(m => m.EnrichCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Once);
-        }, timeout: TimeSpan.FromSeconds(5));
+            me.Verify(m => m.EnrichCharacterAsync($"eu-silvermoon-char{i}", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        me.Verify(m => m.EnrichCharacterAsync("eu-silvermoon-char4", It.IsAny<CancellationToken>()), Times.Never);
+        me.Verify(m => m.EnrichCharacterAsync("eu-silvermoon-char5", It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Paces_queue_enrichment_at_250ms_cadence()
+    public void CharactersPage_Does_Not_Render_Non_Visible_Page_Cards()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
 
         // Arrange: 6 chars with ClassId = null so all start Pending.
-        var chars = Enumerable.Range(1, 6)
+        var chars = Enumerable.Range(1, 4)
             .Select(i => new CharacterDto(
                 Name: $"Char{i}",
                 Realm: "silvermoon",
@@ -452,14 +582,12 @@ public class CharactersPagesTests : ComponentTestBase
         battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IDictionary<string, string>?)null);
 
-        var timestamps = new ConcurrentQueue<DateTimeOffset>();
         var me = new Mock<IMeClient>();
         me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((MeResponse?)null);
         me.Setup(m => m.EnrichCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string key, CancellationToken _) =>
             {
-                timestamps.Enqueue(DateTimeOffset.UtcNow);
                 return new CharacterDto(
                     Name: key.Split('-')[2],
                     Realm: "silvermoon",
@@ -478,26 +606,12 @@ public class CharactersPagesTests : ComponentTestBase
 
         var cut = Render<CharactersPage>();
 
-        // Wait for all 6 enrichments to complete (generous 3 s timeout).
-        cut.WaitForAssertion(
-            () => Assert.Equal(6, timestamps.Count),
-            timeout: TimeSpan.FromSeconds(3));
-
-        // Check pacing: the first 3 are the eager parallel burst — skip gap checks between them.
-        // Characters 4-6 (indices 3-5) are processed by the queue worker with 250 ms delays.
-        var ts = timestamps.ToArray();
-        Assert.Equal(6, ts.Length);
-
-        // Gaps between queue-drained enrichments. The worker delays AFTER each enrich,
-        // so the gap ts[2]→ts[3] is effectively 0 (eager-3 just completed when the worker
-        // fires its first iteration). The 250 ms pacing applies to gaps ts[3]→ts[4] and
-        // ts[4]→ts[5]. Use ≥ 200 ms lower bound to tolerate CI scheduler jitter.
-        for (int i = 4; i < ts.Length; i++)
+        cut.WaitForAssertion(() =>
         {
-            var gap = ts[i] - ts[i - 1];
-            Assert.True(gap >= TimeSpan.FromMilliseconds(200),
-                $"Gap between enrichment {i} and {i + 1} was {gap.TotalMilliseconds:F0} ms, expected ≥ 200 ms");
-        }
+            cut.Find("[data-char-id='eu-silvermoon-char1']");
+            cut.Find("[data-char-id='eu-silvermoon-char3']");
+            Assert.Empty(cut.FindAll("[data-char-id='eu-silvermoon-char4']"));
+        });
     }
 
     // ── Task 15: state-aware click handler ───────────────────────────────────
@@ -530,12 +644,12 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void Click_on_Pending_card_promotes_to_front_waits_and_then_PUTs()
+    public async Task Click_on_Pending_visible_card_waits_for_enrich_then_PUTs()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
 
-        // Arrange: 5 pending chars (ClassId null → all start Pending).
-        var chars = Enumerable.Range(1, 5)
+        // Arrange: 1 pending char (ClassId null → starts Pending).
+        var chars = Enumerable.Range(1, 1)
             .Select(i => new CharacterDto(
                 Name: $"Char{i}",
                 Realm: "silvermoon",
@@ -549,8 +663,10 @@ public class CharactersPagesTests : ComponentTestBase
                 SpecName: null))
             .ToList();
 
-        var fifthKey = "eu-silvermoon-char5";
+        var key = "eu-silvermoon-char1";
         var invocations = new List<string>();
+        var enrichStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseEnrich = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var battleNet = new Mock<IBattleNetClient>();
         battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
@@ -562,11 +678,13 @@ public class CharactersPagesTests : ComponentTestBase
         me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((MeResponse?)null);
         me.Setup(m => m.EnrichCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string key, CancellationToken _) =>
+            .Returns(async (string characterKey, CancellationToken _) =>
             {
-                lock (invocations) invocations.Add($"enrich:{key}");
+                lock (invocations) invocations.Add($"enrich:{characterKey}");
+                enrichStarted.SetResult();
+                await releaseEnrich.Task;
                 return new CharacterDto(
-                    Name: key.Split('-')[2],
+                    Name: characterKey.Split('-')[2],
                     Realm: "silvermoon",
                     RealmName: "Silvermoon",
                     Level: 80,
@@ -577,10 +695,10 @@ public class CharactersPagesTests : ComponentTestBase
                     ActiveSpecId: 71,
                     SpecName: "Arms");
             });
-        me.Setup(m => m.SelectCharacterAsync(fifthKey, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string key, CancellationToken _) =>
+        me.Setup(m => m.SelectCharacterAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string characterKey, CancellationToken _) =>
             {
-                lock (invocations) invocations.Add($"select:{key}");
+                lock (invocations) invocations.Add($"select:{characterKey}");
                 return true;
             });
 
@@ -588,20 +706,23 @@ public class CharactersPagesTests : ComponentTestBase
         Services.AddSingleton(me.Object);
 
         var cut = Render<CharactersPage>();
-        cut.WaitForAssertion(() => cut.Find($"[data-char-id='{fifthKey}']"));
+        cut.WaitForAssertion(() => cut.Find($"[data-char-id='{key}']"));
+        await enrichStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
 
-        cut.Find($"[data-char-id='{fifthKey}']").Click();
+        cut.Find($"[data-char-id='{key}']").Click();
+        me.Verify(m => m.SelectCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Never);
+        releaseEnrich.SetResult();
 
         cut.WaitForAssertion(() =>
         {
-            me.Verify(m => m.EnrichCharacterAsync(fifthKey, It.IsAny<CancellationToken>()), Times.Once);
-            me.Verify(m => m.SelectCharacterAsync(fifthKey, It.IsAny<CancellationToken>()), Times.Once);
+            me.Verify(m => m.EnrichCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Once);
+            me.Verify(m => m.SelectCharacterAsync(key, It.IsAny<CancellationToken>()), Times.Once);
             lock (invocations)
             {
-                var enrichIdx = invocations.IndexOf($"enrich:{fifthKey}");
-                var selectIdx = invocations.IndexOf($"select:{fifthKey}");
-                Assert.True(enrichIdx >= 0, "enrich was never called for fifth card");
-                Assert.True(selectIdx >= 0, "select was never called for fifth card");
+                var enrichIdx = invocations.IndexOf($"enrich:{key}");
+                var selectIdx = invocations.IndexOf($"select:{key}");
+                Assert.True(enrichIdx >= 0, "enrich was never called for visible card");
+                Assert.True(selectIdx >= 0, "select was never called for visible card");
                 Assert.True(enrichIdx < selectIdx, $"enrich (idx {enrichIdx}) must precede select (idx {selectIdx})");
             }
         }, timeout: TimeSpan.FromSeconds(5));

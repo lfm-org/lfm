@@ -1,6 +1,8 @@
 {
     "common.loading": "Loading...",
     "common.refresh": "Refresh",
+    "common.previous": "Previous",
+    "common.next": "Next",
     "common.cancel": "Cancel",
     "common.save": "Save",
     "common.delete": "Delete",
@@ -197,6 +199,12 @@
 
     "characters.title": "My Characters",
     "characters.refresh": "Refresh from Battle.net",
+    "characters.sort": "Sort",
+    "characters.sort.default": "Default order",
+    "characters.sort.name": "Name",
+    "characters.pagination": "Character pages",
+    "characters.pagination.status": "Page {0} of {1}",
+    "characters.pagination.page": "Page {0}",
     "characters.empty": "No characters found. Try refreshing from Battle.net.",
     "characters.unknown": "Unknown",
     "characters.level": "Level",

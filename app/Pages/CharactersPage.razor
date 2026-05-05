@@ -14,9 +14,21 @@
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" Style="align-items:center">
         <FluentLabel Typo="Typography.H1" Style="flex:1">@Loc["characters.title"]</FluentLabel>
-        <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshCharacters" Disabled="@loading">
-            @Loc["characters.refresh"]
-        </FluentButton>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" Style="align-items:center">
+            <FluentSelect Id="characters-sort"
+                          Label="@Loc["characters.sort"]"
+                          TOption="string"
+                          Value="@SortValue"
+                          ValueChanged="@HandleSortChanged"
+                          Disabled="@loading"
+                          Style="max-inline-size:180px">
+                <FluentOption TOption="string" Value="@DefaultSortValue">@Loc["characters.sort.default"]</FluentOption>
+                <FluentOption TOption="string" Value="@NameSortValue">@Loc["characters.sort.name"]</FluentOption>
+            </FluentSelect>
+            <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshCharacters" Disabled="@loading">
+                @Loc["characters.refresh"]
+            </FluentButton>
+        </FluentStack>
     </FluentStack>
 
     @switch (state)
@@ -37,12 +49,13 @@
             break;
 
         case LoadingState<IReadOnlyList<CharacterDto>>.Success s:
+            var visibleCharacters = VisibleCharacters;
             @if (!string.IsNullOrEmpty(selectError))
             {
                 <FluentMessageBar Intent="MessageIntent.Error">@selectError</FluentMessageBar>
             }
             <div style="display:grid;gap:12px;width:100%;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
-                @foreach (var c in s.Value)
+                @foreach (var c in visibleCharacters)
                 {
                     var portraitSrc = c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null);
                     var isSelected = CharKey(c) == selectedCharacterId;
@@ -94,6 +107,36 @@
                     </button>
                 }
             </div>
+            @if (TotalPages > 1)
+            {
+                <nav aria-label="@Loc["characters.pagination"]" style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+                    <FluentButton Appearance="Appearance.Outline"
+                                  Disabled="@(CurrentPage <= 1)"
+                                  OnClick="@(() => HandlePageChange(CurrentPage - 1))"
+                                  aria-label="@Loc["common.previous"]">
+                        @Loc["common.previous"]
+                    </FluentButton>
+                    <FluentLabel aria-live="polite">
+                        @Loc["characters.pagination.status", CurrentPage, TotalPages]
+                    </FluentLabel>
+                    @for (var pageNumber = 1; pageNumber <= TotalPages; pageNumber++)
+                    {
+                        var page = pageNumber;
+                        <FluentButton Appearance="@(page == CurrentPage ? Appearance.Accent : Appearance.Outline)"
+                                      OnClick="@(() => HandlePageChange(page))"
+                                      aria-current="@(page == CurrentPage ? "page" : null)"
+                                      aria-label="@Loc["characters.pagination.page", page]">
+                            @(page)
+                        </FluentButton>
+                    }
+                    <FluentButton Appearance="Appearance.Outline"
+                                  Disabled="@(CurrentPage >= TotalPages)"
+                                  OnClick="@(() => HandlePageChange(CurrentPage + 1))"
+                                  aria-label="@Loc["common.next"]">
+                        @Loc["common.next"]
+                    </FluentButton>
+                </nav>
+            }
             break;
     }
 
@@ -131,6 +174,11 @@
     private enum EnrichState { Pending, Enriching, Enriched, Failed }
     private readonly Dictionary<string, EnrichState> cardState = new();
     private readonly Dictionary<string, TaskCompletionSource> inflightEnrich = new();
+    private const string NameSortValue = "name";
+    private const string DefaultSortValue = "level";
+    private const int DesktopPageSize = 9;
+    private const int MobilePageSize = 3;
+    private const int EagerEnrichCount = 3;
 
     private IJSObjectReference? viewportModule;
     private DotNetObjectReference<CharactersPage>? selfRef;
@@ -138,7 +186,17 @@
     private readonly Queue<string> enrichQueue = new();
     private Task? enrichWorkerTask;
     private CancellationTokenSource? enrichCts;
+    private string? preparedVisibleSignature;
     private const int PacingDelayMs = 250;
+
+    [SupplyParameterFromQuery(Name = "sort")]
+    public string? Sort { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int? Page { get; set; }
+
+    [SupplyParameterFromQuery(Name = "redirect")]
+    public string? RedirectPath { get; set; }
 
     private LoadingState<IReadOnlyList<CharacterDto>> state = new LoadingState<IReadOnlyList<CharacterDto>>.Idle();
     private bool loading;
@@ -151,6 +209,24 @@
     private bool deleting;
 
     private bool deleteConfirmationValid => deleteConfirmation == "FORGET ME";
+    private static int ComponentPageSize => MobilePageSize;
+    private string SortValue => IsNameSort ? NameSortValue : DefaultSortValue;
+    private bool IsNameSort => string.Equals(Sort, NameSortValue, StringComparison.OrdinalIgnoreCase);
+    private IReadOnlyList<CharacterDto> OrderedCharacters =>
+        state is LoadingState<IReadOnlyList<CharacterDto>>.Success s
+            ? IsNameSort
+                ? s.Value.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList()
+                : s.Value
+            : [];
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(OrderedCharacters.Count / (double)ComponentPageSize));
+    private int RequestedPage => Page.GetValueOrDefault(1) > 0 ? Page.GetValueOrDefault(1) : 1;
+    private int CurrentPage => Math.Min(RequestedPage, TotalPages);
+    private IReadOnlyList<CharacterDto> VisibleCharacters =>
+        OrderedCharacters
+            .Skip((CurrentPage - 1) * ComponentPageSize)
+            .Take(ComponentPageSize)
+            .ToList();
 
     private static readonly Dictionary<string, object> DeleteConfirmAttrs = new()
     {
@@ -166,14 +242,12 @@
         var me = await meTask;
         selectedCharacterId = me?.SelectedCharacterId;
 
-        var pending = (state as LoadingState<IReadOnlyList<CharacterDto>>.Success)?.Value
-            .Where(c => cardState[CharKey(c)] == EnrichState.Pending)
-            .ToList() ?? [];
-        var eager = pending.Take(3).ToList();
-        var remaining = pending.Skip(3).ToList();
+        await EnsureVisibleCardsPreparedAsync();
+    }
 
-        await Task.WhenAll(eager.Select(c => EnrichAsync(c)));
-        EnqueueRemaining(remaining);
+    protected override async Task OnParametersSetAsync()
+    {
+        await EnsureVisibleCardsPreparedAsync();
     }
 
     private async Task LoadCharacters()
@@ -219,11 +293,13 @@
     private void ApplyCharacters(IReadOnlyList<CharacterDto> chars)
     {
         state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
+        preparedVisibleSignature = null;
+        cardState.Clear();
+        enrichQueue.Clear();
         foreach (var c in chars)
             cardState[CharKey(c)] = (c.ClassId is not null && c.ActiveSpecId is not null)
                 ? EnrichState.Enriched
                 : EnrichState.Pending;
-        _ = LoadPortraitsAsync(chars);
     }
 
     private async Task RefreshCharacters()
@@ -239,9 +315,9 @@
             }
             else
             {
-                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
                 portraits = [];
-                _ = LoadPortraitsAsync(chars);
+                ApplyCharacters(chars);
+                await EnsureVisibleCardsPreparedAsync();
             }
         }
         catch (Exception ex)
@@ -252,6 +328,43 @@
         {
             loading = false;
         }
+    }
+
+    private async Task EnsureVisibleCardsPreparedAsync()
+    {
+        if (state is not LoadingState<IReadOnlyList<CharacterDto>>.Success)
+            return;
+
+        var visible = VisibleCharacters;
+        var signature = string.Join('|', visible.Select(CharKey));
+        if (signature == preparedVisibleSignature)
+            return;
+
+        preparedVisibleSignature = signature;
+        _ = LoadPortraitsAsync(visible);
+
+        var pending = visible
+            .Where(c => cardState.TryGetValue(CharKey(c), out var s) && s == EnrichState.Pending)
+            .ToList();
+        var eager = pending.Take(EagerEnrichCount).ToList();
+        var remaining = pending.Skip(EagerEnrichCount).ToList();
+
+        await Task.WhenAll(eager.Select(c => EnrichAsync(c)));
+        EnqueueRemaining(remaining);
+    }
+
+    private void HandleSortChanged(string value)
+    {
+        Nav.NavigateTo(Nav.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["sort"] = string.Equals(value, NameSortValue, StringComparison.OrdinalIgnoreCase) ? NameSortValue : null,
+            ["page"] = null,
+        }), forceLoad: false);
+    }
+
+    private void HandlePageChange(int page)
+    {
+        Nav.NavigateTo(Nav.GetUriWithQueryParameter("page", page <= 1 ? null : page), forceLoad: false);
     }
 
     private async Task LoadPortraitsAsync(IReadOnlyList<CharacterDto> chars)
@@ -285,9 +398,8 @@
                 if (inflightEnrich.TryGetValue(key, out var tcs)) await tcs.Task;
                 break;
             case EnrichState.Pending:
+                var wait = EnsureInflightEnrich(key);
                 EnqueueFront(key);
-                var wait = new TaskCompletionSource();
-                inflightEnrich[key] = wait;
                 await wait.Task;
                 break;
             case EnrichState.Failed:
@@ -315,6 +427,10 @@
         {
             selectedCharacterId = prev;
             selectError = Loc["characters.error.selectFailed"];
+        }
+        else
+        {
+            Nav.NavigateTo(SafeRedirectPath(), forceLoad: false);
         }
         StateHasChanged();
     }
@@ -397,8 +513,22 @@
     [JSInvokable]
     public void OnCardVisible(string id)
     {
-        if (cardState.TryGetValue(id, out var s) && s == EnrichState.Pending)
+        if (VisibleCharacters.Any(c => CharKey(c) == id)
+            && cardState.TryGetValue(id, out var s)
+            && s == EnrichState.Pending)
             EnqueueFront(id);
+    }
+
+    private string SafeRedirectPath()
+    {
+        if (string.IsNullOrWhiteSpace(RedirectPath)
+            || !RedirectPath.StartsWith("/", StringComparison.Ordinal)
+            || RedirectPath.StartsWith("//", StringComparison.Ordinal))
+        {
+            return "/runs";
+        }
+
+        return RedirectPath;
     }
 
     public async ValueTask DisposeAsync()
@@ -416,29 +546,43 @@
     private async Task EnrichAsync(CharacterDto c)
     {
         var key = CharKey(c);
+        var completion = EnsureInflightEnrich(key);
         cardState[key] = EnrichState.Enriching;
         StateHasChanged();
 
-        var dto = await MeClient.EnrichCharacterAsync(key, CancellationToken.None);
-        if (dto is not null)
+        try
         {
-            if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success s)
+            var dto = await MeClient.EnrichCharacterAsync(key, CancellationToken.None);
+            if (dto is not null)
             {
-                var updated = s.Value.Select(x => CharKey(x) == key ? dto : x).ToList();
-                state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(updated);
+                if (state is LoadingState<IReadOnlyList<CharacterDto>>.Success s)
+                {
+                    var updated = s.Value.Select(x => CharKey(x) == key ? dto : x).ToList();
+                    state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(updated);
+                }
+                cardState[key] = EnrichState.Enriched;
             }
-            cardState[key] = EnrichState.Enriched;
+            else
+            {
+                cardState[key] = EnrichState.Failed;
+            }
         }
-        else
-        {
-            cardState[key] = EnrichState.Failed;
-        }
-        StateHasChanged();
-        if (inflightEnrich.TryGetValue(key, out var tcs))
+        finally
         {
             inflightEnrich.Remove(key);
-            tcs.TrySetResult();
+            completion.TrySetResult();
+            StateHasChanged();
         }
+    }
+
+    private TaskCompletionSource EnsureInflightEnrich(string key)
+    {
+        if (inflightEnrich.TryGetValue(key, out var tcs))
+            return tcs;
+
+        tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        inflightEnrich[key] = tcs;
+        return tcs;
     }
 
     // Lowercases all three components so the key is identical to
