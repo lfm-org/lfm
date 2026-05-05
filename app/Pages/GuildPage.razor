@@ -3,12 +3,20 @@
 @using Lfm.Contracts.Guild
 @attribute [Authorize]
 @inject IGuildClient GuildClient
+@inject ToastHelper Toast
 @inject IStringLocalizer Loc
+@inject UnsavedChangesGuard UnsavedGuard
+@implements IAsyncDisposable
 
 <PageTitle>@Loc["guild.title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
     <FluentLabel Typo="Typography.H1">@Loc["guild.title"]</FluentLabel>
+
+    @if (Setup == "required")
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Loc["guild.setupRequiredExplanation"]</FluentMessageBar>
+    }
 
     @switch (state)
     {
@@ -25,8 +33,30 @@
     }
 </FluentStack>
 
+@if (UnsavedGuard.IsConfirmationVisible)
+{
+    <ConfirmDialog Open="true"
+                   Title="@Loc["unsavedChanges.title"]"
+                   Body="@Loc["unsavedChanges.body"]"
+                   ConfirmText="@Loc["unsavedChanges.leave"]"
+                   CancelText="@Loc["unsavedChanges.stay"]"
+                   OnConfirm="@UnsavedGuard.ConfirmLeaveAsync"
+                   OnCancel="@UnsavedGuard.StayAsync" />
+}
+
 @code {
     private LoadingState<GuildDto> state = new LoadingState<GuildDto>.Idle();
+    private bool saving;
+    private GuildSettingsSnapshot? savedSettingsSnapshot;
+    private UnsavedChangesGuard.Registration? unsavedChangesRegistration;
+
+    private string draftTimezone = "Europe/Helsinki";
+    private string draftLocale = "fi";
+    private string draftSlogan = string.Empty;
+    private IReadOnlyList<UpdateGuildRankPermission> draftPermissions = [];
+
+    [SupplyParameterFromQuery(Name = "setup")]
+    public string? Setup { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,13 +70,37 @@
             }
             else
             {
+                ApplyGuildData(dto);
                 state = new LoadingState<GuildDto>.Success(dto);
+                if (dto.Editor.CanEdit)
+                {
+                    RegisterUnsavedChangesGuard();
+                }
             }
         }
         catch (Exception ex)
         {
             state = new LoadingState<GuildDto>.Failure(ex.Message);
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (unsavedChangesRegistration is not null)
+        {
+            await UnsavedGuard.RefreshAsync();
+        }
+    }
+
+    private void ApplyGuildData(GuildDto dto)
+    {
+        draftTimezone = dto.Setup.Timezone;
+        draftLocale = dto.Setup.Locale;
+        draftSlogan = dto.Guild?.Slogan ?? string.Empty;
+        draftPermissions = dto.Settings?.RankPermissions
+            .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
+            .ToList()
+            ?? [];
     }
 
     private RenderFragment RenderGuild(GuildDto dto) => __builder =>
@@ -81,37 +135,154 @@
                                  loading="lazy"
                                  decoding="async" />
                         }
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            @StatusChip(dto.Setup.IsInitialized ? Loc["guild.chip.settingsLive"] : Loc["guild.chip.settingsPending"])
+                            @StatusChip(dto.Editor.CanEdit ? Loc["guild.chip.editable"] : Loc["guild.chip.readOnly"])
+                            @StatusChip(dto.Setup.RankDataFresh ? Loc["guild.chip.rankSyncFresh"] : Loc["guild.chip.rankSyncNotConfigured"])
+                            @if (dto.Guild.MemberCount.HasValue)
+                            {
+                                @StatusChip(Loc["guild.chip.members", dto.Guild.MemberCount.Value])
+                            }
+                            @if (dto.Guild.RankCount.HasValue)
+                            {
+                                @StatusChip(Loc["guild.chip.ranksDetected", dto.Guild.RankCount.Value])
+                            }
+                        </FluentStack>
                     </FluentStack>
                 </FluentCard>
 
                 <FluentCard>
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                         <FluentLabel Typo="Typography.H4">@Loc["guild.status"]</FluentLabel>
-                        <FluentLabel>@Loc["guild.settings"] @(dto.Setup.IsInitialized ? Loc["guild.settingsLive"] : Loc["guild.settingsPending"])</FluentLabel>
                         <FluentLabel>@Loc["guild.timezone"] @dto.Setup.Timezone</FluentLabel>
                         <FluentLabel>@Loc["guild.locale"] @dto.Setup.Locale</FluentLabel>
-                        @if (dto.Guild.MemberCount.HasValue)
+
+                        @if (dto.Editor.CanEdit)
                         {
-                            <FluentLabel>@Loc["guild.members"] @dto.Guild.MemberCount</FluentLabel>
+                            @if (dto.Setup.RequiresSetup)
+                            {
+                                <FluentMessageBar Intent="MessageIntent.Warning">@Loc["guild.setupRequired"]</FluentMessageBar>
+                            }
+                            @if (!dto.Setup.RankDataFresh)
+                            {
+                                <FluentMessageBar Intent="MessageIntent.Error">@Loc["guild.rankSyncStale"]</FluentMessageBar>
+                            }
+
+                            <GuildSettingsEditor
+                                Timezone="@draftTimezone"
+                                TimezoneChanged="@(v => draftTimezone = v)"
+                                Locale="@draftLocale"
+                                LocaleChanged="@(v => draftLocale = v)"
+                                Slogan="@draftSlogan"
+                                SloganChanged="@(v => draftSlogan = v)"
+                                RankPermissions="@draftPermissions"
+                                OnPermissionChange="@HandlePermissionChange"
+                                Saving="@saving"
+                                RankDataFresh="@dto.Setup.RankDataFresh"
+                                OnSave="@HandleSave" />
                         }
-                        @if (dto.Guild.RankCount.HasValue)
+                        else
                         {
-                            <FluentLabel>@Loc["guild.ranksDetected"] @dto.Guild.RankCount</FluentLabel>
+                            <FluentLabel Typo="Typography.H4">@Loc["guild.yourAccess"]</FluentLabel>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                                @StatusChip(dto.MemberPermissions.CanCreateGuildRuns ? Loc["guild.chip.canCreate"] : Loc["guild.chip.cannotCreate"])
+                                @StatusChip(dto.MemberPermissions.CanSignupGuildRuns ? Loc["guild.chip.canSignup"] : Loc["guild.chip.cannotSignup"])
+                            </FluentStack>
                         }
                     </FluentStack>
                 </FluentCard>
-
-                @if (!dto.Editor.CanEdit)
-                {
-                    <FluentCard>
-                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                            <FluentLabel Typo="Typography.H4">@Loc["guild.yourAccess"]</FluentLabel>
-                            <FluentLabel>@Loc["guild.canCreateRuns"] @(dto.MemberPermissions.CanCreateGuildRuns ? Loc["common.yes"] : Loc["common.no"])</FluentLabel>
-                            <FluentLabel>@Loc["guild.canSignUp"] @(dto.MemberPermissions.CanSignupGuildRuns ? Loc["common.yes"] : Loc["common.no"])</FluentLabel>
-                        </FluentStack>
-                    </FluentCard>
-                }
             </FluentStack>
         }
     };
+
+    private static RenderFragment StatusChip(string label) => __builder =>
+    {
+        <span style="display:inline-flex;align-items:center;border:1px solid var(--neutral-stroke-rest);border-radius:999px;padding:2px 10px;min-height:28px">
+            @label
+        </span>
+    };
+
+    private void HandlePermissionChange((int Rank, string Field, bool Checked) args)
+    {
+        draftPermissions = draftPermissions
+            .Select(p => p.Rank != args.Rank ? p : p with
+            {
+                CanCreateGuildRuns = args.Field == "canCreateGuildRuns" ? args.Checked : p.CanCreateGuildRuns,
+                CanSignupGuildRuns = args.Field == "canSignupGuildRuns" ? args.Checked : p.CanSignupGuildRuns,
+                CanDeleteGuildRuns = args.Field == "canDeleteGuildRuns" ? args.Checked : p.CanDeleteGuildRuns,
+            })
+            .ToList();
+    }
+
+    private async Task HandleSave()
+    {
+        saving = true;
+
+        try
+        {
+            var request = new UpdateGuildRequest(draftTimezone, draftLocale, draftSlogan, draftPermissions);
+            var updated = await GuildClient.UpdateAsync(request, CancellationToken.None);
+            if (updated is null)
+            {
+                Toast.ShowError(Loc["guild.settingsSaveFailed"]);
+            }
+            else
+            {
+                ApplyGuildData(updated);
+                state = new LoadingState<GuildDto>.Success(updated);
+                savedSettingsSnapshot = CurrentSettingsSnapshot();
+                await UnsavedGuard.RefreshAsync();
+                Toast.ShowSuccess(Loc["guild.settingsSaved"]);
+            }
+        }
+        catch
+        {
+            Toast.ShowError(Loc["guild.settingsSaveFailed"]);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void RegisterUnsavedChangesGuard()
+    {
+        savedSettingsSnapshot = CurrentSettingsSnapshot();
+        UnsavedGuard.StateChanged += HandleUnsavedChangesStateChanged;
+        unsavedChangesRegistration = UnsavedGuard.Register(this, HasUnsavedChanges);
+    }
+
+    private bool HasUnsavedChanges() =>
+        !saving
+        && savedSettingsSnapshot is not null
+        && CurrentSettingsSnapshot() != savedSettingsSnapshot;
+
+    private GuildSettingsSnapshot CurrentSettingsSnapshot() =>
+        new(
+            draftTimezone,
+            draftLocale,
+            draftSlogan,
+            string.Join('|', draftPermissions
+                .OrderBy(p => p.Rank)
+                .Select(p => $"{p.Rank}:{p.CanCreateGuildRuns}:{p.CanSignupGuildRuns}:{p.CanDeleteGuildRuns}")));
+
+    private void HandleUnsavedChangesStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async ValueTask DisposeUnsavedChangesGuardAsync()
+    {
+        UnsavedGuard.StateChanged -= HandleUnsavedChangesStateChanged;
+        if (unsavedChangesRegistration is not null)
+        {
+            await unsavedChangesRegistration.DisposeAsync();
+            unsavedChangesRegistration = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await DisposeUnsavedChangesGuardAsync();
+
+    private sealed record GuildSettingsSnapshot(
+        string Timezone,
+        string Locale,
+        string Slogan,
+        string RankPermissions);
 }

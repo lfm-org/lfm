@@ -1,0 +1,51 @@
+@using Lfm.App.Services
+@using Lfm.Contracts.Guild
+@inject IGuildClient GuildClient
+@inject NavigationManager Nav
+@inject IStringLocalizer Loc
+
+@if (_loading)
+{
+    <FluentStack Orientation="Orientation.Vertical"
+                 VerticalGap="12"
+                 Style="min-height:50svh;align-items:center;justify-content:center"
+                 role="status"
+                 aria-live="polite">
+        <FluentProgressRing />
+        <FluentLabel>@Loc["guild.checkingSetup"]</FluentLabel>
+    </FluentStack>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        GuildDto? dto = null;
+
+        try
+        {
+            dto = await GuildClient.GetAsync(CancellationToken.None);
+        }
+        catch
+        {
+            dto = null;
+        }
+
+        if (dto?.Editor.CanEdit == true
+            && dto.Setup.RequiresSetup
+            && Nav.ToBaseRelativePath(Nav.Uri).Split('?', 2)[0] != "guild")
+        {
+            Nav.NavigateTo("/guild?setup=required", replace: true);
+            return;
+        }
+
+        _loading = false;
+    }
+}
