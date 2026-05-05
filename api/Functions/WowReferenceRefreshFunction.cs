@@ -79,7 +79,7 @@ public class WowReferenceRefreshFunction(
         var response = req.HttpContext.Response;
         response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = "application/x-ndjson";
-        response.Headers["Cache-Control"] = "no-cache, no-transform";
+        response.Headers["Cache-Control"] = "private, no-store, no-transform";
         // Hint to intermediate proxies (incl. nginx-based reverse proxies in
         // front of SWA linked backends) to forward bytes instead of buffering.
         response.Headers["X-Accel-Buffering"] = "no";
