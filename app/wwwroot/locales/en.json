@@ -77,6 +77,8 @@
     "runs.empty": "No upcoming runs found.",
     "runs.emptyCta": "Create the first one.",
     "runs.selectPrompt": "Select a run to see details.",
+    "runs.showDetails": "Show details",
+    "runs.hideDetails": "Hide details",
     "runs.signedUp": "{0} signed up",
     "runs.edit": "Edit",
     "runs.mode": "Mode:",

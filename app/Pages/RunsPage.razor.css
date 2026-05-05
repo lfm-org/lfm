@@ -19,6 +19,14 @@
     overflow: hidden;
 }
 
+.run-list-card {
+    display: block;
+}
+
+.run-mobile-detail-toggle {
+    display: none;
+}
+
 /* Two-column split once the detail pane can still keep a usable roster area.
    The sidebar stays deliberately narrow so mid-width desktop windows do not
    collapse back into a single oversized detail card. */
@@ -29,6 +37,111 @@
 
     .runs-sidebar {
         inline-size: clamp(15.5rem, 26vw, 19rem);
+    }
+}
+
+@media (max-width: 55.999em) {
+    .runs-layout {
+        gap: 16px;
+    }
+
+    .runs-sidebar,
+    .runs-group {
+        display: contents;
+    }
+
+    .runs-group__title {
+        display: none;
+    }
+
+    .run-list-card {
+        order: 2;
+        inline-size: 100%;
+        background: var(--fill-color);
+        color: var(--neutral-foreground-rest);
+        border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
+        border-radius: calc(var(--layer-corner-radius) * 1px);
+        box-shadow: var(--elevation-shadow-card-rest);
+        overflow: hidden;
+    }
+
+    .run-list-card--selected {
+        order: 0;
+        border-block-end: 0;
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
+    }
+
+    .run-list-card ::deep .run-list-item {
+        border-block-end: 0;
+        padding-block: 16px 10px;
+        padding-inline: 18px;
+    }
+
+    .run-list-card ::deep .run-list-item__title {
+        font-size: 1.15rem;
+    }
+
+    .run-list-card ::deep .run-list-item__meta {
+        font-size: 0.95rem;
+    }
+
+    .run-mobile-detail-toggle {
+        all: unset;
+        box-sizing: border-box;
+        display: block;
+        inline-size: calc(100% - 36px);
+        margin-block: 0 16px;
+        margin-inline: 18px;
+        padding-block: 10px;
+        padding-inline: 12px;
+        text-align: center;
+        color: var(--neutral-foreground-hint-rest);
+        border: 1px solid var(--neutral-stroke-rest);
+        border-radius: calc(var(--control-corner-radius) * 1px);
+        cursor: pointer;
+    }
+
+    .run-mobile-detail-toggle:focus-visible {
+        outline: 2px solid var(--accent-fill-rest);
+        outline-offset: 2px;
+    }
+
+    .runs-detail {
+        order: 1;
+        box-sizing: border-box;
+        background: var(--fill-color);
+        color: var(--neutral-foreground-rest);
+        border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
+        border-block-start: 0;
+        border-radius: calc(var(--layer-corner-radius) * 1px);
+        border-start-start-radius: 0;
+        border-start-end-radius: 0;
+        box-shadow: var(--elevation-shadow-card-rest);
+        margin-block-start: -16px;
+        padding-block: 0 18px;
+        padding-inline: 18px;
+    }
+
+    .runs-detail--empty {
+        display: none;
+    }
+
+    .runs-detail fluent-card {
+        display: none;
+    }
+
+    .runs-detail .run-signup-surface {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+    }
+
+    .runs-past-toggle,
+    ::deep .runs-load-more,
+    ::deep .runs-load-more-error {
+        order: 3;
     }
 }
 
