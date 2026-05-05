@@ -23,13 +23,13 @@
                         Label="@Loc["guildAdmin.guildIdLabel"]"
                         Value="@guildIdInput"
                         ValueChanged="@(v => guildIdInput = v)"
-                        Disabled="@loading"
+                        Disabled="@(loading || saving)"
                         Style="max-width:260px" />
                     <FluentButton
                         Type="ButtonType.Button"
                         Appearance="Appearance.Accent"
                         OnClick="@LoadGuildAsync"
-                        Disabled="@(loading || string.IsNullOrWhiteSpace(guildIdInput))">
+                        Disabled="@(loading || saving || string.IsNullOrWhiteSpace(guildIdInput))">
                         @Loc["guildAdmin.loadButton"]
                     </FluentButton>
                 </FluentStack>
@@ -118,13 +118,25 @@
                    OnConfirm="@UnsavedGuard.ConfirmLeaveAsync"
                    OnCancel="@UnsavedGuard.StayAsync" />
 }
+else if (showLoadConfirmation)
+{
+    <ConfirmDialog Open="true"
+                   Title="@Loc["unsavedChanges.title"]"
+                   Body="@Loc["unsavedChanges.body"]"
+                   ConfirmText="@Loc["unsavedChanges.leave"]"
+                   CancelText="@Loc["unsavedChanges.stay"]"
+                   OnConfirm="@ConfirmPendingGuildLoadAsync"
+                   OnCancel="@CancelPendingGuildLoadAsync" />
+}
 
 @code {
     private bool loading;
     private bool saving;
+    private bool showLoadConfirmation;
     private string? loadError;
     private string guildIdInput = string.Empty;
     private string? loadedGuildId;
+    private string? pendingGuildIdToLoad;
     private GuildDto? guildData;
     private GuildSettingsSnapshot? savedSettingsSnapshot;
     private UnsavedChangesGuard.Registration? unsavedChangesRegistration;
@@ -145,13 +157,27 @@
     private async Task LoadGuildAsync()
     {
         var requestedGuildId = guildIdInput.Trim();
-        if (string.IsNullOrWhiteSpace(requestedGuildId))
+        if (saving || string.IsNullOrWhiteSpace(requestedGuildId))
             return;
 
+        if (HasUnsavedChanges())
+        {
+            pendingGuildIdToLoad = requestedGuildId;
+            showLoadConfirmation = true;
+            return;
+        }
+
+        await LoadGuildCoreAsync(requestedGuildId);
+    }
+
+    private async Task LoadGuildCoreAsync(string requestedGuildId)
+    {
         loading = true;
         loadError = null;
         guildData = null;
         loadedGuildId = null;
+        showLoadConfirmation = false;
+        pendingGuildIdToLoad = null;
         await DisposeUnsavedChangesGuardAsync();
 
         try
@@ -164,6 +190,7 @@
             else
             {
                 loadedGuildId = requestedGuildId;
+                guildIdInput = requestedGuildId;
                 ApplyGuildData(dto);
                 guildData = dto;
                 RegisterUnsavedChangesGuard();
@@ -177,6 +204,30 @@
         {
             loading = false;
         }
+    }
+
+    private async Task ConfirmPendingGuildLoadAsync()
+    {
+        var requestedGuildId = pendingGuildIdToLoad;
+        if (string.IsNullOrWhiteSpace(requestedGuildId))
+        {
+            showLoadConfirmation = false;
+            return;
+        }
+
+        await LoadGuildCoreAsync(requestedGuildId);
+    }
+
+    private Task CancelPendingGuildLoadAsync()
+    {
+        showLoadConfirmation = false;
+        pendingGuildIdToLoad = null;
+        if (loadedGuildId is not null)
+        {
+            guildIdInput = loadedGuildId;
+        }
+
+        return Task.CompletedTask;
     }
 
     private void ApplyGuildData(GuildDto dto)
