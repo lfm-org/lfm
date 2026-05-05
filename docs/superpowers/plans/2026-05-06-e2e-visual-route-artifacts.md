@@ -274,7 +274,8 @@ public void Manifest_IncludesProtectedAnonymousAndAuthorizedStates()
 
     Assert.Contains(VisualRouteManifest.States, state =>
         state.Path == "/admin/reference" &&
-        state.AccessMode == VisualAccessMode.SiteAdmin &&
+        state.AccessMode == VisualAccessMode.Public &&
+        state.AnonymousExpectation == VisualAnonymousExpectation.RedirectToLogin &&
         state.ExpectedAnonymousPathAndQuery == "/login?redirect=%2Fadmin%2Freference");
 }
 ```
@@ -447,6 +448,12 @@ git -C /home/souroldgeezer/repos/lfm commit -m "Add visual route manifest"
 
 - [ ] **Step 1: Write failing writer tests**
 
+Ensure `VisualRouteArtifactModelSpec` has this using directive:
+
+```csharp
+using System.Text.Json;
+```
+
 Append these tests to `VisualRouteArtifactModelSpec`:
 
 ```csharp
@@ -460,6 +467,19 @@ public async Task ArtifactWriter_WritesDeterministicIndexJson()
     {
         var entries = new[]
         {
+            new VisualRouteArtifactEntry(
+                Route: "/guild/admin",
+                State: "guild admin site admin",
+                AccessMode: "site-admin",
+                AnonymousExpectation: "redirect-to-login",
+                Viewport: "mobile-floor",
+                Width: 320,
+                Height: 568,
+                Variant: "forced-colors",
+                Url: "http://localhost/guild/admin",
+                Screenshot: "visual-routes/forced-colors/mobile-floor/guild-admin-site-admin.png",
+                Status: "captured",
+                SkipReason: "not skipped"),
             new VisualRouteArtifactEntry(
                 Route: "/",
                 State: "landing",
@@ -479,8 +499,20 @@ public async Task ArtifactWriter_WritesDeterministicIndexJson()
 
         var indexPath = Path.Combine(outputRoot, "artifacts", "e2e-results", "visual-routes", "index.json");
         var json = await File.ReadAllTextAsync(indexPath);
-        Assert.Contains("\"route\": \"/\"", json);
-        Assert.Contains("\"status\": \"captured\"", json);
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        Assert.Equal(2, root.GetProperty("count").GetInt32());
+        Assert.False(root.TryGetProperty("generatedAtUtc", out _));
+
+        var entriesJson = root.GetProperty("entries").EnumerateArray().ToArray();
+        Assert.Equal("default", entriesJson[0].GetProperty("variant").GetString());
+        Assert.Equal("desktop", entriesJson[0].GetProperty("viewport").GetString());
+        Assert.Equal("landing", entriesJson[0].GetProperty("state").GetString());
+        Assert.False(entriesJson[0].TryGetProperty("skipReason", out _));
+        Assert.Equal("forced-colors", entriesJson[1].GetProperty("variant").GetString());
+        Assert.Equal("mobile-floor", entriesJson[1].GetProperty("viewport").GetString());
+        Assert.Equal("guild admin site admin", entriesJson[1].GetProperty("state").GetString());
+        Assert.Equal("not skipped", entriesJson[1].GetProperty("skipReason").GetString());
     }
     finally
     {
@@ -555,7 +587,6 @@ internal static class VisualRouteArtifactWriter
             .ToArray();
 
         var index = new VisualRouteArtifactIndex(
-            GeneratedAtUtc: DateTimeOffset.UtcNow,
             Count: ordered.Length,
             Entries: ordered);
 
@@ -563,7 +594,6 @@ internal static class VisualRouteArtifactWriter
     }
 
     private sealed record VisualRouteArtifactIndex(
-        DateTimeOffset GeneratedAtUtc,
         int Count,
         IReadOnlyCollection<VisualRouteArtifactEntry> Entries);
 }
@@ -594,6 +624,7 @@ git -C /home/souroldgeezer/repos/lfm commit -m "Add visual artifact writer"
 - Create: `tests/Lfm.E2E/Specs/VisualRouteArtifactsSpec.cs`
 - Modify: `tests/Lfm.E2E/Helpers/VisualRouteArtifactModel.cs`
 - Modify: `tests/Lfm.E2E/Helpers/VisualRouteManifest.cs`
+- Modify: `tests/Lfm.E2E/Specs/VisualRouteArtifactModelSpec.cs`
 
 - [ ] **Step 1: Add browser-ready delegates to the model**
 
@@ -612,6 +643,7 @@ internal sealed record VisualRouteState(
 ```
 
 Expected compile result before manifest update: FAIL because the existing manifest constructors no longer pass `WaitForReadyAsync`.
+Update any direct `VisualRouteState` construction in `VisualRouteArtifactModelSpec` to pass `_ => Task.CompletedTask` as the ready delegate so those tests stay focused on artifact path/model behavior.
 
 - [ ] **Step 2: Update the manifest with ready checks and setup delegates**
 
@@ -680,7 +712,7 @@ ProtectedRedirect("/runs/new", "runs new anonymous", "runs-new-anonymous", "/log
 Authenticated("/runs/new", "runs new authenticated", "runs-new-authenticated", Heading("Schedule a run", "Uusi runi"), SelectDungeonAsync),
 
 ProtectedRedirect($"/runs/{DefaultSeed.TestRunId}/edit", "runs edit anonymous", "runs-edit-anonymous", "/login?redirect=%2Fruns%2Fe2e-run-001%2Fedit", Heading("Sign In", "Kirjaudu")),
-Authenticated($"/runs/{DefaultSeed.TestRunId}/edit", "runs edit authenticated", "runs-edit-authenticated", Heading("Edit run", "Muokkaa runia")),
+Authenticated($"/runs/{DefaultSeed.TestRunId}/edit", "runs edit authenticated", "runs-edit-authenticated", Heading("Edit Run", "Muokkaa runia")),
 
 ProtectedRedirect("/characters", "characters anonymous", "characters-anonymous", "/login?redirect=%2Fcharacters", Heading("Sign In", "Kirjaudu")),
 Authenticated("/characters", "characters authenticated", "characters-authenticated", Heading("My Characters", "Hahmoni")),
@@ -982,7 +1014,7 @@ Expected output:
 - [ ] **Step 7: Commit Task 4**
 
 ```bash
-git -C /home/souroldgeezer/repos/lfm add tests/Lfm.E2E/Helpers/VisualRouteArtifactModel.cs tests/Lfm.E2E/Helpers/VisualRouteManifest.cs tests/Lfm.E2E/Specs/VisualRouteArtifactsSpec.cs
+git -C /home/souroldgeezer/repos/lfm add tests/Lfm.E2E/Helpers/VisualRouteArtifactModel.cs tests/Lfm.E2E/Helpers/VisualRouteManifest.cs tests/Lfm.E2E/Specs/VisualRouteArtifactModelSpec.cs tests/Lfm.E2E/Specs/VisualRouteArtifactsSpec.cs
 git -C /home/souroldgeezer/repos/lfm commit -m "Capture visual route artifacts"
 ```
 
