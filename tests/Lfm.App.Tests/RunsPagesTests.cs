@@ -5,6 +5,7 @@ using Bunit;
 using Bunit.TestDoubles;
 using AngleSharp.Dom;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Lfm.App;
 using Lfm.App.Components;
@@ -354,6 +355,29 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath);
     }
 
+    [Fact]
+    public void GuildSetupGate_Shows_Loading_And_Does_Not_Render_Runs_While_Auth_Is_Pending()
+    {
+        Services.AddAuthorizationCore();
+        Services.AddSingleton<AuthenticationStateProvider>(new PendingAuthenticationStateProvider());
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        Services.AddSingleton(runsClient.Object);
+        var guildClient = new Mock<IGuildClient>();
+        guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(canEdit: true, requiresSetup: true, isInitialized: false));
+        Services.AddSingleton(guildClient.Object);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/runs");
+
+        var cut = Render<App>();
+
+        Assert.Contains(Loc("guild.checkingSetup"), cut.Markup);
+        runsClient.Verify(c => c.ListAsync(It.IsAny<CancellationToken>()), Times.Never);
+        guildClient.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private IElement FindSignupSelect(IRenderedComponent<RunsPage> cut, string label)
     {
         var selects = cut.FindAll("fluent-select");
@@ -384,6 +408,14 @@ public class RunsPagesTests : ComponentTestBase
 
         Assert.Contains("run-signup-attendance-toggle", group.ClassName ?? string.Empty);
         return group;
+    }
+
+    private sealed class PendingAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        private readonly TaskCompletionSource<AuthenticationState> _pending = new();
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() =>
+            _pending.Task;
     }
 
     [Fact]
