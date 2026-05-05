@@ -8,6 +8,7 @@ using Lfm.E2E.Pages;
 using Lfm.E2E.Seeds;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Playwright;
+using System.Globalization;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -79,8 +80,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // the browser interprets the value as wall-clock local time.
         var uniqueRunName = $"E2E-Create-{Guid.NewGuid():N}";
         await runsPage.KeyLevelInput.FillAsync("10");
-        await runsPage.StartTimeInput.FillAsync(
-            DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
+        await runsPage.StartTimeInput.FillAsync(FutureDateTimeLocal(daysFromNow: 30));
         await runsPage.FillDescriptionAsync(uniqueRunName);
 
         // Submit
@@ -367,8 +367,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
         await runsPage.KeyLevelInput.FillAsync("10");
         // Native <input type="datetime-local"> rejects a Z suffix.
-        await runsPage.StartTimeInput.FillAsync(
-            DateTimeOffset.UtcNow.AddDays(30).ToString("yyyy-MM-ddTHH:mm:ss"));
+        await runsPage.StartTimeInput.FillAsync(FutureDateTimeLocal(daysFromNow: 30));
         await runsPage.FillDescriptionAsync($"E2E-Scratch-{Guid.NewGuid():N}");
 
         await runsPage.CreateRunSubmitButton.ClickAsync();
@@ -413,8 +412,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await runsPage.KeyLevelInput.FillAsync("10");
             // Native <input type="datetime-local"> rejects a Z suffix; the
             // browser interprets the value as wall-clock local time.
-            await runsPage.StartTimeInput.FillAsync(
-                DateTimeOffset.UtcNow.AddDays(60).ToString("yyyy-MM-ddTHH:mm:ss"));
+            await runsPage.StartTimeInput.FillAsync(FutureDateTimeLocal(daysFromNow: 60));
             await runsPage.FillDescriptionAsync(uniqueDescription);
             await deletePage.Keyboard.PressAsync("Tab");
             await runsPage.CreateRunSubmitButton.ClickAsync();
@@ -465,4 +463,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
             await deleteContext.CloseAsync();
         }
     }
+
+    private static string FutureDateTimeLocal(int daysFromNow) =>
+        DateTimeOffset.UtcNow.AddDays(daysFromNow).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
 }
