@@ -21,6 +21,8 @@
     "nav.admin": "Yll\u00e4pito",
     "nav.signIn": "Kirjaudu sis\u00e4\u00e4n",
     "nav.signOut": "Kirjaudu ulos",
+    "nav.accountMenu": "Tilivalikko: {0}",
+    "nav.yourAccount": "oma tili",
     "landing.logo": "LFM",
     "landing.title": "Etsin lis\u00e4\u00e4",
     "landing.subtitle": "Suunnittele kiltasi raid-aikataulua, seuraa roolikattavuutta ja kirjaudu Battle.netill\u00e4.",

@@ -16,12 +16,14 @@ public class AppAuthenticationStateProviderTests
     private static MeResponse MakeMe(
         string battleNetId = "player#1234",
         string? guildName = null,
+        SelectedCharacterSummaryDto? selectedCharacter = null,
         bool isSiteAdmin = false,
         string? locale = null) =>
         new(
             BattleNetId: battleNetId,
             GuildName: guildName,
             SelectedCharacterId: null,
+            SelectedCharacter: selectedCharacter,
             IsSiteAdmin: isSiteAdmin,
             Locale: locale);
 
@@ -80,6 +82,26 @@ public class AppAuthenticationStateProviderTests
         var state = await sut.GetAuthenticationStateAsync();
 
         Assert.Null(state.User.FindFirst("guild_name"));
+    }
+
+    [Fact]
+    public async Task GetAuthenticationStateAsync_includes_selected_character_claims_when_present()
+    {
+        var meClient = new Mock<IMeClient>();
+        meClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeMe(selectedCharacter: new SelectedCharacterSummaryDto(
+                Id: "eu-silvermoon-aelrin",
+                Name: "Aelrin",
+                PortraitUrl: "https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg")));
+        var sut = new AppAuthenticationStateProvider(meClient.Object, Mock.Of<ILocaleService>());
+
+        var state = await sut.GetAuthenticationStateAsync();
+
+        Assert.Equal("eu-silvermoon-aelrin", state.User.FindFirst("selected_character_id")!.Value);
+        Assert.Equal("Aelrin", state.User.FindFirst("selected_character_name")!.Value);
+        Assert.Equal(
+            "https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg",
+            state.User.FindFirst("selected_character_portrait_url")!.Value);
     }
 
     [Fact]

@@ -24,6 +24,8 @@
     "nav.admin": "Admin",
     "nav.signIn": "Sign In",
     "nav.signOut": "Sign Out",
+    "nav.accountMenu": "Account menu for {0}",
+    "nav.yourAccount": "your account",
 
     "landing.logo": "LFM",
     "landing.title": "Looking For More",
