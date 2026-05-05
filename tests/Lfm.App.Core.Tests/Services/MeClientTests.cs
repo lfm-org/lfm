@@ -26,6 +26,7 @@ public class MeClientTests
             BattleNetId: "player#1234",
             GuildName: "Stormchasers",
             SelectedCharacterId: "eu-silvermoon-sourgeezer",
+            SelectedCharacter: null,
             IsSiteAdmin: false,
             Locale: locale);
 

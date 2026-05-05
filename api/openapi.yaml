@@ -993,8 +993,20 @@ components:
         battleNetId: { type: string }
         guildName: { type: string, nullable: true }
         selectedCharacterId: { type: string, nullable: true }
+        selectedCharacter:
+          anyOf:
+            - $ref: '#/components/schemas/SelectedCharacterSummaryDto'
+            - type: 'null'
         isSiteAdmin: { type: boolean }
         locale: { type: string, nullable: true, enum: [en, fi, null] }
+
+    SelectedCharacterSummaryDto:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        portraitUrl: { type: string, nullable: true }
 
     UpdateMeRequest:
       type: object
