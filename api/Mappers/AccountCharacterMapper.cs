@@ -62,6 +62,12 @@ internal static class AccountCharacterMapper
                     specName = spec?.Specialization.Name;
                 }
 
+                var specializations = stored?.SpecializationsSummary?.Specializations?
+                    .Select(s => new CharacterSpecializationDto(
+                        Id: s.Specialization.Id,
+                        Name: s.Specialization.Name ?? string.Empty))
+                    .ToList();
+
                 result.Add(new CharacterDto(
                     Name: character.Name,
                     Realm: character.Realm.Slug,
@@ -72,7 +78,8 @@ internal static class AccountCharacterMapper
                     ClassName: className,
                     PortraitUrl: portraitUrl,
                     ActiveSpecId: activeSpecId,
-                    SpecName: specName));
+                    SpecName: specName,
+                    Specializations: specializations));
             }
 
         return result;

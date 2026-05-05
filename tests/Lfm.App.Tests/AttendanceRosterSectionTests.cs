@@ -21,12 +21,14 @@ public class AttendanceRosterSectionTests : ComponentTestBase
         string desired = "IN",
         string reviewed = "IN") =>
         new(
+            CharacterId: $"eu-area-52-{name.ToLowerInvariant()}",
             CharacterName: name,
             CharacterRealm: realm,
             CharacterClassId: classId,
             CharacterClassName: className,
             DesiredAttendance: desired,
             ReviewedAttendance: reviewed,
+            SpecId: null,
             SpecName: spec,
             Role: role,
             IsCurrentUser: false);

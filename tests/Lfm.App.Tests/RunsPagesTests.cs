@@ -187,12 +187,14 @@ public class RunsPagesTests : ComponentTestBase
         string? spec = "Arcane",
         bool isCurrentUser = false) =>
         new(
+            CharacterId: $"eu-test-realm-{name.ToLowerInvariant()}",
             CharacterName: name,
             CharacterRealm: "Test Realm",
             CharacterClassId: classId,
             CharacterClassName: className,
             DesiredAttendance: attendance,
             ReviewedAttendance: attendance,
+            SpecId: null,
             SpecName: spec,
             Role: role,
             IsCurrentUser: isCurrentUser);
