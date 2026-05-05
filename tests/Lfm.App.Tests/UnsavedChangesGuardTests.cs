@@ -106,4 +106,37 @@ public class UnsavedChangesGuardTests : ComponentTestBase
         Assert.Equal(NavigationState.Succeeded, nav.History.First().State);
         Assert.Equal(false, module.Invocations["setEnabled"].Last().Arguments[0]);
     }
+
+    [Fact]
+    public async Task ConfirmLeave_DoesNotSuppressNextDirtyRegistration()
+    {
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+        var guard = CreateGuard();
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        var ownerA = new object();
+        var ownerB = new object();
+
+        await using var registrationA = guard.Register(ownerA, () => true);
+        await guard.RefreshAsync();
+
+        nav.NavigateTo("/runs");
+
+        Assert.True(guard.IsConfirmationVisible);
+        Assert.Equal(NavigationState.Prevented, nav.History.First().State);
+
+        await guard.ConfirmLeaveAsync();
+
+        Assert.False(guard.IsConfirmationVisible);
+        Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath);
+        Assert.Equal(NavigationState.Succeeded, nav.History.First().State);
+
+        await using var registrationB = guard.Register(ownerB, () => true);
+        await guard.RefreshAsync();
+
+        nav.NavigateTo("/guild");
+
+        Assert.True(guard.IsConfirmationVisible);
+        Assert.Equal("/guild", new Uri(guard.PendingTargetLocation!).AbsolutePath);
+        Assert.Equal(NavigationState.Prevented, nav.History.First().State);
+    }
 }
