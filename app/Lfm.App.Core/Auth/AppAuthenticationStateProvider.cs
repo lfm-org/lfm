@@ -14,7 +14,7 @@ namespace Lfm.App.Auth;
 /// Call <see cref="NotifyStateChanged"/> to force a re-check (e.g. after login/logout).
 /// </summary>
 public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleService localeService)
-    : AuthenticationStateProvider
+    : AuthenticationStateProvider, IAuthStateRefresher
 {
     public const string SelectedCharacterIdClaim = "selected_character_id";
     public const string SelectedCharacterNameClaim = "selected_character_name";
@@ -66,6 +66,9 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleSe
     }
 
     public void NotifyStateChanged()
+        => RefreshAuthenticationState();
+
+    public void RefreshAuthenticationState()
     {
         _cached = null;
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());

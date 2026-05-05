@@ -84,7 +84,10 @@ public class HeadingStructureTests : ComponentTestBase
     [InlineData(typeof(InstancesPage))]
     public void AuthenticatedPage_Renders_Exactly_One_H1(Type pageType)
     {
-        this.AddAuthorization().SetAuthorized("player#1234");
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        if (pageType == typeof(GuildAdminPage))
+            auth.SetRoles("SiteAdmin");
         WireAuthStubs();
 
         var cut = this.GetType().GetMethod(nameof(RenderByType), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
