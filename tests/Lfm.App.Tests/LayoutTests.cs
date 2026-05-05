@@ -196,7 +196,7 @@ public class LayoutTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             var trigger = cut.Find("fluent-button.account-menu-trigger");
-            Assert.NotEqual("menu", trigger.GetAttribute("aria-haspopup"));
+            Assert.Null(trigger.GetAttribute("aria-haspopup"));
             Assert.Empty(cut.FindAll("[role='menu']"));
             Assert.Empty(cut.FindAll("[role='menuitem']"));
         });
