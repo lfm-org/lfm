@@ -19,6 +19,7 @@ using Lfm.Contracts.Guild;
 using Lfm.Contracts.Instances;
 using Lfm.Contracts.Me;
 using Lfm.Contracts.Runs;
+using Lfm.Contracts.Specializations;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -744,6 +745,49 @@ public class RunsPagesTests : ComponentTestBase
                     r.SpecId == 258),
                 It.IsAny<CancellationToken>()),
                 Times.Once));
+    }
+
+    [Fact]
+    public void RunsPage_CurrentSignup_Renders_Spec_Icon_From_Reference_Data()
+    {
+        var currentSignup = MakeCharacter(
+            "Aelrin",
+            classId: 5,
+            className: "Priest",
+            role: "HEALER",
+            attendance: "IN",
+            spec: "Holy",
+            isCurrentUser: true,
+            characterId: "eu-silvermoon-aelrin",
+            specId: 257);
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto> { currentSignup }));
+        Services.AddSingleton(client.Object);
+
+        var specializations = new Mock<ISpecializationsClient>();
+        specializations.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new SpecializationDto(
+                    Id: 257,
+                    Name: "Holy",
+                    ClassId: 5,
+                    Role: "HEALER",
+                    IconUrl: "https://render.example/holy.jpg"),
+            ]);
+        Services.AddSingleton(specializations.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var icon = cut.Find("img.spec-icon__image");
+            Assert.Equal("https://render.example/holy.jpg", icon.GetAttribute("src"));
+            Assert.Equal("", icon.GetAttribute("alt"));
+        });
+        specializations.Verify(c => c.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

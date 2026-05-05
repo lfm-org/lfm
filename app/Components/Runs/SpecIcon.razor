@@ -1,9 +1,31 @@
-<span class="spec-icon" role="img" aria-label="@Label">@Abbreviation</span>
+@if (!string.IsNullOrWhiteSpace(IconUrl) && !_imageFailed)
+{
+    <span class="spec-icon spec-icon--image" role="img" aria-label="@Label">
+        <img class="spec-icon__image" src="@IconUrl" alt="" decoding="async" @onerror="OnImageError" />
+    </span>
+}
+else
+{
+    <span class="spec-icon" role="img" aria-label="@Label">@Abbreviation</span>
+}
 
 @code {
     [Parameter] public string? SpecName { get; set; }
+    [Parameter] public string? IconUrl { get; set; }
+
+    private bool _imageFailed;
+    private string? _lastIconUrl;
 
     private string Label => string.IsNullOrWhiteSpace(SpecName) ? "Unknown spec" : SpecName;
+
+    protected override void OnParametersSet()
+    {
+        if (!StringComparer.Ordinal.Equals(_lastIconUrl, IconUrl))
+        {
+            _imageFailed = false;
+            _lastIconUrl = IconUrl;
+        }
+    }
 
     private string Abbreviation
     {
@@ -18,5 +40,10 @@
 
             return string.Concat(words.Select(word => char.ToUpperInvariant(word[0]))).Substring(0, Math.Min(2, words.Length));
         }
+    }
+
+    private void OnImageError()
+    {
+        _imageFailed = true;
     }
 }

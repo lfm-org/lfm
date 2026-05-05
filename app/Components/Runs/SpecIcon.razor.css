@@ -9,4 +9,17 @@
     background: var(--neutral-fill-rest);
     font-size: 0.7rem;
     font-weight: 700;
+    overflow: hidden;
+    flex: none;
+}
+
+.spec-icon--image {
+    background: transparent;
+}
+
+.spec-icon__image {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
 }
