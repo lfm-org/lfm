@@ -55,4 +55,33 @@ public class VisualRouteArtifactModelSpec
         Assert.Equal("captured", entry.Status);
         Assert.Null(entry.SkipReason);
     }
+
+    [Fact]
+    public void Manifest_CoversEveryApprovedRouteState()
+    {
+        Assert.Equal(25, VisualRouteManifest.States.Count);
+        Assert.Equal(3, VisualRouteManifest.Viewports.Count);
+        Assert.Equal(4, VisualRouteManifest.Variants.Count);
+        Assert.Equal(300, VisualRouteManifest.Matrix.Count);
+    }
+
+    [Fact]
+    public void Manifest_IncludesProtectedAnonymousAndAuthorizedStates()
+    {
+        Assert.Contains(VisualRouteManifest.States, state =>
+            state.Path == "/runs" &&
+            state.AccessMode == VisualAccessMode.Public &&
+            state.AnonymousExpectation == VisualAnonymousExpectation.RedirectToLogin &&
+            state.ExpectedAnonymousPathAndQuery == "/login?redirect=%2Fruns");
+
+        Assert.Contains(VisualRouteManifest.States, state =>
+            state.Path == "/runs" &&
+            state.AccessMode == VisualAccessMode.Authenticated &&
+            state.AnonymousExpectation == VisualAnonymousExpectation.RedirectToLogin);
+
+        Assert.Contains(VisualRouteManifest.States, state =>
+            state.Path == "/admin/reference" &&
+            state.AccessMode == VisualAccessMode.SiteAdmin &&
+            state.ExpectedAnonymousPathAndQuery == "/login?redirect=%2Fadmin%2Freference");
+    }
 }
