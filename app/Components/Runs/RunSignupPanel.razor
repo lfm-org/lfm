@@ -2,8 +2,8 @@
 @using Lfm.Contracts.Runs
 @inject IStringLocalizer Loc
 
-<div class="run-signup-panel" aria-labelledby="run-signup-heading">
-    <h3 id="run-signup-heading" class="run-signup-title">@Loc["runs.signup.title"]</h3>
+<div class="run-signup-panel" aria-labelledby="@HeadingId">
+    <h3 id="@HeadingId" class="run-signup-title">@Loc["runs.signup.title"]</h3>
 
     @if (!string.IsNullOrEmpty(SignupError))
     {
@@ -35,12 +35,12 @@
         </div>
 
         <div class="run-signup-attendance-field">
-            <span id="signup-attendance-label" class="field__label">@Loc["runs.signup.attendance"]</span>
+            <span id="@AttendanceLabelId" class="field__label">@Loc["runs.signup.attendance"]</span>
             <ToggleGroup TValue="string"
                          Options="@SignupAttendanceToggleOptions"
                          Value="@_selectedAttendance"
                          ValueChanged="@OnAttendanceChangedAsync"
-                         AriaLabelledBy="signup-attendance-label"
+                         AriaLabelledBy="@AttendanceLabelId"
                          Disabled="@_signupControlsDisabled"
                          Class="run-signup-attendance-toggle" />
         </div>
@@ -67,7 +67,7 @@
     else
     {
         <div class="run-signup-form">
-            <FluentSelect Id="signup-character-select"
+            <FluentSelect Id="@CharacterSelectId"
                           Label="@Loc["runs.signup.character"]"
                           TOption="string"
                           Value="@SelectedCharacterValue"
@@ -80,7 +80,7 @@
                 }
             </FluentSelect>
 
-            <FluentSelect Id="signup-spec-select"
+            <FluentSelect Id="@SpecSelectId"
                           Label="@Loc["runs.signup.spec"]"
                           TOption="string"
                           Value="@SelectedSpecValue"
@@ -102,12 +102,12 @@
             </FluentSelect>
 
             <div class="run-signup-attendance-field">
-                <span id="signup-attendance-label" class="field__label">@Loc["runs.signup.attendance"]</span>
+                <span id="@AttendanceLabelId" class="field__label">@Loc["runs.signup.attendance"]</span>
                 <ToggleGroup TValue="string"
                              Options="@SignupAttendanceToggleOptions"
                              Value="@_selectedAttendance"
                              ValueChanged="@OnAttendanceChangedAsync"
-                             AriaLabelledBy="signup-attendance-label"
+                             AriaLabelledBy="@AttendanceLabelId"
                              Disabled="@_signupControlsDisabled"
                              Class="run-signup-attendance-toggle" />
             </div>
@@ -164,10 +164,15 @@
     private string? _lastSignupCharacterId;
     private string? _lastSignupAttendance;
     private int? _lastSignupSpecId;
+    private readonly string _idPrefix = $"run-signup-{Guid.NewGuid():N}";
 
     private const string DefaultAttendance = "IN";
 
     private bool _signupControlsDisabled => SignupSubmitting || CancelSubmitting;
+    private string HeadingId => $"{_idPrefix}-heading";
+    private string AttendanceLabelId => $"{_idPrefix}-attendance-label";
+    private string CharacterSelectId => $"{_idPrefix}-character-select";
+    private string SpecSelectId => $"{_idPrefix}-spec-select";
 
     private static readonly IReadOnlyList<(string Value, string LocKey)> SignupAttendanceOptions =
     [
@@ -216,7 +221,7 @@
 
         if ((runChanged || signupChanged) && !_editorOpen)
         {
-            _selectedAttendance = CurrentSignup?.DesiredAttendance ?? DefaultAttendance;
+            ResetSelectionFromCurrentSignup();
         }
 
         if (_editorOpen || CurrentSignup is null)
@@ -232,6 +237,7 @@
 
     private async Task OpenEditorAsync()
     {
+        ResetSelectionFromCurrentSignup();
         _editorOpen = true;
         EnsureCharacterSelection();
         await OnOptionsRequested.InvokeAsync();
@@ -240,8 +246,7 @@
     private void CloseEditor()
     {
         _editorOpen = false;
-        _selectedAttendance = CurrentSignup?.DesiredAttendance ?? DefaultAttendance;
-        EnsureCharacterSelection();
+        ResetSelectionFromCurrentSignup();
     }
 
     private void ShowCancelConfirm()
@@ -263,7 +268,7 @@
     private async Task OnCharacterChangedAsync(string value)
     {
         _selectedCharacterId = string.IsNullOrEmpty(value) ? null : value;
-        _selectedSpecId = DefaultSpecIdFor(SelectedCharacter);
+        _selectedSpecId = ResolveDefaultSpecId(SelectedCharacter);
         await Task.CompletedTask;
     }
 
@@ -320,8 +325,8 @@
     {
         if (Characters.Count == 0)
         {
-            _selectedCharacterId = null;
-            _selectedSpecId = null;
+            _selectedCharacterId = CurrentSignup?.CharacterId;
+            _selectedSpecId = CurrentSignup?.SpecId;
             return;
         }
 
@@ -329,7 +334,7 @@
             Characters.All(character => CharacterId(character) != _selectedCharacterId))
         {
             _selectedCharacterId = ResolveDefaultCharacterId();
-            _selectedSpecId = DefaultSpecIdFor(SelectedCharacter);
+            _selectedSpecId = ResolveDefaultSpecId(SelectedCharacter);
             return;
         }
 
@@ -337,8 +342,23 @@
         if (_selectedSpecId is null ||
             (specOptions.Count > 0 && specOptions.All(spec => spec.Id != _selectedSpecId)))
         {
-            _selectedSpecId = DefaultSpecIdFor(SelectedCharacter);
+            _selectedSpecId = ResolveDefaultSpecId(SelectedCharacter);
         }
+    }
+
+    private void ResetSelectionFromCurrentSignup()
+    {
+        _selectedAttendance = CurrentSignup?.DesiredAttendance ?? DefaultAttendance;
+
+        if (Characters.Count == 0)
+        {
+            _selectedCharacterId = CurrentSignup?.CharacterId;
+            _selectedSpecId = CurrentSignup?.SpecId;
+            return;
+        }
+
+        _selectedCharacterId = ResolveDefaultCharacterId();
+        _selectedSpecId = ResolveDefaultSpecId(SelectedCharacter);
     }
 
     private string ResolveDefaultCharacterId()
@@ -358,10 +378,19 @@
         return CharacterId(Characters[0]);
     }
 
-    private static int? DefaultSpecIdFor(CharacterDto? character)
+    private int? ResolveDefaultSpecId(CharacterDto? character)
     {
         if (character is null)
             return null;
+
+        if (!string.IsNullOrEmpty(CurrentSignup?.CharacterId) &&
+            CurrentSignup.CharacterId == CharacterId(character) &&
+            CurrentSignup.SpecId is int currentSpecId)
+        {
+            var options = GetSpecOptions(character);
+            if (options.Count == 0 || options.Any(spec => spec.Id == currentSpecId))
+                return currentSpecId;
+        }
 
         if (character.Specializations is { Count: > 0 } specializations)
         {

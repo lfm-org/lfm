@@ -3,8 +3,11 @@
 
 using Bunit;
 using Bunit.TestDoubles;
+using AngleSharp.Dom;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Lfm.App.Components.Runs;
 using Lfm.App.Pages;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
@@ -242,6 +245,38 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(me.Object);
     }
 
+    private IElement FindSignupSelect(IRenderedComponent<RunsPage> cut, string label)
+    {
+        var selects = cut.FindAll("fluent-select");
+        var labelled = selects
+            .Where(select =>
+                select.GetAttribute("label") == label ||
+                select.TextContent.Contains(label, StringComparison.Ordinal))
+            .ToList();
+        if (labelled.Count == 1)
+            return labelled[0];
+
+        var index = label == Loc("runs.signup.character") ? 0 : 1;
+        Assert.True(selects.Count > index);
+        return selects[index];
+    }
+
+    private IElement FindSignupAttendanceGroup(IRenderedComponent<RunsPage> cut)
+    {
+        var group = cut.FindAll("[role='radiogroup']").Single(group =>
+        {
+            var labelId = group.GetAttribute("aria-labelledby");
+            if (string.IsNullOrEmpty(labelId))
+                return false;
+
+            var label = cut.Find($"#{labelId}");
+            return label.TextContent.Trim() == Loc("runs.signup.attendance");
+        });
+
+        Assert.Contains("run-signup-attendance-toggle", group.ClassName ?? string.Empty);
+        return group;
+    }
+
     [Fact]
     public void RunsPage_Signup_Submits_Selected_Character_And_Updates_Roster()
     {
@@ -295,10 +330,12 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("runs.signup.action"), cut.Markup));
 
-        var group = cut.Find("[role='radiogroup'][aria-labelledby='signup-attendance-label']");
-        Assert.Contains("run-signup-attendance-toggle", group.ClassName ?? string.Empty);
+        var group = FindSignupAttendanceGroup(cut);
+        var labelId = group.GetAttribute("aria-labelledby");
+        Assert.False(string.IsNullOrEmpty(labelId));
+        Assert.Equal(Loc("runs.signup.attendance"), cut.Find($"#{labelId}").TextContent.Trim());
 
-        var radios = cut.FindAll("[role='radiogroup'][aria-labelledby='signup-attendance-label'] [role='radio']");
+        var radios = group.QuerySelectorAll("[role='radio']");
         Assert.Equal(5, radios.Count);
         Assert.Equal(Loc("runs.attendance.in"), radios[0].TextContent.Trim());
         Assert.Equal(Loc("runs.attendance.late"), radios[1].TextContent.Trim());
@@ -463,17 +500,17 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             Assert.Contains(Loc("runs.signup.back"), cut.Markup);
-            Assert.NotNull(cut.Find("#signup-character-select"));
-            Assert.NotNull(cut.Find("#signup-spec-select"));
+            Assert.NotNull(FindSignupSelect(cut, Loc("runs.signup.character")));
+            Assert.NotNull(FindSignupSelect(cut, Loc("runs.signup.spec")));
             Assert.Contains(Loc("runs.signup.spec"), cut.Markup);
             client.Verify(c => c.GetSignupOptionsAsync("run-1", It.IsAny<CancellationToken>()), Times.Once);
         });
 
-        Assert.Contains("Aelrin - Silvermoon", cut.Find("#signup-character-select").TextContent);
-        Assert.Contains("Holy", cut.Find("#signup-spec-select").TextContent);
-        Assert.Contains("Shadow", cut.Find("#signup-spec-select").TextContent);
+        Assert.Contains("Aelrin - Silvermoon", FindSignupSelect(cut, Loc("runs.signup.character")).TextContent);
+        Assert.Contains("Holy", FindSignupSelect(cut, Loc("runs.signup.spec")).TextContent);
+        Assert.Contains("Shadow", FindSignupSelect(cut, Loc("runs.signup.spec")).TextContent);
 
-        cut.Find("#signup-spec-select").Change("258");
+        FindSignupSelect(cut, Loc("runs.signup.spec")).Change("258");
         var submitButton = cut.FindAll("fluent-button")
             .Single(b => b.TextContent.Contains(Loc("runs.signup.action"), StringComparison.Ordinal));
         submitButton.Click();
@@ -487,6 +524,177 @@ public class RunsPagesTests : ComponentTestBase
                     r.SpecId == 258),
                 It.IsAny<CancellationToken>()),
                 Times.Once));
+    }
+
+    [Fact]
+    public void RunsPage_CurrentSignup_Editor_Submits_Current_Spec_When_ActiveSpecDiffers()
+    {
+        var currentSignup = MakeCharacter(
+            "Aelrin",
+            classId: 5,
+            className: "Priest",
+            role: "HEALER",
+            attendance: "IN",
+            spec: "Shadow",
+            isCurrentUser: true,
+            characterId: "eu-silvermoon-aelrin",
+            specId: 258);
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto> { currentSignup }));
+        client.Setup(c => c.SignupAsync("run-1", It.IsAny<SignupRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto> { currentSignup }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(
+            client,
+            characters:
+            [
+                MakeAppCharacter(
+                    activeSpecId: 257,
+                    specializations:
+                    [
+                        new CharacterSpecializationDto(257, "Holy"),
+                        new CharacterSpecializationDto(258, "Shadow"),
+                    ]),
+            ]);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.signup.changeCharacter"), cut.Markup));
+
+        cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.changeCharacter"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Shadow", FindSignupSelect(cut, Loc("runs.signup.spec")).TextContent));
+
+        cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.action"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.SignupAsync(
+                "run-1",
+                It.Is<SignupRequest>(r =>
+                    r.CharacterId == "eu-silvermoon-aelrin" &&
+                    r.DesiredAttendance == "IN" &&
+                    r.SpecId == 258),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+    }
+
+    [Fact]
+    public void RunsPage_CurrentSignup_Back_Discards_Unsaved_Character_And_Spec_Edits()
+    {
+        var currentSignup = MakeCharacter(
+            "Aelrin",
+            classId: 5,
+            className: "Priest",
+            role: "HEALER",
+            attendance: "IN",
+            spec: "Shadow",
+            isCurrentUser: true,
+            characterId: "eu-silvermoon-aelrin",
+            specId: 258);
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto> { currentSignup }));
+        client.Setup(c => c.SignupAsync("run-1", It.IsAny<SignupRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto> { currentSignup }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(
+            client,
+            characters:
+            [
+                MakeAppCharacter(
+                    activeSpecId: 257,
+                    specializations:
+                    [
+                        new CharacterSpecializationDto(257, "Holy"),
+                        new CharacterSpecializationDto(258, "Shadow"),
+                    ]),
+                MakeAppCharacter(
+                    name: "Borin",
+                    activeSpecId: 71,
+                    specializations:
+                    [
+                        new CharacterSpecializationDto(71, "Arms"),
+                        new CharacterSpecializationDto(72, "Fury"),
+                    ]),
+            ],
+            selectedCharacterId: "eu-silvermoon-borin");
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.signup.changeCharacter"), cut.Markup));
+
+        cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.changeCharacter"), StringComparison.Ordinal))
+            .Click();
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Borin - Silvermoon", FindSignupSelect(cut, Loc("runs.signup.character")).TextContent));
+
+        FindSignupSelect(cut, Loc("runs.signup.character")).Change("eu-silvermoon-borin");
+        FindSignupSelect(cut, Loc("runs.signup.spec")).Change("72");
+        cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.back"), StringComparison.Ordinal))
+            .Click();
+
+        cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.changeCharacter"), StringComparison.Ordinal))
+            .Click();
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Aelrin - Silvermoon", FindSignupSelect(cut, Loc("runs.signup.character")).TextContent));
+
+        cut.FindAll("fluent-button")
+            .Single(b => b.TextContent.Contains(Loc("runs.signup.action"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.SignupAsync(
+                "run-1",
+                It.Is<SignupRequest>(r =>
+                    r.CharacterId == "eu-silvermoon-aelrin" &&
+                    r.DesiredAttendance == "IN" &&
+                    r.SpecId == 258),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+    }
+
+    [Fact]
+    public void RunSignupPanel_Uses_Unique_Label_Ids_For_Multiple_Instances()
+    {
+        var firstSignup = MakeCharacter("Aelrin", isCurrentUser: true, characterId: "eu-silvermoon-aelrin");
+        var secondSignup = MakeCharacter("Borin", isCurrentUser: true, characterId: "eu-silvermoon-borin");
+        RenderFragment fragment = builder =>
+        {
+            builder.OpenComponent<RunSignupPanel>(0);
+            builder.AddAttribute(1, "RunId", "run-1");
+            builder.AddAttribute(2, "CurrentSignup", firstSignup);
+            builder.CloseComponent();
+            builder.OpenComponent<RunSignupPanel>(3);
+            builder.AddAttribute(4, "RunId", "run-2");
+            builder.AddAttribute(5, "CurrentSignup", secondSignup);
+            builder.CloseComponent();
+        };
+
+        var cut = Render(fragment);
+
+        var ids = cut.FindAll("[id]").Select(element => element.Id).ToList();
+        Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
+        foreach (var group in cut.FindAll("[role='radiogroup']"))
+        {
+            var labelId = group.GetAttribute("aria-labelledby");
+            Assert.False(string.IsNullOrWhiteSpace(labelId));
+            Assert.Contains(labelId, ids);
+        }
     }
 
     [Fact]
@@ -565,6 +773,7 @@ public class RunsPagesTests : ComponentTestBase
         Services.AddSingleton(client.Object);
         WireSignupSupport(client);
 
+        var dialogModule = JSInterop.SetupModule("./js/dialog.js");
         var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
 
         cut.WaitForAssertion(() =>
@@ -575,6 +784,8 @@ public class RunsPagesTests : ComponentTestBase
         cancelButton.Click();
 
         client.Verify(c => c.CancelSignupAsync("run-1", It.IsAny<CancellationToken>()), Times.Never);
+        cut.WaitForAssertion(() => dialogModule.VerifyInvoke("showModal"));
+        Assert.False(cut.Find("dialog.confirm-dialog").HasAttribute("open"));
         cut.WaitForAssertion(() =>
         {
             Assert.Contains(Loc("runs.signup.cancelConfirmTitle"), cut.Markup);
@@ -584,6 +795,7 @@ public class RunsPagesTests : ComponentTestBase
         var dismissButton = cut.FindAll("fluent-button")
             .Single(b => b.TextContent.Contains(Loc("runs.signup.cancelConfirmCancel"), StringComparison.Ordinal));
         dismissButton.Click();
+        cut.WaitForAssertion(() => dialogModule.VerifyInvoke("close"));
         client.Verify(c => c.CancelSignupAsync("run-1", It.IsAny<CancellationToken>()), Times.Never);
         Assert.Contains(Loc("runs.signup.cancel"), cut.Markup);
 
@@ -598,7 +810,9 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
             client.Verify(c => c.CancelSignupAsync("run-1", It.IsAny<CancellationToken>()), Times.Once));
         cut.WaitForAssertion(() =>
-            Assert.DoesNotContain(Loc("runs.signup.cancel"), cut.Markup));
+            Assert.DoesNotContain(
+                cut.FindAll("fluent-button"),
+                button => button.TextContent.Trim() == Loc("runs.signup.cancel")));
     }
 
     [Fact]
