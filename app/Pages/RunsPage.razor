@@ -54,13 +54,6 @@
             <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
             break;
 
-        case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s when s.Value.Count == 0:
-            <FluentMessageBar Intent="MessageIntent.Info">
-                @Loc["runs.empty"]
-                <FluentAnchor Href="/runs/new">@Loc["runs.emptyCta"]</FluentAnchor>
-            </FluentMessageBar>
-            break;
-
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Success s:
             <div class="runs-layout">
                 <div class="runs-sidebar">
@@ -69,30 +62,46 @@
                         var pastCount = s.Value.Count(r =>
                             RunVisualization.GetHorizon(r.StartTime, DateTimeOffset.UtcNow) == TimeHorizon.Past);
                     }
-                    @foreach (var group in groups)
+                    @if (s.Value.Count == 0)
                     {
-                        if (group.Horizon == TimeHorizon.Past && !_showPast)
-                        {
-                            continue;
-                        }
-                        <div class="runs-group" @key="group.Horizon">
-                            <h2 class="runs-group__title">@HorizonLabel(group.Horizon)</h2>
-                            @foreach (var run in group.Runs)
-                            {
-                                <RunListItem @key="run.Id"
-                                             Run="run"
-                                             IsSelected="@(run.Id == selectedRunId)"
-                                             OnSelected="@SelectRun" />
-                            }
-                        </div>
+                        <FluentMessageBar Intent="MessageIntent.Info">
+                            @Loc["runs.empty"]
+                            <FluentAnchor Href="/runs/new">@Loc["runs.emptyCta"]</FluentAnchor>
+                        </FluentMessageBar>
                     }
-                    @if (pastCount > 0)
+                    else
                     {
-                        <button type="button" class="runs-past-toggle"
-                                aria-expanded="@(_showPast ? "true" : "false")"
-                                @onclick="@TogglePast">
-                            @(_showPast ? Loc["runs.hidePast"] : Loc["runs.showPast", pastCount])
-                        </button>
+                        @foreach (var group in groups)
+                        {
+                            if (group.Horizon == TimeHorizon.Past && !_showPast)
+                            {
+                                continue;
+                            }
+                            <div class="runs-group" @key="group.Horizon">
+                                <h2 class="runs-group__title">@HorizonLabel(group.Horizon)</h2>
+                                @foreach (var run in group.Runs)
+                                {
+                                    <RunListItem @key="run.Id"
+                                                 Run="run"
+                                                 IsSelected="@(run.Id == selectedRunId)"
+                                                 OnSelected="@SelectRun" />
+                                }
+                            </div>
+                        }
+                        @if (pastCount > 0)
+                        {
+                            <button type="button" class="runs-past-toggle"
+                                    aria-expanded="@(_showPast ? "true" : "false")"
+                                    @onclick="@TogglePast">
+                                @(_showPast ? Loc["runs.hidePast"] : Loc["runs.showPast", pastCount])
+                            </button>
+                        }
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_loadMoreError))
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error">
+                            @_loadMoreError
+                        </FluentMessageBar>
                     }
                     @if (!string.IsNullOrEmpty(_continuationToken))
                     {
@@ -211,6 +220,7 @@
     private bool _loadingMore;
     private bool _showPast;
     private string? _continuationToken;
+    private string? _loadMoreError;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
     private IReadOnlyList<CharacterDto> _signupCharacters = [];
@@ -268,6 +278,7 @@
         {
             var page = await ListInitialRunsPageAsync();
             _continuationToken = page.ContinuationToken;
+            _loadMoreError = null;
             state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(page.Items);
 
             if (selectedRunId != null)
@@ -313,6 +324,7 @@
             return;
 
         _loadingMore = true;
+        _loadMoreError = null;
         try
         {
             var page = await RunsClient.ListPageAsync(_continuationToken, CancellationToken.None);
@@ -322,6 +334,10 @@
                 state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Success(
                     s.Value.Concat(page.Items).ToList());
             }
+        }
+        catch (Exception ex)
+        {
+            _loadMoreError = ex.Message;
         }
         finally
         {
