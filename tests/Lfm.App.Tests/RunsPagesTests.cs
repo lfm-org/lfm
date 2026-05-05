@@ -249,7 +249,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var me = new Mock<IMeClient>();
         me.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MeResponse("bnet-1", null, selectedCharacterId, false, "en"));
+            .ReturnsAsync(new MeResponse("bnet-1", null, selectedCharacterId, null, false, "en"));
         Services.AddSingleton(me.Object);
     }
 
@@ -859,7 +859,7 @@ public class RunsPagesTests : ComponentTestBase
 
         var me = new Mock<IMeClient>();
         me.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MeResponse("bnet-1", null, "eu-silvermoon-aelrin", false, "en"));
+            .ReturnsAsync(new MeResponse("bnet-1", null, "eu-silvermoon-aelrin", null, false, "en"));
         Services.AddSingleton(me.Object);
 
         var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));

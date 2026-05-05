@@ -16,6 +16,10 @@ namespace Lfm.App.Auth;
 public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleService localeService)
     : AuthenticationStateProvider
 {
+    public const string SelectedCharacterIdClaim = "selected_character_id";
+    public const string SelectedCharacterNameClaim = "selected_character_name";
+    public const string SelectedCharacterPortraitUrlClaim = "selected_character_portrait_url";
+
     private AuthenticationState? _cached;
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -44,6 +48,14 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleSe
 
         if (!string.IsNullOrEmpty(me.GuildName))
             claims.Add(new Claim("guild_name", me.GuildName));
+
+        if (me.SelectedCharacter is not null)
+        {
+            claims.Add(new Claim(SelectedCharacterIdClaim, me.SelectedCharacter.Id));
+            claims.Add(new Claim(SelectedCharacterNameClaim, me.SelectedCharacter.Name));
+            if (!string.IsNullOrWhiteSpace(me.SelectedCharacter.PortraitUrl))
+                claims.Add(new Claim(SelectedCharacterPortraitUrlClaim, me.SelectedCharacter.PortraitUrl));
+        }
 
         if (me.IsSiteAdmin)
             claims.Add(new Claim(ClaimTypes.Role, "SiteAdmin"));

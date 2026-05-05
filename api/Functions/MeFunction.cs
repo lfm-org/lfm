@@ -31,6 +31,7 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
         var isAdmin = await siteAdmin.IsAdminAsync(principal.BattleNetId, cancellationToken);
 
         var (_, guildName) = GuildResolver.FromRaider(raider);
+        var selectedCharacter = ResolveSelectedCharacter(raider);
 
         // Emit the Cosmos _etag so the SPA can echo it as If-Match on PATCH /me
         // for optimistic concurrency. Cosmos etags are already double-quoted
@@ -42,8 +43,22 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
             BattleNetId: principal.BattleNetId,
             GuildName: guildName,
             SelectedCharacterId: raider.SelectedCharacterId,
+            SelectedCharacter: selectedCharacter,
             IsSiteAdmin: isAdmin,
             Locale: raider.Locale));
+    }
+
+    private static SelectedCharacterSummaryDto? ResolveSelectedCharacter(RaiderDocument raider)
+    {
+        if (string.IsNullOrWhiteSpace(raider.SelectedCharacterId) || raider.Characters is null)
+            return null;
+
+        var selected = raider.Characters.FirstOrDefault(c =>
+            string.Equals(c.Id, raider.SelectedCharacterId, StringComparison.OrdinalIgnoreCase));
+
+        return selected is null
+            ? null
+            : new SelectedCharacterSummaryDto(selected.Id, selected.Name, selected.PortraitUrl);
     }
 
     /// <summary>

@@ -22,6 +22,7 @@ public class CharactersPagesTests : ComponentTestBase
             BattleNetId: "player#1234",
             GuildName: null,
             SelectedCharacterId: selectedCharacterId,
+            SelectedCharacter: null,
             IsSiteAdmin: false,
             Locale: "en");
 

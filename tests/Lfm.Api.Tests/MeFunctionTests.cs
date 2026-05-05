@@ -75,6 +75,56 @@ public class MeFunctionTests
     }
 
     [Fact]
+    public async Task Returns_selected_character_summary_when_known()
+    {
+        var principal = new SessionPrincipal(
+            BattleNetId: "bnet-1",
+            BattleTag: "Player#1234",
+            GuildId: "42",
+            GuildName: "Test Guild",
+            IssuedAt: DateTimeOffset.UtcNow,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+        var raider = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: "char-1",
+            Locale: "en",
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Testchar",
+                    PortraitUrl: "https://render.worldofwarcraft.com/eu/testchar-avatar.jpg",
+                    GuildId: 42,
+                    GuildName: "Test Guild")
+            ]);
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var fn = new MeFunction(repo.Object, siteAdmin.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.RunV1(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var selected = ok.Value!.GetType().GetProperty("SelectedCharacter")?.GetValue(ok.Value);
+        Assert.NotNull(selected);
+        Assert.Equal("char-1", selected.GetType().GetProperty("Id")?.GetValue(selected));
+        Assert.Equal("Testchar", selected.GetType().GetProperty("Name")?.GetValue(selected));
+        Assert.Equal(
+            "https://render.worldofwarcraft.com/eu/testchar-avatar.jpg",
+            selected.GetType().GetProperty("PortraitUrl")?.GetValue(selected));
+    }
+
+    [Fact]
     public async Task Returns_not_found_when_raider_document_missing()
     {
         var principal = new SessionPrincipal(
