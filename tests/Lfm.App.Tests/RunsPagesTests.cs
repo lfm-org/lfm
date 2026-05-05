@@ -6,6 +6,7 @@ using Bunit.TestDoubles;
 using AngleSharp.Dom;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Lfm.App;
 using Lfm.App.Components;
 using Moq;
 using Lfm.App.Components.Runs;
@@ -69,7 +70,12 @@ public class RunsPagesTests : ComponentTestBase
         new("1:HEROIC:25", 1, "Liberation of Undermine", "HEROIC:25",
             "The War Within", "RAID", 505, "HEROIC", 25);
 
-    private static GuildDto MakeGuildDto(bool canCreateGuildRuns = true) =>
+    private static GuildDto MakeGuildDto(
+        bool canCreateGuildRuns = true,
+        bool canEdit = false,
+        bool requiresSetup = false,
+        bool isInitialized = true,
+        bool rankDataFresh = true) =>
         new(
             Guild: new GuildInfoDto(
                 Id: 12345,
@@ -82,13 +88,13 @@ public class RunsPagesTests : ComponentTestBase
                 CrestEmblemUrl: null,
                 CrestBorderUrl: null),
             Setup: new GuildSetupDto(
-                IsInitialized: true,
-                RequiresSetup: false,
-                RankDataFresh: true,
+                IsInitialized: isInitialized,
+                RequiresSetup: requiresSetup,
+                RankDataFresh: rankDataFresh,
                 Timezone: "Europe/Helsinki",
                 Locale: "en-gb"),
             Settings: null,
-            Editor: new GuildEditorDto(CanEdit: false),
+            Editor: new GuildEditorDto(CanEdit: canEdit),
             MemberPermissions: new GuildMemberPermissionsDto(
                 CanCreateGuildRuns: canCreateGuildRuns,
                 CanSignupGuildRuns: true,
@@ -244,6 +250,90 @@ public class RunsPagesTests : ComponentTestBase
         me.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MeResponse("bnet-1", null, selectedCharacterId, false, "en"));
         Services.AddSingleton(me.Object);
+    }
+
+    private void WireAppRouteServices(
+        GuildDto? guild,
+        TaskCompletionSource<GuildDto?>? guildPending = null)
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        Services.AddSingleton(runsClient.Object);
+
+        var instancesClient = new Mock<IInstancesClient>();
+        instancesClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeInstanceFixture()]);
+        Services.AddSingleton(instancesClient.Object);
+
+        var expansionsClient = new Mock<IExpansionsClient>();
+        expansionsClient.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ExpansionDto(505, "The War Within")]);
+        Services.AddSingleton(expansionsClient.Object);
+
+        var guildClient = new Mock<IGuildClient>();
+        if (guildPending is not null)
+        {
+            guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+                .Returns(guildPending.Task);
+        }
+        else
+        {
+            guildClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(guild);
+        }
+
+        Services.AddSingleton(guildClient.Object);
+    }
+
+    [Theory]
+    [InlineData("/runs")]
+    [InlineData("/runs/new")]
+    [InlineData("/runs/run-1/edit")]
+    public void GuildSetupGate_Redirects_Run_Routes_For_Editor_SetupRequired_Guild(string route)
+    {
+        WireAppRouteServices(MakeGuildDto(canEdit: true, requiresSetup: true, isInitialized: false));
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo(route);
+
+        var cut = Render<App>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/guild?setup=required", new Uri(nav.Uri).PathAndQuery));
+    }
+
+    [Fact]
+    public void GuildSetupGate_Does_Not_Redirect_NonEditors()
+    {
+        WireAppRouteServices(MakeGuildDto(canEdit: false, requiresSetup: true, isInitialized: false));
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/runs");
+
+        var cut = Render<App>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("runs.empty"), cut.Markup));
+    }
+
+    [Fact]
+    public void GuildSetupGate_Shows_Loading_State_While_Guild_Fetch_Is_Pending()
+    {
+        WireAppRouteServices(guild: null, guildPending: new TaskCompletionSource<GuildDto?>());
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/runs");
+
+        var cut = Render<App>();
+
+        Assert.Contains(Loc("guild.checkingSetup"), cut.Markup);
+        Assert.NotEmpty(cut.FindAll("fluent-progress-ring"));
+        Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath);
     }
 
     private IElement FindSignupSelect(IRenderedComponent<RunsPage> cut, string label)
