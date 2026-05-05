@@ -14,7 +14,6 @@ public sealed class UnsavedChangesGuard(NavigationManager navigation, IJSRuntime
     private IJSObjectReference? _module;
     private bool _beforeUnloadEnabled;
     private bool _disposed;
-    private bool _suppressNextNavigation;
 
     public event Action? StateChanged;
 
@@ -61,19 +60,12 @@ public sealed class UnsavedChangesGuard(NavigationManager navigation, IJSRuntime
 
         if (!string.IsNullOrEmpty(target))
         {
-            _suppressNextNavigation = true;
             navigation.NavigateTo(target);
         }
     }
 
     private async ValueTask OnLocationChangingAsync(LocationChangingContext context)
     {
-        if (_suppressNextNavigation)
-        {
-            _suppressNextNavigation = false;
-            return;
-        }
-
         if (!IsInternalTarget(context.TargetLocation) || !IsDirty())
         {
             return;
