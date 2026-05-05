@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Security.Claims;
 using Bunit;
 using Bunit.TestDoubles;
+using Lfm.App.Auth;
+using Lfm.App.Layout;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -17,12 +20,14 @@ public class CharactersPagesTests : ComponentTestBase
 {
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static MeResponse MakeMeResponse(string? selectedCharacterId = null) =>
+    private static MeResponse MakeMeResponse(
+        string? selectedCharacterId = null,
+        SelectedCharacterSummaryDto? selectedCharacter = null) =>
         new(
             BattleNetId: "player#1234",
             GuildName: null,
             SelectedCharacterId: selectedCharacterId,
-            SelectedCharacter: null,
+            SelectedCharacter: selectedCharacter,
             IsSiteAdmin: false,
             Locale: "en");
 
@@ -51,6 +56,24 @@ public class CharactersPagesTests : ComponentTestBase
             PortraitUrl: null,
             ActiveSpecId: null,
             SpecName: null);
+
+    private static Claim[] MakeAuthClaims(MeResponse me)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, me.BattleNetId),
+            new(ClaimTypes.Name, me.BattleNetId),
+        };
+        if (me.SelectedCharacter is not null)
+        {
+            claims.Add(new Claim(AppAuthenticationStateProvider.SelectedCharacterIdClaim, me.SelectedCharacter.Id));
+            claims.Add(new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, me.SelectedCharacter.Name));
+            if (!string.IsNullOrWhiteSpace(me.SelectedCharacter.PortraitUrl))
+                claims.Add(new Claim(AppAuthenticationStateProvider.SelectedCharacterPortraitUrlClaim, me.SelectedCharacter.PortraitUrl));
+        }
+
+        return claims.ToArray();
+    }
 
     private (Mock<IBattleNetClient> BattleNet, Mock<IMeClient> Me) RegisterCharactersPageClients(
         IReadOnlyList<CharacterDto> chars,
@@ -383,6 +406,62 @@ public class CharactersPagesTests : ComponentTestBase
             me.Verify(m => m.SelectCharacterAsync("eu-silvermoon-aelrin", It.IsAny<CancellationToken>()), Times.Once);
             Assert.True(nav.Uri.EndsWith("/runs/new", StringComparison.Ordinal), nav.Uri);
         });
+    }
+
+    [Fact]
+    public void CharactersPage_Selecting_Character_Refreshes_Layout_Account_Menu()
+    {
+        var auth = this.AddAuthorization();
+        var currentMe = MakeMeResponse(
+            selectedCharacterId: "eu-silvermoon-arthas",
+            selectedCharacter: new SelectedCharacterSummaryDto("eu-silvermoon-arthas", "Arthas", null));
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(MakeAuthClaims(currentMe));
+        var chars = new List<CharacterDto> { MakeChar("Arthas"), MakeChar("Sylvanas") };
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => currentMe);
+        me.Setup(m => m.SelectCharacterAsync("eu-silvermoon-sylvanas", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                currentMe = MakeMeResponse(
+                    selectedCharacterId: "eu-silvermoon-sylvanas",
+                    selectedCharacter: new SelectedCharacterSummaryDto("eu-silvermoon-sylvanas", "Sylvanas", null));
+                return true;
+            });
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+        Services.AddSingleton<IAuthStateRefresher>(new ActionAuthStateRefresher(() =>
+            auth.SetClaims(MakeAuthClaims(currentMe))));
+
+        var cut = Render<MainLayout>(layout => layout.Add(
+            l => l.Body,
+            builder =>
+            {
+                builder.OpenComponent<CharactersPage>(0);
+                builder.CloseComponent();
+            }));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Arthas", cut.Find(".account-menu-trigger").TextContent));
+        cut.Find("[data-char-id='eu-silvermoon-sylvanas']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            me.Verify(m => m.SelectCharacterAsync("eu-silvermoon-sylvanas", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Contains("Sylvanas", cut.Find(".account-menu-trigger").TextContent);
+        });
+    }
+
+    private sealed class ActionAuthStateRefresher(Action refresh) : IAuthStateRefresher
+    {
+        public void RefreshAuthenticationState() =>
+            refresh();
     }
 
     [Theory]
