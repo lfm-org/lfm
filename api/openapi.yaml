@@ -1033,12 +1033,20 @@ components:
         [characterName, characterRealm, characterClassId, characterClassName,
          desiredAttendance, reviewedAttendance, isCurrentUser]
       properties:
+        characterId:
+          type: string
+          nullable: true
+          description: Current-user-only signup character id. Null for other roster rows.
         characterName: { type: string }
         characterRealm: { type: string }
         characterClassId: { type: integer }
         characterClassName: { type: string }
         desiredAttendance: { type: string, enum: [IN, OUT, BENCH, LATE, AWAY] }
         reviewedAttendance: { type: string, enum: [IN, OUT, BENCH, LATE, AWAY] }
+        specId:
+          type: integer
+          nullable: true
+          description: Current-user-only signup specialization id. Null for other roster rows.
         specName: { type: string, nullable: true }
         role: { type: string, nullable: true, enum: [TANK, HEALER, DPS, null] }
         isCurrentUser: { type: boolean }
@@ -1144,6 +1152,13 @@ components:
         selectedCharacterId: { type: string }
 
     # ── Battle.net Profile ────────────────────────────────────────────────
+    CharacterSpecializationDto:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
     CharacterDto:
       type: object
       required: [name, realm, realmName, level, region]
@@ -1158,6 +1173,11 @@ components:
         portraitUrl: { type: string, nullable: true, format: uri }
         activeSpecId: { type: integer, nullable: true }
         specName: { type: string, nullable: true }
+        specializations:
+          type: array
+          nullable: true
+          description: Planned near-term reservation for the run signup spec selector.
+          items: { $ref: '#/components/schemas/CharacterSpecializationDto' }
 
     CharacterPortraitRequest:
       type: object

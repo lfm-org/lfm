@@ -121,4 +121,27 @@ public class OpenApiContractTests
         Assert.True(schemas!.ContainsKey("ProblemDetails"),
             "openapi.yaml must define ProblemDetails — every error response references it.");
     }
+
+    [Fact]
+    public async Task Spec_defines_signup_metadata_contract_fields()
+    {
+        var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
+
+        var schemas = result.Document!.Components?.Schemas;
+        Assert.NotNull(schemas);
+        Assert.True(schemas!.ContainsKey("CharacterSpecializationDto"),
+            "openapi.yaml must define CharacterSpecializationDto for signup option specialization choices.");
+
+        var characterSchema = schemas["CharacterDto"];
+        Assert.NotNull(characterSchema.Properties);
+        Assert.True(characterSchema.Properties.ContainsKey("specializations"),
+            "CharacterDto.specializations must be documented for signup option specialization choices.");
+
+        var runCharacterSchema = schemas["RunCharacterDto"];
+        Assert.NotNull(runCharacterSchema.Properties);
+        Assert.True(runCharacterSchema.Properties.ContainsKey("characterId"),
+            "RunCharacterDto.characterId must be documented for current-user signup editing.");
+        Assert.True(runCharacterSchema.Properties.ContainsKey("specId"),
+            "RunCharacterDto.specId must be documented for current-user signup editing.");
+    }
 }

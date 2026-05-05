@@ -11,6 +11,10 @@ public sealed record CharacterSpecializationDto(int Id, string Name);
 /// <c>functions/src/types/index.ts</c> and the shape produced by
 /// <c>toAccountCharacterViews</c> in <c>functions/src/lib/blizzard-adapters.ts</c>.
 /// </summary>
+/// <param name="Specializations">
+/// Planned near-term reservation for the run signup spec selector until Task 2
+/// consumes it in the Blazor signup panel.
+/// </param>
 public sealed record CharacterDto(
     string Name,
     string Realm,
