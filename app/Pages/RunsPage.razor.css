@@ -19,23 +19,23 @@
     overflow: hidden;
 }
 
-/* Two-column split only on genuine desktop widths.
-   At 48em the sidebar + gap + page padding left the detail pane around 420px,
-   which cramped the roster grid and edit form. 64em gives the detail pane
-   ~640px+ and keeps the whole tablet range on a single-column layout. */
-@media (min-width: 64em) {
+/* Two-column split once the detail pane can still keep a usable roster area.
+   The sidebar stays deliberately narrow so mid-width desktop windows do not
+   collapse back into a single oversized detail card. */
+@media (min-width: 56em) {
     .runs-layout {
         flex-direction: row;
     }
 
     .runs-sidebar {
-        inline-size: clamp(18rem, 28vw, 22rem);
+        inline-size: clamp(15.5rem, 26vw, 19rem);
     }
 }
 
 .runs-detail {
     flex: 1;
     min-inline-size: 0;
+    inline-size: 100%;
 }
 
 /* Group heading — compact divider between time-horizon buckets. */
@@ -125,7 +125,19 @@
     align-items: center;
 }
 
-/* Run detail card */
+.run-detail-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    inline-size: 100%;
+}
+
+.run-detail-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .run-detail-header {
     display: flex;
     flex-wrap: wrap;
@@ -162,53 +174,22 @@
     font-weight: 600;
 }
 
-/* Signup controls */
-.run-signup-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    padding-block: 0.75rem;
-    border-block: 1px solid var(--neutral-stroke-rest);
-}
-
-.run-signup-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
+.run-signup-surface {
+    background: var(--neutral-fill-rest);
     color: var(--neutral-foreground-rest);
-}
-
-.run-signup-form {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.625rem;
-    align-items: end;
-}
-
-@media (min-width: 48em) {
-    .run-signup-form {
-        grid-template-columns: minmax(12rem, 1fr) minmax(18rem, max-content) auto;
-    }
-}
-
-.run-signup-attendance-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-inline-size: 0;
-}
-
-::deep .run-signup-attendance-toggle {
-    max-inline-size: 100%;
-}
-
-.run-signup-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    border: 1px solid var(--neutral-stroke-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    padding-block: 12px;
+    padding-inline: 14px;
 }
 
 /* Roster sections */
+.run-roster {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .roster-section-title {
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -249,4 +230,13 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.run-roster-empty {
+    background: var(--neutral-fill-rest);
+    border: 1px solid var(--neutral-stroke-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    padding-block: 18px;
+    padding-inline: 14px;
+    color: var(--neutral-foreground-hint-rest);
 }

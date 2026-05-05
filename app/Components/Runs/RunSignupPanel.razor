@@ -10,14 +10,18 @@
         <FluentMessageBar Intent="MessageIntent.Error">@SignupError</FluentMessageBar>
     }
 
-    @if (CurrentSignup is not null && !_editorOpen)
+    @if (CurrentSignup is { } currentSignup && !_editorOpen)
     {
+        var currentSpecLabel = string.IsNullOrWhiteSpace(currentSignup.SpecName)
+            ? Loc["runs.signup.unknownSpec"].Value
+            : currentSignup.SpecName;
+
         <div class="run-signup-current">
             <div class="run-signup-current__summary">
-                <FluentLabel>@Loc["runs.signup.signedUpAs", CurrentSignup.CharacterName]</FluentLabel>
+                <FluentLabel>@Loc["runs.signup.signedUpAs", currentSignup.CharacterName]</FluentLabel>
                 <span class="run-signup-current__spec">
-                    <SpecIcon SpecName="@CurrentSpecLabel" />
-                    <span>@CurrentSpecLabel</span>
+                    <SpecIcon SpecName="@currentSpecLabel" />
+                    <span>@currentSpecLabel</span>
                 </span>
             </div>
             <div class="run-signup-current__actions">
@@ -67,41 +71,45 @@
     else
     {
         <div class="run-signup-form">
-            <FluentSelect Id="@CharacterSelectId"
-                          Label="@Loc["runs.signup.character"]"
-                          TOption="string"
-                          Value="@SelectedCharacterValue"
-                          ValueChanged="@OnCharacterChangedAsync"
-                          Disabled="@_signupControlsDisabled">
-                @foreach (var character in Characters)
-                {
-                    var characterId = CharacterId(character);
-                    <FluentOption TOption="string" Value="@characterId">@CharacterLabel(character)</FluentOption>
-                }
-            </FluentSelect>
-
-            <FluentSelect Id="@SpecSelectId"
-                          Label="@Loc["runs.signup.spec"]"
-                          TOption="string"
-                          Value="@SelectedSpecValue"
-                          ValueChanged="@OnSpecChangedAsync"
-                          Disabled="@_signupControlsDisabled">
-                @if (SelectedSpecOptions.Count == 0)
-                {
-                    <FluentOption TOption="string" Value="">@Loc["runs.signup.unknownSpec"]</FluentOption>
-                }
-                else
-                {
-                    @foreach (var spec in SelectedSpecOptions)
+            <div class="run-signup-field run-signup-field--character">
+                <FluentSelect Id="@CharacterSelectId"
+                              Label="@Loc["runs.signup.character"]"
+                              TOption="string"
+                              Value="@SelectedCharacterValue"
+                              ValueChanged="@OnCharacterChangedAsync"
+                              Disabled="@_signupControlsDisabled">
+                    @foreach (var character in Characters)
                     {
-                        <FluentOption TOption="string" Value="@spec.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                            @spec.Name
-                        </FluentOption>
+                        var characterId = CharacterId(character);
+                        <FluentOption TOption="string" Value="@characterId">@CharacterLabel(character)</FluentOption>
                     }
-                }
-            </FluentSelect>
+                </FluentSelect>
+            </div>
 
-            <div class="run-signup-attendance-field">
+            <div class="run-signup-field run-signup-field--spec">
+                <FluentSelect Id="@SpecSelectId"
+                              Label="@Loc["runs.signup.spec"]"
+                              TOption="string"
+                              Value="@SelectedSpecValue"
+                              ValueChanged="@OnSpecChangedAsync"
+                              Disabled="@_signupControlsDisabled">
+                    @if (SelectedSpecOptions.Count == 0)
+                    {
+                        <FluentOption TOption="string" Value="">@Loc["runs.signup.unknownSpec"]</FluentOption>
+                    }
+                    else
+                    {
+                        @foreach (var spec in SelectedSpecOptions)
+                        {
+                            <FluentOption TOption="string" Value="@spec.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                @spec.Name
+                            </FluentOption>
+                        }
+                    }
+                </FluentSelect>
+            </div>
+
+            <div class="run-signup-field run-signup-field--attendance run-signup-attendance-field">
                 <span id="@AttendanceLabelId" class="field__label">@Loc["runs.signup.attendance"]</span>
                 <ToggleGroup TValue="string"
                              Options="@SignupAttendanceToggleOptions"
@@ -112,7 +120,7 @@
                              Class="run-signup-attendance-toggle" />
             </div>
 
-            <div class="run-signup-form__actions">
+            <div class="run-signup-field run-signup-field--actions run-signup-form__actions">
                 @if (CurrentSignup is not null)
                 {
                     <FluentButton Appearance="Appearance.Outline"
@@ -187,11 +195,6 @@
         SignupAttendanceOptions
             .Select(option => (option.Value, Loc[option.LocKey].Value))
             .ToList();
-
-    private string CurrentSpecLabel =>
-        string.IsNullOrWhiteSpace(CurrentSignup?.SpecName)
-            ? Loc["runs.signup.unknownSpec"].Value
-            : CurrentSignup.SpecName;
 
     private string SelectedCharacterValue => _selectedCharacterId ?? string.Empty;
 
