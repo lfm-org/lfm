@@ -17,6 +17,12 @@ public class CharactersPage(IPage page)
     public ILocator CharacterList =>
         _page.Locator("div[style*='grid-template-columns'] fluent-card");
 
+    public ILocator CharacterCard(string characterName) =>
+        CharacterList.Filter(new()
+        {
+            Has = _page.GetByText(characterName, new() { Exact = true })
+        });
+
     // FluentTextField — target inner input for FillAsync to work.
     public ILocator DeleteConfirmationField =>
         _page.Locator("fluent-text-field[placeholder='FORGET ME'] input");

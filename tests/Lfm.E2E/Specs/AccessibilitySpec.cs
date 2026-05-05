@@ -567,7 +567,7 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         var navBar = new NavBar(page);
-        await Assertions.Expect(navBar.SignOutButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(navBar.AccountMenuButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         // Find the Characters nav link and activate it with Enter
         var charactersLink = navBar.CharactersLink;
