@@ -4,19 +4,15 @@
   },
   "routes": [
     {
-      "route": "/_framework/*",
+      "route": "/_framework/dotnet.runtime.*",
       "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
     },
     {
-      "route": "/css/*",
+      "route": "/_framework/dotnet.native.*",
       "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
     },
     {
-      "route": "/lib/*",
-      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
-    },
-    {
-      "route": "/*.{js,wasm,css,woff2,woff,ttf,eot,otf,png,jpg,jpeg,gif,ico,svg,webp}",
+      "route": "/_framework/*.{wasm,dat}",
       "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
     },
     {
@@ -43,6 +39,7 @@
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cache-Control": "no-cache",
     "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://{{API_HOSTNAME}}; img-src 'self' https://{{API_HOSTNAME}} https://render.worldofwarcraft.com",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
   }
