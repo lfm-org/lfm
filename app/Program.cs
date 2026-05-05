@@ -55,6 +55,7 @@ builder.Services.AddScoped<IMeClient, MeClient>();
 builder.Services.AddScoped<IGuildClient, GuildClient>();
 builder.Services.AddScoped<IRunsClient, RunsClient>();
 builder.Services.AddScoped<IBattleNetClient, BattleNetClient>();
+builder.Services.AddScoped<UnsavedChangesGuard>();
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, AppAuthenticationStateProvider>();

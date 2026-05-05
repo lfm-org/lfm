@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Bunit;
+using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Lfm.App.Pages;
@@ -92,4 +93,47 @@ public class GuildPagesTests : ComponentTestBase
 
         Assert.Contains(Loc("guildAdmin.title"), cut.Markup);
     }
+
+    [Fact]
+    public void GuildAdminPage_DirtySettings_BlocksInternalNavigation_AndLeaveContinues()
+    {
+        var dto = new GuildDto(
+            Guild: new GuildInfoDto(1, "Stormchasers", "Old slogan", "Silvermoon", "Alliance",
+                120, 10, null, null),
+            Setup: new GuildSetupDto(true, false, true, "Europe/Helsinki", "fi"),
+            Settings: new GuildSettingsDto(
+            [
+                new GuildRankPermissionDto(0, true, true, true),
+            ]),
+            Editor: new GuildEditorDto(true),
+            MemberPermissions: new GuildMemberPermissionsDto(true, true, true));
+
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
+        Services.AddSingleton(client.Object);
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+        JSInterop.SetupModule("./js/dialog.js");
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<GuildAdminPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup));
+        cut.Find("#guild-slogan").Change("New slogan");
+
+        nav.NavigateTo("/runs");
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("unsavedChanges.title"), cut.Markup));
+        Assert.Equal(NavigationState.Prevented, nav.History.First().State);
+
+        var leaveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("unsavedChanges.leave"), StringComparison.Ordinal));
+        leaveButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
+        Assert.Equal(NavigationState.Succeeded, nav.History.First().State);
+    }
+
 }
