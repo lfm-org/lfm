@@ -65,6 +65,8 @@
     "runs.empty": "Ei tulevia runeja.",
     "runs.emptyCta": "Kasaa ensimm\u00e4inen.",
     "runs.selectPrompt": "Valitse runi listalta \u2014 tiedot aukeavat t\u00e4h\u00e4n.",
+    "runs.showDetails": "N\u00e4yt\u00e4 tiedot",
+    "runs.hideDetails": "Piilota tiedot",
     "runs.signedUp": "{0} ilmoittautunut",
     "runs.edit": "Muokkaa",
     "runs.mode": "Tila:",
