@@ -1,0 +1,22 @@
+<span class="spec-icon" role="img" aria-label="@Label">@Abbreviation</span>
+
+@code {
+    [Parameter] public string? SpecName { get; set; }
+
+    private string Label => string.IsNullOrWhiteSpace(SpecName) ? "Unknown spec" : SpecName;
+
+    private string Abbreviation
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(SpecName))
+                return "?";
+
+            var words = SpecName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (words.Length == 0)
+                return "?";
+
+            return string.Concat(words.Select(word => char.ToUpperInvariant(word[0]))).Substring(0, Math.Min(2, words.Length));
+        }
+    }
+}

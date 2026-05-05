@@ -19,5 +19,7 @@ public abstract record CharactersFetchResult
 
     public sealed record NeedsRefresh : CharactersFetchResult;
 
+    public sealed record Forbidden : CharactersFetchResult;
+
     public sealed record Error : CharactersFetchResult;
 }
