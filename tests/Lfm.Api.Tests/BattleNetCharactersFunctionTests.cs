@@ -97,12 +97,16 @@ public class BattleNetCharactersFunctionTests
         var ctx = MakeFunctionContext(FakePrincipal());
 
         // Act
-        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+        var httpContext = new DefaultHttpContext();
+        var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
 
         // Assert
         var ok = Assert.IsType<OkObjectResult>(result);
         var characters = Assert.IsAssignableFrom<List<CharacterDto>>(ok.Value);
         Assert.Single(characters);
+        Assert.Equal(
+            "private, max-age=300",
+            httpContext.Response.Headers["Cache-Control"].ToString());
 
         var character = characters[0];
         Assert.Equal("Legolas", character.Name);
