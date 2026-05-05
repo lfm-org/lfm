@@ -57,6 +57,7 @@ public sealed class RunSignupService(
             return new RunOperationResult.BadRequest(
                 "character-not-on-profile",
                 "Character not found on your profile.");
+        var characterDisplayName = ResolveCharacterDisplayName(raider, storedCharacter);
 
         // 2. Resolve spec info — mirrors the specId block in runs-signup.ts.
         int? specId = body.SpecId;
@@ -160,7 +161,7 @@ public sealed class RunSignupService(
             var entry = new RunCharacterEntry(
                 Id: entryId,
                 CharacterId: storedCharacter.Id,
-                CharacterName: storedCharacter.Name,
+                CharacterName: characterDisplayName,
                 CharacterRealm: storedCharacter.Realm,
                 CharacterLevel: storedCharacter.Level ?? 0,
                 CharacterClassId: storedCharacter.ClassId ?? 0,
@@ -204,5 +205,25 @@ public sealed class RunSignupService(
         return new RunOperationResult.ConflictResult(
             "concurrent-modification",
             "Concurrent modification, please retry.");
+    }
+
+    private static string ResolveCharacterDisplayName(
+        RaiderDocument raider,
+        StoredSelectedCharacter storedCharacter)
+    {
+        foreach (var account in raider.AccountProfileSummary?.WowAccounts ?? [])
+        {
+            foreach (var character in account.Characters ?? [])
+            {
+                if (string.Equals(character.Realm.Slug, storedCharacter.Realm, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(character.Name, storedCharacter.Name, StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(character.Name))
+                {
+                    return character.Name;
+                }
+            }
+        }
+
+        return storedCharacter.Name;
     }
 }
