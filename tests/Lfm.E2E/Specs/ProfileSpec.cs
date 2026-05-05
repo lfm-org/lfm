@@ -120,11 +120,14 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task GuildAdmin_Loads_DisplaysSettings()
     {
+        await AuthenticateSiteAdminAsync();
         var guildAdminPage = new GuildAdminPage(Page!);
 
         await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
 
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(guildAdminPage.GuildName("Test Guild")).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         // The settings form is rendered when guild data loads successfully.
         await Assertions.Expect(guildAdminPage.OverrideSettingsHeading)
@@ -148,13 +151,14 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             fixture.Stack.Browser,
             fixture.Stack.ApiBaseUrl,
             fixture.Stack.AppBaseUrl,
-            battleNetId: DefaultSeed.UnconfiguredGuildAdminBattleNetId,
+            battleNetId: DefaultSeed.SiteAdminBattleNetId,
             redirect: "/guild/admin");
         var page = await authContext.NewPageAsync();
 
         var guildAdminPage = new GuildAdminPage(page);
 
         await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await guildAdminPage.LoadGuildAsync("67890");
 
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(guildAdminPage.RankPermissionsHeading)
@@ -163,12 +167,85 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(guildAdminPage.RankLabel(5)).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
+    // E2E scope: proves SiteAdmin authorization, typed guild-id load controls,
+    // and admin API hydration compose in the real browser. bUnit already proves
+    // the GetAdminAsync call shape; this verifies the protected page can load a
+    // second seeded guild by id after one guild is already rendered.
+    // Shared data: read-only.
+    [Fact]
+    public async Task GuildAdmin_SiteAdmin_LoadsAnotherGuildById()
+    {
+        await AuthenticateSiteAdminAsync();
+        var guildAdminPage = new GuildAdminPage(Page!);
+
+        await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
+        await Assertions.Expect(guildAdminPage.GuildName("Test Guild"))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        await guildAdminPage.LoadGuildAsync("67890");
+
+        await Assertions.Expect(guildAdminPage.GuildName("Unconfigured Guild"))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(guildAdminPage.GuildIdChip("67890"))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(guildAdminPage.RankLabel(5))
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
+    // E2E scope: proves the browser navigation manager is intercepted by the
+    // unsaved-changes dialog and both Stay and Leave choices affect real
+    // navigation. bUnit covers the guard contract; only E2E proves it with
+    // routed browser links and the native dialog module.
+    // Shared data: dirty form only, not saved.
+    [Fact]
+    public async Task GuildAdmin_UnsavedDirtyFormNavigation_StayAndLeaveWork()
+    {
+        await AuthenticateSiteAdminAsync();
+        var guildAdminPage = new GuildAdminPage(Page!);
+        var navBar = new NavBar(Page!);
+        var runsPage = new RunsPage(Page!);
+
+        await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
+        await Assertions.Expect(guildAdminPage.SloganField)
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        await guildAdminPage.SloganField.FillAsync($"E2E unsaved {Guid.NewGuid():N}");
+        await navBar.RunsLink.ClickAsync();
+
+        await Assertions.Expect(guildAdminPage.UnsavedDialog)
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(Page!).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/guild/admin$"),
+            new() { Timeout = 5000 });
+
+        await guildAdminPage.StayButton.ClickAsync();
+        await Assertions.Expect(guildAdminPage.UnsavedDialog)
+            .Not.ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(Page!).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/guild/admin$"),
+            new() { Timeout = 5000 });
+
+        await navBar.RunsLink.ClickAsync();
+        await Assertions.Expect(guildAdminPage.UnsavedDialog)
+            .ToBeVisibleAsync(new() { Timeout = 10000 });
+        await guildAdminPage.LeaveButton.ClickAsync();
+
+        await Assertions.Expect(Page!).ToHaveURLAsync(
+            new System.Text.RegularExpressions.Regex(@"/runs$"),
+            new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.CreateRunButton)
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+    }
+
     // E2E scope: proves guild admin browser edits persist and reload into the form.
     // Cheaper lanes cannot prove this because form binding, API patch, storage, and page reload must round-trip.
     // Shared data: restored.
     [Fact]
     public async Task GuildAdmin_UpdateSettings_ChangesReflected()
     {
+        await AuthenticateSiteAdminAsync();
         var guildAdminPage = new GuildAdminPage(Page!);
 
         // Log API requests to debug 400 errors
@@ -184,6 +261,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         };
 
         await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+        await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
         await Assertions.Expect(guildAdminPage.SaveButton).ToBeVisibleAsync(new() { Timeout = 10000 });
 
@@ -206,6 +284,7 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             // it does not prove the value persisted, which a future regression that
             // swallows the body would silently break.
             await guildAdminPage.GotoAsync(fixture.Stack.AppBaseUrl);
+            await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
             await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 15000 });
             var persistedSlogan = await guildAdminPage.SloganField.InputValueAsync();
             Assert.Equal(newSlogan, persistedSlogan);
@@ -218,6 +297,14 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
             await Assertions.Expect(guildAdminPage.SuccessMessage).ToBeVisibleAsync(new() { Timeout = 15000 });
         }
     }
+
+    private Task AuthenticateSiteAdminAsync() =>
+        AuthHelper.AuthenticatePageAsync(
+            Page!,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl,
+            DefaultSeed.SiteAdminBattleNetId,
+            "/guild/admin");
 
     // -------------------------------------------------------------------------
     // Delete account test (4.4)

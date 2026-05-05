@@ -266,7 +266,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await using var authContext = await AuthHelper.AuthenticatedContextAsync(
             fixture.Stack.Browser,
             fixture.Stack.ApiBaseUrl,
-            fixture.Stack.AppBaseUrl);
+            fixture.Stack.AppBaseUrl,
+            battleNetId: DefaultSeed.SiteAdminBattleNetId,
+            redirect: "/guild/admin");
 
         var page = await authContext.NewPageAsync();
 
@@ -277,6 +279,9 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         await Assertions.Expect(
             page.GetByRole(AriaRole.Heading, new() { Name = "Guild Admin" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
+        var guildAdminPage = new GuildAdminPage(page);
+        await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
+        await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         await AccessibilityHelper.ScanAndAssert(page, Output, "/guild/admin (load)");
 
@@ -285,7 +290,6 @@ public class AccessibilitySpec(AccessibilityFixture fixture, ITestOutputHelper o
         // live behind interaction (`E-HC-A2`).
         await AccessibilityHelper.ScanAfterAsync(page, Output, "/guild/admin (slogan dirty)", async () =>
         {
-            var guildAdminPage = new GuildAdminPage(page);
             await Assertions.Expect(guildAdminPage.SloganField).ToBeVisibleAsync(new() { Timeout = 10000 });
             await guildAdminPage.SloganField.FillAsync($"E2E a11y dirty {Guid.NewGuid():N}");
             await page.Keyboard.PressAsync("Tab");

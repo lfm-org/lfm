@@ -62,7 +62,7 @@ public class RunsPage(IPage page)
 
     /// <summary>Character dropdown in the run detail signup panel.</summary>
     public ILocator SignupCharacterSelect =>
-        _page.Locator("#signup-character-select").First;
+        _page.Locator(".run-signup-panel fluent-select").First;
 
     /// <summary>"Sign up" button in the run detail signup panel.</summary>
     public ILocator SignupButton =>
@@ -72,9 +72,17 @@ public class RunsPage(IPage page)
     public ILocator CancelSignupButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Cancel signup" });
 
+    /// <summary>"Yes, cancel signup" button in the signup cancellation confirmation dialog.</summary>
+    public ILocator ConfirmCancelSignupButton =>
+        _page.GetByRole(AriaRole.Button, new() { Name = "Yes, cancel signup" });
+
     /// <summary>Current-user signup confirmation label in the run detail signup panel.</summary>
     public ILocator SignedUpAs(string characterName) =>
         _page.GetByText($"Signed up as {characterName}.");
+
+    public ILocator SignupAttendanceOption(string label) =>
+        _page.Locator(".run-signup-panel [role='radio']")
+            .Filter(new() { HasTextString = label });
 
     /// <summary>"No signups yet." placeholder in the run detail roster.</summary>
     public ILocator NoSignupsMessage =>
@@ -183,7 +191,7 @@ public class RunsPage(IPage page)
 
     public async Task<IReadOnlyList<string>> SignupCharacterOptionTextsAsync()
     {
-        var options = _page.Locator("#signup-character-select fluent-option");
+        var options = SignupCharacterSelect.Locator("fluent-option");
         return await options.EvaluateAllAsync<string[]>(
             "elements => elements.map(e => (e.textContent || '').trim()).filter(Boolean)");
     }
