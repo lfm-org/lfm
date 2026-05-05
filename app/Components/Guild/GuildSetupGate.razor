@@ -25,17 +25,17 @@ else
 @code {
     [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
 
-    private bool _loading;
+    private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated != true)
         {
+            _loading = false;
             return;
         }
 
-        _loading = true;
         GuildDto? dto = null;
 
         try
