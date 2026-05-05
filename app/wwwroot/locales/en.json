@@ -10,6 +10,11 @@
     "common.no": "No",
     "common.back": "Back",
 
+    "unsavedChanges.title": "Unsaved changes",
+    "unsavedChanges.body": "You have unsaved changes. Leave this page and discard them?",
+    "unsavedChanges.stay": "Stay",
+    "unsavedChanges.leave": "Leave",
+
     "a11y.skipToContent": "Skip to content",
 
     "nav.logo": "LFM",
