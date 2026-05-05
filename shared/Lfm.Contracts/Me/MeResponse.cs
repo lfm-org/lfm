@@ -3,6 +3,8 @@
 
 namespace Lfm.Contracts.Me;
 
+public sealed record SelectedCharacterSummaryDto(string Id, string Name, string? PortraitUrl);
+
 /// <summary>
 /// Response shape for GET /api/me.
 /// Fields mirror the TypeScript handler at functions/src/functions/me.ts.
@@ -11,5 +13,6 @@ public sealed record MeResponse(
     string BattleNetId,
     string? GuildName,
     string? SelectedCharacterId,
+    SelectedCharacterSummaryDto? SelectedCharacter,
     bool IsSiteAdmin,
     string? Locale);

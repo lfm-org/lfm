@@ -3,10 +3,12 @@
 
 using Bunit;
 using Bunit.TestDoubles;
+using Lfm.App.Auth;
 using Lfm.App.Layout;
 using Lfm.App.Services;
 using Lfm.App.i18n;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -156,6 +158,77 @@ public class LayoutTests : ComponentTestBase
             Assert.NotNull(toggle);
             Assert.False(string.IsNullOrWhiteSpace(toggle.GetAttribute("aria-label")));
         });
+    }
+
+    [Fact]
+    public void MainLayout_Renders_Account_Menu_Button_With_Selected_Character_Name()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(
+            new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"),
+            new Claim(
+                AppAuthenticationStateProvider.SelectedCharacterPortraitUrlClaim,
+                "https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            var trigger = cut.Find("fluent-button.account-menu-trigger");
+            Assert.Contains("Aelrin", trigger.TextContent);
+            Assert.Equal("Account menu for Aelrin", trigger.GetAttribute("aria-label"));
+            Assert.Contains("https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg", cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void MainLayout_Keeps_Theme_Locale_Source_And_Sign_Out_Controls_With_Account_Menu()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotNull(cut.Find(".mobile-nav-toggle"));
+            Assert.NotNull(cut.Find("fluent-button[aria-label='Switch to light mode']"));
+            Assert.Contains(Loc("footer.source"), cut.Markup);
+            Assert.Contains(Loc("locale.en"), cut.Markup);
+            Assert.Contains(Loc("locale.fi"), cut.Markup);
+            Assert.Contains(Loc("nav.signOut"), cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void MainLayout_Account_Menu_Hides_Admin_Item_For_Non_Site_Admins()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() => Assert.DoesNotContain("/admin/reference", cut.Markup));
+    }
+
+    [Fact]
+    public void MainLayout_Account_Menu_Shows_Admin_Item_For_Site_Admins()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("admin#1234");
+        auth.SetRoles("SiteAdmin");
+        auth.SetClaims(new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() => Assert.Contains("/admin/reference", cut.Markup));
     }
 
     [Fact]

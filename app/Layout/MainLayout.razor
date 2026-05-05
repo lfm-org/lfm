@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
 @implements IDisposable
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using Lfm.App.Auth
 @using Lfm.App.Services
 @inject NavigationManager Nav
 @inject IConfiguration Config
@@ -21,7 +23,7 @@
             <FluentAnchor Href="/runs" Style="font-weight:700;font-size:1.1rem;text-decoration:none">@Loc["nav.logo"]</FluentAnchor>
 
             <AuthorizeView>
-                <Authorized>
+                <Authorized Context="accountAuth">
                     @* Plain <div> (not FluentStack) so `.desktop-nav { display: none }` isn't
                        overridden by FluentStack's inline display:flex at narrow viewports. *@
                     <div class="desktop-nav">
@@ -46,9 +48,48 @@
                                       OnClick="@ToggleTheme">
                             @_themeIcon
                         </FluentButton>
-                        <FluentButton Appearance="Appearance.Outline" OnClick="@HandleLogout">
-                            @Loc["nav.signOut"]
-                        </FluentButton>
+                        <div class="account-menu-container">
+                            <FluentButton Appearance="Appearance.Stealth"
+                                          Class="account-menu-trigger"
+                                          Title="@SelectedCharacterName(accountAuth.User)"
+                                          aria-label="@Loc["nav.accountMenu", SelectedCharacterName(accountAuth.User)]"
+                                          aria-haspopup="menu"
+                                          aria-expanded="@(_showAccountMenu ? "true" : "false")"
+                                          OnClick="@ToggleAccountMenu">
+                                @if (SelectedCharacterPortraitUrl(accountAuth.User) is { } portraitUrl)
+                                {
+                                    <img class="account-avatar" src="@portraitUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="account-avatar account-avatar-initial" aria-hidden="true">
+                                        @SelectedCharacterInitial(accountAuth.User)
+                                    </span>
+                                }
+                                <span class="account-character-name">@SelectedCharacterName(accountAuth.User)</span>
+                            </FluentButton>
+                            <div class="account-menu @(_showAccountMenu ? "open" : "")"
+                                 role="menu"
+                                 aria-hidden="@(!_showAccountMenu)">
+                                <a class="account-menu-item" role="menuitem" href="/characters" @onclick="@CloseMenus">
+                                    @Loc["nav.characters"]
+                                </a>
+                                <a class="account-menu-item" role="menuitem" href="/guild" @onclick="@CloseMenus">
+                                    @Loc["nav.guild"]
+                                </a>
+                                <AuthorizeView Roles="SiteAdmin" Context="adminAccountAuth">
+                                    <a class="account-menu-item" role="menuitem" href="/admin/reference" @onclick="@CloseMenus">
+                                        @Loc["nav.admin"]
+                                    </a>
+                                </AuthorizeView>
+                                <FluentButton Appearance="Appearance.Stealth"
+                                              Class="account-menu-item account-sign-out"
+                                              role="menuitem"
+                                              OnClick="@HandleLogout">
+                                    @Loc["nav.signOut"]
+                                </FluentButton>
+                            </div>
+                        </div>
                     </div>
                 </Authorized>
                 <NotAuthorized>
@@ -113,10 +154,86 @@
     </footer>
 </div>
 
+<style>
+    .account-menu-container {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .account-menu-trigger::part(control) {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        max-inline-size: 192px;
+    }
+
+    .account-avatar {
+        inline-size: 28px;
+        block-size: 28px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        object-fit: cover;
+    }
+
+    .account-avatar-initial {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--accent-fill-rest);
+        color: var(--foreground-on-accent-rest, #fff);
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .account-character-name {
+        min-inline-size: 0;
+        max-inline-size: 128px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .account-menu {
+        display: none;
+        position: absolute;
+        inset-block-start: calc(100% + 4px);
+        inset-inline-end: 0;
+        z-index: 10;
+        min-inline-size: 160px;
+        padding: 4px;
+        background: var(--neutral-layer-4);
+        border: 1px solid var(--neutral-stroke-rest);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .account-menu.open {
+        display: grid;
+        gap: 2px;
+    }
+
+    .account-menu-item {
+        display: flex;
+        align-items: center;
+        inline-size: 100%;
+        min-block-size: 32px;
+        padding: 4px 8px;
+        color: var(--neutral-foreground-rest);
+        text-align: start;
+        text-decoration: none;
+    }
+
+    .account-menu-item:hover,
+    .account-menu-item:focus {
+        background: var(--neutral-fill-stealth-hover);
+    }
+</style>
+
 @code {
     private const string DefaultSourceRepositoryUrl = "https://github.com/lfm-org/lfm";
 
     private bool _showMobileMenu;
+    private bool _showAccountMenu;
     private bool _navigated;
     private ElementReference _mainRef;
     private string _themeIcon = "\u2600\ufe0f";
@@ -162,13 +279,39 @@
     private void ToggleMobileMenu()
     {
         _showMobileMenu = !_showMobileMenu;
+        _showAccountMenu = false;
+    }
+
+    private void ToggleAccountMenu()
+    {
+        _showAccountMenu = !_showAccountMenu;
+        _showMobileMenu = false;
+    }
+
+    private void CloseMenus()
+    {
+        _showMobileMenu = false;
+        _showAccountMenu = false;
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        _showMobileMenu = false;
+        CloseMenus();
         _navigated = true;
         InvokeAsync(StateHasChanged);
+    }
+
+    private string SelectedCharacterName(ClaimsPrincipal user)
+        => user.FindFirst(AppAuthenticationStateProvider.SelectedCharacterNameClaim)?.Value
+           ?? Loc["nav.yourAccount"];
+
+    private string? SelectedCharacterPortraitUrl(ClaimsPrincipal user)
+        => user.FindFirst(AppAuthenticationStateProvider.SelectedCharacterPortraitUrlClaim)?.Value;
+
+    private string SelectedCharacterInitial(ClaimsPrincipal user)
+    {
+        var name = SelectedCharacterName(user);
+        return string.IsNullOrWhiteSpace(name) ? "?" : name[..1].ToUpperInvariant();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -212,6 +355,7 @@
         // navigation response. An earlier HttpClient.PostAsync-based
         // implementation was silently eaten by HttpClient timeouts on cold
         // Functions starts and left the session alive (issue #53).
+        CloseMenus();
         var apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? string.Empty;
         Nav.NavigateTo($"{apiBase}/api/v1/battlenet/logout", forceLoad: true);
     }
