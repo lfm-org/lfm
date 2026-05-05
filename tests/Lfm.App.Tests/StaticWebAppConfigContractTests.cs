@@ -28,6 +28,17 @@ public class StaticWebAppConfigContractTests
         return headers!;
     }
 
+    private static JsonArray LoadRoutes()
+    {
+        Assert.True(File.Exists(ConfigPath));
+
+        var root = JsonNode.Parse(File.ReadAllText(ConfigPath));
+        Assert.NotNull(root);
+        var routes = root!["routes"]?.AsArray();
+        Assert.NotNull(routes);
+        return routes!;
+    }
+
     private static string GetCsp() =>
         LoadGlobalHeaders()["Content-Security-Policy"]!.GetValue<string>();
 
@@ -77,5 +88,41 @@ public class StaticWebAppConfigContractTests
         // the default mirrors the MSBuild default so the test passes without env vars.
         var expected = Environment.GetEnvironmentVariable("API_HOSTNAME") ?? "api.localhost";
         Assert.Contains($"https://{expected}", GetCsp());
+    }
+
+    [Fact]
+    public void Global_cache_control_revalidates_spa_fallback_responses()
+    {
+        // Static Web Apps route rules are not applied to navigationFallback
+        // responses, so the fallback shell for client-routed paths needs the
+        // default response headers to require revalidation after each deploy.
+        var headers = LoadGlobalHeaders();
+
+        Assert.True(
+            headers.TryGetPropertyValue("Cache-Control", out var cacheControl),
+            "globalHeaders must include Cache-Control so navigationFallback responses revalidate.");
+        Assert.Equal("no-cache", cacheControl!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Public_immutable_cache_routes_are_limited_to_content_addressed_framework_assets()
+    {
+        // The Blazor .NET 10 boot configuration lives in _framework/dotnet.js.
+        // Stable URLs such as dotnet.js, blazor.webassembly.js, app CSS, and
+        // local JS must not be caught by broad immutable rules, or an old
+        // browser HTTP cache can keep loading the previous deployment.
+        var immutableRoutePatterns = LoadRoutes()
+            .Where(route =>
+                route!["headers"]?["Cache-Control"]?.GetValue<string>() == "public, max-age=31536000, immutable")
+            .Select(route => route!["route"]!.GetValue<string>())
+            .ToArray();
+
+        Assert.Equal(
+            [
+                "/_framework/dotnet.runtime.*",
+                "/_framework/dotnet.native.*",
+                "/_framework/*.{wasm,dat}",
+            ],
+            immutableRoutePatterns);
     }
 }
