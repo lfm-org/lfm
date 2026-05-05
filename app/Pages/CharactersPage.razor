@@ -178,7 +178,7 @@
     private const string DefaultSortValue = "level";
     private const int DesktopPageSize = 9;
     private const int MobilePageSize = 3;
-    private const int EagerEnrichCount = 3;
+    private const int EagerEnrichCount = 1;
 
     private IJSObjectReference? viewportModule;
     private DotNetObjectReference<CharactersPage>? selfRef;
@@ -186,7 +186,9 @@
     private readonly Queue<string> enrichQueue = new();
     private Task? enrichWorkerTask;
     private CancellationTokenSource? enrichCts;
+    private CancellationTokenSource? portraitsCts;
     private string? preparedVisibleSignature;
+    private long portraitRequestId;
     private const int PacingDelayMs = 250;
 
     [SupplyParameterFromQuery(Name = "sort")]
@@ -341,7 +343,10 @@
             return;
 
         preparedVisibleSignature = signature;
-        _ = LoadPortraitsAsync(visible);
+        var requestId = ++portraitRequestId;
+        portraitsCts?.Cancel();
+        portraitsCts = new CancellationTokenSource();
+        _ = LoadPortraitsAsync(visible, signature, requestId, portraitsCts.Token);
 
         var pending = visible
             .Where(c => cardState.TryGetValue(CharKey(c), out var s) && s == EnrichState.Pending)
@@ -367,16 +372,41 @@
         Nav.NavigateTo(Nav.GetUriWithQueryParameter("page", page <= 1 ? null : page), forceLoad: false);
     }
 
-    private async Task LoadPortraitsAsync(IReadOnlyList<CharacterDto> chars)
+    private async Task LoadPortraitsAsync(
+        IReadOnlyList<CharacterDto> chars,
+        string visibleSignature,
+        long requestId,
+        CancellationToken ct)
     {
         var requests = chars
             .Where(c => string.IsNullOrEmpty(c.PortraitUrl))
-            .Select(c => new CharacterPortraitRequest(c.Region, c.Realm, c.Name));
+            .Select(c => new CharacterPortraitRequest(c.Region, c.Realm, c.Name))
+            .ToList();
 
-        var result = await BattleNetClient.GetPortraitsAsync(requests, CancellationToken.None);
+        if (requests.Count == 0)
+            return;
+
+        IDictionary<string, string>? result;
+        try
+        {
+            result = await BattleNetClient.GetPortraitsAsync(requests, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (ct.IsCancellationRequested
+            || requestId != portraitRequestId
+            || visibleSignature != preparedVisibleSignature)
+        {
+            return;
+        }
+
         if (result is not null)
         {
-            portraits = result.ToDictionary(kv => kv.Key, kv => kv.Value);
+            foreach (var kv in result)
+                portraits[kv.Key] = kv.Value;
             StateHasChanged();
         }
     }
@@ -523,7 +553,8 @@
     {
         if (string.IsNullOrWhiteSpace(RedirectPath)
             || !RedirectPath.StartsWith("/", StringComparison.Ordinal)
-            || RedirectPath.StartsWith("//", StringComparison.Ordinal))
+            || RedirectPath.StartsWith("//", StringComparison.Ordinal)
+            || RedirectPath.Any(c => char.IsWhiteSpace(c) || char.IsControl(c)))
         {
             return "/runs";
         }
@@ -534,6 +565,7 @@
     public async ValueTask DisposeAsync()
     {
         enrichCts?.Cancel();
+        portraitsCts?.Cancel();
         if (viewportModule is not null && selfRef is not null)
         {
             try { await viewportModule.InvokeVoidAsync("stop", selfRef); } catch { }
@@ -541,6 +573,7 @@
         }
         selfRef?.Dispose();
         enrichCts?.Dispose();
+        portraitsCts?.Dispose();
     }
 
     private async Task EnrichAsync(CharacterDto c)
