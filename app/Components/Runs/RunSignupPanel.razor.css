@@ -39,15 +39,13 @@
 
 .run-signup-form {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
     gap: 0.625rem;
     align-items: end;
 }
 
-@media (min-width: 48em) {
-    .run-signup-form {
-        grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 14rem) minmax(18rem, max-content) auto;
-    }
+::deep .run-signup-form fluent-select {
+    min-inline-size: 0;
 }
 
 .run-signup-attendance-field {
@@ -55,6 +53,7 @@
     flex-direction: column;
     gap: 0.25rem;
     min-inline-size: 0;
+    max-inline-size: 100%;
 }
 
 ::deep .run-signup-attendance-toggle {
@@ -66,6 +65,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
+    min-inline-size: min(100%, 12rem);
 }
 
 .run-signup-status {

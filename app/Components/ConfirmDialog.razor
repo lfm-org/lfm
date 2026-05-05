@@ -1,28 +1,28 @@
-@if (Open)
-{
-    <dialog class="confirm-dialog"
-            open
-            role="alertdialog"
-            aria-labelledby="@TitleId"
-            aria-describedby="@BodyId">
-        <div class="confirm-dialog__surface">
-            <h2 id="@TitleId" class="confirm-dialog__title">@Title</h2>
-            <p id="@BodyId" class="confirm-dialog__body">@Body</p>
-            <div class="confirm-dialog__actions">
-                <FluentButton Appearance="Appearance.Accent"
-                              OnClick="@OnConfirm"
-                              Disabled="@ConfirmDisabled">
-                    @ConfirmText
-                </FluentButton>
-                <FluentButton Appearance="Appearance.Outline"
-                              OnClick="@OnCancel"
-                              Disabled="@ConfirmDisabled">
-                    @CancelText
-                </FluentButton>
-            </div>
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<dialog @ref="_dialogRef"
+        class="confirm-dialog"
+        role="alertdialog"
+        aria-labelledby="@TitleId"
+        aria-describedby="@BodyId">
+    <div class="confirm-dialog__surface">
+        <h2 id="@TitleId" class="confirm-dialog__title">@Title</h2>
+        <p id="@BodyId" class="confirm-dialog__body">@Body</p>
+        <div class="confirm-dialog__actions">
+            <FluentButton Appearance="Appearance.Accent"
+                          OnClick="@OnConfirm"
+                          Disabled="@ConfirmDisabled">
+                @ConfirmText
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Outline"
+                          OnClick="@OnCancel"
+                          Disabled="@ConfirmDisabled">
+                @CancelText
+            </FluentButton>
         </div>
-    </dialog>
-}
+    </div>
+</dialog>
 
 @code {
     [Parameter] public bool Open { get; set; }
@@ -35,6 +35,33 @@
     [Parameter] public EventCallback OnCancel { get; set; }
 
     private readonly string _id = Guid.NewGuid().ToString("N");
+    private ElementReference _dialogRef;
+    private IJSObjectReference? _dialogModule;
+    private bool _shown;
+
     private string TitleId => $"confirm-dialog-title-{_id}";
     private string BodyId => $"confirm-dialog-body-{_id}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Open && !_shown)
+        {
+            _dialogModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/dialog.js");
+            await _dialogModule.InvokeVoidAsync("showModal", _dialogRef);
+            _shown = true;
+        }
+        else if (!Open && _shown && _dialogModule is not null)
+        {
+            await _dialogModule.InvokeVoidAsync("close", _dialogRef);
+            _shown = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dialogModule is not null)
+        {
+            await _dialogModule.DisposeAsync();
+        }
+    }
 }
