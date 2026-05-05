@@ -13,7 +13,7 @@
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
     <FluentLabel Typo="Typography.H1">@Loc["guild.title"]</FluentLabel>
 
-    @if (Setup == "required")
+    @if (ShowSetupExplanation)
     {
         <FluentMessageBar Intent="MessageIntent.Info">@Loc["guild.setupRequiredExplanation"]</FluentMessageBar>
     }
@@ -57,6 +57,10 @@
 
     [SupplyParameterFromQuery(Name = "setup")]
     public string? Setup { get; set; }
+
+    private bool ShowSetupExplanation =>
+        Setup == "required"
+        && (state is not LoadingState<GuildDto>.Success s || s.Value.Setup.RequiresSetup);
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,7 +142,7 @@
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                             @StatusChip(dto.Setup.IsInitialized ? Loc["guild.chip.settingsLive"] : Loc["guild.chip.settingsPending"])
                             @StatusChip(dto.Editor.CanEdit ? Loc["guild.chip.editable"] : Loc["guild.chip.readOnly"])
-                            @StatusChip(dto.Setup.RankDataFresh ? Loc["guild.chip.rankSyncFresh"] : Loc["guild.chip.rankSyncNotConfigured"])
+                            @StatusChip(dto.Setup.RankDataFresh ? Loc["guild.chip.rankSyncFresh"] : Loc["guild.chip.rankSyncStale"])
                             @if (dto.Guild.MemberCount.HasValue)
                             {
                                 @StatusChip(Loc["guild.chip.members", dto.Guild.MemberCount.Value])

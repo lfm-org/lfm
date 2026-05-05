@@ -229,7 +229,7 @@
     "guild.chip.editable": "Muokattavissa",
     "guild.chip.readOnly": "Vain luku",
     "guild.chip.rankSyncFresh": "Rankkisynkronointi tuore",
-    "guild.chip.rankSyncNotConfigured": "Rankkisynkronointia ei ole viel\u00e4 m\u00e4\u00e4ritetty",
+    "guild.chip.rankSyncStale": "Rankkisynkronointi vanhentunut",
     "guild.chip.members": "{0} j\u00e4sent\u00e4",
     "guild.chip.ranksDetected": "{0} rankkia havaittu",
     "guild.chip.canCreate": "Voit luoda kiltaruneja",
