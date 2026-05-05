@@ -1,7 +1,7 @@
 .spec-icon {
     display: inline-grid;
     place-items: center;
-    min-inline-size: 1.5rem;
+    inline-size: 1.5rem;
     block-size: 1.5rem;
     border-radius: 50%;
     border: 1px solid var(--neutral-stroke-rest);

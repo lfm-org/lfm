@@ -55,7 +55,7 @@ public class VisualRouteArtifactsSpec(VisualArtifactsFixture fixture, ITestOutpu
             context = await CreateContextAsync(item);
             page = await context.NewPageAsync();
 
-            await StubPortraitsAsync(page);
+            await StubExternalImagesAsync(page);
             await AuthenticateIfNeededAsync(page, item.State);
             AttachDiagnostics(page, diagnostics);
 
@@ -188,7 +188,7 @@ public class VisualRouteArtifactsSpec(VisualArtifactsFixture fixture, ITestOutpu
         await page.EvaluateAsync("() => document.fonts ? document.fonts.ready : Promise.resolve()");
     }
 
-    private static async Task StubPortraitsAsync(IPage page)
+    private static async Task StubExternalImagesAsync(IPage page)
     {
         await page.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
         {
@@ -197,6 +197,21 @@ public class VisualRouteArtifactsSpec(VisualArtifactsFixture fixture, ITestOutpu
                 Status = 200,
                 ContentType = "application/json",
                 Body = "{\"portraits\":{}}",
+            });
+        });
+
+        await page.RouteAsync("https://render.worldofwarcraft.com/**", async route =>
+        {
+            await route.FulfillAsync(new()
+            {
+                Status = 200,
+                ContentType = "image/svg+xml",
+                Body = """
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <rect width="24" height="24" rx="12" fill="#5bc0eb"/>
+                      <path d="M8 16h8M8 12h8M8 8h8" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    """,
             });
         });
     }
