@@ -859,6 +859,77 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public async Task Page_change_drops_hidden_enrichment_queue_before_visible_page_queue()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+
+        var chars = Enumerable.Range(1, 6)
+            .Select(i => MakePendingChar($"Char{i}"))
+            .ToList();
+        var pageOneQueuedReturned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var hiddenPageOneQueuedStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pageTwoQueuedStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached(chars));
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IDictionary<string, string>?)null);
+
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeResponse?)null);
+        me.Setup(m => m.EnrichCharacterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string key, CancellationToken _) =>
+            {
+                switch (key)
+                {
+                    case "eu-silvermoon-char2":
+                        pageOneQueuedReturned.SetResult();
+                        break;
+                    case "eu-silvermoon-char3":
+                        hiddenPageOneQueuedStarted.SetResult();
+                        break;
+                    case "eu-silvermoon-char5":
+                        pageTwoQueuedStarted.SetResult();
+                        break;
+                }
+
+                return new CharacterDto(
+                    Name: key.Split('-')[2],
+                    Realm: "silvermoon",
+                    RealmName: "Silvermoon",
+                    Level: 80,
+                    Region: "eu",
+                    ClassId: 1,
+                    ClassName: "Warrior",
+                    PortraitUrl: null,
+                    ActiveSpecId: 71,
+                    SpecName: "Arms");
+            });
+
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/characters");
+
+        var cut = Render<CharactersPage>();
+        await pageOneQueuedReturned.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        var nextButton = Assert.Single(
+            cut.FindAll("fluent-button"),
+            b => b.GetAttribute("aria-label") == Loc("common.next"));
+        nextButton.Click();
+
+        cut.WaitForAssertion(() => cut.Find("[data-char-id='eu-silvermoon-char4']"));
+
+        var started = await Task.WhenAny(pageTwoQueuedStarted.Task, Task.Delay(TimeSpan.FromMilliseconds(200)));
+        Assert.Same(pageTwoQueuedStarted.Task, started);
+        Assert.False(hiddenPageOneQueuedStarted.Task.IsCompleted,
+            "Hidden page-1 queued character should not enrich after navigating to page 2.");
+    }
+
+    [Fact]
     public void CharactersPage_Character_Card_Is_A_Button()
     {
         this.AddAuthorization().SetAuthorized("player#1234");

@@ -297,7 +297,7 @@
         state = new LoadingState<IReadOnlyList<CharacterDto>>.Success(chars);
         preparedVisibleSignature = null;
         cardState.Clear();
-        enrichQueue.Clear();
+        ResetEnrichQueue();
         foreach (var c in chars)
             cardState[CharKey(c)] = (c.ClassId is not null && c.ActiveSpecId is not null)
                 ? EnrichState.Enriched
@@ -343,6 +343,7 @@
             return;
 
         preparedVisibleSignature = signature;
+        ResetEnrichQueue();
         var requestId = ++portraitRequestId;
         portraitsCts?.Cancel();
         portraitsCts = new CancellationTokenSource();
@@ -513,21 +514,46 @@
     private void EnsureWorker()
     {
         if (enrichWorkerTask is { IsCompleted: false }) return;
-        enrichCts = new CancellationTokenSource();
-        enrichWorkerTask = RunEnrichWorkerAsync(enrichCts.Token);
+        var cts = new CancellationTokenSource();
+        enrichCts = cts;
+        enrichWorkerTask = RunEnrichWorkerAsync(cts);
     }
 
-    private async Task RunEnrichWorkerAsync(CancellationToken ct)
+    private async Task RunEnrichWorkerAsync(CancellationTokenSource cts)
     {
-        while (!ct.IsCancellationRequested && enrichQueue.TryDequeue(out var key))
+        var ct = cts.Token;
+        try
         {
-            var success = (state as LoadingState<IReadOnlyList<CharacterDto>>.Success);
-            var character = success?.Value.FirstOrDefault(c => CharKey(c) == key);
-            if (character is null) continue;
-            if (cardState.TryGetValue(key, out var s) && s != EnrichState.Pending) continue;
-            await EnrichAsync(character);
-            await Task.Delay(PacingDelayMs, ct);
+            while (!ct.IsCancellationRequested && enrichQueue.TryDequeue(out var key))
+            {
+                var character = VisibleCharacters.FirstOrDefault(c => CharKey(c) == key);
+                if (character is null) continue;
+                if (cardState.TryGetValue(key, out var s) && s != EnrichState.Pending) continue;
+                await EnrichAsync(character);
+                await Task.Delay(PacingDelayMs, ct);
+            }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(enrichCts, cts))
+            {
+                enrichCts = null;
+                enrichWorkerTask = null;
+            }
+
+            cts.Dispose();
+        }
+    }
+
+    private void ResetEnrichQueue()
+    {
+        enrichQueue.Clear();
+        enrichCts?.Cancel();
+        enrichCts = null;
+        enrichWorkerTask = null;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -572,7 +598,6 @@
             await viewportModule.DisposeAsync();
         }
         selfRef?.Dispose();
-        enrichCts?.Dispose();
         portraitsCts?.Dispose();
     }
 
