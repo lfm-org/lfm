@@ -116,6 +116,23 @@ public class RunsClientTests
     }
 
     [Fact]
+    public async Task ListPageAsync_Preserves_ContinuationToken()
+    {
+        var envelope = new RunsListResponse(
+            Items: [MakeSummary("run-a")],
+            ContinuationToken: "next-token");
+        var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, envelope));
+
+        var result = await client.ListPageAsync("current-token", CancellationToken.None);
+
+        Assert.Single(result.Items);
+        Assert.Equal("run-a", result.Items[0].Id);
+        Assert.Equal("next-token", result.ContinuationToken);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Equal("/api/v1/runs?continuationToken=current-token", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
     public async Task GetAsync_escapes_run_id_in_path()
     {
         var (client, handler) = MakeClient(StubHttpMessageHandler.Json(HttpStatusCode.OK, MakeDetail("run-1")));

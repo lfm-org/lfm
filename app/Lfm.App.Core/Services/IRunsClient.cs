@@ -15,6 +15,7 @@ public sealed record RunDetailWithEtag(RunDetailDto Run, string? ETag);
 public interface IRunsClient
 {
     Task<IReadOnlyList<RunSummaryDto>> ListAsync(CancellationToken ct);
+    Task<RunsListResponse> ListPageAsync(string? continuationToken, CancellationToken ct);
     Task<RunDetailDto?> GetAsync(string id, CancellationToken ct);
 
     /// <summary>
