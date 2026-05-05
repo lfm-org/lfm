@@ -16,6 +16,26 @@ public class GuildPagesTests : ComponentTestBase
 {
     // ── GuildPage ────────────────────────────────────────────────────────────
 
+    private static GuildDto MakeGuildDto(
+        bool isInitialized = true,
+        bool requiresSetup = false,
+        bool rankDataFresh = true,
+        bool canEdit = false,
+        string slogan = "We ride the storm") =>
+        new(
+            Guild: new GuildInfoDto(1, "Stormchasers", slogan, "Silvermoon", "Alliance",
+                120, 10, null, null),
+            Setup: new GuildSetupDto(isInitialized, requiresSetup, rankDataFresh, "Europe/Helsinki", "fi"),
+            Settings: canEdit
+                ? new GuildSettingsDto(
+                [
+                    new GuildRankPermissionDto(0, true, true, true),
+                    new GuildRankPermissionDto(5, false, true, false),
+                ])
+                : null,
+            Editor: new GuildEditorDto(canEdit),
+            MemberPermissions: new GuildMemberPermissionsDto(true, true, false));
+
     [Fact]
     public void GuildPage_Renders_Loading_Ring_On_Mount()
     {
@@ -52,13 +72,7 @@ public class GuildPagesTests : ComponentTestBase
     public void GuildPage_Renders_Guild_Name_After_Load()
     {
         var client = new Mock<IGuildClient>();
-        var dto = new GuildDto(
-            Guild: new GuildInfoDto(1, "Stormchasers", "We ride the storm", "Silvermoon", "Alliance",
-                120, 10, null, null),
-            Setup: new GuildSetupDto(true, false, true, "Europe/Helsinki", "fi"),
-            Settings: null,
-            Editor: new GuildEditorDto(false),
-            MemberPermissions: new GuildMemberPermissionsDto(true, true, false));
+        var dto = MakeGuildDto();
         client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);
         Services.AddSingleton(client.Object);
 
@@ -79,6 +93,102 @@ public class GuildPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("guild.error.loadFailed"), cut.Markup));
+    }
+
+    [Fact]
+    public void GuildPage_Renders_Setup_Explanation_For_Required_Query()
+    {
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(isInitialized: false, requiresSetup: true, canEdit: true));
+        Services.AddSingleton(client.Object);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/guild?setup=required");
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guild.setupRequiredExplanation"), cut.Markup));
+    }
+
+    [Fact]
+    public void GuildPage_Renders_Status_Chips_And_Editor_For_Editable_Guild()
+    {
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(isInitialized: false, requiresSetup: true, canEdit: true));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Loc("guild.chip.settingsPending"), cut.Markup);
+            Assert.Contains(Loc("guild.chip.editable"), cut.Markup);
+            Assert.Contains(Loc("guild.chip.rankSyncFresh"), cut.Markup);
+            Assert.Contains(Loc("guild.chip.members", 120), cut.Markup);
+            Assert.Contains(Loc("guild.chip.ranksDetected", 10), cut.Markup);
+            Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void GuildPage_Renders_Stale_RankSync_Warning_When_RankData_NotFresh()
+    {
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(rankDataFresh: false, canEdit: true));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guild.rankSyncStale"), cut.Markup));
+    }
+
+    [Fact]
+    public void GuildPage_Save_Sends_Draft_And_Resets_Unsaved_Baseline()
+    {
+        var initial = MakeGuildDto(canEdit: true, slogan: "Old slogan");
+        var updated = MakeGuildDto(canEdit: true, slogan: "New slogan");
+        UpdateGuildRequest? captured = null;
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(initial);
+        client.Setup(c => c.UpdateAsync(It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<UpdateGuildRequest, CancellationToken>((request, _) => captured = request)
+            .ReturnsAsync(updated);
+        Services.AddSingleton(client.Object);
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+        JSInterop.SetupModule("./js/dialog.js");
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup));
+        cut.Find("#guild-slogan").Change("New slogan");
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.settings.save"), StringComparison.Ordinal));
+        saveButton.Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.UpdateAsync(
+                It.IsAny<UpdateGuildRequest>(),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+        Assert.NotNull(captured);
+        Assert.Equal("Europe/Helsinki", captured!.Timezone);
+        Assert.Equal("fi", captured.Locale);
+        Assert.Equal("New slogan", captured.Slogan);
+        Assert.Equal(2, captured.RankPermissions?.Count);
+
+        nav.NavigateTo("/runs");
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
+        Assert.DoesNotContain(Loc("unsavedChanges.title"), cut.Markup);
     }
 
     // ── GuildAdminPage ───────────────────────────────────────────────────────

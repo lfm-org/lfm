@@ -53,9 +53,10 @@ internal static class GuildMapper
                 CrestBorderUrl: doc.CrestBorderUrl);
         }
 
+        var isInitialized = doc.Setup?.InitializedAt is not null;
         var setup = new GuildSetupDto(
-            IsInitialized: doc.Setup?.InitializedAt is not null,
-            RequiresSetup: false,
+            IsInitialized: isInitialized,
+            RequiresSetup: permissions.IsAdmin && !isInitialized,
             RankDataFresh: IsRosterFresh(doc),
             Timezone: doc.Setup?.Timezone ?? "Europe/Helsinki",
             Locale: doc.Setup?.Locale ?? "fi");

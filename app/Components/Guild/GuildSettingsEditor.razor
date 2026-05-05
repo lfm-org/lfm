@@ -2,7 +2,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IStringLocalizer Loc
 
-<EditForm Model="@this" OnValidSubmit="@OnSave">
+<EditForm Model="@this">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
 
         <FluentSelect TOption="string"
@@ -73,8 +73,9 @@
 
         <div>
             <FluentButton
-                Type="ButtonType.Submit"
+                Type="ButtonType.Button"
                 Appearance="Appearance.Accent"
+                OnClick="@HandleSaveClicked"
                 Disabled="@(Saving || !RankDataFresh)">
                 @(Saving ? Loc["guildAdmin.settings.saving"] : Loc["guildAdmin.settings.save"])
             </FluentButton>
@@ -125,4 +126,6 @@
     [Parameter, EditorRequired] public EventCallback<string> SloganChanged { get; set; }
     [Parameter, EditorRequired] public EventCallback<(int Rank, string Field, bool Checked)> OnPermissionChange { get; set; }
     [Parameter, EditorRequired] public EventCallback OnSave { get; set; }
+
+    private Task HandleSaveClicked() => OnSave.InvokeAsync();
 }
