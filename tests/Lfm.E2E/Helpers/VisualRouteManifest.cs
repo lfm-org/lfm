@@ -54,7 +54,7 @@ internal static class VisualRouteManifest
         SiteAdmin("/guild/admin", "guild admin site admin", "guild-admin-site-admin"),
 
         ProtectedRedirect("/admin/reference", "admin reference anonymous", "admin-reference-anonymous", "/login?redirect=%2Fadmin%2Freference"),
-        SiteAdmin("/admin/reference", "admin reference site admin", "admin-reference-site-admin", "/login?redirect=%2Fadmin%2Freference"),
+        SiteAdmin("/admin/reference", "admin reference site admin", "admin-reference-site-admin"),
 
         ProtectedRedirect("/instances", "instances anonymous", "instances-anonymous", "/login?redirect=%2Finstances"),
         Authenticated("/instances", "instances authenticated", "instances-authenticated"),
