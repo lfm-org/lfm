@@ -162,6 +162,54 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_Empty_Page_With_Continuation_Can_Load_More()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListPageAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsListResponse([], "next-token"));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Loc("runs.empty"), cut.Markup);
+            Assert.Contains(Loc("runs.loadMore"), cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void RunsPage_LoadMore_Failure_Preserves_Current_List_And_Shows_Error()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListPageAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsListResponse([MakeSummary("run-1")], "next-token"));
+        client.Setup(c => c.ListPageAsync("next-token", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("More error"));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Liberation of Undermine", cut.Markup);
+            Assert.Contains(Loc("runs.loadMore"), cut.Markup);
+        });
+
+        var loadMore = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("runs.loadMore"), StringComparison.Ordinal));
+        loadMore.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            client.Verify(c => c.ListPageAsync("next-token", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Contains("Liberation of Undermine", cut.Markup);
+            Assert.Contains("More error", cut.Markup);
+            Assert.Contains(Loc("runs.loadMore"), cut.Markup);
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunListItem_Has_Accessible_Name_Combining_Instance_And_Date()
     {
         // Screen-reader users navigating the run list hear a concise aria-label
