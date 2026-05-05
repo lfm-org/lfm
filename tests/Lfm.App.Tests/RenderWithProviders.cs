@@ -10,6 +10,7 @@ using Lfm.App.Services;
 using Lfm.Contracts.Characters;
 using Lfm.Contracts.Me;
 using Lfm.Contracts.Runs;
+using Lfm.Contracts.Specializations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -44,6 +45,7 @@ public abstract class ComponentTestBase : BunitContext
         Services.AddSingleton<IStringLocalizer>(_localizer);
         Services.AddSingleton<IMeClient, DefaultMeClient>();
         Services.AddSingleton<IBattleNetClient, DefaultBattleNetClient>();
+        Services.AddSingleton<ISpecializationsClient, DefaultSpecializationsClient>();
         Services.AddSingleton<IAuthStateRefresher, NoopAuthStateRefresher>();
     }
 
@@ -99,6 +101,12 @@ internal sealed class DefaultBattleNetClient : IBattleNetClient
         IEnumerable<CharacterPortraitRequest> requests,
         CancellationToken ct) =>
         Task.FromResult<IDictionary<string, string>?>(new Dictionary<string, string>());
+}
+
+internal sealed class DefaultSpecializationsClient : ISpecializationsClient
+{
+    public Task<IReadOnlyList<SpecializationDto>> ListAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<SpecializationDto>>([]);
 }
 
 internal sealed class NoopAuthStateRefresher : IAuthStateRefresher

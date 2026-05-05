@@ -7,9 +7,11 @@
 @using Lfm.App.Services
 @using Lfm.Contracts.Characters
 @using Lfm.Contracts.Runs
+@using Lfm.Contracts.Specializations
 @inject IBattleNetClient BattleNetClient
 @inject IMeClient MeClient
 @inject IRunsClient RunsClient
+@inject ISpecializationsClient SpecializationsClient
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
 
@@ -170,6 +172,7 @@
                                                 OptionsLoading="@_signupOptionsLoading"
                                                 OptionsForbidden="@_signupOptionsForbidden"
                                                 PreferredCharacterId="@_preferredSignupCharacterId"
+                                                CurrentSpecIconUrl="@SpecIconUrlFor(currentSignup)"
                                                 SignupError="@_signupError"
                                                 SignupSubmitting="@_signupSubmitting"
                                                 CancelSubmitting="@_cancelSubmitting"
@@ -255,6 +258,9 @@
     private string? _signupError;
     private bool _signupSubmitting;
     private bool _cancelSubmitting;
+    private bool _specIconsLoaded;
+    private bool _specIconsLoading;
+    private IReadOnlyDictionary<int, string> _specIconUrls = new Dictionary<int, string>();
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
@@ -414,7 +420,11 @@
 
             ApplyRunDetail(detail);
             _signupError = null;
-            if (!HasCurrentUserSignup(detail) && !IsSignupClosed(detail.SignupCloseTime))
+            if (HasCurrentUserSignup(detail))
+            {
+                await EnsureSpecIconsLoaded();
+            }
+            else if (!IsSignupClosed(detail.SignupCloseTime))
             {
                 await EnsureSignupOptionsLoaded();
             }
@@ -531,6 +541,10 @@
             }
 
             ApplyRunDetail(updated);
+            if (HasCurrentUserSignup(updated))
+            {
+                await EnsureSpecIconsLoaded();
+            }
         }
         catch
         {
@@ -539,6 +553,31 @@
         finally
         {
             _signupSubmitting = false;
+        }
+    }
+
+    private async Task EnsureSpecIconsLoaded()
+    {
+        if (_specIconsLoaded || _specIconsLoading)
+            return;
+
+        _specIconsLoading = true;
+        try
+        {
+            var specializations = await SpecializationsClient.ListAsync(CancellationToken.None);
+            _specIconUrls = specializations
+                .Where(spec => !string.IsNullOrWhiteSpace(spec.IconUrl))
+                .GroupBy(spec => spec.Id)
+                .ToDictionary(group => group.Key, group => group.First().IconUrl!);
+            _specIconsLoaded = true;
+        }
+        catch
+        {
+            _specIconUrls = new Dictionary<int, string>();
+        }
+        finally
+        {
+            _specIconsLoading = false;
         }
     }
 
@@ -603,6 +642,11 @@
 
     private static bool HasCurrentUserSignup(RunDetailDto detail) =>
         detail.RunCharacters.Any(c => c.IsCurrentUser);
+
+    private string? SpecIconUrlFor(RunCharacterDto? signup) =>
+        signup?.SpecId is int specId && _specIconUrls.TryGetValue(specId, out var iconUrl)
+            ? iconUrl
+            : null;
 
     private void TogglePast() => _showPast = !_showPast;
 
