@@ -1,9 +1,8 @@
 .run-signup-panel {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
-    padding-block: 0.75rem;
-    border-block: 1px solid var(--neutral-stroke-rest);
+    container-type: inline-size;
+    gap: 0.75rem;
 }
 
 .run-signup-title {
@@ -39,12 +38,38 @@
 
 .run-signup-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
-    gap: 0.625rem;
+    grid-template-areas:
+        "character"
+        "spec"
+        "attendance"
+        "actions";
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
     align-items: end;
 }
 
-::deep .run-signup-form fluent-select {
+.run-signup-field {
+    min-inline-size: 0;
+}
+
+.run-signup-field--character {
+    grid-area: character;
+}
+
+.run-signup-field--spec {
+    grid-area: spec;
+}
+
+.run-signup-field--attendance {
+    grid-area: attendance;
+}
+
+.run-signup-field--actions {
+    grid-area: actions;
+}
+
+::deep .run-signup-field fluent-select {
+    inline-size: 100%;
     min-inline-size: 0;
 }
 
@@ -65,6 +90,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
+    justify-content: flex-start;
     min-inline-size: min(100%, 12rem);
 }
 
@@ -72,4 +98,28 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+@container (min-width: 40rem) {
+    .run-signup-form {
+        grid-template-areas:
+            "character spec"
+            "attendance actions";
+        grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.7fr);
+    }
+
+    .run-signup-form__actions {
+        justify-content: flex-end;
+    }
+}
+
+@container (min-width: 58rem) {
+    .run-signup-form {
+        grid-template-areas: "character spec attendance actions";
+        grid-template-columns:
+            minmax(13rem, 1fr)
+            minmax(9rem, 0.65fr)
+            minmax(18rem, max-content)
+            auto;
+    }
 }

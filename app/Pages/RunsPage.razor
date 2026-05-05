@@ -116,36 +116,38 @@
                 <div class="runs-detail">
                     @if (selectedRun != null)
                     {
-                        <FluentCard>
-                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                                <div class="run-detail-header">
-                                    <div class="run-detail-heading">
-                                        <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
-                                        @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
-                                        {
-                                            <p class="run-detail-description">@selectedRun.Description</p>
-                                        }
+                        var currentSignup = selectedRun.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
+                        var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
+                        var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
+
+                        <div class="run-detail-stack">
+                            <FluentCard>
+                                <section class="run-detail-summary" data-testid="run-detail-summary">
+                                    <div class="run-detail-header">
+                                        <div class="run-detail-heading">
+                                            <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
+                                            @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
+                                            {
+                                                <p class="run-detail-description">@selectedRun.Description</p>
+                                            }
+                                        </div>
+                                        <DifficultyPill Difficulty="@selectedRun.Difficulty" />
+                                        <FluentButton Appearance="Appearance.Outline"
+                                                      OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
+                                                      Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
+                                            @Loc["runs.edit"]
+                                        </FluentButton>
                                     </div>
-                                    <DifficultyPill Difficulty="@selectedRun.Difficulty" />
-                                    <FluentButton Appearance="Appearance.Outline"
-                                                  OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
-                                                  Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
-                                        @Loc["runs.edit"]
-                                    </FluentButton>
-                                </div>
 
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
-                                    <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
-                                    <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
-                                    <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
-                                </FluentStack>
+                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
+                                        <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
+                                        <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
+                                        <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
+                                    </FluentStack>
+                                </section>
+                            </FluentCard>
 
-                                @{
-                                    var currentSignup = selectedRun.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
-                                    var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
-                                    var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
-                                }
-
+                            <section class="run-signup-surface" data-testid="run-signup-surface">
                                 <RunSignupPanel RunId="@selectedRun.Id"
                                                 CurrentSignup="@currentSignup"
                                                 Characters="@_signupCharacters"
@@ -159,10 +161,17 @@
                                                 OnSignup="@SubmitSignup"
                                                 OnCancelConfirmed="@CancelSignup"
                                                 OnOptionsRequested="@EnsureSignupOptionsLoaded" />
+                            </section>
 
+                            <section class="run-roster @(selectedRun.RunCharacters.Count == 0 ? "run-roster--empty" : "")" data-testid="run-roster">
                                 @if (selectedRun.RunCharacters.Count == 0)
                                 {
-                                    <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
+                                    <h3 class="roster-section-title" data-testid="roster-attending-title">
+                                        @Loc["runs.attendingSection"] (0)
+                                    </h3>
+                                    <div class="run-roster-empty">
+                                        <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
+                                    </div>
                                 }
                                 else
                                 {
@@ -199,8 +208,8 @@
                                         </div>
                                     }
                                 }
-                            </FluentStack>
-                        </FluentCard>
+                            </section>
+                        </div>
                     }
                     else
                     {

@@ -1144,6 +1144,44 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_Detail_Separates_Summary_Signup_And_Roster_Regions()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Tankington", classId: 1, className: "Warrior", role: "TANK", spec: "Protection"),
+                MakeCharacter("Healsworth", classId: 2, className: "Paladin", role: "HEALER", spec: "Holy"),
+                MakeCharacter("Dpsalot", classId: 8, className: "Mage", role: "DPS", spec: "Frost"),
+            }));
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.NotNull(cut.Find("[data-testid='run-roster']")));
+
+        var summary = cut.Find("[data-testid='run-detail-summary']");
+        var signup = cut.Find("[data-testid='run-signup-surface']");
+        var roster = cut.Find("[data-testid='run-roster']");
+
+        Assert.NotNull(summary.Closest("fluent-card"));
+        Assert.Null(roster.Closest("fluent-card"));
+
+        var markup = cut.Markup;
+        Assert.True(
+            markup.IndexOf("data-testid=\"run-detail-summary\"", StringComparison.Ordinal) <
+            markup.IndexOf("data-testid=\"run-signup-surface\"", StringComparison.Ordinal));
+        Assert.True(
+            markup.IndexOf("data-testid=\"run-signup-surface\"", StringComparison.Ordinal) <
+            markup.IndexOf("data-testid=\"run-roster\"", StringComparison.Ordinal));
+        Assert.Contains(Loc("runs.attendingSection"), roster.TextContent);
+    }
+
+    [Fact]
     public void RunsPage_NotAttendingSection_RendersOutAndAwayCharacters()
     {
         var client = new Mock<IRunsClient>();
