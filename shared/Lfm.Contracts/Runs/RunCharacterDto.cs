@@ -9,8 +9,16 @@ namespace Lfm.Contracts.Runs;
 /// (PII), the internal run-character id, level, and race fields, and adds
 /// IsCurrentUser.
 /// </summary>
+/// <param name="CharacterId">
+/// Current-user-only signup character id for editing the logged-in user's
+/// signup. Null for other roster rows.
+/// </param>
+/// <param name="SpecId">
+/// Current-user-only signup specialization id for editing the logged-in user's
+/// signup. Null for other roster rows.
+/// </param>
 public sealed record RunCharacterDto(
-    string CharacterId,
+    string? CharacterId,
     string CharacterName,
     string CharacterRealm,
     int CharacterClassId,
