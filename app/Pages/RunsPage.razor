@@ -81,10 +81,22 @@
                                 <h2 class="runs-group__title">@HorizonLabel(group.Horizon)</h2>
                                 @foreach (var run in group.Runs)
                                 {
-                                    <RunListItem @key="run.Id"
-                                                 Run="run"
-                                                 IsSelected="@(run.Id == selectedRunId)"
-                                                 OnSelected="@SelectRun" />
+                                    var isSelected = run.Id == selectedRunId;
+                                    <div @key="run.Id"
+                                         class="run-list-card @(isSelected ? "run-list-card--selected" : null)"
+                                         data-testid="run-card-@run.Id">
+                                        <RunListItem Run="run"
+                                                     IsSelected="@isSelected"
+                                                     OnSelected="@SelectRun" />
+                                        <button type="button"
+                                                class="run-mobile-detail-toggle"
+                                                data-testid="run-mobile-detail-toggle-@run.Id"
+                                                aria-controls="run-detail-panel"
+                                                aria-expanded="@(isSelected ? "true" : "false")"
+                                                @onclick="@(() => ToggleRunDetails(run.Id))">
+                                            @(isSelected ? Loc["runs.hideDetails"] : Loc["runs.showDetails"])
+                                        </button>
+                                    </div>
                                 }
                             </div>
                         }
@@ -99,13 +111,14 @@
                     }
                     @if (!string.IsNullOrWhiteSpace(_loadMoreError))
                     {
-                        <FluentMessageBar Intent="MessageIntent.Error">
+                        <FluentMessageBar Class="runs-load-more-error" Intent="MessageIntent.Error">
                             @_loadMoreError
                         </FluentMessageBar>
                     }
                     @if (!string.IsNullOrEmpty(_continuationToken))
                     {
                         <FluentButton Appearance="Appearance.Outline"
+                                      Class="runs-load-more"
                                       OnClick="@LoadMoreRuns"
                                       Disabled="@_loadingMore">
                             @(_loadingMore ? Loc["common.loading"] : Loc["runs.loadMore"])
@@ -113,7 +126,9 @@
                     }
                 </div>
 
-                <div class="runs-detail">
+                <div id="run-detail-panel"
+                     class="runs-detail @(selectedRun is null ? "runs-detail--empty" : "runs-detail--selected")"
+                     data-testid="run-detail-panel">
                     @if (selectedRun != null)
                     {
                         var currentSignup = selectedRun.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
@@ -359,6 +374,26 @@
         selectedRunId = id;
         Nav.NavigateTo($"/runs/{Uri.EscapeDataString(id)}", replace: true);
         await LoadRunDetail(id);
+    }
+
+    private async Task ToggleRunDetails(string id)
+    {
+        if (selectedRunId == id)
+        {
+            CollapseRunDetails();
+            return;
+        }
+
+        await SelectRun(id);
+    }
+
+    private void CollapseRunDetails()
+    {
+        selectedRunId = null;
+        selectedRun = null;
+        _signupError = null;
+        ResetSignupOptions();
+        Nav.NavigateTo("/runs", replace: true);
     }
 
     private async Task LoadRunDetail(string id)
