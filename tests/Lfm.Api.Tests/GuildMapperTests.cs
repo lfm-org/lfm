@@ -48,6 +48,21 @@ public class GuildMapperTests
     }
 
     [Fact]
+    public void MapToDto_Marks_Existing_Admin_Guild_As_RequiringSetup_When_NotInitialized()
+    {
+        var perms = new GuildEffectivePermissions(
+            IsAdmin: true,
+            CanCreateGuildRuns: true,
+            CanSignupGuildRuns: true,
+            CanDeleteGuildRuns: true);
+
+        var dto = GuildMapper.MapToDto(SampleDoc(), perms);
+
+        Assert.False(dto.Setup.IsInitialized);
+        Assert.True(dto.Setup.RequiresSetup);
+    }
+
+    [Fact]
     public void MapToDto_AdminWithNoStoredRankPermissions_PopulatesDefaultSettingsFromRosterRanks()
     {
         var perms = new GuildEffectivePermissions(

@@ -8,14 +8,16 @@
     <CascadingAuthenticationState>
         <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
             <Found Context="routeData">
-                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                    <NotAuthorized>
-                        <RedirectToLogin />
-                    </NotAuthorized>
-                    <Authorizing>
-                        <FluentProgressRing />
-                    </Authorizing>
-                </AuthorizeRouteView>
+                @if (RequiresGuildSetupGate(routeData))
+                {
+                    <GuildSetupGate>
+                        @RenderAuthorizedRoute(routeData)
+                    </GuildSetupGate>
+                }
+                else
+                {
+                    @RenderAuthorizedRoute(routeData)
+                }
             </Found>
         </Router>
     </CascadingAuthenticationState>
@@ -24,10 +26,32 @@
 @code {
     private DesignThemeModes _mode = DesignThemeModes.Dark;
 
+    private static readonly HashSet<Type> GuildSetupGatedPages =
+    [
+        typeof(Pages.RunsPage),
+        typeof(Pages.CreateRunPage),
+        typeof(Pages.EditRunPage),
+    ];
+
     protected override void OnInitialized()
     {
         ThemeService.OnChange += OnThemeChanged;
     }
+
+    private static bool RequiresGuildSetupGate(RouteData routeData) =>
+        GuildSetupGatedPages.Contains(routeData.PageType);
+
+    private static RenderFragment RenderAuthorizedRoute(RouteData routeData) => __builder =>
+    {
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+            <Authorizing>
+                <FluentProgressRing />
+            </Authorizing>
+        </AuthorizeRouteView>
+    };
 
     private void OnModeChanged(DesignThemeModes mode)
     {
