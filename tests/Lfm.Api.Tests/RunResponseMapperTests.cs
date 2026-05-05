@@ -49,6 +49,24 @@ public class RunResponseMapperTests
         Assert.False(dto.RunCharacters.Single(c => c.CharacterName == "Peerchar").IsCurrentUser);
     }
 
+    [Fact]
+    public void ToDetail_Projects_CharacterId_And_SpecId_For_Run_Characters()
+    {
+        var doc = MakeRunDoc(runCharacters: [
+            MakeCharacterEntry("entry-own", "Arthas", "bnet-current") with
+            {
+                CharacterId = "eu-silvermoon-arthas",
+                SpecId = 71,
+            }
+        ]);
+
+        var dto = RunResponseMapper.ToDetail(doc, "bnet-current");
+
+        var character = Assert.Single(dto.RunCharacters);
+        Assert.Equal("eu-silvermoon-arthas", character.CharacterId);
+        Assert.Equal(71, character.SpecId);
+    }
+
     private static RunDocument MakeRunDoc(IReadOnlyList<RunCharacterEntry> runCharacters) =>
         new(
             Id: "run-1",

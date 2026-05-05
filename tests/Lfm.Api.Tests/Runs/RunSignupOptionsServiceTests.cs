@@ -179,6 +179,52 @@ public class RunSignupOptionsServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_Returns_Eligible_Characters_With_Specializations()
+    {
+        var (runsRepo, raidersRepo, guildRepo, _, sut) = MakeSut();
+        var raider = MakeRaider(
+            accountProfile: AccountProfile(),
+            refreshedAt: DateTimeOffset.UtcNow.AddMinutes(-2).ToString("o")) with
+        {
+            Characters = [
+                new StoredSelectedCharacter(
+                    Id: "char-1",
+                    Region: "eu",
+                    Realm: "silvermoon",
+                    Name: "Guildmain",
+                    SpecializationsSummary: new StoredSpecializationsSummary(
+                        ActiveSpecialization: new StoredCharacterSpecialization(71, "Arms"),
+                        Specializations: [
+                            new StoredSpecializationsEntry(new StoredCharacterSpecialization(71, "Arms")),
+                            new StoredSpecializationsEntry(new StoredCharacterSpecialization(72, "Fury"))
+                        ]),
+                    ClassId: 1,
+                    ClassName: "Warrior",
+                    GuildId: 123,
+                    GuildName: "Test Guild")
+            ],
+        };
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRun());
+        guildRepo.Setup(r => r.GetAsync("123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuild());
+
+        var result = await sut.GetAsync("run-1", MakePrincipal(), CancellationToken.None);
+
+        var ok = Assert.IsType<RunSignupOptionsResult.Ok>(result);
+        var character = Assert.Single(ok.Options.Characters);
+        Assert.Equal(71, character.ActiveSpecId);
+        Assert.Equal("Arms", character.SpecName);
+        Assert.NotNull(character.Specializations);
+        Assert.Collection(
+            character.Specializations,
+            specialization => Assert.Equal(71, specialization.Id),
+            specialization => Assert.Equal(72, specialization.Id));
+    }
+
+    [Fact]
     public async Task GetAsync_returns_forbidden_when_caller_rank_cannot_signup()
     {
         var (runsRepo, raidersRepo, _, guildPermissions, sut) = MakeSut();
