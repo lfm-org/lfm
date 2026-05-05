@@ -53,12 +53,14 @@ internal static class RunResponseMapper
         RunCharacterEntry character,
         string currentBattleNetId) =>
         new(
+            CharacterId: character.CharacterId,
             CharacterName: character.CharacterName,
             CharacterRealm: character.CharacterRealm,
             CharacterClassId: character.CharacterClassId,
             CharacterClassName: character.CharacterClassName,
             DesiredAttendance: character.DesiredAttendance,
             ReviewedAttendance: character.ReviewedAttendance,
+            SpecId: character.SpecId,
             SpecName: character.SpecName,
             Role: character.Role,
             IsCurrentUser: character.RaiderBattleNetId == currentBattleNetId);

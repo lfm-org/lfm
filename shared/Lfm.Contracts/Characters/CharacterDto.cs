@@ -3,6 +3,8 @@
 
 namespace Lfm.Contracts.Characters;
 
+public sealed record CharacterSpecializationDto(int Id, string Name);
+
 /// <summary>
 /// A WoW character belonging to the logged-in raider's Battle.net account.
 /// Mirrors the <c>AccountCharacter</c> TypeScript interface in
@@ -19,4 +21,5 @@ public sealed record CharacterDto(
     string? ClassName = null,
     string? PortraitUrl = null,
     int? ActiveSpecId = null,
-    string? SpecName = null);
+    string? SpecName = null,
+    IReadOnlyList<CharacterSpecializationDto>? Specializations = null);
