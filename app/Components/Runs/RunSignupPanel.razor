@@ -20,7 +20,7 @@
             <div class="run-signup-current__summary">
                 <FluentLabel>@Loc["runs.signup.signedUpAs", currentSignup.CharacterName]</FluentLabel>
                 <span class="run-signup-current__spec">
-                    <SpecIcon SpecName="@currentSpecLabel" />
+                    <SpecIcon SpecName="@currentSpecLabel" IconUrl="@CurrentSpecIconUrl" />
                     <span>@currentSpecLabel</span>
                 </span>
             </div>
@@ -156,6 +156,7 @@
     [Parameter] public bool OptionsLoading { get; set; }
     [Parameter] public bool OptionsForbidden { get; set; }
     [Parameter] public string? PreferredCharacterId { get; set; }
+    [Parameter] public string? CurrentSpecIconUrl { get; set; }
     [Parameter] public string? SignupError { get; set; }
     [Parameter] public bool SignupSubmitting { get; set; }
     [Parameter] public bool CancelSubmitting { get; set; }

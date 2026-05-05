@@ -50,6 +50,7 @@ builder.Services.AddHttpClient("api-admin", client =>
 
 builder.Services.AddScoped<IInstancesClient, InstancesClient>();
 builder.Services.AddScoped<IExpansionsClient, ExpansionsClient>();
+builder.Services.AddScoped<ISpecializationsClient, SpecializationsClient>();
 builder.Services.AddScoped<IWowReferenceAdminClient, WowReferenceAdminClient>();
 builder.Services.AddScoped<IMeClient, MeClient>();
 builder.Services.AddScoped<IGuildClient, GuildClient>();
