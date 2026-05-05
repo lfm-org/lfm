@@ -81,7 +81,8 @@ public class VisualRouteArtifactModelSpec
 
         Assert.Contains(VisualRouteManifest.States, state =>
             state.Path == "/admin/reference" &&
-            state.AccessMode == VisualAccessMode.SiteAdmin &&
+            state.AccessMode == VisualAccessMode.Public &&
+            state.AnonymousExpectation == VisualAnonymousExpectation.RedirectToLogin &&
             state.ExpectedAnonymousPathAndQuery == "/login?redirect=%2Fadmin%2Freference");
     }
 }
