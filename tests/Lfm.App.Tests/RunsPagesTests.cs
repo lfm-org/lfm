@@ -1294,6 +1294,37 @@ public class RunsPagesTests : ComponentTestBase
             Assert.False((bool)field!.GetValue(instance)!));
     }
 
+    [Fact]
+    public void CreateRunPage_DirtyCancel_ShowsUnsavedDialog_AndLeaveNavigates()
+    {
+        WireCreateRunServices();
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+        JSInterop.SetupModule("./js/dialog.js");
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("createRun.cancel"), cut.Markup));
+        cut.Find("#keylevel-input").Input("10");
+
+        var cancelButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("createRun.cancel"), StringComparison.Ordinal));
+        cancelButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("unsavedChanges.title"), cut.Markup));
+        Assert.Equal(NavigationState.Prevented, nav.History.First().State);
+
+        var leaveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("unsavedChanges.leave"), StringComparison.Ordinal));
+        leaveButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
+        Assert.Equal(NavigationState.Succeeded, nav.History.First().State);
+    }
+
     // ── EditRunPage ──────────────────────────────────────────────────────────
 
     private Mock<IRunsClient> WireEditRunServices(
@@ -1478,6 +1509,60 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() => Assert.Equal(2, ifMatches.Count));
 
         Assert.Equal(["\"etag-v1\"", "\"etag-v2\""], ifMatches);
+    }
+
+    [Fact]
+    public void EditRunPage_DirtyCancel_ShowsUnsavedDialog_AndSuccessfulSaveResetsBaseline()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), "\"etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail() with { Description = "Updated notes" }, "\"etag-v2\""));
+        WireEditRunServices(runsClient);
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+        JSInterop.SetupModule("./js/dialog.js");
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+        cut.Find("#description-input").Change("Updated notes");
+
+        var cancelButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.cancel"), StringComparison.Ordinal));
+        cancelButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("unsavedChanges.title"), cut.Markup));
+        Assert.Equal(NavigationState.Prevented, nav.History.First().State);
+
+        var stayButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("unsavedChanges.stay"), StringComparison.Ordinal));
+        stayButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.DoesNotContain(Loc("unsavedChanges.title"), cut.Markup));
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.saveChanges"), StringComparison.Ordinal));
+        saveButton.Click();
+        cut.WaitForAssertion(() =>
+            runsClient.Verify(c => c.UpdateAsync(
+                "run-1",
+                It.IsAny<UpdateRunRequest>(),
+                "\"etag-v1\"",
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+
+        cancelButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.cancel"), StringComparison.Ordinal));
+        cancelButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs/run-1", new Uri(nav.Uri).AbsolutePath));
+        Assert.Equal(NavigationState.Succeeded, nav.History.First().State);
     }
 
     // RD-DIALOG-1 (#26): the delete confirmation renders as a native <dialog>

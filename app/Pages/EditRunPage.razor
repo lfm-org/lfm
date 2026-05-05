@@ -17,6 +17,7 @@
 @inject ToastHelper Toast
 @inject IStringLocalizer Loc
 @inject IJSRuntime JS
+@inject UnsavedChangesGuard UnsavedGuard
 
 <PageTitle>@Loc["editRun.title"]</PageTitle>
 
@@ -244,6 +245,17 @@
     }
 </FluentStack>
 
+@if (UnsavedGuard.IsConfirmationVisible)
+{
+    <ConfirmDialog Open="true"
+                   Title="@Loc["unsavedChanges.title"]"
+                   Body="@Loc["unsavedChanges.body"]"
+                   ConfirmText="@Loc["unsavedChanges.leave"]"
+                   CancelText="@Loc["unsavedChanges.stay"]"
+                   OnConfirm="@UnsavedGuard.ConfirmLeaveAsync"
+                   OnCancel="@UnsavedGuard.StayAsync" />
+}
+
 @code {
     [Parameter] public string? RunId { get; set; }
 
@@ -251,6 +263,8 @@
     private LoadingState<RunDetailDto> _state = new LoadingState<RunDetailDto>.Idle();
     private readonly RunFormState _form = new();
     private GuildDto? _guild;
+    private RunFormSnapshot? _savedFormSnapshot;
+    private UnsavedChangesGuard.Registration? _unsavedChangesRegistration;
 
     // ── Page state ─────────────────────────────────────────────────────────
     private bool _saving;
@@ -317,10 +331,19 @@
             RebuildStaticOptions();
             PopulateForm(run);
             _state = new LoadingState<RunDetailDto>.Success(run);
+            RegisterUnsavedChangesGuard();
         }
         catch (Exception ex)
         {
             _state = new LoadingState<RunDetailDto>.Failure($"Failed to load run: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_unsavedChangesRegistration is not null)
+        {
+            await UnsavedGuard.RefreshAsync();
         }
     }
 
@@ -451,6 +474,9 @@
             else
             {
                 _runEtag = updatedEnvelope.ETag ?? _runEtag;
+                PopulateForm(updatedEnvelope.Run);
+                _savedFormSnapshot = RunFormSnapshot.From(_form);
+                await UnsavedGuard.RefreshAsync();
                 Toast.ShowSuccess(Loc["editRun.saveSuccess"]);
                 _state = new LoadingState<RunDetailDto>.Success(updatedEnvelope.Run);
             }
@@ -495,6 +521,7 @@
             var ok = await RunsClient.DeleteAsync(RunId!, CancellationToken.None);
             if (ok)
             {
+                await DisposeUnsavedChangesGuardAsync();
                 Nav.NavigateTo("/runs");
             }
             else
@@ -514,9 +541,35 @@
 
     public async ValueTask DisposeAsync()
     {
+        await DisposeUnsavedChangesGuardAsync();
         if (_dialogModule is not null)
         {
             try { await _dialogModule.DisposeAsync(); } catch { }
+        }
+    }
+
+    private void RegisterUnsavedChangesGuard()
+    {
+        _savedFormSnapshot = RunFormSnapshot.From(_form);
+        UnsavedGuard.StateChanged += HandleUnsavedChangesStateChanged;
+        _unsavedChangesRegistration = UnsavedGuard.Register(this, HasUnsavedChanges);
+    }
+
+    private bool HasUnsavedChanges() =>
+        !_saving
+        && !_deleting
+        && _savedFormSnapshot is not null
+        && RunFormSnapshot.From(_form) != _savedFormSnapshot;
+
+    private void HandleUnsavedChangesStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async ValueTask DisposeUnsavedChangesGuardAsync()
+    {
+        UnsavedGuard.StateChanged -= HandleUnsavedChangesStateChanged;
+        if (_unsavedChangesRegistration is not null)
+        {
+            await _unsavedChangesRegistration.DisposeAsync();
+            _unsavedChangesRegistration = null;
         }
     }
 
@@ -532,4 +585,34 @@
     {
         "IN" => 0, "BENCH" => 1, "LATE" => 2, "OUT" => 3, "AWAY" => 4, _ => 5
     };
+
+    private sealed record RunFormSnapshot(
+        int ExpansionId,
+        ActivityKind Activity,
+        int InstanceId,
+        string Difficulty,
+        int Size,
+        int? KeystoneLevel,
+        bool AnyDungeon,
+        DateTime? StartTimeLocal,
+        DateTime? SignupCloseLocal,
+        bool ShowSignupClose,
+        string Visibility,
+        string Description)
+    {
+        public static RunFormSnapshot From(RunFormState form) =>
+            new(
+                form.ExpansionId,
+                form.Activity,
+                form.InstanceId,
+                form.Difficulty,
+                form.Size,
+                form.KeystoneLevel,
+                form.AnyDungeon,
+                form.StartTimeLocal,
+                form.SignupCloseLocal,
+                form.ShowSignupClose,
+                form.Visibility,
+                form.Description);
+    }
 }

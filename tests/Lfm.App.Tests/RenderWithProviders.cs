@@ -24,6 +24,7 @@ public abstract class ComponentTestBase : BunitContext
     {
         Services.AddFluentUIComponents();
         Services.AddScoped<ToastHelper>();
+        Services.AddScoped<UnsavedChangesGuard>();
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         var config = new ConfigurationBuilder()

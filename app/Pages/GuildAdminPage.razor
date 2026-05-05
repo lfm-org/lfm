@@ -6,6 +6,8 @@
 @inject IGuildClient GuildClient
 @inject ToastHelper Toast
 @inject IStringLocalizer Loc
+@inject UnsavedChangesGuard UnsavedGuard
+@implements IAsyncDisposable
 
 <PageTitle>@Loc["guildAdmin.title"]</PageTitle>
 
@@ -65,11 +67,24 @@
     }
 </FluentStack>
 
+@if (UnsavedGuard.IsConfirmationVisible)
+{
+    <ConfirmDialog Open="true"
+                   Title="@Loc["unsavedChanges.title"]"
+                   Body="@Loc["unsavedChanges.body"]"
+                   ConfirmText="@Loc["unsavedChanges.leave"]"
+                   CancelText="@Loc["unsavedChanges.stay"]"
+                   OnConfirm="@UnsavedGuard.ConfirmLeaveAsync"
+                   OnCancel="@UnsavedGuard.StayAsync" />
+}
+
 @code {
     private bool loading;
     private bool saving;
     private string? loadError;
     private GuildDto? guildData;
+    private GuildSettingsSnapshot? savedSettingsSnapshot;
+    private UnsavedChangesGuard.Registration? unsavedChangesRegistration;
 
     private string draftTimezone = "Europe/Helsinki";
     private string draftLocale = "fi";
@@ -99,6 +114,7 @@
                     .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
                     .ToList()
                     ?? [];
+                RegisterUnsavedChangesGuard();
             }
         }
         catch
@@ -108,6 +124,14 @@
         finally
         {
             loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (unsavedChangesRegistration is not null)
+        {
+            await UnsavedGuard.RefreshAsync();
         }
     }
 
@@ -141,6 +165,12 @@
                 draftTimezone = updated.Setup.Timezone;
                 draftLocale = updated.Setup.Locale;
                 draftSlogan = updated.Guild?.Slogan ?? string.Empty;
+                draftPermissions = updated.Settings?.RankPermissions
+                    .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
+                    .ToList()
+                    ?? [];
+                savedSettingsSnapshot = CurrentSettingsSnapshot();
+                await UnsavedGuard.RefreshAsync();
                 Toast.ShowSuccess(Loc["guildAdmin.saveSuccess"]);
             }
         }
@@ -153,4 +183,45 @@
             saving = false;
         }
     }
+
+    private void RegisterUnsavedChangesGuard()
+    {
+        savedSettingsSnapshot = CurrentSettingsSnapshot();
+        UnsavedGuard.StateChanged += HandleUnsavedChangesStateChanged;
+        unsavedChangesRegistration = UnsavedGuard.Register(this, HasUnsavedChanges);
+    }
+
+    private bool HasUnsavedChanges() =>
+        !saving
+        && savedSettingsSnapshot is not null
+        && CurrentSettingsSnapshot() != savedSettingsSnapshot;
+
+    private GuildSettingsSnapshot CurrentSettingsSnapshot() =>
+        new(
+            draftTimezone,
+            draftLocale,
+            draftSlogan,
+            string.Join('|', draftPermissions
+                .OrderBy(p => p.Rank)
+                .Select(p => $"{p.Rank}:{p.CanCreateGuildRuns}:{p.CanSignupGuildRuns}:{p.CanDeleteGuildRuns}")));
+
+    private void HandleUnsavedChangesStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async ValueTask DisposeUnsavedChangesGuardAsync()
+    {
+        UnsavedGuard.StateChanged -= HandleUnsavedChangesStateChanged;
+        if (unsavedChangesRegistration is not null)
+        {
+            await unsavedChangesRegistration.DisposeAsync();
+            unsavedChangesRegistration = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await DisposeUnsavedChangesGuardAsync();
+
+    private sealed record GuildSettingsSnapshot(
+        string Timezone,
+        string Locale,
+        string Slogan,
+        string RankPermissions);
 }
