@@ -58,7 +58,9 @@ builder.Services.AddScoped<IBattleNetClient, BattleNetClient>();
 builder.Services.AddScoped<UnsavedChangesGuard>();
 
 builder.Services.AddAuthorizationCore();
-builder.Services.AddScoped<AuthenticationStateProvider, AppAuthenticationStateProvider>();
+builder.Services.AddScoped<AppAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<AppAuthenticationStateProvider>());
+builder.Services.AddScoped<IAuthStateRefresher>(sp => sp.GetRequiredService<AppAuthenticationStateProvider>());
 
 // i18n: JSON-backed localizer loads from wwwroot/locales/{locale}.json
 builder.Services.AddSingleton(sp =>

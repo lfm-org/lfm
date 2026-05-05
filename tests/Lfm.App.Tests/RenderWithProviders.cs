@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Bunit;
+using Lfm.App.Auth;
 using Lfm.App.i18n;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
@@ -43,6 +44,7 @@ public abstract class ComponentTestBase : BunitContext
         Services.AddSingleton<IStringLocalizer>(_localizer);
         Services.AddSingleton<IMeClient, DefaultMeClient>();
         Services.AddSingleton<IBattleNetClient, DefaultBattleNetClient>();
+        Services.AddSingleton<IAuthStateRefresher, NoopAuthStateRefresher>();
     }
 
     /// <summary>
@@ -97,6 +99,13 @@ internal sealed class DefaultBattleNetClient : IBattleNetClient
         IEnumerable<CharacterPortraitRequest> requests,
         CancellationToken ct) =>
         Task.FromResult<IDictionary<string, string>?>(new Dictionary<string, string>());
+}
+
+internal sealed class NoopAuthStateRefresher : IAuthStateRefresher
+{
+    public void RefreshAuthenticationState()
+    {
+    }
 }
 
 /// <summary>
