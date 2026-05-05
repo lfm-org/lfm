@@ -85,4 +85,42 @@ public class VisualRouteArtifactModelSpec
             state.AnonymousExpectation == VisualAnonymousExpectation.RedirectToLogin &&
             state.ExpectedAnonymousPathAndQuery == "/login?redirect=%2Fadmin%2Freference");
     }
+
+    [Fact]
+    public async Task ArtifactWriter_WritesDeterministicIndexJson()
+    {
+        var outputRoot = Path.Combine(Path.GetTempPath(), "lfm-visual-artifact-writer-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(outputRoot);
+
+        try
+        {
+            var entries = new[]
+            {
+                new VisualRouteArtifactEntry(
+                    Route: "/",
+                    State: "landing",
+                    AccessMode: "public",
+                    AnonymousExpectation: "render",
+                    Viewport: "desktop",
+                    Width: 1366,
+                    Height: 768,
+                    Variant: "default",
+                    Url: "http://localhost/",
+                    Screenshot: "visual-routes/default/desktop/landing.png",
+                    Status: "captured",
+                    SkipReason: null),
+            };
+
+            await VisualRouteArtifactWriter.WriteIndexAsync(outputRoot, entries);
+
+            var indexPath = Path.Combine(outputRoot, "artifacts", "e2e-results", "visual-routes", "index.json");
+            var json = await File.ReadAllTextAsync(indexPath);
+            Assert.Contains("\"route\": \"/\"", json);
+            Assert.Contains("\"status\": \"captured\"", json);
+        }
+        finally
+        {
+            Directory.Delete(outputRoot, recursive: true);
+        }
+    }
 }
