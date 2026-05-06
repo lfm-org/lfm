@@ -155,3 +155,7 @@
     font-size: 0.9em;
     opacity: 0.75;
 }
+
+.run-list-item__roleslot--short .run-list-item__rolekey {
+    opacity: 1;
+}
