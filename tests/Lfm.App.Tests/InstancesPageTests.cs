@@ -58,12 +58,33 @@ public class InstancesPageTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             var summary = cut.Find(".instances-summary");
-            Assert.Contains(Loc("instances.summary.count", 2), summary.TextContent);
+            Assert.Contains(Loc("instances.summary.count.other", 2), summary.TextContent);
             Assert.Contains(Loc("instances.summary.body"), summary.TextContent);
 
             var tableSurface = cut.Find(".instances-table-surface");
             Assert.Contains(Loc("instances.table.title"), tableSurface.TextContent);
             Assert.NotNull(tableSurface.QuerySelector(".scroll-region"));
+        });
+    }
+
+    [Fact]
+    public void Renders_singular_summary_count_for_one_instance()
+    {
+        var client = new Mock<IInstancesClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto>
+            {
+                new("1234:raid", 1234, "Liberation of Undermine", "raid", "tww")
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<InstancesPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var summary = cut.Find(".instances-summary");
+            Assert.Contains(Loc("instances.summary.count.one", 1), summary.TextContent);
+            Assert.DoesNotContain("1 instances", summary.TextContent);
         });
     }
 
@@ -79,7 +100,7 @@ public class InstancesPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains(Loc("instances.summary.count", 0), cut.Markup);
+            Assert.Contains(Loc("instances.summary.count.other", 0), cut.Markup);
             Assert.Contains(Loc("instances.empty"), cut.Markup);
         });
     }
