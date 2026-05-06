@@ -17,8 +17,8 @@ machine-readable index while still failing on browser-observable defects:
 wrong redirects, missing route content, console errors, failed requests,
 layout overflow, layout overlap, or artifact write failures.
 
-This is an artifact and health-check lane, not a pixel-diff visual regression
-system.
+This is a full-E2E artifact category and health check, not a pixel-diff visual
+regression system or a separate workflow level.
 
 ## Approved Decisions
 
@@ -77,16 +77,18 @@ Each viewport runs through four variants:
 | `dark` | dark color scheme |
 | `forced-colors` | forced-colors active |
 
-The matrix deliberately overlaps with the existing layout-integrity E2E lane,
-but serves a different purpose: this lane emits inspectable screenshots for
+The matrix deliberately overlaps with the existing layout-integrity E2E
+category, but serves a different purpose: it emits inspectable screenshots for
 every route state while layout-integrity remains the deeper geometry-focused
-assertion lane.
+assertion category.
 
 ## Implementation Shape
 
 Add a dedicated E2E spec, tentatively `VisualRouteArtifactsSpec`, instead of
 expanding the existing accessibility, navigation, performance, or
-layout-integrity specs.
+layout-integrity specs. Tag it as `VisualArtifacts` so targeted local runs can
+request only screenshots, while the GitHub Actions workflow folds it into the
+explicit `full` level.
 
 Use a typed route manifest. Each entry declares:
 
@@ -163,10 +165,10 @@ review this file and run `git diff --check`.
 
 ## Risks And Mitigations
 
-The full matrix can produce roughly hundreds of screenshots. Tag the new spec
-with a dedicated category such as `VisualArtifacts` so it can be run directly
-when reviewing responsive UI without making every local E2E run harder to
-triage.
+The full matrix can produce roughly hundreds of screenshots. Keep it in a
+dedicated category such as `VisualArtifacts` so it can be run directly when
+reviewing responsive UI, and keep it out of the workflow's `fast` and `normal`
+levels so routine CI does not become harder to triage.
 
 Forced-colors support can be browser-version sensitive. Treat unsupported
 browser context options as an explicit skipped variant with a reason in the
