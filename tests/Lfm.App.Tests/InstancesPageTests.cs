@@ -41,6 +41,49 @@ public class InstancesPageTests : ComponentTestBase
         cut.WaitForAssertion(() => Assert.Contains("Liberation of Undermine", cut.Markup));
     }
 
+    [Fact]
+    public void Renders_summary_count_context_and_table_surface_after_load()
+    {
+        var client = new Mock<IInstancesClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto>
+            {
+                new("1234:raid", 1234, "Liberation of Undermine", "raid", "tww"),
+                new("5678:mplus", 5678, "Ara-Kara", "mplus", "tww"),
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<InstancesPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var summary = cut.Find(".instances-summary");
+            Assert.Contains(Loc("instances.summary.count", 2), summary.TextContent);
+            Assert.Contains(Loc("instances.summary.body"), summary.TextContent);
+
+            var tableSurface = cut.Find(".instances-table-surface");
+            Assert.Contains(Loc("instances.table.title"), tableSurface.TextContent);
+            Assert.NotNull(tableSurface.QuerySelector(".scroll-region"));
+        });
+    }
+
+    [Fact]
+    public void Renders_empty_resting_context_when_no_instances_exist()
+    {
+        var client = new Mock<IInstancesClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<InstancesPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Loc("instances.summary.count", 0), cut.Markup);
+            Assert.Contains(Loc("instances.empty"), cut.Markup);
+        });
+    }
+
     // RD-OVERFLOW-1 (#30): the grid sits in an overflow-x wrapper so wide
     // tables stay reachable on narrow screens. Expose it to assistive tech
     // as a scrollable region (role=region, tabindex=0, aria-label).
