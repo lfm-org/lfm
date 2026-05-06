@@ -9,13 +9,7 @@ namespace Lfm.App.i18n;
 /// </summary>
 public sealed class LocaleService : ILocaleService
 {
-    private static readonly HashSet<string> SupportedLocales = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "en",
-        "fi",
-    };
-
-    public string CurrentLocale { get; private set; } = "en";
+    public string CurrentLocale { get; private set; } = SupportedLocales.Default;
 
     public event Action? OnLocaleChanged;
 
@@ -24,7 +18,7 @@ public sealed class LocaleService : ILocaleService
         if (!SupportedLocales.Contains(locale))
             return;
 
-        var normalized = locale.ToLowerInvariant();
+        var normalized = SupportedLocales.NormalizeOrDefault(locale);
         if (normalized == CurrentLocale)
             return;
 

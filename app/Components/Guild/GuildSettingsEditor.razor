@@ -99,14 +99,8 @@
 
     private static readonly (string Value, string Label)[] LocaleOptions =
     [
-        ("fi", "Suomi"),
-        ("en-gb", "English (UK)"),
-        ("de", "Deutsch"),
-        ("fr", "Français"),
-        ("es", "Español"),
-        ("sv", "Svenska"),
-        ("da", "Dansk"),
-        ("nb", "Norsk"),
+        (SupportedLocales.Finnish, "Suomi"),
+        (SupportedLocales.English, "English"),
     ];
 
     private static readonly Dictionary<string, object> SloganAttrs = new()
