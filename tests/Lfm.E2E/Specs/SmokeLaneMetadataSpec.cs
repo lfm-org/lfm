@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Lfm.E2E.Specs;
 
+[Trait("Category", E2ELanes.Fast)]
 [Trait("Category", E2ELanes.Smoke)]
 public class SmokeLaneMetadataSpec
 {
