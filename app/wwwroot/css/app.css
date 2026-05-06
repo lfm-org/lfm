@@ -272,6 +272,45 @@ fluent-button.footer-language--active::part(control) {
     white-space: nowrap;
 }
 
+.run-form-card {
+    inline-size: 100%;
+}
+
+.run-form-section {
+    display: grid;
+    gap: 10px;
+    border-block-start: 1px solid var(--neutral-stroke-rest);
+    padding-block-start: 14px;
+}
+
+.run-form-section:first-of-type {
+    border-block-start: 0;
+    padding-block-start: 0;
+}
+
+.run-form-section__title {
+    margin: 0;
+    color: var(--neutral-foreground-hint-rest);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.run-form-section__fields {
+    display: grid;
+    gap: 12px;
+}
+
+.run-submit-reason,
+.run-locked-fields-reason {
+    inline-size: 100%;
+}
+
+.danger-zone {
+    inline-size: 100%;
+    border: 1px solid var(--error);
+}
+
 /* Forced-colors mode (Windows High Contrast / user-forced palette) overrides
    `color` and `background` with system colors, collapsing the brand-colored
    pills. Keep the boundary visible via a system-color border so the pill
