@@ -17,9 +17,11 @@ public class GuildPage(IPage page)
     public ILocator GuildNameHeading =>
         _page.GetByRole(AriaRole.Heading, new() { Name = "Test Guild" });
 
-    // The status card — always visible when guild data loads
-    public ILocator StatusCard =>
-        _page.GetByText("Status");
+    public ILocator SummaryHeading =>
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Guild summary" });
+
+    public ILocator SettingsHeading =>
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Guild settings" });
 
     // "No guild found" card when the raider has no guild
     public ILocator NoGuildCard =>
