@@ -56,6 +56,12 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
         // Page header is loaded
         await Assertions.Expect(runsPage.CreateRunButton).ToBeVisibleAsync(new() { Timeout = 15000 });
 
+        await Assertions.Expect(runsPage.EmptyDetailTitle).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.SelectRunPlaceholder).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RoleLabel("Tank").First).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RoleLabel("Healer").First).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RoleLabel("DPS").First).ToBeVisibleAsync(new() { Timeout = 10000 });
+
         // Seed data has at least one run
         await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId)).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
@@ -73,6 +79,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
         // Wait for the form to load.
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Assertions.Expect(runsPage.CreateRunSubmitReason)
+            .ToContainTextAsync("Enter your starting key level", new() { Timeout = 10000 });
 
         // Fill in required form fields with a unique run name via description.
         // Use a future date anchored to UtcNow so the test does not become a
@@ -140,6 +148,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
         // The seeded run has exactly 1 signup ("Aelrin") with reviewedAttendance = IN.
         await Assertions.Expect(runsPage.AttendingHeading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.OpenRoleSlots.First).ToBeVisibleAsync(new() { Timeout = 10000 });
         var attendingText = await runsPage.AttendingHeading.InnerTextAsync();
         Assert.Contains("(1)", attendingText);
 
@@ -434,6 +443,8 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
                 new() { WaitUntil = WaitUntilState.NetworkIdle });
 
             await Assertions.Expect(runsPage.DeleteRunButton).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Assertions.Expect(runsPage.DangerZone).ToContainTextAsync("Danger zone", new() { Timeout = 10000 });
+            await Assertions.Expect(runsPage.DangerZone).ToContainTextAsync("Deleting this run removes it from the schedule for everyone.", new() { Timeout = 10000 });
             await runsPage.DeleteRunButton.ClickAsync();
 
             await Assertions.Expect(runsPage.ConfirmDeleteButton).ToBeVisibleAsync(new() { Timeout = 10000 });

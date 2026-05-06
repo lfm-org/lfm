@@ -10,11 +10,10 @@ public class InstancesPage(IPage page)
     private readonly IPage _page = page;
 
     /// <summary>
-    /// The "Instances" heading rendered by FluentLabel H3.
-    /// FluentLabel does not emit a semantic heading element; match by visible text.
+    /// The top-level "Instances" heading.
     /// </summary>
     public ILocator Heading =>
-        _page.GetByText("Instances");
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Instances", Exact = true });
 
     /// <summary>
     /// The data grid that lists raid instances. FluentDataGrid compiles to a
@@ -23,6 +22,12 @@ public class InstancesPage(IPage page)
     /// </summary>
     public ILocator InstanceGrid =>
         _page.Locator("table.fluent-data-grid");
+
+    public ILocator Summary =>
+        _page.Locator(".instances-summary");
+
+    public ILocator TableSurface =>
+        _page.Locator(".instances-table-surface");
 
     /// <summary>
     /// Individual data rows within the instance grid. Header rows have

@@ -60,6 +60,8 @@ public class SiteAdminSpec(NavigationFixture fixture, ITestOutputHelper output)
             new() { Timeout = 10000 });
         await Assertions.Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Reference data" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(Page.Locator(".admin-reference-status"))
+            .ToContainTextAsync("No reference refresh has run in this session yet.", new() { Timeout = 10000 });
         await Assertions.Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Refresh now" }))
             .ToBeVisibleAsync(new() { Timeout = 10000 });
     }

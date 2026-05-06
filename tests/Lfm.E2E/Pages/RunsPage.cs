@@ -60,6 +60,15 @@ public class RunsPage(IPage page)
     public ILocator SelectRunPlaceholder =>
         _page.GetByText("Select a run to see details.");
 
+    public ILocator EmptyDetailTitle =>
+        _page.GetByText("Run details", new() { Exact = true });
+
+    public ILocator RoleLabel(string label) =>
+        _page.GetByText(label, new() { Exact = true });
+
+    public ILocator OpenRoleSlots =>
+        _page.GetByText("Open slot", new() { Exact = true });
+
     /// <summary>Character dropdown in the run detail signup panel.</summary>
     public ILocator SignupCharacterSelect =>
         _page.Locator(".run-signup-panel fluent-select").First;
@@ -114,6 +123,9 @@ public class RunsPage(IPage page)
     public ILocator CreateRunSubmitButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Create Run" });
 
+    public ILocator CreateRunSubmitReason =>
+        _page.Locator(".run-submit-reason");
+
     /// <summary>"Cancel" button on the create-run form.</summary>
     public ILocator CreateRunCancelButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
@@ -127,6 +139,9 @@ public class RunsPage(IPage page)
     /// <summary>"Delete Run" button on the edit-run form (opens delete confirmation).</summary>
     public ILocator DeleteRunButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Delete Run" });
+
+    public ILocator DangerZone =>
+        _page.Locator(".danger-zone");
 
     /// <summary>"Yes, delete" button in the delete confirmation card.</summary>
     public ILocator ConfirmDeleteButton =>
