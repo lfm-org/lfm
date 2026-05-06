@@ -39,156 +39,196 @@
             break;
 
         case LoadingState<RunDetailDto>.Success s:
-            <FluentCard>
+            <FluentCard Class="run-form-card">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                     <FluentLabel Typo="Typography.H4">@Loc["editRun.runDetails"]</FluentLabel>
 
-                    <div>
-                        <span id="editRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
-                        <ToggleGroup TValue="ActivityKind"
-                                     Options="_activityOptions"
-                                     Value="_form.Activity"
-                                     ValueChanged="HandleActivityChanged"
-                                     AriaLabelledBy="editRun-activity-label"
-                                     Disabled="@(_saving || _hasSignups)" />
-                    </div>
-
-                    @if (_form.Activity == ActivityKind.Dungeon && _form.Difficulty == "MYTHIC_KEYSTONE")
+                    @if (_hasSignups)
                     {
-                        <div>
-                            <span id="editRun-dungeonScope-label" class="field__label">@Loc["createRun.dungeonScope"]</span>
-                            <ToggleGroup TValue="bool"
-                                         Options="_dungeonScopeOptions"
-                                         Value="_form.AnyDungeon"
-                                         ValueChanged="HandleDungeonScopeChanged"
-                                         AriaLabelledBy="editRun-dungeonScope-label"
-                                         Disabled="@(_saving || _hasSignups)" />
-                        </div>
-                    }
-
-                    @if (_form.ShowInstanceDropdown)
-                    {
-                        <FluentSelect Id="instance-select"
-                                      Label="@Loc["createRun.instance"]"
-                                      TOption="string"
-                                      Value="@_form.InstanceId.ToString()"
-                                      ValueChanged="@HandleInstanceChanged"
-                                      Disabled="@(_saving || _hasSignups)">
-                            <FluentOption Value="0">@Loc["createRun.selectInstance"]</FluentOption>
-                            @foreach (var opt in _form.FilteredInstances)
-                            {
-                                <FluentOption Value="@opt.InstanceId.ToString()">@opt.Name</FluentOption>
-                            }
-                        </FluentSelect>
-                    }
-
-                    @if (_form.ShowDifficultyToggle && _difficultyOptions.Count > 1)
-                    {
-                        <div>
-                            <span id="editRun-difficulty-label" class="field__label">@Loc["createRun.difficulty"]</span>
-                            <ToggleGroup TValue="string"
-                                         Options="_difficultyOptions"
-                                         Value="_form.Difficulty"
-                                         ValueChanged="HandleDifficultyChanged"
-                                         AriaLabelledBy="editRun-difficulty-label"
-                                         Disabled="@(_saving || _hasSignups)" />
-                        </div>
-                    }
-
-                    @if (_form.Difficulty == "MYTHIC_KEYSTONE")
-                    {
-                        <div>
-                            <label for="keylevel-input" class="field__label">@Loc["createRun.keyLevel"]</label>
-                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                                <input id="keylevel-input"
-                                       type="number"
-                                       class="field__input"
-                                       min="2"
-                                       max="30"
-                                       inputmode="numeric"
-                                       placeholder="@Loc["createRun.keyLevel.placeholder"]"
-                                       @bind="_form.KeystoneLevel"
-                                       @bind:event="oninput"
-                                       disabled="@_saving"
-                                       style="inline-size:7rem" />
-                                <FluentButton Appearance="Appearance.Outline"
-                                              OnClick="@(() => _form.KeystoneLevel = 10)"
-                                              Disabled="@_saving"
-                                              Title="@Loc["createRun.keyLevel.wnlDescription"]"
-                                              aria-label="@Loc["createRun.keyLevel.wnlDescription"]">
-                                    @Loc["createRun.keyLevel.wnl"]
-                                </FluentButton>
-                            </FluentStack>
-                            <small class="field__hint">
-                                @(_form.AnyDungeon ? Loc["createRun.keyLevel.hintAny"] : Loc["createRun.keyLevel.hintSpecific"])
-                            </small>
-                        </div>
-                    }
-
-                    <label class="field">
-                        <span class="field__label">@Loc["createRun.startTime"]</span>
-                        <input type="datetime-local"
-                               id="starttime-input"
-                               class="field__input"
-                               @bind="_form.StartTimeLocal"
-                               disabled="@(_saving || _hasSignups)"
-                               required />
-                    </label>
-
-                    @if (_form.ShowSignupClose)
-                    {
-                        <label class="field">
-                            <span class="field__label">@Loc["createRun.signupCloseTime"]</span>
-                            <input type="datetime-local"
-                                   id="signupclose-input"
-                                   class="field__input"
-                                   @bind="_form.SignupCloseLocal"
-                                   disabled="@_saving" />
-                        </label>
-                    }
-                    else
-                    {
-                        <FluentButton Appearance="Appearance.Stealth"
-                                      OnClick="@(() => _form.ShowSignupClose = true)"
-                                      Disabled="@_saving">
-                            @Loc["createRun.addSignupDeadline"]
-                        </FluentButton>
-                    }
-
-                    <div>
-                        <FluentTextArea Id="description-input"
-                                        Label="@Loc["createRun.description"]"
-                                        Value="@_form.Description"
-                                        ValueChanged="@(v => _form.Description = v ?? string.Empty)"
-                                        Disabled="@_saving"
-                                        Rows="5"
-                                        Resize="TextAreaResize.Vertical"
-                                        @attributes="DescriptionAttrs" />
-                        <small class="field__hint">@(Loc["createRun.description.charCount", _form.Description.Length])</small>
-                    </div>
-
-                    @if (_inlineError is not null)
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error">
-                            @foreach (var m in _inlineError.Messages)
-                            {
-                                <div>@m</div>
-                            }
+                        <FluentMessageBar Class="run-locked-fields-reason" Intent="MessageIntent.Info">
+                            @Loc["editRun.lockedFieldsAfterSignups"]
                         </FluentMessageBar>
                     }
 
+                    <section class="run-form-section" aria-labelledby="editRun-section-activity">
+                        <h2 id="editRun-section-activity" class="run-form-section__title">@Loc["createRun.section.activity"]</h2>
+                        <div class="run-form-section__fields">
+                            <div>
+                                <span id="editRun-activity-label" class="field__label">@Loc["createRun.activity"]</span>
+                                <ToggleGroup TValue="ActivityKind"
+                                             Options="_activityOptions"
+                                             Value="_form.Activity"
+                                             ValueChanged="HandleActivityChanged"
+                                             AriaLabelledBy="editRun-activity-label"
+                                             Disabled="@(_saving || _hasSignups)" />
+                            </div>
+
+                            @if (_form.Activity == ActivityKind.Dungeon && _form.Difficulty == "MYTHIC_KEYSTONE")
+                            {
+                                <div>
+                                    <span id="editRun-dungeonScope-label" class="field__label">@Loc["createRun.dungeonScope"]</span>
+                                    <ToggleGroup TValue="bool"
+                                                 Options="_dungeonScopeOptions"
+                                                 Value="_form.AnyDungeon"
+                                                 ValueChanged="HandleDungeonScopeChanged"
+                                                 AriaLabelledBy="editRun-dungeonScope-label"
+                                                 Disabled="@(_saving || _hasSignups)" />
+                                </div>
+                            }
+
+                            @if (_form.ShowInstanceDropdown)
+                            {
+                                <FluentSelect Id="instance-select"
+                                              Label="@Loc["createRun.instance"]"
+                                              TOption="string"
+                                              Value="@_form.InstanceId.ToString()"
+                                              ValueChanged="@HandleInstanceChanged"
+                                              Disabled="@(_saving || _hasSignups)">
+                                    <FluentOption Value="0">@Loc["createRun.selectInstance"]</FluentOption>
+                                    @foreach (var opt in _form.FilteredInstances)
+                                    {
+                                        <FluentOption Value="@opt.InstanceId.ToString()">@opt.Name</FluentOption>
+                                    }
+                                </FluentSelect>
+                            }
+
+                            @if (_form.ShowDifficultyToggle && _difficultyOptions.Count > 1)
+                            {
+                                <div>
+                                    <span id="editRun-difficulty-label" class="field__label">@Loc["createRun.difficulty"]</span>
+                                    <ToggleGroup TValue="string"
+                                                 Options="_difficultyOptions"
+                                                 Value="_form.Difficulty"
+                                                 ValueChanged="HandleDifficultyChanged"
+                                                 AriaLabelledBy="editRun-difficulty-label"
+                                                 Disabled="@(_saving || _hasSignups)" />
+                                </div>
+                            }
+                        </div>
+                    </section>
+
+                    <section class="run-form-section" aria-labelledby="editRun-section-schedule">
+                        <h2 id="editRun-section-schedule" class="run-form-section__title">@Loc["createRun.section.schedule"]</h2>
+                        <div class="run-form-section__fields">
+                            @if (_form.Difficulty == "MYTHIC_KEYSTONE")
+                            {
+                                <div>
+                                    <label for="keylevel-input" class="field__label">@Loc["createRun.keyLevel"]</label>
+                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                                        <input id="keylevel-input"
+                                               type="number"
+                                               class="field__input"
+                                               min="2"
+                                               max="30"
+                                               inputmode="numeric"
+                                               placeholder="@Loc["createRun.keyLevel.placeholder"]"
+                                               @bind="_form.KeystoneLevel"
+                                               @bind:event="oninput"
+                                               disabled="@_saving"
+                                               style="inline-size:7rem" />
+                                        <FluentButton Appearance="Appearance.Outline"
+                                                      OnClick="@(() => _form.KeystoneLevel = 10)"
+                                                      Disabled="@_saving"
+                                                      Title="@Loc["createRun.keyLevel.wnlDescription"]"
+                                                      aria-label="@Loc["createRun.keyLevel.wnlDescription"]">
+                                            @Loc["createRun.keyLevel.wnl"]
+                                        </FluentButton>
+                                    </FluentStack>
+                                    <small class="field__hint">
+                                        @(_form.AnyDungeon ? Loc["createRun.keyLevel.hintAny"] : Loc["createRun.keyLevel.hintSpecific"])
+                                    </small>
+                                </div>
+                            }
+
+                            <label class="field">
+                                <span class="field__label">@Loc["createRun.startTime"]</span>
+                                <input type="datetime-local"
+                                       id="starttime-input"
+                                       class="field__input"
+                                       @bind="_form.StartTimeLocal"
+                                       disabled="@(_saving || _hasSignups)"
+                                       required />
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="run-form-section" aria-labelledby="editRun-section-signups">
+                        <h2 id="editRun-section-signups" class="run-form-section__title">@Loc["createRun.section.signups"]</h2>
+                        <div class="run-form-section__fields">
+                            @if (_form.ShowSignupClose)
+                            {
+                                <label class="field">
+                                    <span class="field__label">@Loc["createRun.signupCloseTime"]</span>
+                                    <input type="datetime-local"
+                                           id="signupclose-input"
+                                           class="field__input"
+                                           @bind="_form.SignupCloseLocal"
+                                           disabled="@_saving" />
+                                </label>
+                            }
+                            else
+                            {
+                                <FluentButton Appearance="Appearance.Stealth"
+                                              OnClick="@(() => _form.ShowSignupClose = true)"
+                                              Disabled="@_saving">
+                                    @Loc["createRun.addSignupDeadline"]
+                                </FluentButton>
+                            }
+                        </div>
+                    </section>
+
+                    <section class="run-form-section" aria-labelledby="editRun-section-notes">
+                        <h2 id="editRun-section-notes" class="run-form-section__title">@Loc["createRun.section.notes"]</h2>
+                        <div class="run-form-section__fields">
+                            <div>
+                                <FluentTextArea Id="description-input"
+                                                Label="@Loc["createRun.description"]"
+                                                Value="@_form.Description"
+                                                ValueChanged="@(v => _form.Description = v ?? string.Empty)"
+                                                Disabled="@_saving"
+                                                Rows="5"
+                                                Resize="TextAreaResize.Vertical"
+                                                @attributes="DescriptionAttrs" />
+                                <small class="field__hint">@(Loc["createRun.description.charCount", _form.Description.Length])</small>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="run-form-section" aria-labelledby="editRun-section-actions">
+                        <h2 id="editRun-section-actions" class="run-form-section__title">@Loc["createRun.section.actions"]</h2>
+                        <div class="run-form-section__fields">
+                            @if (_inlineError is not null)
+                            {
+                                <FluentMessageBar Intent="MessageIntent.Error">
+                                    @foreach (var m in _inlineError.Messages)
+                                    {
+                                        <div>@m</div>
+                                    }
+                                </FluentMessageBar>
+                            }
+
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                                <FluentButton Appearance="Appearance.Accent"
+                                              OnClick="@HandleSave"
+                                              Disabled="@(_saving || _deleting)">
+                                    @(_saving ? Loc["common.loading"] : Loc["editRun.saveChanges"])
+                                </FluentButton>
+                                <FluentButton Appearance="Appearance.Outline"
+                                              OnClick="@HandleCancel"
+                                              Disabled="@(_saving || _deleting)">
+                                    @Loc["editRun.cancel"]
+                                </FluentButton>
+                            </FluentStack>
+                        </div>
+                    </section>
+                </FluentStack>
+            </FluentCard>
+
+            <FluentCard Class="danger-zone">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentLabel Typo="Typography.H4">@Loc["editRun.dangerZone"]</FluentLabel>
+                    <FluentLabel>@Loc["editRun.deleteRunHelp"]</FluentLabel>
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                        <FluentButton Appearance="Appearance.Accent"
-                                      OnClick="@HandleSave"
-                                      Disabled="@(_saving || _deleting)">
-                            @(_saving ? Loc["common.loading"] : Loc["editRun.saveChanges"])
-                        </FluentButton>
-                        <FluentButton Appearance="Appearance.Outline"
-                                      OnClick="@HandleCancel"
-                                      Disabled="@(_saving || _deleting)">
-                            @Loc["editRun.cancel"]
-                        </FluentButton>
-                        <FluentSpacer />
                         <FluentButton Appearance="Appearance.Outline"
                                       OnClick="@ShowDeleteConfirm"
                                       Disabled="@(_saving || _deleting)"
