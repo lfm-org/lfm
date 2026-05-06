@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Lfm.E2E.Specs;
 
+[Trait("Category", E2ELanes.Fast)]
 [Trait("Category", E2ELanes.Smoke)]
 public class E2EWorkflowLaneSpec
 {
@@ -29,8 +30,9 @@ public class E2EWorkflowLaneSpec
         var workflow = ReadE2EWorkflow();
 
         Assert.Contains("github.event_name == 'pull_request' && 'normal' || inputs.lane", workflow);
+        Assert.Contains("--filter \"Category=Fast\"", workflow);
         Assert.Contains("--filter \"Category=Smoke\"", workflow);
-        Assert.Contains("--filter \"Category=Smoke|Category=Functional|Category=Auth flow\"", workflow);
+        Assert.DoesNotContain("--filter \"Category=Smoke|Category=Functional|Category=Auth flow\"", workflow);
     }
 
     private static string ReadE2EWorkflow()

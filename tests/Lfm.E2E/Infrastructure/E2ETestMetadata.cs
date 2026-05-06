@@ -5,6 +5,7 @@ namespace Lfm.E2E.Infrastructure;
 
 public static class E2ELanes
 {
+    public const string Fast = "Fast";
     public const string Smoke = "Smoke";
     public const string Functional = "Functional";
     public const string Accessibility = "Accessibility";

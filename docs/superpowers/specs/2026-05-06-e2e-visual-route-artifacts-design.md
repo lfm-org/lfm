@@ -168,7 +168,8 @@ review this file and run `git diff --check`.
 The full matrix can produce roughly hundreds of screenshots. Keep it in a
 dedicated category such as `VisualArtifacts` so it can be run directly when
 reviewing responsive UI, and keep it out of the workflow's `fast` and `normal`
-levels so routine CI does not become harder to triage.
+levels so routine CI stays focused on the smoke subset and does not become
+harder to triage.
 
 Forced-colors support can be browser-version sensitive. Treat unsupported
 browser context options as an explicit skipped variant with a reason in the
