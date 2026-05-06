@@ -1,0 +1,11 @@
+@inject IStringLocalizer Loc
+
+<section class="route-access-denied"
+         data-testid="route-access-denied"
+         aria-labelledby="route-access-denied-title">
+    <h1 id="route-access-denied-title">@Loc["auth.notAuthorized.title"]</h1>
+    <FluentMessageBar Intent="MessageIntent.Warning">
+        @Loc["auth.notAuthorized.body"]
+    </FluentMessageBar>
+    <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
+</section>

@@ -10,6 +10,9 @@
     "common.no": "No",
     "common.back": "Back",
 
+    "auth.notAuthorized.title": "Access denied",
+    "auth.notAuthorized.body": "Your account is signed in, but it does not have access to this page.",
+
     "unsavedChanges.title": "Unsaved changes",
     "unsavedChanges.body": "You have unsaved changes. Leave this page and discard them?",
     "unsavedChanges.stay": "Stay",
