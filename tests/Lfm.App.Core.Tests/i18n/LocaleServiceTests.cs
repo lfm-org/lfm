@@ -92,4 +92,20 @@ public class LocaleServiceTests
         else
             Assert.Equal(defaultLocale, sut.CurrentLocale);
     }
+
+    [Theory]
+    [InlineData("en", "en")]
+    [InlineData("EN", "en")]
+    [InlineData("fi", "fi")]
+    [InlineData("FI", "fi")]
+    [InlineData("en-gb", "en")]
+    [InlineData("de", "en")]
+    [InlineData("", "en")]
+    [InlineData(null, "en")]
+    public void SupportedLocales_NormalizeOrDefault_Uses_The_Runtime_Supported_Set(
+        string? locale,
+        string expected)
+    {
+        Assert.Equal(expected, SupportedLocales.NormalizeOrDefault(locale));
+    }
 }
