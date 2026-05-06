@@ -51,6 +51,43 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
     }
 
     [Fact]
+    public void SiteAdmin_initial_page_shows_no_refresh_yet_status()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var client = new Mock<IWowReferenceAdminClient>();
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<AdminReferenceRefreshPage>();
+
+        var status = cut.Find(".admin-reference-status");
+        Assert.Contains(Loc("adminReference.status.idle"), status.TextContent);
+        Assert.Empty(cut.FindAll(".admin-reference-results"));
+    }
+
+    [Fact]
+    public void Refreshing_state_is_visible_while_client_call_is_pending()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var tcs = new TaskCompletionSource<WowReferenceRefreshResponse>();
+        var client = new Mock<IWowReferenceAdminClient>();
+        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()))
+            .Returns(tcs.Task);
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<AdminReferenceRefreshPage>();
+        cut.Find("fluent-button").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var status = cut.Find(".admin-reference-status");
+            Assert.Contains(Loc("adminReference.status.refreshing"), status.TextContent);
+            Assert.True(cut.Find("fluent-button").HasAttribute("disabled"));
+        });
+
+        tcs.SetResult(new WowReferenceRefreshResponse([]));
+    }
+
+    [Fact]
     public void Clicking_Refresh_invokes_the_client_and_renders_the_results_table()
     {
         this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
@@ -75,6 +112,28 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
             Assert.Contains("expansions", cut.Markup);
         });
         client.Verify(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()), Times.Once);
+    }
+
+    [Fact]
+    public void Successful_refresh_shows_success_status()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var client = new Mock<IWowReferenceAdminClient>();
+        client.Setup(c => c.RefreshAsync(It.IsAny<CancellationToken>(), It.IsAny<IProgress<WowReferenceRefreshProgress>?>()))
+            .ReturnsAsync(new WowReferenceRefreshResponse(
+            [
+                new WowReferenceRefreshEntityResult("instances", "synced (12 docs)"),
+            ]));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<AdminReferenceRefreshPage>();
+        cut.Find("fluent-button").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var status = cut.Find(".admin-reference-status");
+            Assert.Contains(Loc("adminReference.status.success"), status.TextContent);
+        });
     }
 
     [Fact]
@@ -118,6 +177,7 @@ public class AdminReferenceRefreshPageTests : ComponentTestBase
         {
             Assert.Contains("connection refused", cut.Markup);
             Assert.Contains(Loc("adminReference.errorPrefix"), cut.Markup);
+            Assert.Contains(Loc("adminReference.status.failed"), cut.Find(".admin-reference-status").TextContent);
         });
     }
 }

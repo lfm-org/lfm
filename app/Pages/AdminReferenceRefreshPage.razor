@@ -23,6 +23,10 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                     <FluentLabel>@Loc["adminReference.description"]</FluentLabel>
 
+                    <FluentMessageBar Class="admin-reference-status" Intent="MessageIntent.Info">
+                        @RefreshStatusText
+                    </FluentMessageBar>
+
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
                         <FluentButton
                             Appearance="Appearance.Accent"
@@ -90,20 +94,33 @@
 </AuthorizeView>
 
 @code {
+    private enum RefreshState { Idle, Refreshing, Success, Failed }
+
     private bool _refreshing;
     private string? _error;
     private string? _progressLabel;
     private WowReferenceRefreshResponse? _lastResult;
+    private RefreshState _refreshState = RefreshState.Idle;
+
+    private string RefreshStatusText => _refreshState switch
+    {
+        RefreshState.Refreshing => Loc["adminReference.status.refreshing"],
+        RefreshState.Success => Loc["adminReference.status.success"],
+        RefreshState.Failed => Loc["adminReference.status.failed"],
+        _ => Loc["adminReference.status.idle"],
+    };
 
     private async Task RefreshAsync()
     {
         _refreshing = true;
+        _refreshState = RefreshState.Refreshing;
         _error = null;
         _progressLabel = null;
         var progress = new Progress<WowReferenceRefreshProgress>(OnProgress);
         try
         {
             _lastResult = await AdminClient.RefreshAsync(CancellationToken.None, progress);
+            _refreshState = RefreshState.Success;
         }
         catch (Exception ex)
         {
@@ -112,6 +129,7 @@
             _error = string.IsNullOrEmpty(ex.Message)
                 ? Loc["adminReference.errorGeneric"]
                 : $"{Loc["adminReference.errorPrefix"]} {ex.Message}";
+            _refreshState = RefreshState.Failed;
         }
         finally
         {
