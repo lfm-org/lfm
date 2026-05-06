@@ -3,8 +3,10 @@
 
 using Bunit;
 using Bunit.TestDoubles;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Lfm.App.Components.Guild;
 using Lfm.App.Pages;
 using Lfm.App.Services;
 using Lfm.Contracts.Guild;
@@ -271,6 +273,30 @@ public class GuildPagesTests : ComponentTestBase
                 Times.Once));
         cut.WaitForAssertion(() =>
             Assert.DoesNotContain(Loc("guild.setupRequiredExplanation"), cut.Markup));
+    }
+
+    [Fact]
+    public void GuildSettingsEditor_Only_Renders_Runtime_Supported_Locale_Options()
+    {
+        var cut = Render<GuildSettingsEditor>(parameters => parameters
+            .Add(p => p.Timezone, "Europe/Helsinki")
+            .Add(p => p.Locale, "fi")
+            .Add(p => p.Slogan, "")
+            .Add(p => p.RankPermissions, new List<UpdateGuildRankPermission>())
+            .Add(p => p.TimezoneChanged, EventCallback.Factory.Create<string>(this, _ => { }))
+            .Add(p => p.LocaleChanged, EventCallback.Factory.Create<string>(this, _ => { }))
+            .Add(p => p.SloganChanged, EventCallback.Factory.Create<string>(this, _ => { }))
+            .Add(p => p.OnPermissionChange, EventCallback.Factory.Create<(int Rank, string Field, bool Checked)>(this, _ => { }))
+            .Add(p => p.OnSave, EventCallback.Factory.Create(this, () => { })));
+
+        var values = cut.FindAll("#guild-locale fluent-option")
+            .Select(option => option.GetAttribute("value"))
+            .ToList();
+
+        Assert.Equal(new[] { "fi", "en" }, values);
+        Assert.DoesNotContain("en-gb", cut.Markup);
+        Assert.DoesNotContain("Deutsch", cut.Markup);
+        Assert.DoesNotContain("Svenska", cut.Markup);
     }
 
     // ── GuildAdminPage ───────────────────────────────────────────────────────

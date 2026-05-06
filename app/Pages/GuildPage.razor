@@ -100,7 +100,7 @@
     private void ApplyGuildData(GuildDto dto)
     {
         draftTimezone = dto.Setup.Timezone;
-        draftLocale = dto.Setup.Locale;
+        draftLocale = SupportedLocales.NormalizeOrDefault(dto.Setup.Locale);
         draftSlogan = dto.Guild?.Slogan ?? string.Empty;
         draftPermissions = dto.Settings?.RankPermissions
             .Select(p => new UpdateGuildRankPermission(p.Rank, p.CanCreateGuildRuns, p.CanSignupGuildRuns, p.CanDeleteGuildRuns))
