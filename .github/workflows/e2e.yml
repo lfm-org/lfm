@@ -4,9 +4,9 @@
 name: E2E
 
 on:
-  # PRs run the cheap required smoke subset only. The full suite stays manual
-  # because broad WCAG checks against FluentUI shadow DOM have been flaky and
-  # the full stack consumes enough runner minutes to be a poor every-push gate.
+  # PRs run the default normal subset. Fast and full are explicit manual lanes:
+  # fast is a quick smoke probe, while full includes the broad visual artifact,
+  # accessibility, layout, security, and performance categories.
   pull_request:
     paths:
       - ".github/actions/setup-dotnet-cached/**"
@@ -27,12 +27,11 @@ on:
         description: "E2E lane to run"
         required: true
         type: choice
-        default: full
+        default: normal
         options:
+          - fast
+          - normal
           - full
-          - smoke
-          - performance
-          - performance-load
 
 permissions:
   contents: read
@@ -92,13 +91,15 @@ jobs:
       - name: Run E2E
         shell: bash
         run: |
+          lane="${{ github.event_name == 'pull_request' && 'normal' || inputs.lane }}"
           filter_args=()
-          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.lane }}" = "smoke" ]; then
+          if [ "$lane" = "fast" ]; then
             filter_args+=(--filter "Category=Smoke")
-          elif [ "${{ inputs.lane }}" = "performance" ]; then
-            filter_args+=(--filter "Category=Performance")
-          elif [ "${{ inputs.lane }}" = "performance-load" ]; then
-            filter_args+=(--filter "Category=PerformanceLoad")
+          elif [ "$lane" = "normal" ]; then
+            filter_args+=(--filter "Category=Smoke|Category=Functional|Category=Auth flow")
+          elif [ "$lane" != "full" ]; then
+            echo "Unsupported E2E lane: $lane" >&2
+            exit 1
           fi
 
           dotnet test tests/Lfm.E2E/Lfm.E2E.csproj \
