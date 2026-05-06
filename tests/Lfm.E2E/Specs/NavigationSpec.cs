@@ -57,7 +57,7 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             // name promises a data display, so assert the grid actually rendered it
             // instead of only pinning the page heading.
             await Assertions.Expect(instancesPage.Summary)
-                .ToContainTextAsync("1 instances", new() { Timeout = 10000 });
+                .ToContainTextAsync("1 instance", new() { Timeout = 10000 });
             await Assertions.Expect(instancesPage.TableSurface)
                 .ToContainTextAsync("Instance reference", new() { Timeout = 10000 });
             await Assertions.Expect(instancesPage.InstanceRows)

@@ -318,7 +318,8 @@
     "adminReference.progress.itemNoName": "{0} {1}/{2}",
 
     "instances.title": "Instances",
-    "instances.summary.count": "{0} instances",
+    "instances.summary.count.one": "{0} instance",
+    "instances.summary.count.other": "{0} instances",
     "instances.summary.body": "Reference instances currently available for run scheduling.",
     "instances.table.title": "Instance reference",
     "instances.empty": "No instances are available yet.",
