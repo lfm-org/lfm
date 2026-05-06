@@ -152,6 +152,50 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_DeepLinked_Missing_Run_Shows_NotFound_Detail_State()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary("run-1") });
+        client.Setup(c => c.GetAsync("missing-run", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDetailDto?)null);
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "missing-run"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var panel = cut.Find("[data-testid='run-detail-panel']");
+            Assert.NotNull(panel.QuerySelector(".runs-detail-error-card"));
+            Assert.Contains(Loc("runs.detailUnavailable.title"), panel.TextContent);
+            Assert.Contains(Loc("runs.detailUnavailable.notFound"), panel.TextContent);
+            Assert.DoesNotContain(Loc("runs.selectPrompt"), panel.TextContent);
+        });
+    }
+
+    [Fact]
+    public void RunsPage_DeepLinked_Run_Load_Failure_Shows_Detail_Error_State()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary("run-1") });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Detail failed"));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var panel = cut.Find("[data-testid='run-detail-panel']");
+            Assert.NotNull(panel.QuerySelector(".runs-detail-error-card"));
+            Assert.Contains(Loc("runs.detailUnavailable.title"), panel.TextContent);
+            Assert.Contains("Detail failed", panel.TextContent);
+            Assert.DoesNotContain(Loc("runs.selectPrompt"), panel.TextContent);
+        });
+    }
+
+    [Fact]
     public void RunsPage_LoadMore_Appends_Runs()
     {
         var client = new Mock<IRunsClient>();

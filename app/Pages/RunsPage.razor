@@ -138,7 +138,23 @@
                 <div id="run-detail-panel"
                      class="runs-detail @(selectedRun is null ? "runs-detail--empty" : "runs-detail--selected")"
                      data-testid="run-detail-panel">
-                    @if (selectedRun != null)
+                    @if (_runDetailLoading)
+                    {
+                        <div class="runs-detail-loading" role="status" aria-live="polite" aria-label="@Loc["common.loading"]">
+                            <FluentProgressRing />
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_runDetailError))
+                    {
+                        <div class="runs-detail-error-card">
+                            <h2 class="runs-detail-empty-title">@Loc["runs.detailUnavailable.title"]</h2>
+                            <p>@_runDetailError</p>
+                            <FluentButton Appearance="Appearance.Outline" OnClick="@CollapseRunDetails">
+                                @Loc["common.back"]
+                            </FluentButton>
+                        </div>
+                    }
+                    else if (selectedRun != null)
                     {
                         var currentSignup = selectedRun.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
                         var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
@@ -268,6 +284,8 @@
     private string? _loadMoreError;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
+    private bool _runDetailLoading;
+    private string? _runDetailError;
     private IReadOnlyList<CharacterDto> _signupCharacters = [];
     private bool _signupOptionsLoaded;
     private bool _signupOptionsLoading;
@@ -308,6 +326,8 @@
             else
             {
                 selectedRun = null;
+                _runDetailError = null;
+                _runDetailLoading = false;
             }
         }
     }
@@ -420,6 +440,8 @@
     {
         selectedRunId = null;
         selectedRun = null;
+        _runDetailError = null;
+        _runDetailLoading = false;
         _signupError = null;
         ResetSignupOptions();
         Nav.NavigateTo("/runs", replace: true);
@@ -427,12 +449,17 @@
 
     private async Task LoadRunDetail(string id)
     {
+        _runDetailLoading = true;
+        _runDetailError = null;
+
         try
         {
             var detail = await RunsClient.GetAsync(id, CancellationToken.None);
             if (detail is null)
             {
                 selectedRun = null;
+                _runDetailError = Loc["runs.detailUnavailable.notFound"];
+                ResetSignupOptions();
                 return;
             }
 
@@ -452,9 +479,17 @@
                 await EnsureSignupOptionsLoaded();
             }
         }
-        catch
+        catch (Exception ex)
         {
             selectedRun = null;
+            _runDetailError = string.IsNullOrWhiteSpace(ex.Message)
+                ? Loc["runs.detailUnavailable.failed"]
+                : ex.Message;
+            ResetSignupOptions();
+        }
+        finally
+        {
+            _runDetailLoading = false;
         }
     }
 
