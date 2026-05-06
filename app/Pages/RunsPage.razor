@@ -37,6 +37,13 @@
         </FluentStack>
     </FluentStack>
 
+    @if (!string.IsNullOrWhiteSpace(_refreshError))
+    {
+        <FluentMessageBar Class="runs-refresh-error" Intent="MessageIntent.Error">
+            @_refreshError
+        </FluentMessageBar>
+    }
+
     @switch (state)
     {
         case LoadingState<IReadOnlyList<RunSummaryDto>>.Idle:
@@ -257,6 +264,7 @@
     private bool _loadingMore;
     private bool _showPast;
     private string? _continuationToken;
+    private string? _refreshError;
     private string? _loadMoreError;
     private string? selectedRunId;
     private RunDetailDto? selectedRun;
@@ -309,6 +317,7 @@
     private async Task LoadRuns(bool isRefresh)
     {
         _refreshing = true;
+        _refreshError = null;
         if (!isRefresh)
         {
             state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Loading();
@@ -331,7 +340,11 @@
             // On refresh, keep the previously-loaded list visible rather than
             // dropping the user back to an error-only view; a transient
             // network blip shouldn't wipe the page they were already reading.
-            if (!isRefresh)
+            if (isRefresh)
+            {
+                _refreshError = ex.Message;
+            }
+            else
             {
                 state = new LoadingState<IReadOnlyList<RunSummaryDto>>.Failure(ex.Message);
             }
