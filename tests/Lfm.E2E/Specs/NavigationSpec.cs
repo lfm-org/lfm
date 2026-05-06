@@ -56,10 +56,56 @@ public class NavigationSpec(NavigationFixture fixture, ITestOutputHelper output)
             // DefaultSeed seeds one instance ("Liberation of Undermine"); the test
             // name promises a data display, so assert the grid actually rendered it
             // instead of only pinning the page heading.
+            await Assertions.Expect(instancesPage.Summary)
+                .ToContainTextAsync("1 instances", new() { Timeout = 10000 });
+            await Assertions.Expect(instancesPage.TableSurface)
+                .ToContainTextAsync("Instance reference", new() { Timeout = 10000 });
             await Assertions.Expect(instancesPage.InstanceRows)
                 .ToHaveCountAsync(1, new() { Timeout = 15000 });
             await Assertions.Expect(authPage.GetByText("Liberation of Undermine"))
                 .ToBeVisibleAsync(new() { Timeout = 10000 });
+        }
+        finally
+        {
+            await authContext.CloseAsync();
+        }
+    }
+
+    // E2E scope: proves authenticated desktop nav exposes browser-visible active state
+    // after direct route visits. bUnit pins the markup contract; this confirms
+    // routed browser navigation composes with the app shell.
+    // Shared data: read-only.
+    [Fact]
+    public async Task AuthenticatedNav_ActiveState_Follows_Runs_Guild_And_Characters()
+    {
+        var authContext = await AuthHelper.AuthenticatedContextAsync(
+            fixture.Stack.Browser,
+            fixture.Stack.ApiBaseUrl,
+            fixture.Stack.AppBaseUrl);
+        var authPage = await authContext.NewPageAsync();
+
+        try
+        {
+            await authPage.RouteAsync("**/api/v1/battlenet/character-portraits", async route =>
+            {
+                await route.FulfillAsync(new()
+                {
+                    Status = 200,
+                    ContentType = "application/json",
+                    Body = "{\"portraits\":{}}",
+                });
+            });
+
+            var navBar = new NavBar(authPage);
+
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/runs", new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await Assertions.Expect(navBar.RunsLink).ToHaveAttributeAsync("aria-current", "page", new() { Timeout = 10000 });
+
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/guild", new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await Assertions.Expect(navBar.GuildLink).ToHaveAttributeAsync("aria-current", "page", new() { Timeout = 10000 });
+
+            await authPage.GotoAsync($"{fixture.Stack.AppBaseUrl}/characters", new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await Assertions.Expect(navBar.CharactersLink).ToHaveAttributeAsync("aria-current", "page", new() { Timeout = 10000 });
         }
         finally
         {
