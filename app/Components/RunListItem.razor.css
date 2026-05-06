@@ -124,7 +124,7 @@
 .run-list-item__composition {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     flex-wrap: wrap;
     font-size: 0.8em;
     font-variant-numeric: tabular-nums;
@@ -136,7 +136,7 @@
     align-items: baseline;
     gap: 4px;
     padding-block: 1px;
-    padding-inline: 8px;
+    padding-inline: 7px;
     border-radius: 999px;
     background: var(--neutral-fill-rest);
 }
@@ -152,6 +152,6 @@
 
 .run-list-item__rolekey {
     font-weight: 700;
-    font-size: 0.95em;
+    font-size: 0.9em;
     opacity: 0.75;
 }
