@@ -36,13 +36,14 @@
                     </div>
                     <div style="margin-inline-start:auto;display:flex;align-items:center;gap:4px">
                         <FluentButton Appearance="Appearance.Stealth"
-                                      Class="mobile-nav-toggle"
+                                      Class="mobile-nav-toggle toolbar-icon-button"
                                       Title="@Loc["nav.toggleMenu"]"
                                       aria-label="@Loc["nav.toggleMenu"]"
                                       OnClick="@ToggleMobileMenu">
                             &#9776;
                         </FluentButton>
                         <FluentButton Appearance="Appearance.Stealth"
+                                      Class="toolbar-icon-button"
                                       Title="@_themeTooltip"
                                       aria-label="@_themeTooltip"
                                       OnClick="@ToggleTheme">
@@ -94,6 +95,7 @@
                 <NotAuthorized>
                     <div style="margin-inline-start:auto;display:flex;align-items:center;gap:4px">
                         <FluentButton Appearance="Appearance.Stealth"
+                                      Class="toolbar-icon-button"
                                       Title="@_themeTooltip"
                                       aria-label="@_themeTooltip"
                                       OnClick="@ToggleTheme">
@@ -165,16 +167,33 @@
         align-items: center;
     }
 
+    .toolbar-icon-button::part(control) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 32px;
+        block-size: 32px;
+        min-inline-size: 32px;
+        min-block-size: 32px;
+        padding: 0;
+    }
+
     .account-menu-trigger::part(control) {
         display: inline-flex;
         align-items: center;
+        block-size: 32px;
+        min-inline-size: 0;
+        min-block-size: 32px;
         max-inline-size: 192px;
+        padding-block: 2px;
+        padding-inline: 4px 8px;
+        box-sizing: border-box;
     }
 
     .account-menu-trigger__content {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         min-inline-size: 0;
         min-block-size: 28px;
         line-height: 1;
