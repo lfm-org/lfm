@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Lfm.App;
 using Lfm.App.Components;
+using Lfm.App.Runs;
 using Moq;
 using Lfm.App.Components.Runs;
 using Lfm.App.Pages;
@@ -132,6 +133,25 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_Renders_Structured_Empty_Detail_Panel_When_No_Run_Selected()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var panel = cut.Find("[data-testid='run-detail-panel']");
+            Assert.NotNull(panel.QuerySelector(".runs-detail-empty-card"));
+            Assert.Contains(Loc("runs.emptyDetail.title"), panel.TextContent);
+            Assert.Contains(Loc("runs.selectPrompt"), panel.TextContent);
+        });
+    }
+
+    [Fact]
     public void RunsPage_LoadMore_Appends_Runs()
     {
         var client = new Mock<IRunsClient>();
@@ -234,10 +254,29 @@ public class RunsPagesTests : ComponentTestBase
             // formats as "yyyy-MM-dd HH:mm" with InvariantCulture; mirror that
             // here so the test pins the exact localized output screen readers
             // get, without reaching into the page object's private helpers.
-            var formattedDate = DateTimeOffset.Parse(summary.StartTime, System.Globalization.CultureInfo.InvariantCulture)
-                .ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            var formattedDate = RunDateFormatter.FormatDisplay(summary.StartTime);
             var expected = Loc("runs.listItemAriaLabel", summary.InstanceName ?? "", formattedDate);
             Assert.Equal(expected, ariaLabel);
+        });
+    }
+
+    [Fact]
+    public void RunsPage_RunListItem_Uses_Readable_Composition_Labels()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var roleKeys = cut.FindAll(".run-list-item__rolekey").Select(e => e.TextContent.Trim()).ToArray();
+            Assert.Contains(Loc("runs.role.tank"), roleKeys);
+            Assert.Contains(Loc("runs.role.healer"), roleKeys);
+            Assert.Contains(Loc("runs.role.dps"), roleKeys);
+            Assert.DoesNotContain(Loc("runs.roleShort.tank"), roleKeys);
         });
     }
 
@@ -1188,6 +1227,29 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_RoleColumns_Show_Muted_Empty_State_For_Open_Roles()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Dpsalot", classId: 8, className: "Mage", role: "DPS", spec: "Frost"),
+            }));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var emptySlots = cut.FindAll(".roster-role-empty");
+            Assert.Equal(2, emptySlots.Count);
+            Assert.All(emptySlots, slot => Assert.Contains(Loc("runs.role.empty"), slot.TextContent));
+        });
+    }
+
+    [Fact]
     public void RunsPage_Detail_Separates_Summary_Signup_And_Roster_Regions()
     {
         var client = new Mock<IRunsClient>();
@@ -1349,7 +1411,7 @@ public class RunsPagesTests : ComponentTestBase
         var client = new Mock<IRunsClient>();
         // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC 25-man raid.
         // Standard composition target for 25-man is 2T / 5H / 18D, so the
-        // rendered composition summary is "T 0/2 · H 0/5 · D 2/18" with the
+        // rendered composition summary is "Tank 0/2 · Healer 0/5 · DPS 2/18" with the
         // tank + healer slots carrying the shortage modifier class.
         var summary = MakeSummary() with { Difficulty = "MYTHIC", Size = 25 };
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
