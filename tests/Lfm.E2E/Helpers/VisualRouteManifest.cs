@@ -38,7 +38,7 @@ internal static class VisualRouteManifest
 
         ProtectedRedirect("/runs", "runs anonymous", "runs-anonymous", "/login?redirect=%2Fruns", Heading("Sign In", "Kirjaudu")),
         Authenticated("/runs", "runs authenticated", "runs-authenticated",
-            HeadingAndText("Runs", "Runit", ("Run details", "Runin tiedot"))),
+            HeadingAndText("Runs", "Runit", ("Liberation of Undermine", "Liberation of Undermine"))),
 
         ProtectedRedirect($"/runs/{DefaultSeed.TestRunId}", "runs detail anonymous", "runs-detail-anonymous", "/login?redirect=%2Fruns%2Fe2e-run-001", Heading("Sign In", "Kirjaudu")),
         Authenticated($"/runs/{DefaultSeed.TestRunId}", "runs detail authenticated", "runs-detail-authenticated", Heading("Runs", "Runit"), SelectRunAsync),
