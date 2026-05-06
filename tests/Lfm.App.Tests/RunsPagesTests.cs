@@ -1593,6 +1593,26 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CreateRunPage_Wnl_Button_Uses_Visible_Label_As_Accessible_Name()
+    {
+        WireCreateRunServices(instances: new List<InstanceDto>
+        {
+            new("1:MYTHIC_KEYSTONE:5", 1, "Ara-Kara", "MYTHIC_KEYSTONE:5",
+                "The War Within", "DUNGEON", 505, "MYTHIC_KEYSTONE", 5),
+        });
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var button = cut.FindAll("fluent-button")
+                .Single(b => b.TextContent.Contains(Loc("createRun.keyLevel.wnl"), StringComparison.Ordinal));
+            Assert.Null(button.GetAttribute("aria-label"));
+            Assert.Equal(Loc("createRun.keyLevel.wnlDescription"), button.ParentElement?.GetAttribute("title"));
+        });
+    }
+
+    [Fact]
     public void CreateRunPage_Renders_Create_Button()
     {
         WireCreateRunServices();
@@ -1840,6 +1860,44 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+    }
+
+    [Fact]
+    public void EditRunPage_Wnl_Button_Uses_Visible_Label_As_Accessible_Name()
+    {
+        var mplusInstance = new InstanceDto(
+            "2:MYTHIC_KEYSTONE:5",
+            2,
+            "Ara-Kara",
+            "MYTHIC_KEYSTONE:5",
+            "The War Within",
+            "DUNGEON",
+            505,
+            "MYTHIC_KEYSTONE",
+            5);
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(
+                MakeDetail() with
+                {
+                    InstanceId = 2,
+                    InstanceName = "Ara-Kara",
+                    Difficulty = "MYTHIC_KEYSTONE",
+                    Size = 5,
+                    KeystoneLevel = 8,
+                },
+                "\"etag-v1\""));
+        WireEditRunServices(runsClient, instances: [mplusInstance]);
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var button = cut.FindAll("fluent-button")
+                .Single(b => b.TextContent.Contains(Loc("createRun.keyLevel.wnl"), StringComparison.Ordinal));
+            Assert.Null(button.GetAttribute("aria-label"));
+            Assert.Equal(Loc("createRun.keyLevel.wnlDescription"), button.ParentElement?.GetAttribute("title"));
+        });
     }
 
     [Fact]

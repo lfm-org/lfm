@@ -126,13 +126,16 @@
                                                @bind:event="oninput"
                                                disabled="@_saving"
                                                style="inline-size:7rem" />
-                                        <FluentButton Appearance="Appearance.Outline"
-                                                      OnClick="@(() => _form.KeystoneLevel = 10)"
-                                                      Disabled="@_saving"
-                                                      Title="@Loc["createRun.keyLevel.wnlDescription"]"
-                                                      aria-label="@Loc["createRun.keyLevel.wnlDescription"]">
-                                            @Loc["createRun.keyLevel.wnl"]
-                                        </FluentButton>
+                                        @* Keep the visible WNL label as the button's accessible name.
+                                           FluentButton Title maps into aria-label, so the tooltip lives
+                                           on a wrapper instead. *@
+                                        <span title="@Loc["createRun.keyLevel.wnlDescription"]">
+                                            <FluentButton Appearance="Appearance.Outline"
+                                                          OnClick="@(() => _form.KeystoneLevel = 10)"
+                                                          Disabled="@_saving">
+                                                @Loc["createRun.keyLevel.wnl"]
+                                            </FluentButton>
+                                        </span>
                                     </FluentStack>
                                     <small class="field__hint">
                                         @(_form.AnyDungeon ? Loc["createRun.keyLevel.hintAny"] : Loc["createRun.keyLevel.hintSpecific"])
