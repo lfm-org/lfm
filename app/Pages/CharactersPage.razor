@@ -52,11 +52,22 @@
 
         case LoadingState<IReadOnlyList<CharacterDto>>.Success s:
             var visibleCharacters = VisibleCharacters;
+            var selectedCharacter = SelectedCharacter;
             @if (!string.IsNullOrEmpty(selectError))
             {
                 <FluentMessageBar Intent="MessageIntent.Error">@selectError</FluentMessageBar>
             }
-            <div style="display:grid;gap:12px;width:100%;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
+            <FluentCard Class="character-account-state">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                    <FluentLabel Typo="Typography.H4">@Loc["characters.accountDefault.title"]</FluentLabel>
+                    <FluentLabel>
+                        @(selectedCharacter is not null
+                            ? Loc["characters.accountDefault.selected", selectedCharacter.Name]
+                            : Loc["characters.accountDefault.none"])
+                    </FluentLabel>
+                </FluentStack>
+            </FluentCard>
+            <div class="characters-grid">
                 @foreach (var c in visibleCharacters)
                 {
                     var portraitSrc = c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null);
@@ -142,9 +153,8 @@
             break;
     }
 
-    <!-- Forget Me section -->
-    <div style="border-block-start:1px solid var(--neutral-stroke-rest);padding-block-start:24px;margin-block-start:8px">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="max-width:420px">
+    <FluentCard Class="danger-zone characters-danger-zone">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             <FluentLabel Typo="Typography.H4">@Loc["characters.deleteAccount.title"]</FluentLabel>
             <FluentLabel>@Loc["characters.deleteAccount.body"]</FluentLabel>
             <FluentLabel>@Loc["characters.deleteAccount.confirm"]</FluentLabel>
@@ -169,7 +179,7 @@
                 @Loc["characters.deleteAccount.button"]
             </FluentButton>
         </FluentStack>
-    </div>
+    </FluentCard>
 </FluentStack>
 
 @code {
@@ -231,6 +241,10 @@
             .Skip((CurrentPage - 1) * ComponentPageSize)
             .Take(ComponentPageSize)
             .ToList();
+    private CharacterDto? SelectedCharacter =>
+        selectedCharacterId is null
+            ? null
+            : OrderedCharacters.FirstOrDefault(c => CharKey(c) == selectedCharacterId);
 
     private static readonly Dictionary<string, object> DeleteConfirmAttrs = new()
     {
