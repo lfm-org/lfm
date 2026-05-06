@@ -53,6 +53,25 @@ public class LayoutTests : ComponentTestBase
     }
 
     [Fact]
+    public void MainLayout_Marks_Current_Desktop_Nav_Link()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+        nav.NavigateTo("/guild");
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            var active = cut.Find(".desktop-nav fluent-anchor.nav-link--active");
+            Assert.Contains(Loc("nav.guild"), active.TextContent);
+            Assert.Equal("page", active.GetAttribute("aria-current"));
+        });
+    }
+
+    [Fact]
     public void MainLayout_Shows_Sign_Out_When_Authenticated()
     {
         var auth = this.AddAuthorization();
@@ -84,6 +103,20 @@ public class LayoutTests : ComponentTestBase
         Assert.Contains(Loc("footer.privacyPolicy"), cut.Markup);
         Assert.Contains(Loc("locale.en"), cut.Markup);
         Assert.Contains(Loc("locale.fi"), cut.Markup);
+    }
+
+    [Fact]
+    public void MainLayout_Marks_Current_Footer_Language()
+    {
+        this.AddAuthorization();
+        SetTestLocale("fi");
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        var activeLanguage = cut.Find("fluent-button.footer-language--active");
+        Assert.Equal("true", activeLanguage.GetAttribute("aria-pressed"));
+        Assert.Contains(Loc("locale.fi"), activeLanguage.TextContent);
     }
 
     [Fact]
