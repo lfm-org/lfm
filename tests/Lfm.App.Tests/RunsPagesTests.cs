@@ -1635,6 +1635,38 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CreateRunPage_Shows_Disabled_Submit_Reason_For_Missing_Key_Level()
+    {
+        WireCreateRunServices(
+            instances: [MakeInstanceFixture()],
+            guild: MakeGuildDto(canCreateGuildRuns: true));
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var reason = cut.Find(".run-submit-reason");
+            Assert.Contains(Loc("createRun.validation.keyLevelRequired"), reason.TextContent);
+        });
+    }
+
+    [Fact]
+    public void CreateRunPage_Shows_Permission_Submit_Blocker_When_Guild_Rank_Cannot_Create()
+    {
+        WireCreateRunServices(
+            instances: [MakeInstanceFixture()],
+            guild: MakeGuildDto(canCreateGuildRuns: false));
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var reason = cut.Find(".run-submit-reason");
+            Assert.Contains(Loc("createRun.visibility.guildDisabledReason"), reason.TextContent);
+        });
+    }
+
+    [Fact]
     public void CreateRunPage_DoesNotRenderExpansionSelector()
     {
         // The create-run form scopes its instance list to the Blizzard
@@ -1845,6 +1877,44 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
             Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
         Assert.Empty(cut.FindAll("#expansion-select"));
+    }
+
+    [Fact]
+    public void EditRunPage_Shows_Locked_Field_Explanation_When_Run_Has_Signups()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(
+                MakeDetailWithRoster([MakeCharacter("Aelrin")]),
+                "\"etag-v1\""));
+        WireEditRunServices(runsClient);
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var lockedReason = cut.Find(".run-locked-fields-reason");
+            Assert.Contains(Loc("editRun.lockedFieldsAfterSignups"), lockedReason.TextContent);
+        });
+    }
+
+    [Fact]
+    public void EditRunPage_Renders_Delete_Action_In_Danger_Zone()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        WireEditRunServices(runsClient, instances: []);
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var dangerZone = cut.Find(".danger-zone");
+            Assert.Contains(Loc("editRun.dangerZone"), dangerZone.TextContent);
+            Assert.Contains(Loc("editRun.deleteRun"), dangerZone.TextContent);
+            Assert.Contains(Loc("editRun.deleteRunHelp"), dangerZone.TextContent);
+        });
     }
 
     [Fact]

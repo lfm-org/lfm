@@ -239,6 +239,33 @@ public class RunFormStateTests
     }
 
     [Fact]
+    public void SubmitBlocker_Reports_Missing_And_Invalid_Fields()
+    {
+        var state = new RunFormState();
+        state.LoadOptions(Instances, Expansions);
+        state.OnActivityChanged(ActivityKind.Dungeon);
+        state.AnyDungeon = true;
+
+        Assert.Equal(RunFormSubmitBlocker.MissingStartTime, state.SubmitBlocker);
+
+        state.StartTimeLocal = DateTime.Now.AddDays(1);
+
+        Assert.Equal(RunFormSubmitBlocker.MissingKeystoneLevel, state.SubmitBlocker);
+
+        state.KeystoneLevel = 1;
+
+        Assert.Equal(RunFormSubmitBlocker.InvalidKeystoneLevel, state.SubmitBlocker);
+
+        state.KeystoneLevel = 10;
+
+        Assert.Equal(RunFormSubmitBlocker.None, state.SubmitBlocker);
+
+        state.OnDungeonScopeChanged(false);
+
+        Assert.Equal(RunFormSubmitBlocker.MissingInstance, state.SubmitBlocker);
+    }
+
+    [Fact]
     public void CanSubmit_SpecificMythicPlus_requires_start_time_instance_and_valid_optional_keystone()
     {
         var state = new RunFormState();

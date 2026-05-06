@@ -5,6 +5,15 @@ using Lfm.Contracts.Expansions;
 
 namespace Lfm.App.Runs;
 
+public enum RunFormSubmitBlocker
+{
+    None,
+    MissingStartTime,
+    MissingInstance,
+    MissingKeystoneLevel,
+    InvalidKeystoneLevel,
+}
+
 /// <summary>
 /// Run-form state and behavior shared by the Create and Edit run pages.
 /// Owns the field cluster, derived properties, option-rebuild helpers, and the
@@ -44,18 +53,30 @@ public sealed class RunFormState
 
     public bool ShowDifficultyToggle => InstanceId != 0 || !ShowInstanceDropdown;
 
-    public bool CanSubmit
+    public RunFormSubmitBlocker SubmitBlocker
     {
         get
         {
-            if (StartTimeLocal is null) return false;
+            if (StartTimeLocal is null) return RunFormSubmitBlocker.MissingStartTime;
+
             var isMythicPlus = Activity == ActivityKind.Dungeon && Difficulty == "MYTHIC_KEYSTONE";
             if (isMythicPlus && AnyDungeon)
-                return KeystoneLevel is >= 2 and <= 30;
-            if (InstanceId == 0) return false;
-            return !isMythicPlus || KeystoneLevel is null || KeystoneLevel is >= 2 and <= 30;
+            {
+                if (KeystoneLevel is null) return RunFormSubmitBlocker.MissingKeystoneLevel;
+                return KeystoneLevel is >= 2 and <= 30
+                    ? RunFormSubmitBlocker.None
+                    : RunFormSubmitBlocker.InvalidKeystoneLevel;
+            }
+
+            if (InstanceId == 0) return RunFormSubmitBlocker.MissingInstance;
+            if (isMythicPlus && KeystoneLevel is int keyLevel && (keyLevel < 2 || keyLevel > 30))
+                return RunFormSubmitBlocker.InvalidKeystoneLevel;
+
+            return RunFormSubmitBlocker.None;
         }
     }
+
+    public bool CanSubmit => SubmitBlocker == RunFormSubmitBlocker.None;
 
     public void LoadOptions(IReadOnlyList<InstanceOption> instances, IReadOnlyList<ExpansionDto> expansions)
     {
