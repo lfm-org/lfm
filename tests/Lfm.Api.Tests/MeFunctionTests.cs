@@ -125,6 +125,62 @@ public class MeFunctionTests
     }
 
     [Fact]
+    public async Task Returns_selected_character_summary_with_account_profile_display_name()
+    {
+        var principal = new SessionPrincipal(
+            BattleNetId: "bnet-1",
+            BattleTag: "Player#1234",
+            GuildId: null,
+            GuildName: null,
+            IssuedAt: DateTimeOffset.UtcNow,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1));
+
+        var raider = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: "eu-doomhammer-shalena",
+            Locale: "en",
+            AccountProfileSummary: new StoredBlizzardAccountProfile([
+                new StoredBlizzardWowAccount(
+                    Id: 1,
+                    Characters: [
+                        new StoredBlizzardAccountCharacter(
+                            Name: "Shalena",
+                            Level: 80,
+                            Realm: new StoredBlizzardRealmRef(Slug: "doomhammer", Name: "Doomhammer"))
+                    ])
+            ]),
+            Characters: [
+                new StoredSelectedCharacter(
+                    Id: "eu-doomhammer-shalena",
+                    Region: "eu",
+                    Realm: "doomhammer",
+                    Name: "shalena",
+                    PortraitUrl: "https://render.worldofwarcraft.com/eu/shalena-avatar.jpg")
+            ]);
+
+        var repo = new Mock<IRaidersRepository>();
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raider);
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var fn = new MeFunction(repo.Object, siteAdmin.Object);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.RunV1(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var me = Assert.IsType<MeResponse>(ok.Value);
+        Assert.NotNull(me.SelectedCharacter);
+        Assert.Equal("eu-doomhammer-shalena", me.SelectedCharacter.Id);
+        Assert.Equal("Shalena", me.SelectedCharacter.Name);
+        Assert.Equal("https://render.worldofwarcraft.com/eu/shalena-avatar.jpg", me.SelectedCharacter.PortraitUrl);
+    }
+
+    [Fact]
     public async Task Returns_not_found_when_raider_document_missing()
     {
         var principal = new SessionPrincipal(
