@@ -39,6 +39,8 @@
                                       Class="mobile-nav-toggle toolbar-icon-button"
                                       Title="@Loc["nav.toggleMenu"]"
                                       aria-label="@Loc["nav.toggleMenu"]"
+                                      aria-controls="mobile-navigation"
+                                      aria-expanded="@(_showMobileMenu ? "true" : "false")"
                                       OnClick="@ToggleMobileMenu">
                             &#9776;
                         </FluentButton>
@@ -111,7 +113,8 @@
     <!-- Mobile navigation menu -->
     <AuthorizeView>
         <Authorized>
-            <nav class="mobile-menu @(_showMobileMenu ? "open" : "")"
+            <nav id="mobile-navigation"
+                 class="mobile-menu @(_showMobileMenu ? "open" : "")"
                  style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:8px 16px">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
                     <FluentAnchor Href="/runs" Class="@NavLinkClass("/runs")" aria-current="@AriaCurrent("/runs")">@Loc["nav.runs"]</FluentAnchor>
