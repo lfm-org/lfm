@@ -13,9 +13,9 @@ public class CharactersPage(IPage page)
     public ILocator Heading =>
         _page.GetByText("My Characters");
 
-    // Character cards rendered in the grid (FluentCard elements within the grid div)
+    // Character card buttons rendered in the characters grid.
     public ILocator CharacterList =>
-        _page.Locator("div[style*='grid-template-columns'] fluent-card");
+        _page.Locator(".characters-grid .character-card");
 
     public ILocator CharacterCard(string characterName) =>
         CharacterList.Filter(new()
@@ -30,6 +30,12 @@ public class CharactersPage(IPage page)
     // The delete account button
     public ILocator DeleteAccountButton =>
         _page.GetByRole(AriaRole.Button, new() { Name = "Delete My Account" });
+
+    public ILocator AccountDefaultState =>
+        _page.Locator(".character-account-state");
+
+    public ILocator DeleteAccountDangerZone =>
+        _page.Locator(".characters-danger-zone");
 
     public async Task GotoAsync(string appBaseUrl)
     {

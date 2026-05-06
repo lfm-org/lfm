@@ -18,6 +18,12 @@ public class GuildAdminPage(IPage page)
     public ILocator OverrideSettingsHeading =>
         _page.GetByText("Override Settings");
 
+    public ILocator LookupHeading =>
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Load guild" });
+
+    public ILocator SummaryHeading =>
+        _page.GetByRole(AriaRole.Heading, new() { Name = "Admin guild summary" });
+
     public ILocator RankPermissionsHeading =>
         _page.GetByText("Rank Permissions");
 

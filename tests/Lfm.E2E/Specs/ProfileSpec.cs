@@ -77,6 +77,8 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         // DefaultSeed populates accountProfileSummary.wowAccounts[0].characters
         // with exactly two characters (Aelrin + Aelrinalt); the characters endpoint
         // must return both and the page must render one card per character.
+        await Assertions.Expect(charactersPage.AccountDefaultState)
+            .ToContainTextAsync("Account default character", new() { Timeout = 10000 });
         await Assertions.Expect(charactersPage.CharacterList)
             .ToHaveCountAsync(2, new() { Timeout = 15000 });
         await Assertions.Expect(charactersPage.CharacterCard("Aelrin"))
@@ -109,6 +111,8 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(guildPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         // The seeded guild document has blizzardProfileRaw with name "Test Guild".
+        await Assertions.Expect(guildPage.SummaryHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(guildPage.SettingsHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(guildPage.GuildNameHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         Log("Guild page rendered with guild info visible");
@@ -127,6 +131,8 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
         await guildAdminPage.LoadGuildAsync(DefaultSeed.TestGuildId);
 
         await Assertions.Expect(guildAdminPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(guildAdminPage.LookupHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await Assertions.Expect(guildAdminPage.SummaryHeading).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(guildAdminPage.GuildName("Test Guild")).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         // The settings form is rendered when guild data loads successfully.
@@ -343,6 +349,8 @@ public class ProfileSpec(ProfileFixture fixture, ITestOutputHelper output)
 
             await charactersPage.GotoAsync(fixture.Stack.AppBaseUrl);
             await Assertions.Expect(charactersPage.Heading).ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Assertions.Expect(charactersPage.DeleteAccountDangerZone)
+                .ToContainTextAsync("Delete Account", new() { Timeout = 10000 });
 
             await Assertions.Expect(charactersPage.DeleteConfirmationField)
                 .ToBeVisibleAsync(new() { Timeout = 10000 });
