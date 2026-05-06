@@ -242,6 +242,32 @@ public class LayoutTests : ComponentTestBase
     }
 
     [Fact]
+    public void MainLayout_Account_Toolbar_Controls_Use_Compact_Chrome()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(
+            new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"),
+            new Claim(
+                AppAuthenticationStateProvider.SelectedCharacterPortraitUrlClaim,
+                "https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotNull(cut.Find("fluent-button.toolbar-icon-button[aria-label='Switch to light mode']"));
+            Assert.NotNull(cut.Find("fluent-button.account-menu-trigger"));
+            Assert.Contains(".toolbar-icon-button::part(control)", cut.Markup);
+            Assert.Contains("inline-size: 32px;", cut.Markup);
+            Assert.Contains("block-size: 32px;", cut.Markup);
+            Assert.Contains("padding-inline: 4px 8px;", cut.Markup);
+            Assert.Contains("padding-block: 2px;", cut.Markup);
+        });
+    }
+
+    [Fact]
     public void MainLayout_Account_Disclosure_Does_Not_Advertise_Menu_Pattern()
     {
         var auth = this.AddAuthorization();
