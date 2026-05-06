@@ -176,9 +176,8 @@ public class LayoutTests : ComponentTestBase
     public void MainLayout_Shows_Mobile_Nav_Toggle_Button_When_Authenticated()
     {
         // The hamburger is what users tap on narrow viewports once the
-        // desktop nav hides. If the toggle disappears, navigation is stranded.
-        // Asserting `[aria-label]` presence guards against a regression where
-        // the glyph renders but the button is unlabelled to assistive tech.
+        // desktop nav hides. Its accessible state must expose the controlled
+        // navigation region and whether the disclosure is open.
         var auth = this.AddAuthorization();
         auth.SetAuthorized("player#1234");
 
@@ -188,8 +187,21 @@ public class LayoutTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             var toggle = cut.Find(".mobile-nav-toggle");
+            var mobileNav = cut.Find("nav#mobile-navigation.mobile-menu");
+
             Assert.NotNull(toggle);
+            Assert.NotNull(mobileNav);
             Assert.False(string.IsNullOrWhiteSpace(toggle.GetAttribute("aria-label")));
+            Assert.Equal("mobile-navigation", toggle.GetAttribute("aria-controls"));
+            Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
+        });
+
+        cut.Find(".mobile-nav-toggle").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var toggle = cut.Find(".mobile-nav-toggle");
+            Assert.Equal("true", toggle.GetAttribute("aria-expanded"));
         });
     }
 
