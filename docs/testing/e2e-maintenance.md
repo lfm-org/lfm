@@ -17,7 +17,22 @@ Runtime publish output lives under `.cache/e2e-runtime/`, and normal fixture
 disposal removes its own run directory. Diagnostics are written under
 `artifacts/e2e-results/` so failed runs do not leave tracked-file pollution.
 
-## Lanes
+## Workflow Levels
+
+The GitHub Actions workflow exposes three E2E levels:
+
+| Level | When to use | Test filter |
+|-------|-------------|-------------|
+| Fast | Explicit manual quick probe | `Category=Smoke` |
+| Normal | Pull requests and default manual dispatch | `Category=Smoke\|Category=Functional\|Category=Auth flow` |
+| Full | Explicit manual review only | no filter |
+
+Full includes the broad accessibility, layout-integrity, security,
+performance, and visual-artifact categories. The visual-artifact category writes
+screenshots under `artifacts/e2e-results/visual-routes/`; it is not a separate
+workflow level.
+
+## Coverage Categories
 
 | Lane | Use E2E for | Move down when |
 |------|-------------|----------------|
@@ -26,6 +41,7 @@ disposal removes its own run directory. Diagnostics are written under
 | Security | Browser-enforced CORS, CSP, iframe, cookie, and redirect behavior | Server-only status/header logic can be tested in API tests |
 | Auth flow | Real redirect/callback/session behavior | `/api/e2e/login` is enough and the browser adds no signal |
 | Performance | Browser Web Vitals-style lab metrics, route interaction timing, resource/API counts, and local request-health probes | A bundle check, API operation-count assertion, or production telemetry query proves the same regression |
+| Visual artifacts | Every-route responsive screenshots for local/CI artifact review | A route-specific assertion already proves the behavior and no screenshot evidence is needed |
 
 Auth-sensitive E2E tests should use the Testcontainers-managed OAuth provider
 and drive the app's real sign-in button, provider authorize page, callback,
