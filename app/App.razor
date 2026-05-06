@@ -44,8 +44,15 @@
     private static RenderFragment RenderAuthorizedRoute(RouteData routeData) => __builder =>
     {
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
+            <NotAuthorized Context="authState">
+                @if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    <RouteAccessDenied />
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
             </NotAuthorized>
             <Authorizing>
                 <FluentProgressRing />
