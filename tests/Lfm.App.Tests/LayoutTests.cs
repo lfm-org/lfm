@@ -217,6 +217,31 @@ public class LayoutTests : ComponentTestBase
     }
 
     [Fact]
+    public void MainLayout_Account_Menu_Button_Groups_Avatar_And_Name_For_Alignment()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        auth.SetClaims(
+            new Claim(AppAuthenticationStateProvider.SelectedCharacterNameClaim, "Aelrin"),
+            new Claim(
+                AppAuthenticationStateProvider.SelectedCharacterPortraitUrlClaim,
+                "https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg"));
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.WaitForAssertion(() =>
+        {
+            var trigger = cut.Find("fluent-button.account-menu-trigger");
+            var content = trigger.QuerySelector(".account-menu-trigger__content");
+
+            Assert.NotNull(content);
+            Assert.NotNull(content.QuerySelector("img.account-avatar"));
+            Assert.NotNull(content.QuerySelector(".account-character-name"));
+        });
+    }
+
+    [Fact]
     public void MainLayout_Account_Disclosure_Does_Not_Advertise_Menu_Pattern()
     {
         var auth = this.AddAuthorization();

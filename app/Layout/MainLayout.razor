@@ -55,17 +55,19 @@
                                           aria-label="@Loc["nav.accountMenu", SelectedCharacterName(accountAuth.User)]"
                                           aria-expanded="@(_showAccountMenu ? "true" : "false")"
                                           OnClick="@ToggleAccountMenu">
-                                @if (SelectedCharacterPortraitUrl(accountAuth.User) is { } portraitUrl)
-                                {
-                                    <img class="account-avatar" src="@portraitUrl" alt="" />
-                                }
-                                else
-                                {
-                                    <span class="account-avatar account-avatar-initial" aria-hidden="true">
-                                        @SelectedCharacterInitial(accountAuth.User)
-                                    </span>
-                                }
-                                <span class="account-character-name">@SelectedCharacterName(accountAuth.User)</span>
+                                <span class="account-menu-trigger__content">
+                                    @if (SelectedCharacterPortraitUrl(accountAuth.User) is { } portraitUrl)
+                                    {
+                                        <img class="account-avatar" src="@portraitUrl" alt="" />
+                                    }
+                                    else
+                                    {
+                                        <span class="account-avatar account-avatar-initial" aria-hidden="true">
+                                            @SelectedCharacterInitial(accountAuth.User)
+                                        </span>
+                                    }
+                                    <span class="account-character-name">@SelectedCharacterName(accountAuth.User)</span>
+                                </span>
                             </FluentButton>
                             <div class="account-menu @(_showAccountMenu ? "open" : "")"
                                  aria-hidden="@(!_showAccountMenu)">
@@ -166,8 +168,16 @@
     .account-menu-trigger::part(control) {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
         max-inline-size: 192px;
+    }
+
+    .account-menu-trigger__content {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-inline-size: 0;
+        min-block-size: 28px;
+        line-height: 1;
     }
 
     .account-avatar {
@@ -194,6 +204,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        line-height: 1;
     }
 
     .account-menu {
