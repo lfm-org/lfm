@@ -151,6 +151,28 @@
     inline-size: 100%;
 }
 
+.runs-detail-empty-card {
+    max-inline-size: 28rem;
+    padding-block: 18px;
+    padding-inline: 20px;
+    color: var(--neutral-foreground-hint-rest);
+    background: var(--neutral-fill-rest);
+    border: 1px solid var(--neutral-stroke-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+}
+
+.runs-detail-empty-title {
+    margin-block: 0 6px;
+    margin-inline: 0;
+    color: var(--neutral-foreground-rest);
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.runs-detail-empty-card p {
+    margin: 0;
+}
+
 /* Group heading — compact divider between time-horizon buckets. */
 .runs-group__title {
     font-size: 0.7rem;
@@ -337,6 +359,16 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.roster-role-empty {
+    min-block-size: 44px;
+    padding-block: 10px;
+    padding-inline: 12px;
+    color: var(--neutral-foreground-hint-rest);
+    background: var(--neutral-fill-rest);
+    border: 1px dashed var(--neutral-stroke-rest);
+    border-radius: calc(var(--control-corner-radius) * 1px);
 }
 
 .roster-rows {

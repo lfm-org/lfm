@@ -204,9 +204,16 @@
                                                 var roleChars = attending.Where(c => RunVisualization.NormalizeRole(c.Role) == roleKey).ToList();
                                                 <div class="roster-role-column">
                                                     <h4 class="roster-role-column-title">@roleLabel (@roleChars.Count)</h4>
-                                                    @foreach (var character in roleChars)
+                                                    @if (roleChars.Count == 0)
                                                     {
-                                                        <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
+                                                        <div class="roster-role-empty">@Loc["runs.role.empty"]</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        @foreach (var character in roleChars)
+                                                        {
+                                                            <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
+                                                        }
                                                     }
                                                 </div>
                                             }
@@ -231,7 +238,10 @@
                     }
                     else
                     {
-                        <FluentLabel>@Loc["runs.selectPrompt"]</FluentLabel>
+                        <div class="runs-detail-empty-card">
+                            <h2 class="runs-detail-empty-title">@Loc["runs.emptyDetail.title"]</h2>
+                            <p>@Loc["runs.selectPrompt"]</p>
+                        </div>
                     }
                 </div>
             </div>
@@ -716,9 +726,7 @@
     private static string FormatDate(string? isoDate)
     {
         if (string.IsNullOrEmpty(isoDate)) return "\u2014";
-        if (DateTimeOffset.TryParse(isoDate, out var dto))
-            return dto.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        return isoDate;
+        return RunDateFormatter.FormatDisplay(isoDate);
     }
 
     private static bool IsSignupClosed(string? signupCloseTime)
