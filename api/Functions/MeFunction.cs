@@ -58,7 +58,27 @@ public class MeFunction(IRaidersRepository repo, ISiteAdminService siteAdmin)
 
         return selected is null
             ? null
-            : new SelectedCharacterSummaryDto(selected.Id, selected.Name, selected.PortraitUrl);
+            : new SelectedCharacterSummaryDto(
+                selected.Id,
+                ResolveAccountProfileDisplayName(raider.AccountProfileSummary, selected) ?? selected.Name,
+                selected.PortraitUrl);
+    }
+
+    private static string? ResolveAccountProfileDisplayName(
+        StoredBlizzardAccountProfile? accountProfile,
+        StoredSelectedCharacter selected)
+    {
+        foreach (var account in accountProfile?.WowAccounts ?? [])
+        {
+            foreach (var character in account.Characters ?? [])
+            {
+                var characterId = $"{selected.Region.ToLowerInvariant()}-{character.Realm.Slug.ToLowerInvariant()}-{character.Name.ToLowerInvariant()}";
+                if (string.Equals(characterId, selected.Id, StringComparison.OrdinalIgnoreCase))
+                    return character.Name;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
