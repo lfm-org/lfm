@@ -511,7 +511,60 @@ public class CharactersPagesTests : ComponentTestBase
         cut.WaitForAssertion(() => Assert.Contains(Loc("characters.deleteAccount.title"), cut.Markup));
     }
 
+    [Fact]
+    public void CharactersPage_Renders_Delete_Account_In_Danger_Zone()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        RegisterCharactersPageClients([]);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var dangerZone = cut.Find(".danger-zone");
+            Assert.Contains(Loc("characters.deleteAccount.title"), dangerZone.TextContent);
+            Assert.Contains(Loc("characters.deleteAccount.body"), dangerZone.TextContent);
+            Assert.Contains(Loc("characters.deleteAccount.button"), dangerZone.TextContent);
+        });
+    }
+
     // ── Active character selection ────────────────────────────────────────────
+
+    [Fact]
+    public void CharactersPage_Selected_Character_Explains_Account_Default_State()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        RegisterCharactersPageClients(
+            new List<CharacterDto> { MakeChar("Arthas") },
+            MakeMeResponse(selectedCharacterId: "eu-silvermoon-arthas"));
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var accountDefault = cut.Find(".character-account-state");
+            Assert.Contains(Loc("characters.accountDefault.title"), accountDefault.TextContent);
+            Assert.Contains(Loc("characters.accountDefault.selected", "Arthas"), accountDefault.TextContent);
+        });
+    }
+
+    [Fact]
+    public void CharactersPage_No_Selected_Character_Explains_Default_Choice_State()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        RegisterCharactersPageClients(
+            new List<CharacterDto> { MakeChar("Arthas") },
+            MakeMeResponse());
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var accountDefault = cut.Find(".character-account-state");
+            Assert.Contains(Loc("characters.accountDefault.title"), accountDefault.TextContent);
+            Assert.Contains(Loc("characters.accountDefault.none"), accountDefault.TextContent);
+        });
+    }
 
     [Fact]
     public void CharactersPage_Selected_Card_Shows_Active_Badge_And_Outline()

@@ -135,6 +135,42 @@ public class GuildPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void GuildPage_Renders_Distinct_Summary_And_Settings_Mode_Labels()
+    {
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(canEdit: true));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Loc("guild.summary.title"), cut.Markup);
+            Assert.Contains(Loc("guild.settings.title"), cut.Markup);
+            Assert.DoesNotContain(Loc("guild.access.title"), cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void GuildPage_Renders_Distinct_Summary_And_Access_Mode_Labels_For_Readonly_Guild()
+    {
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(canEdit: false));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Loc("guild.summary.title"), cut.Markup);
+            Assert.Contains(Loc("guild.access.title"), cut.Markup);
+            Assert.DoesNotContain(Loc("guild.settings.title"), cut.Markup);
+        });
+    }
+
+    [Fact]
     public void GuildPage_Renders_Stale_RankSync_Warning_When_RankData_NotFresh()
     {
         var client = new Mock<IGuildClient>();
@@ -354,6 +390,32 @@ public class GuildPagesTests : ComponentTestBase
             Assert.Contains(Loc("guild.chip.members", 120), cut.Markup);
             Assert.Contains(Loc("guild.chip.ranksDetected", 10), cut.Markup);
             Assert.Equal(4, cut.FindAll(".status-chip").Count);
+        });
+    }
+
+    [Fact]
+    public void GuildAdminPage_Renders_Lookup_Summary_And_Admin_Override_Labels()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeGuildDto(canEdit: true));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<GuildAdminPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guildAdmin.lookup.title"), cut.Markup));
+
+        cut.Find("#guild-admin-guild-id").Change("99");
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.loadButton"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Loc("guildAdmin.summary.title"), cut.Markup);
+            Assert.Contains(Loc("guildAdmin.overrideSettings"), cut.Markup);
         });
     }
 
