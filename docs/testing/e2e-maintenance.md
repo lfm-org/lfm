@@ -23,14 +23,15 @@ The GitHub Actions workflow exposes three E2E levels:
 
 | Level | When to use | Test filter |
 |-------|-------------|-------------|
-| Fast | Explicit manual quick probe | `Category=Smoke` |
-| Normal | Pull requests and default manual dispatch | `Category=Smoke\|Category=Functional\|Category=Auth flow` |
+| Fast | Explicit manual minimal probe | `Category=Fast` |
+| Normal | Pull requests and default manual dispatch | `Category=Smoke` |
 | Full | Explicit manual review only | no filter |
 
-Full includes the broad accessibility, layout-integrity, security,
-performance, and visual-artifact categories. The visual-artifact category writes
-screenshots under `artifacts/e2e-results/visual-routes/`; it is not a separate
-workflow level.
+Fast is a strict subset of normal. Normal is the CI-focused browser subset.
+Full includes the broader functional, auth-flow, accessibility,
+layout-integrity, security, performance, and visual-artifact categories. The
+visual-artifact category writes screenshots under
+`artifacts/e2e-results/visual-routes/`; it is not a separate workflow level.
 
 ## Coverage Categories
 
