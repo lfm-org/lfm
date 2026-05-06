@@ -20,13 +20,32 @@
       <FluentMessageBar Intent="MessageIntent.Error">@f.Message</FluentMessageBar>
       break;
     case LoadingState<IReadOnlyList<InstanceDto>>.Success s:
-      <div class="scroll-region" role="region" tabindex="0" aria-label="@Loc["instances.tableAriaLabel"]">
-      <FluentDataGrid Items="@s.Value.AsQueryable()" TGridItem="InstanceDto">
-        <PropertyColumn Property="@(i => i.Name)" Title="@Loc["instances.columns.name"]" />
-        <PropertyColumn Property="@(i => i.ModeKey)" Title="@Loc["instances.columns.mode"]" />
-        <PropertyColumn Property="@(i => i.Expansion)" Title="@Loc["instances.columns.expansion"]" />
-      </FluentDataGrid>
-      </div>
+      <FluentCard Class="instances-summary">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+          <FluentLabel Typo="Typography.H4">@Loc["instances.summary.count", s.Value.Count]</FluentLabel>
+          <FluentLabel>@Loc["instances.summary.body"]</FluentLabel>
+        </FluentStack>
+      </FluentCard>
+
+      <FluentCard Class="instances-table-surface">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+          <FluentLabel Typo="Typography.H4">@Loc["instances.table.title"]</FluentLabel>
+          @if (s.Value.Count == 0)
+          {
+            <FluentMessageBar Intent="MessageIntent.Info">@Loc["instances.empty"]</FluentMessageBar>
+          }
+          else
+          {
+            <div class="scroll-region" role="region" tabindex="0" aria-label="@Loc["instances.tableAriaLabel"]">
+              <FluentDataGrid Items="@s.Value.AsQueryable()" TGridItem="InstanceDto">
+                <PropertyColumn Property="@(i => i.Name)" Title="@Loc["instances.columns.name"]" />
+                <PropertyColumn Property="@(i => i.ModeKey)" Title="@Loc["instances.columns.mode"]" />
+                <PropertyColumn Property="@(i => i.Expansion)" Title="@Loc["instances.columns.expansion"]" />
+              </FluentDataGrid>
+            </div>
+          }
+        </FluentStack>
+      </FluentCard>
       break;
   }
 </FluentStack>

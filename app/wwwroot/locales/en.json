@@ -302,6 +302,10 @@
 
     "adminReference.title": "Reference data",
     "adminReference.description": "Pulls the latest journal-instance, playable-specialization, and journal-expansion data from the Blizzard Game Data API and writes it to blob. Takes about a minute.",
+    "adminReference.status.idle": "No reference refresh has run in this session yet.",
+    "adminReference.status.refreshing": "Reference refresh is running.",
+    "adminReference.status.success": "Reference refresh completed in this session.",
+    "adminReference.status.failed": "Reference refresh failed in this session.",
     "adminReference.refreshButton": "Refresh now",
     "adminReference.refreshing": "Refreshing…",
     "adminReference.resultsHeading": "Results",
@@ -314,6 +318,10 @@
     "adminReference.progress.itemNoName": "{0} {1}/{2}",
 
     "instances.title": "Instances",
+    "instances.summary.count": "{0} instances",
+    "instances.summary.body": "Reference instances currently available for run scheduling.",
+    "instances.table.title": "Instance reference",
+    "instances.empty": "No instances are available yet.",
     "instances.tableAriaLabel": "Instances table",
     "instances.columns.name": "Name",
     "instances.columns.mode": "Mode",
