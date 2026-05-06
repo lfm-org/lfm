@@ -27,11 +27,11 @@
                     @* Plain <div> (not FluentStack) so `.desktop-nav { display: none }` isn't
                        overridden by FluentStack's inline display:flex at narrow viewports. *@
                     <div class="desktop-nav">
-                        <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
-                        <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
-                        <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
+                        <FluentAnchor Href="/runs" Class="@NavLinkClass("/runs")" aria-current="@AriaCurrent("/runs")">@Loc["nav.runs"]</FluentAnchor>
+                        <FluentAnchor Href="/guild" Class="@NavLinkClass("/guild")" aria-current="@AriaCurrent("/guild")">@Loc["nav.guild"]</FluentAnchor>
+                        <FluentAnchor Href="/characters" Class="@NavLinkClass("/characters")" aria-current="@AriaCurrent("/characters")">@Loc["nav.characters"]</FluentAnchor>
                         <AuthorizeView Roles="SiteAdmin" Context="adminAuth">
-                            <FluentAnchor Href="/admin/reference">@Loc["nav.admin"]</FluentAnchor>
+                            <FluentAnchor Href="/admin/reference" Class="@NavLinkClass("/admin")" aria-current="@AriaCurrent("/admin")">@Loc["nav.admin"]</FluentAnchor>
                         </AuthorizeView>
                     </div>
                     <div style="margin-inline-start:auto;display:flex;align-items:center;gap:4px">
@@ -110,11 +110,11 @@
             <nav class="mobile-menu @(_showMobileMenu ? "open" : "")"
                  style="background:var(--neutral-layer-4);border-bottom:1px solid var(--neutral-stroke-rest);padding:8px 16px">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                    <FluentAnchor Href="/runs">@Loc["nav.runs"]</FluentAnchor>
-                    <FluentAnchor Href="/guild">@Loc["nav.guild"]</FluentAnchor>
-                    <FluentAnchor Href="/characters">@Loc["nav.characters"]</FluentAnchor>
+                    <FluentAnchor Href="/runs" Class="@NavLinkClass("/runs")" aria-current="@AriaCurrent("/runs")">@Loc["nav.runs"]</FluentAnchor>
+                    <FluentAnchor Href="/guild" Class="@NavLinkClass("/guild")" aria-current="@AriaCurrent("/guild")">@Loc["nav.guild"]</FluentAnchor>
+                    <FluentAnchor Href="/characters" Class="@NavLinkClass("/characters")" aria-current="@AriaCurrent("/characters")">@Loc["nav.characters"]</FluentAnchor>
                     <AuthorizeView Roles="SiteAdmin" Context="adminMobileAuth">
-                        <FluentAnchor Href="/admin/reference">@Loc["nav.admin"]</FluentAnchor>
+                        <FluentAnchor Href="/admin/reference" Class="@NavLinkClass("/admin")" aria-current="@AriaCurrent("/admin")">@Loc["nav.admin"]</FluentAnchor>
                     </AuthorizeView>
                 </FluentStack>
             </nav>
@@ -131,20 +131,25 @@
          offer the Corresponding Source to every user interacting over the
          network. Fork operators: override SourceRepositoryUrl in
          appsettings.json to point at your modified source repository. -->
-    <footer style="border-top:1px solid var(--neutral-stroke-rest);padding:8px 16px">
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" Style="align-items:center;justify-content:center">
+    <footer class="app-footer">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" Class="footer-legal">
             <FluentAnchor Href="/privacy">@Loc["footer.privacyPolicy"]</FluentAnchor>
             <span>|</span>
             <FluentAnchor Href="@_sourceUrl" Target="_blank" rel="noopener external">@Loc["footer.source"]</FluentAnchor>
-            <span>|</span>
+        </FluentStack>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Wrap="true" Class="footer-language">
             <FluentButton Appearance="Appearance.Stealth"
+                          Class="@LanguageButtonClass("en")"
+                          aria-pressed="@IsCurrentLocale("en").ToString().ToLowerInvariant()"
                           OnClick="@(() => LocaleService.SetLocale("en"))"
-                          Style="@(LocaleService.CurrentLocale == "en" ? "font-weight:700" : "")">
+                          Title="@Loc["locale.en"]">
                 @Loc["locale.en"]
             </FluentButton>
             <FluentButton Appearance="Appearance.Stealth"
+                          Class="@LanguageButtonClass("fi")"
+                          aria-pressed="@IsCurrentLocale("fi").ToString().ToLowerInvariant()"
                           OnClick="@(() => LocaleService.SetLocale("fi"))"
-                          Style="@(LocaleService.CurrentLocale == "fi" ? "font-weight:700" : "")">
+                          Title="@Loc["locale.fi"]">
                 @Loc["locale.fi"]
             </FluentButton>
         </FluentStack>
@@ -310,6 +315,26 @@
         var name = SelectedCharacterName(user);
         return string.IsNullOrWhiteSpace(name) ? "?" : name[..1].ToUpperInvariant();
     }
+
+    private string NavLinkClass(string href) =>
+        IsActiveRoute(href) ? "nav-link nav-link--active" : "nav-link";
+
+    private string? AriaCurrent(string href) => IsActiveRoute(href) ? "page" : null;
+
+    private bool IsActiveRoute(string href)
+    {
+        var relative = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
+        var path = "/" + relative.Trim('/');
+        if (path == "/") return href == "/";
+        return path.Equals(href, StringComparison.OrdinalIgnoreCase)
+               || path.StartsWith(href.TrimEnd('/') + "/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsCurrentLocale(string locale) =>
+        string.Equals(LocaleService.CurrentLocale, locale, StringComparison.OrdinalIgnoreCase);
+
+    private string LanguageButtonClass(string locale) =>
+        IsCurrentLocale(locale) ? "footer-language__button footer-language--active" : "footer-language__button";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
