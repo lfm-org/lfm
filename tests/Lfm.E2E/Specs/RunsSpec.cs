@@ -45,6 +45,7 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
     // Cheaper lanes cannot prove this because the browser observes auth, API, storage, and UI composition together.
     // Shared data: read-only.
     [Fact]
+    [Trait("Category", E2ELanes.Fast)]
     [Trait("Category", E2ELanes.Smoke)]
     public async Task RunsPage_Loads_DisplaysRunList()
     {

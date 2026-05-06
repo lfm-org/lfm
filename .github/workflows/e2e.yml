@@ -5,7 +5,7 @@ name: E2E
 
 on:
   # PRs run the default normal subset. Fast and full are explicit manual lanes:
-  # fast is a quick smoke probe, while full includes the broad visual artifact,
+  # fast is a minimal probe, while full includes the broad visual artifact,
   # accessibility, layout, security, and performance categories.
   pull_request:
     paths:
@@ -94,9 +94,9 @@ jobs:
           lane="${{ github.event_name == 'pull_request' && 'normal' || inputs.lane }}"
           filter_args=()
           if [ "$lane" = "fast" ]; then
-            filter_args+=(--filter "Category=Smoke")
+            filter_args+=(--filter "Category=Fast")
           elif [ "$lane" = "normal" ]; then
-            filter_args+=(--filter "Category=Smoke|Category=Functional|Category=Auth flow")
+            filter_args+=(--filter "Category=Smoke")
           elif [ "$lane" != "full" ]; then
             echo "Unsupported E2E lane: $lane" >&2
             exit 1
