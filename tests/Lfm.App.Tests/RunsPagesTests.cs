@@ -231,6 +231,32 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_Refresh_Failure_Preserves_Current_List_And_Shows_Error()
+    {
+        var client = new Mock<IRunsClient>();
+        client.SetupSequence(c => c.ListPageAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunsListResponse([MakeSummary("run-1")], null))
+            .ThrowsAsync(new HttpRequestException("Refresh failed"));
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Liberation of Undermine", cut.Markup));
+
+        var refresh = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("common.refresh"), StringComparison.Ordinal));
+        refresh.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            client.Verify(c => c.ListPageAsync(null, It.IsAny<CancellationToken>()), Times.Exactly(2));
+            Assert.Contains("Liberation of Undermine", cut.Markup);
+            Assert.Contains("Refresh failed", cut.Find(".runs-refresh-error").TextContent);
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunListItem_Has_Accessible_Name_Combining_Instance_And_Date()
     {
         // Screen-reader users navigating the run list hear a concise aria-label
