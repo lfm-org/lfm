@@ -385,6 +385,39 @@ public class CharactersPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public async Task CharactersPage_Portrait_Load_Failure_Keeps_Page_And_Placeholder()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached([MakeChar("Arthas")]));
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("portrait boom"));
+
+        var me = new Mock<IMeClient>();
+        me.Setup(m => m.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeResponse?)null);
+        Services.AddSingleton(battleNet.Object);
+        Services.AddSingleton(me.Object);
+        var rendererUnhandled = Renderer.UnhandledException;
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Arthas", cut.Markup);
+            Assert.NotEmpty(cut.FindAll(".character-portrait--placeholder"));
+        });
+
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+        var completed = await Task.WhenAny(rendererUnhandled, Task.Delay(TimeSpan.FromMilliseconds(100)));
+
+        Assert.NotSame(rendererUnhandled, completed);
+        Assert.Contains("Arthas", cut.Markup);
+        Assert.NotEmpty(cut.FindAll(".character-portrait--placeholder"));
+    }
+
+    [Fact]
     public void CharactersPage_Navigates_To_Safe_Redirect_After_Select()
     {
         this.AddAuthorization().SetAuthorized("player#1234");
