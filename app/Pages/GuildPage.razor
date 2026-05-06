@@ -121,10 +121,11 @@
         }
         else
         {
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-                <FluentCard>
+            <FluentStack Class="guild-page-grid" Orientation="Orientation.Vertical" VerticalGap="16">
+                <FluentCard Class="guild-panel guild-summary-panel">
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                        <FluentLabel Typo="Typography.H4">@dto.Guild.Name</FluentLabel>
+                        <FluentLabel Typo="Typography.H4">@Loc["guild.summary.title"]</FluentLabel>
+                        <FluentLabel Typo="Typography.H5">@dto.Guild.Name</FluentLabel>
                         @if (!string.IsNullOrEmpty(dto.Guild.Slogan))
                         {
                             <FluentLabel>@dto.Guild.Slogan</FluentLabel>
@@ -156,9 +157,9 @@
                     </FluentStack>
                 </FluentCard>
 
-                <FluentCard>
+                <FluentCard Class="guild-panel guild-settings-panel">
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                        <FluentLabel Typo="Typography.H4">@Loc["guild.status"]</FluentLabel>
+                        <FluentLabel Typo="Typography.H4">@(dto.Editor.CanEdit ? Loc["guild.settings.title"] : Loc["guild.access.title"])</FluentLabel>
                         <FluentLabel>@Loc["guild.timezone"] @dto.Setup.Timezone</FluentLabel>
                         <FluentLabel>@Loc["guild.locale"] @dto.Setup.Locale</FluentLabel>
 
@@ -188,7 +189,6 @@
                         }
                         else
                         {
-                            <FluentLabel Typo="Typography.H4">@Loc["guild.yourAccess"]</FluentLabel>
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                                 @StatusChip(dto.MemberPermissions.CanCreateGuildRuns ? Loc["guild.chip.canCreate"] : Loc["guild.chip.cannotCreate"])
                                 @StatusChip(dto.MemberPermissions.CanSignupGuildRuns ? Loc["guild.chip.canSignup"] : Loc["guild.chip.cannotSignup"])

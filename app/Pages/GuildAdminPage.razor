@@ -14,25 +14,31 @@
 
 <AuthorizeView Roles="SiteAdmin">
     <Authorized>
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentStack Class="guild-page-grid" Orientation="Orientation.Vertical" VerticalGap="16">
             <FluentLabel Typo="Typography.H1">@Loc["guildAdmin.title"]</FluentLabel>
 
-            <FluentCard>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                    <FluentTextField
-                        Id="guild-admin-guild-id"
-                        Label="@Loc["guildAdmin.guildIdLabel"]"
-                        Value="@guildIdInput"
-                        ValueChanged="@(v => guildIdInput = v)"
-                        Disabled="@(loading || saving)"
-                        Style="max-width:260px" />
-                    <FluentButton
-                        Type="ButtonType.Button"
-                        Appearance="Appearance.Accent"
-                        OnClick="@LoadGuildAsync"
-                        Disabled="@(loading || saving || string.IsNullOrWhiteSpace(guildIdInput))">
-                        @Loc["guildAdmin.loadButton"]
-                    </FluentButton>
+            <FluentCard Class="guild-panel guild-admin-lookup-panel">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <div>
+                        <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.lookup.title"]</FluentLabel>
+                        <FluentLabel>@Loc["guildAdmin.lookup.body"]</FluentLabel>
+                    </div>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextField
+                            Id="guild-admin-guild-id"
+                            Label="@Loc["guildAdmin.guildIdLabel"]"
+                            Value="@guildIdInput"
+                            ValueChanged="@(v => guildIdInput = v)"
+                            Disabled="@(loading || saving)"
+                            Style="max-width:260px" />
+                        <FluentButton
+                            Type="ButtonType.Button"
+                            Appearance="Appearance.Accent"
+                            OnClick="@LoadGuildAsync"
+                            Disabled="@(loading || saving || string.IsNullOrWhiteSpace(guildIdInput))">
+                            @Loc["guildAdmin.loadButton"]
+                        </FluentButton>
+                    </FluentStack>
                 </FluentStack>
             </FluentCard>
 
@@ -48,9 +54,10 @@
 
             @if (guildData is { Guild: not null } && loadedGuildId is not null)
             {
-                <FluentCard>
+                <FluentCard Class="guild-panel guild-summary-panel">
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                        <FluentLabel Typo="Typography.H4">@guildData.Guild.Name</FluentLabel>
+                        <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.summary.title"]</FluentLabel>
+                        <FluentLabel Typo="Typography.H5">@guildData.Guild.Name</FluentLabel>
                         @if (!string.IsNullOrEmpty(guildData.Guild.Slogan))
                         {
                             <FluentLabel>@guildData.Guild.Slogan</FluentLabel>
@@ -81,7 +88,7 @@
                     </FluentStack>
                 </FluentCard>
 
-                <FluentCard>
+                <FluentCard Class="guild-panel guild-settings-panel">
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                         <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.overrideSettings"]</FluentLabel>
 
