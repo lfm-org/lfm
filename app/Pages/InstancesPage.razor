@@ -22,7 +22,7 @@
     case LoadingState<IReadOnlyList<InstanceDto>>.Success s:
       <FluentCard Class="instances-summary">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
-          <FluentLabel Typo="Typography.H4">@Loc["instances.summary.count", s.Value.Count]</FluentLabel>
+          <FluentLabel Typo="Typography.H4">@InstanceCountText(s.Value.Count)</FluentLabel>
           <FluentLabel>@Loc["instances.summary.body"]</FluentLabel>
         </FluentStack>
       </FluentCard>
@@ -52,6 +52,9 @@
 
 @code {
     private LoadingState<IReadOnlyList<InstanceDto>> state = new LoadingState<IReadOnlyList<InstanceDto>>.Idle();
+
+    private string InstanceCountText(int count) =>
+        Loc[count == 1 ? "instances.summary.count.one" : "instances.summary.count.other", count].Value;
 
     protected override async Task OnInitializedAsync()
     {
