@@ -129,6 +129,7 @@ public class GuildPagesTests : ComponentTestBase
             Assert.Contains(Loc("guild.chip.rankSyncFresh"), cut.Markup);
             Assert.Contains(Loc("guild.chip.members", 120), cut.Markup);
             Assert.Contains(Loc("guild.chip.ranksDetected", 10), cut.Markup);
+            Assert.Equal(5, cut.FindAll(".status-chip").Count);
             Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup);
         });
     }
@@ -352,6 +353,7 @@ public class GuildPagesTests : ComponentTestBase
             Assert.Contains(Loc("guild.chip.rankSyncFresh"), cut.Markup);
             Assert.Contains(Loc("guild.chip.members", 120), cut.Markup);
             Assert.Contains(Loc("guild.chip.ranksDetected", 10), cut.Markup);
+            Assert.Equal(4, cut.FindAll(".status-chip").Count);
         });
     }
 

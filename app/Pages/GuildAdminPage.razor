@@ -1,4 +1,5 @@
 @page "/guild/admin"
+@using Lfm.App.Components
 @using Lfm.App.Services
 @using Lfm.App.Components.Guild
 @using Lfm.Contracts.Guild
@@ -243,9 +244,7 @@ else if (showLoadConfirmation)
 
     private static RenderFragment StatusChip(string label) => __builder =>
     {
-        <span style="display:inline-flex;align-items:center;border:1px solid var(--neutral-stroke-rest);border-radius:999px;padding:2px 10px;min-height:28px">
-            @label
-        </span>
+        <Lfm.App.Components.StatusChip Label="@label" />
     };
 
     private void HandlePermissionChange((int Rank, string Field, bool Checked) args)
