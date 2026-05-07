@@ -20,7 +20,7 @@
             <span class="run-list-item__date">@RunDateFormatter.FormatDisplay(Run.StartTime)</span>
         @if (_isMe)
         {
-            <span class="run-list-item__badge"
+            <span class="run-list-item__badge run-list-item__badge--@_currentUserAttendanceClass"
                   aria-label="@Loc["runs.signedUpAria"]"
                   title="@Loc["runs.signedUpAria"]">&#9733;</span>
         }
@@ -49,6 +49,7 @@
     private string _difficultyClass = "unknown";
     private string _kindClass = "unknown";
     private string _isCurrentUserClass = "false";
+    private string _currentUserAttendanceClass = "unknown";
     private bool _isMe;
     private RunRoleCounts _counts;
     private string _title = "";
@@ -59,8 +60,10 @@
     {
         _difficultyClass = RunVisualization.GetDifficultyClass(Run.Difficulty);
         _kindClass = RunVisualization.GetKindClass(RunVisualization.GetKind(Run.Size));
-        _isMe = RunVisualization.IsCurrentUserSignedUp(Run.RunCharacters);
+        var currentUserSignup = Run.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
+        _isMe = currentUserSignup is not null;
         _isCurrentUserClass = _isMe ? "true" : "false";
+        _currentUserAttendanceClass = RunVisualization.GetAttendanceClass(currentUserSignup?.ReviewedAttendance);
         _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.Size);
         // Mythic+ "any dungeon" runs carry no InstanceName; fall back to a
         // localized label so the list entry isn't missing a heading.
