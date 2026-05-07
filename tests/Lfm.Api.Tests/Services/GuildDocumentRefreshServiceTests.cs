@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using System.Net;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Api.Services.Blizzard.Models;
@@ -116,6 +117,60 @@ public class GuildDocumentRefreshServiceTests
         Assert.False(result.RefreshAttempted);
         Assert.True(result.UsedCachedFallback);
         Assert.Equal(GuildRefreshFailure.MissingAccessToken, result.Failure);
+    }
+
+    [Fact]
+    public async Task BootstrapForAdminAsync_Refreshes_From_Raider_Character_Context()
+    {
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo
+            .Setup(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDocument doc, CancellationToken _) => doc with { ETag = "\"boot-etag\"" });
+        var blizzard = BlizzardReturning();
+        var service = new GuildDocumentRefreshService(guildRepo.Object, blizzard.Object);
+
+        var result = await service.BootstrapForAdminAsync(
+            "12345",
+            AccessToken,
+            [MakeRaiderDoc()],
+            CancellationToken.None);
+
+        Assert.NotNull(result.Guild);
+        Assert.True(result.RefreshAttempted);
+        Assert.False(result.UsedCachedFallback);
+        Assert.Null(result.Failure);
+        Assert.Equal("\"boot-etag\"", result.Guild!.ETag);
+        Assert.True(GuildRosterMatcher.IsFresh(result.Guild.BlizzardRosterFetchedAt));
+        guildRepo.Verify(r => r.UpsertAsync(
+            It.Is<GuildDocument>(d => d.Id == "12345" && d.BlizzardRosterRaw!.Members!.Single().Rank == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshExistingAsync_Returns_Cached_Fallback_When_Blizzard_Fails()
+    {
+        var stale = MakeGuildDoc() with
+        {
+            BlizzardProfileRaw = new StoredGuildProfile(
+                "Raiders United",
+                new StoredGuildProfileRealm("silvermoon", "Silvermoon")),
+        };
+        var guildRepo = new Mock<IGuildRepository>(MockBehavior.Strict);
+        var blizzard = new Mock<IBlizzardProfileClient>();
+        blizzard
+            .Setup(b => b.GetGuildProfileAsync("silvermoon", "raiders-united", AccessToken, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("upstream down", null, HttpStatusCode.BadGateway));
+        blizzard
+            .Setup(b => b.GetGuildRosterAsync("silvermoon", "raiders-united", AccessToken, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("upstream down", null, HttpStatusCode.BadGateway));
+        var service = new GuildDocumentRefreshService(guildRepo.Object, blizzard.Object);
+
+        var result = await service.RefreshExistingAsync(stale, AccessToken, CancellationToken.None);
+
+        Assert.Same(stale, result.Guild);
+        Assert.True(result.RefreshAttempted);
+        Assert.True(result.UsedCachedFallback);
+        Assert.Equal(GuildRefreshFailure.BlizzardUnavailable, result.Failure);
     }
 
     private static RaiderDocument MakeRaiderDoc() =>

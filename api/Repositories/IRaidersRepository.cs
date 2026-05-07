@@ -150,6 +150,13 @@ public interface IRaidersRepository
     Task DeleteAsync(string battleNetId, CancellationToken ct);
 
     /// <summary>
+    /// Returns all raider documents. Used only by site-admin guild bootstrap
+    /// to recover a missing guild document by finding a stored character with
+    /// the requested guild id.
+    /// </summary>
+    Task<IReadOnlyList<RaiderDocument>> ListAsync(CancellationToken ct);
+
+    /// <summary>
     /// Returns all raider documents where lastSeenAt is older than the given cutoff,
     /// or where lastSeenAt is not defined. These are candidates for cleanup.
     /// Mirrors the query in raider-cleanup.ts:
