@@ -233,6 +233,69 @@ public class RunSignupServiceTests
     }
 
     [Fact]
+    public async Task SignupAsync_NewSignup_UsesDesiredAttendanceAsReviewedAttendance()
+    {
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun());
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-1", desiredAttendance: "BENCH"),
+            MakePrincipal("bnet-user"),
+            CancellationToken.None);
+
+        var ok = Assert.IsType<RunOperationResult.Ok>(result);
+        var entry = Assert.Single(ok.Run.RunCharacters);
+        Assert.Equal("BENCH", entry.DesiredAttendance);
+        Assert.Equal("BENCH", entry.ReviewedAttendance);
+    }
+
+    [Fact]
+    public async Task SignupAsync_ExistingUnreviewedSignup_TracksDesiredAttendanceChange()
+    {
+        var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();
+        var existingEntry = new RunCharacterEntry(
+            Id: "entry-1",
+            CharacterId: "char-1",
+            CharacterName: "Testchar",
+            CharacterRealm: "silvermoon",
+            CharacterLevel: 80,
+            CharacterClassId: 1,
+            CharacterClassName: "Warrior",
+            CharacterRaceId: 0,
+            CharacterRaceName: "",
+            RaiderBattleNetId: "bnet-user",
+            DesiredAttendance: "IN",
+            ReviewedAttendance: "IN",
+            SpecId: null,
+            SpecName: null,
+            Role: null);
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeRaider("bnet-user", characterId: "char-1"));
+        runsRepo.Setup(r => r.GetByIdAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeOpenRun(runCharacters: [existingEntry]));
+        runsRepo.Setup(r => r.UpdateAsync(It.IsAny<RunDocument>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RunDocument doc, string? _, CancellationToken _) => doc);
+
+        var result = await sut.SignupAsync(
+            "run-1",
+            MakeBody(characterId: "char-1", desiredAttendance: "BENCH"),
+            MakePrincipal("bnet-user"),
+            CancellationToken.None);
+
+        var ok = Assert.IsType<RunOperationResult.Ok>(result);
+        var entry = Assert.Single(ok.Run.RunCharacters);
+        Assert.Equal("entry-1", entry.Id);
+        Assert.Equal("BENCH", entry.DesiredAttendance);
+        Assert.Equal("BENCH", entry.ReviewedAttendance);
+    }
+
+    [Fact]
     public async Task SignupAsync_UsesAccountProfileDisplayNameForRunEntry()
     {
         var (runsRepo, raidersRepo, _, _, _, sut) = MakeSut();

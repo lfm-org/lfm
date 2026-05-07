@@ -28,8 +28,8 @@ namespace Lfm.Api.Functions;
 /// HTTP-shaped boundary (status code, idempotency, traceparent).
 ///
 /// Run-signup policy itself (raider lookup, character ownership, run load,
-/// editability + GUILD-permission gates, rejection-list IN→OUT flip,
-/// concurrency retry loop) lives in <see cref="RunSignupService"/>.
+/// editability + GUILD-permission gates, rejection-list reviewed-attendance
+/// flip, concurrency retry loop) lives in <see cref="RunSignupService"/>.
 ///
 /// Mirrors <c>handler</c> in <c>functions/src/functions/runs-signup.ts</c>.
 /// </summary>

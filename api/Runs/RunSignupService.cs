@@ -145,18 +145,18 @@ public sealed class RunSignupService(
                 ? run.RunCharacters[existingIndex].Id
                 : Guid.NewGuid().ToString();
 
-            // ReviewedAttendance defaults to "IN" for a brand-new signup. For an
-            // edit (existing entry present), the prior value is preserved so the
-            // run owner's review decision survives a self-edit. For a re-signup
-            // *after* a previous rejection (entry was removed by cancel, but the
-            // raider sits in the run's rejection list), the default flips to
-            // "OUT" to close the cancel-then-resignup bypass.
+            // ReviewedAttendance follows the signup's desired attendance until a
+            // separate review decision exists. For a re-signup *after* a previous
+            // rejection (entry was removed by cancel, but the raider sits in the
+            // run's rejection list), the default flips to "OUT" to close the
+            // cancel-then-resignup bypass.
             var rejected = run.RejectedRaiderBattleNetIds ?? [];
+            var desiredAttendance = body.DesiredAttendance!;
             var reviewedAttendance = existingIndex >= 0
-                ? run.RunCharacters[existingIndex].ReviewedAttendance
+                ? ResolveReviewedAttendanceForExistingSignup(run.RunCharacters[existingIndex], desiredAttendance)
                 : rejected.Contains(principal.BattleNetId, StringComparer.Ordinal)
                     ? "OUT"
-                    : "IN";
+                    : desiredAttendance;
 
             var entry = new RunCharacterEntry(
                 Id: entryId,
@@ -170,7 +170,7 @@ public sealed class RunSignupService(
                 CharacterRaceId: 0,
                 CharacterRaceName: "",
                 RaiderBattleNetId: principal.BattleNetId,
-                DesiredAttendance: body.DesiredAttendance!,
+                DesiredAttendance: desiredAttendance,
                 ReviewedAttendance: reviewedAttendance,
                 SpecId: specId,
                 SpecName: specName,
@@ -226,4 +226,11 @@ public sealed class RunSignupService(
 
         return storedCharacter.Name;
     }
+
+    private static string ResolveReviewedAttendanceForExistingSignup(
+        RunCharacterEntry existing,
+        string desiredAttendance) =>
+        string.Equals(existing.ReviewedAttendance, existing.DesiredAttendance, StringComparison.Ordinal)
+            ? desiredAttendance
+            : existing.ReviewedAttendance;
 }

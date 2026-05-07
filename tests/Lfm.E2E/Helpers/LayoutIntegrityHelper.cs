@@ -10,9 +10,9 @@ using Xunit.Sdk;
 namespace Lfm.E2E.Helpers;
 
 /// <summary>
-/// Browser-computed layout checks for overlap and reflow regressions that axe
-/// cannot detect. The detector intentionally checks user-facing and semantic
-/// surfaces, not every internal node in a component tree.
+/// Browser-computed layout checks for overlap, reflow, and spacing regressions
+/// that axe cannot detect. The detector intentionally checks user-facing and
+/// semantic surfaces, not every internal node in a component tree.
 /// </summary>
 public static class LayoutIntegrityHelper
 {
@@ -48,29 +48,67 @@ public static class LayoutIntegrityHelper
             }
 
             var first = issue.First;
+            if (issue.Kind == "negative-margin")
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture,
+                    $"- negative margin: {issue.Details}");
+                AppendElement(builder, "  element:", first);
+                continue;
+            }
+
+            if (issue.Kind == "insufficient-padding")
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture,
+                    $"- insufficient padding: {issue.Details}");
+                AppendElement(builder, "  element:", first);
+                continue;
+            }
+
+            if (issue.Kind == "content-collapsing-padding")
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture,
+                    $"- padding consumes visible box: {issue.Details}");
+                AppendElement(builder, "  element:", first);
+                continue;
+            }
+
             var second = issue.Second;
             if (first is null || second is null)
                 continue;
 
             builder.AppendLine(CultureInfo.InvariantCulture,
                 $"- overlap {issue.Area:0.#}px2 at ({issue.SampleX:0.#}, {issue.SampleY:0.#}); top hit: {issue.TopHit}");
-            builder.AppendLine(CultureInfo.InvariantCulture,
-                $"  first:  {first.Selector} \"{first.Text}\" {Format(first.Rect)} position={first.Position} z-index={first.ZIndex}");
-            builder.AppendLine(CultureInfo.InvariantCulture,
-                $"  second: {second.Selector} \"{second.Text}\" {Format(second.Rect)} position={second.Position} z-index={second.ZIndex}");
+            AppendElement(builder, "  first: ", first);
+            AppendElement(builder, "  second:", second);
         }
 
         return builder.ToString();
+    }
+
+    private static void AppendElement(StringBuilder builder, string label, LayoutElement? element)
+    {
+        if (element is null)
+            return;
+
+        builder.AppendLine(CultureInfo.InvariantCulture,
+            $"{label} {element.Selector} \"{element.Text}\" {Format(element.Rect)} position={element.Position} z-index={element.ZIndex} {Format(element.Spacing)}");
     }
 
     private static string Format(LayoutRect rect)
         => string.Create(CultureInfo.InvariantCulture,
             $"x={rect.X:0.#}, y={rect.Y:0.#}, w={rect.Width:0.#}, h={rect.Height:0.#}");
 
+    private static string Format(LayoutSpacing spacing)
+        => string.Create(CultureInfo.InvariantCulture,
+            $"margin={spacing.Margin.Top:0.#}/{spacing.Margin.Right:0.#}/{spacing.Margin.Bottom:0.#}/{spacing.Margin.Left:0.#} " +
+            $"padding={spacing.Padding.Top:0.#}/{spacing.Padding.Right:0.#}/{spacing.Padding.Bottom:0.#}/{spacing.Padding.Left:0.#}");
+
     private const string AuditScript =
         """
         () => {
           const overlapTolerance = 2;
+          const spacingTolerance = 2;
+          const minimumNativeControlPadding = 1;
           const issues = [];
           const selector = [
             'a[href]',
@@ -139,6 +177,10 @@ public static class LayoutIntegrityHelper
             .map((el, index) => toCandidate(el, index))
             .filter(Boolean);
 
+          for (const candidate of candidates) {
+            pushSpacingIssues(candidate);
+          }
+
           for (let i = 0; i < candidates.length; i += 1) {
             for (let j = i + 1; j < candidates.length; j += 1) {
               const first = candidates[i];
@@ -204,6 +246,22 @@ public static class LayoutIntegrityHelper
               text: textOf(el),
               position: style.position,
               zIndex: style.zIndex,
+              nativeTextControl: isNativeTextControl(el),
+              hasElementChildren: el.children.length > 0,
+              spacing: {
+                margin: {
+                  top: px(style.marginTop),
+                  right: px(style.marginRight),
+                  bottom: px(style.marginBottom),
+                  left: px(style.marginLeft)
+                },
+                padding: {
+                  top: px(style.paddingTop),
+                  right: px(style.paddingRight),
+                  bottom: px(style.paddingBottom),
+                  left: px(style.paddingLeft)
+                }
+              },
               rect: {
                 x: rect.x,
                 y: rect.y,
@@ -211,6 +269,70 @@ public static class LayoutIntegrityHelper
                 height: rect.height
               }
             };
+          }
+
+          function pushSpacingIssues(candidate) {
+            const negativeMargins = sides(candidate.spacing.margin)
+              .filter(side => side.value < -spacingTolerance);
+            if (negativeMargins.length > 0) {
+              outline(candidate.el, '#ff8c00');
+              issues.push({
+                kind: 'negative-margin',
+                area: 0,
+                sampleX: candidate.rect.x,
+                sampleY: candidate.rect.y,
+                topHit: candidate.selector,
+                details: negativeMargins
+                  .map(side => side.name + ' ' + formatPx(side.value))
+                  .join(', '),
+                first: serializable(candidate),
+                second: null
+              });
+            }
+
+            const padding = candidate.spacing.padding;
+            const horizontalContent = candidate.rect.width - padding.left - padding.right;
+            const verticalContent = candidate.rect.height - padding.top - padding.bottom;
+            const collapsedAxes = [];
+            if (horizontalContent <= spacingTolerance) {
+              collapsedAxes.push('inline content ' + formatPx(horizontalContent));
+            }
+            if (verticalContent <= spacingTolerance) {
+              collapsedAxes.push('block content ' + formatPx(verticalContent));
+            }
+            if (collapsedAxes.length > 0) {
+              outline(candidate.el, '#8e562e');
+              issues.push({
+                kind: 'content-collapsing-padding',
+                area: 0,
+                sampleX: candidate.rect.x,
+                sampleY: candidate.rect.y,
+                topHit: candidate.selector,
+                details: collapsedAxes.join(', '),
+                first: serializable(candidate),
+                second: null
+              });
+            }
+
+            if (candidate.nativeTextControl && !candidate.hasElementChildren && candidate.text.length > 0) {
+              const tightPadding = sides(padding)
+                .filter(side => side.value < minimumNativeControlPadding);
+              if (tightPadding.length > 0) {
+                outline(candidate.el, '#c19c00');
+                issues.push({
+                  kind: 'insufficient-padding',
+                  area: 0,
+                  sampleX: candidate.rect.x,
+                  sampleY: candidate.rect.y,
+                  topHit: candidate.selector,
+                  details: tightPadding
+                    .map(side => side.name + ' ' + formatPx(side.value))
+                    .join(', '),
+                  first: serializable(candidate),
+                  second: null
+                });
+              }
+            }
           }
 
           function intersect(a, b) {
@@ -262,6 +384,32 @@ public static class LayoutIntegrityHelper
             return null;
           }
 
+          function isNativeTextControl(el) {
+            const tag = el.tagName.toLowerCase();
+            return tag === 'button' ||
+              tag === 'select' ||
+              tag === 'textarea' ||
+              (tag === 'input' && (el.getAttribute('type') || 'text').toLowerCase() !== 'hidden');
+          }
+
+          function sides(values) {
+            return [
+              { name: 'top', value: values.top },
+              { name: 'right', value: values.right },
+              { name: 'bottom', value: values.bottom },
+              { name: 'left', value: values.left }
+            ];
+          }
+
+          function px(value) {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+          }
+
+          function formatPx(value) {
+            return Math.round(value * 10) / 10 + 'px';
+          }
+
           function describe(el) {
             if (el.id) {
               return '#' + CSS.escape(el.id);
@@ -310,6 +458,7 @@ public static class LayoutIntegrityHelper
               text: candidate.text,
               position: candidate.position,
               zIndex: candidate.zIndex,
+              spacing: candidate.spacing,
               rect: candidate.rect
             };
           }
@@ -332,6 +481,7 @@ public static class LayoutIntegrityHelper
         public double SampleX { get; set; }
         public double SampleY { get; set; }
         public string TopHit { get; set; } = string.Empty;
+        public string Details { get; set; } = string.Empty;
         public LayoutElement? First { get; set; }
         public LayoutElement? Second { get; set; }
     }
@@ -342,6 +492,7 @@ public static class LayoutIntegrityHelper
         public string Text { get; set; } = string.Empty;
         public string Position { get; set; } = string.Empty;
         public string ZIndex { get; set; } = string.Empty;
+        public LayoutSpacing Spacing { get; set; } = new();
         public LayoutRect Rect { get; set; } = new();
     }
 
@@ -351,5 +502,19 @@ public static class LayoutIntegrityHelper
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+    }
+
+    private sealed class LayoutSpacing
+    {
+        public LayoutBoxEdges Margin { get; set; } = new();
+        public LayoutBoxEdges Padding { get; set; } = new();
+    }
+
+    private sealed class LayoutBoxEdges
+    {
+        public double Top { get; set; }
+        public double Right { get; set; }
+        public double Bottom { get; set; }
+        public double Left { get; set; }
     }
 }

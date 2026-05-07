@@ -68,7 +68,7 @@ public sealed record RunDocument(
     // Server-only set of battleNetIds the run owner has rejected. When a
     // raider in this list signs up (or re-signs up after a cancel), the
     // signup handler defaults their ReviewedAttendance to "OUT" instead of
-    // "IN" to defend against the cancel-then-resignup bypass.
+    // the requested attendance to defend against the cancel-then-resignup bypass.
     // Empty by default; never projected to wire DTOs.
     IReadOnlyList<string>? RejectedRaiderBattleNetIds = null,
     [property: System.Text.Json.Serialization.JsonPropertyName("_etag")] string? ETag = null);

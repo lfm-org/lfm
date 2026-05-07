@@ -108,5 +108,60 @@ public sealed class LayoutIntegrityHelperSpec(ITestOutputHelper output) : IAsync
         Assert.Contains("horizontal overflow", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task AssertNoOverlapsAsync_Fails_WhenVisibleElementUsesNegativeMargin()
+    {
+        await Page.SetContentAsync(
+            """
+            <main>
+              <button id="first" style="display:block;width:160px;height:44px;margin-bottom:16px">First</button>
+              <button id="second" style="display:block;width:160px;height:44px;margin-top:-8px">Second</button>
+            </main>
+            """);
+
+        var ex = await Assert.ThrowsAsync<XunitException>(
+            () => LayoutIntegrityHelper.AssertNoOverlapsAsync(Page, output, "synthetic spacing"));
+
+        Assert.Contains("negative margin", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#second", ex.Message);
+    }
+
+    [Fact]
+    public async Task AssertNoOverlapsAsync_Fails_WhenInteractiveTextHasNoPadding()
+    {
+        await Page.SetContentAsync(
+            """
+            <main>
+              <button id="tight" style="padding:0;border:1px solid black;background:white">Tight</button>
+            </main>
+            """);
+
+        var ex = await Assert.ThrowsAsync<XunitException>(
+            () => LayoutIntegrityHelper.AssertNoOverlapsAsync(Page, output, "synthetic spacing"));
+
+        Assert.Contains("insufficient padding", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#tight", ex.Message);
+    }
+
+    [Fact]
+    public async Task AssertNoOverlapsAsync_Fails_WhenPaddingConsumesVisibleBox()
+    {
+        await Page.SetContentAsync(
+            """
+            <main>
+              <button id="padded"
+                      style="box-sizing:border-box;width:48px;height:48px;padding:28px;border:0;overflow:hidden">
+                Padded
+              </button>
+            </main>
+            """);
+
+        var ex = await Assert.ThrowsAsync<XunitException>(
+            () => LayoutIntegrityHelper.AssertNoOverlapsAsync(Page, output, "synthetic spacing"));
+
+        Assert.Contains("padding consumes", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#padded", ex.Message);
+    }
+
     private IPage Page => _page ?? throw new InvalidOperationException("Page has not been initialized.");
 }
