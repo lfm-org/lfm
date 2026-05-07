@@ -6,13 +6,45 @@ using Lfm.Contracts.Guild;
 
 namespace Lfm.App.Services;
 
-public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
+public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient, IDisposable
 {
+    private static readonly TimeSpan CurrentGuildCacheTtl = TimeSpan.FromMinutes(10);
+    private const int MaxAdminEtags = 32;
+
     private string? _etag;
-    private readonly Dictionary<string, string?> _adminEtags = new(StringComparer.Ordinal);
+    private GuildDto? _currentGuild;
+    private DateTimeOffset _currentGuildExpiresAt;
+    private bool _hasCurrentGuild;
+    private readonly IDataCache? _dataCache;
+    private readonly Dictionary<string, AdminEtagEntry> _adminEtags = new(StringComparer.Ordinal);
+    private TimeProvider _timeProvider = TimeProvider.System;
+    private long _adminEtagSequence;
+
+    public GuildClient(IHttpClientFactory factory, IDataCache dataCache)
+        : this(factory, dataCache, TimeProvider.System)
+    {
+    }
+
+    public GuildClient(IHttpClientFactory factory, TimeProvider timeProvider)
+        : this(factory)
+    {
+        _timeProvider = timeProvider;
+    }
+
+    public GuildClient(IHttpClientFactory factory, IDataCache dataCache, TimeProvider timeProvider)
+        : this(factory, timeProvider)
+    {
+        _dataCache = dataCache;
+        _dataCache.OnInvalidated += HandleCacheInvalidated;
+    }
 
     public async Task<GuildDto?> GetAsync(CancellationToken ct)
     {
+        if (_hasCurrentGuild && _currentGuildExpiresAt > _timeProvider.GetUtcNow())
+            return _currentGuild;
+
+        ClearCurrentGuild();
+
         var http = factory.CreateClient("api");
         try
         {
@@ -22,6 +54,10 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
 
             var guild = await response.Content.ReadFromJsonAsync<GuildDto>(ct);
             _etag = guild is null ? null : HttpEtag.Read(response);
+            if (guild is not null)
+            {
+                StoreCurrentGuild(guild);
+            }
             return guild;
         }
         catch (HttpRequestException)
@@ -49,6 +85,10 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
 
         var guild = await response.Content.ReadFromJsonAsync<GuildDto>(ct);
         _etag = guild is null ? null : HttpEtag.Read(response);
+        if (guild is null)
+            ClearCurrentGuild();
+        else
+            StoreCurrentGuild(guild);
         return guild;
     }
 
@@ -62,7 +102,7 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
                 return null;
 
             var guild = await response.Content.ReadFromJsonAsync<GuildDto>(ct);
-            _adminEtags[guildId] = guild is null ? null : HttpEtag.Read(response);
+            StoreAdminEtag(guildId, guild is null ? null : HttpEtag.Read(response));
             return guild;
         }
         catch (HttpRequestException)
@@ -79,8 +119,8 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
         {
             Content = JsonContent.Create(request),
         };
-        if (_adminEtags.TryGetValue(guildId, out var etag) && !string.IsNullOrWhiteSpace(etag))
-            patch.Headers.TryAddWithoutValidation("If-Match", etag);
+        if (_adminEtags.TryGetValue(guildId, out var etag) && !string.IsNullOrWhiteSpace(etag.Value))
+            patch.Headers.TryAddWithoutValidation("If-Match", etag.Value);
 
         var response = await http.SendAsync(patch, ct);
         if (!response.IsSuccessStatusCode)
@@ -89,10 +129,62 @@ public sealed class GuildClient(IHttpClientFactory factory) : IGuildClient
         }
 
         var guild = await response.Content.ReadFromJsonAsync<GuildDto>(ct);
-        _adminEtags[guildId] = guild is null ? null : HttpEtag.Read(response);
+        StoreAdminEtag(guildId, guild is null ? null : HttpEtag.Read(response));
         return guild;
     }
 
     private static string AdminPath(string guildId) =>
         $"api/v1/guild/admin?guildId={Uri.EscapeDataString(guildId)}";
+
+    private void StoreCurrentGuild(GuildDto guild)
+    {
+        _currentGuild = guild;
+        _currentGuildExpiresAt = _timeProvider.GetUtcNow().Add(CurrentGuildCacheTtl);
+        _hasCurrentGuild = true;
+    }
+
+    private void ClearCurrentGuild()
+    {
+        _etag = null;
+        _currentGuild = null;
+        _currentGuildExpiresAt = default;
+        _hasCurrentGuild = false;
+    }
+
+    private void StoreAdminEtag(string guildId, string? etag)
+    {
+        if (string.IsNullOrWhiteSpace(etag))
+        {
+            _adminEtags.Remove(guildId);
+            return;
+        }
+
+        _adminEtags[guildId] = new AdminEtagEntry(etag, ++_adminEtagSequence);
+        TrimAdminEtags();
+    }
+
+    private void TrimAdminEtags()
+    {
+        while (_adminEtags.Count > MaxAdminEtags)
+        {
+            var oldest = _adminEtags.MinBy(pair => pair.Value.Sequence).Key;
+            _adminEtags.Remove(oldest);
+        }
+    }
+
+    private void HandleCacheInvalidated(string key)
+    {
+        if (key != DataCacheKeys.Guild)
+            return;
+
+        ClearCurrentGuild();
+    }
+
+    public void Dispose()
+    {
+        if (_dataCache is not null)
+            _dataCache.OnInvalidated -= HandleCacheInvalidated;
+    }
+
+    private sealed record AdminEtagEntry(string Value, long Sequence);
 }

@@ -11,12 +11,21 @@ namespace Lfm.App.Core.Tests.Services;
 
 public class GuildClientTests
 {
-    private static (GuildClient client, StubHttpMessageHandler handler) MakeClient(StubHttpMessageHandler handler)
+    private static (GuildClient client, StubHttpMessageHandler handler) MakeClient(
+        StubHttpMessageHandler handler,
+        IDataCache? cache = null,
+        TimeProvider? timeProvider = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:7071/") };
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient("api")).Returns(http);
-        return (new GuildClient(factory.Object), handler);
+        return ((cache, timeProvider) switch
+        {
+            (null, null) => new GuildClient(factory.Object),
+            (null, { } clock) => new GuildClient(factory.Object, clock),
+            ({ } dataCache, null) => new GuildClient(factory.Object, dataCache),
+            ({ } dataCache, { } clock) => new GuildClient(factory.Object, dataCache, clock),
+        }, handler);
     }
 
     private static GuildDto MakeGuildDto(string? name = "Stormchasers") =>
@@ -57,6 +66,65 @@ public class GuildClientTests
         Assert.Equal("Stormchasers", result!.Guild!.Name);
         Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
         Assert.Equal("/api/v1/guild", handler.LastRequest.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task GetAsync_returns_cached_guild_on_repeated_successful_call()
+    {
+        var responses = new Queue<HttpResponseMessage>();
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers")));
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers Reborn")));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(_ => responses.Dequeue()));
+
+        var first = await client.GetAsync(CancellationToken.None);
+        var second = await client.GetAsync(CancellationToken.None);
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal("Stormchasers", second!.Guild!.Name);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_refetches_after_guild_cache_invalidation()
+    {
+        var responses = new Queue<HttpResponseMessage>();
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers")));
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers Reborn")));
+        var cache = new InMemoryDataCache();
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(_ => responses.Dequeue()), cache);
+
+        var first = await client.GetAsync(CancellationToken.None);
+        cache.Invalidate(DataCacheKeys.Guild);
+        var second = await client.GetAsync(CancellationToken.None);
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal("Stormchasers Reborn", second!.Guild!.Name);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_refetches_only_after_current_guild_cache_ttl_expires()
+    {
+        var responses = new Queue<HttpResponseMessage>();
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers")));
+        responses.Enqueue(StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers Reborn")));
+        var timeProvider = new ManualTimeProvider(new DateTimeOffset(2026, 5, 7, 12, 0, 0, TimeSpan.Zero));
+        var (client, handler) = MakeClient(new StubHttpMessageHandler(_ => responses.Dequeue()), timeProvider: timeProvider);
+
+        var first = await client.GetAsync(CancellationToken.None);
+        timeProvider.Advance(TimeSpan.FromMinutes(2).Add(TimeSpan.FromMilliseconds(1)));
+        var stillCached = await client.GetAsync(CancellationToken.None);
+        timeProvider.Advance(TimeSpan.FromMinutes(8));
+        var refreshed = await client.GetAsync(CancellationToken.None);
+
+        Assert.NotNull(first);
+        Assert.NotNull(stillCached);
+        Assert.NotNull(refreshed);
+        Assert.Equal("Stormchasers", stillCached!.Guild!.Name);
+        Assert.Equal("Stormchasers Reborn", refreshed!.Guild!.Name);
+        Assert.Equal(2, handler.CallCount);
     }
 
     [Fact]
@@ -226,5 +294,43 @@ public class GuildClientTests
 
         Assert.True(requests[1].Headers.TryGetValues("If-Match", out var ifMatch));
         Assert.Equal("\"admin-guild-etag-v1\"", ifMatch!.Single());
+    }
+
+    [Fact]
+    public async Task UpdateAdminAsync_does_not_keep_unbounded_admin_etag_cache()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var (client, _) = MakeClient(new StubHttpMessageHandler(request =>
+        {
+            requests.Add(request);
+            if (request.Method == HttpMethod.Get)
+            {
+                var guildId = request.RequestUri!.Query.Split('=', 2)[1];
+                var response = StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers"));
+                response.Headers.TryAddWithoutValidation("ETag", $"\"admin-guild-etag-{guildId}\"");
+                return response;
+            }
+
+            return StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, MakeGuildDto("Stormchasers"));
+        }));
+        var request = new UpdateGuildRequest("Europe/Helsinki", "fi", "slogan", null);
+
+        for (var i = 1; i <= 33; i++)
+            await client.GetAdminAsync(i.ToString(), CancellationToken.None);
+        await client.UpdateAdminAsync("1", request, CancellationToken.None);
+        await client.UpdateAdminAsync("33", request, CancellationToken.None);
+
+        Assert.False(requests[^2].Headers.TryGetValues("If-Match", out _));
+        Assert.True(requests[^1].Headers.TryGetValues("If-Match", out var ifMatch));
+        Assert.Equal("\"admin-guild-etag-33\"", ifMatch!.Single());
+    }
+
+    private sealed class ManualTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        private DateTimeOffset _utcNow = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan offset) => _utcNow += offset;
     }
 }

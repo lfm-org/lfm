@@ -467,8 +467,10 @@ public class CharactersPagesTests : ComponentTestBase
                     selectedCharacter: new SelectedCharacterSummaryDto("eu-silvermoon-sylvanas", "Sylvanas", null));
                 return true;
             });
+        var dataCache = new Mock<IDataCache>();
         Services.AddSingleton(battleNet.Object);
         Services.AddSingleton(me.Object);
+        Services.AddSingleton(dataCache.Object);
         Services.AddSingleton<IAuthStateRefresher>(new ActionAuthStateRefresher(() =>
             auth.SetClaims(MakeAuthClaims(currentMe))));
 
@@ -487,6 +489,7 @@ public class CharactersPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             me.Verify(m => m.SelectCharacterAsync("eu-silvermoon-sylvanas", It.IsAny<CancellationToken>()), Times.Once);
+            dataCache.Verify(c => c.Invalidate(DataCacheKeys.Guild), Times.Once);
             Assert.Contains("Sylvanas", cut.Find(".account-menu-trigger").TextContent);
         });
     }
