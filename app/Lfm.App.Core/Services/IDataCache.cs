@@ -8,3 +8,8 @@ public interface IDataCache
     void Invalidate(string key);
     event Action<string>? OnInvalidated;
 }
+
+public static class DataCacheKeys
+{
+    public const string Guild = "guild";
+}
