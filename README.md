@@ -187,21 +187,26 @@ These five variables are set in the `dotnet publish` step of `deploy-app.yml`. `
 
 ## API Contract
 
-The source-of-truth OpenAPI 3.1 contract for the API lives at
-[`api/openapi.yaml`](api/openapi.yaml). It is validated on every pull
-request by `OpenApiContractTests` in `tests/Lfm.Api.Tests/Openapi/`,
-which runs inside the existing `verify` CI gate — no separate lint
-workflow, no Node toolchain. The file is intended to be consumed
-directly by both the first-party SPA (type-generated clients) and
-downstream AGPL operators who fork and self-host (machine-readable
-contract without running the server).
+The generated OpenAPI 3.1 snapshot for the API lives at
+[`api/openapi.yaml`](api/openapi.yaml). Regenerate it with
+`dotnet run --project tools/Lfm.OpenApiGenerator`; do not edit the
+snapshot by hand. The generator derives the public `/api/v1` route
+surface from Azure Functions HTTP trigger metadata and component schemas
+from `shared/Lfm.Contracts`.
 
-The API does **not** serve a live schema in production. A future slice
-will adopt `Microsoft.Azure.Functions.Worker.Extensions.OpenApi` in
-development-only mode (gated on `ASPNETCORE_ENVIRONMENT == Development`)
-so handler annotations stay synchronised with `api/openapi.yaml`
-without exposing a Swagger UI or live-schema endpoint to production
-traffic.
+`OpenApiContractTests` in `tests/Lfm.Api.Tests/Openapi/` validate the
+snapshot on every pull request inside the existing `verify` CI gate. The
+tests also compare the checked-in file to generator output and block
+deployment-specific server URLs, so downstream AGPL operators can consume
+the machine-readable contract without inheriting one maintainer's
+deployment hostname as project truth.
+
+The API does **not** serve a live schema in production. The committed
+snapshot uses a relative server root (`/`); `deploy-app-build.yml`
+rewrites `./publish/api/openapi.yaml` with
+`servers[0].url = https://${API_HOSTNAME}` before packaging the deploy
+artifact. Each deployment supplies its own external hostname through
+deployment configuration, not through the upstream FOSS contract.
 
 ### Versioning and the /api/v1/ alias window
 
