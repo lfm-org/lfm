@@ -25,6 +25,8 @@ namespace Lfm.Api.Functions;
 public class GuildAdminFunction(
     IGuildRepository guildRepo,
     ISiteAdminService siteAdmin,
+    IRaidersRepository raidersRepo,
+    IGuildDocumentRefreshService guildRefresh,
     ILogger<GuildAdminFunction>? logger = null)
 {
     private ILogger<GuildAdminFunction> Logger => logger ?? NullLogger<GuildAdminFunction>.Instance;
@@ -61,12 +63,44 @@ public class GuildAdminFunction(
         }
 
         var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
+        GuildRefreshResult refresh;
+
         if (guildDoc is null)
+        {
+            var raiders = await raidersRepo.ListAsync(cancellationToken);
+            refresh = await guildRefresh.BootstrapForAdminAsync(
+                guildId,
+                principal.AccessToken,
+                raiders,
+                cancellationToken);
+        }
+        else
+        {
+            refresh = await guildRefresh.RefreshExistingAsync(
+                guildDoc,
+                principal.AccessToken,
+                cancellationToken);
+        }
+
+        if (refresh.Guild is null)
         {
             if (HttpMethods.IsPatch(req.Method))
                 AuditLog.Emit(Logger, new AuditEvent("guild.admin.update", principal.BattleNetId, guildId, "failure", "not found"));
-            return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
+            return refresh.Failure switch
+            {
+                GuildRefreshFailure.MissingAccessToken => Problem.Unauthorized(
+                    req.HttpContext,
+                    "missing-access-token",
+                    "Battle.net access token is missing. Sign in again and retry."),
+                GuildRefreshFailure.BlizzardUnavailable => Problem.UpstreamFailed(
+                    req.HttpContext,
+                    "blizzard-upstream-failed",
+                    "Failed to refresh guild data from Blizzard."),
+                _ => Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found."),
+            };
         }
+
+        guildDoc = refresh.Guild;
 
         if (HttpMethods.IsPatch(req.Method))
             return await UpdateAsync(req, principal.BattleNetId, guildId, guildDoc, cancellationToken);
