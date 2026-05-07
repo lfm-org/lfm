@@ -81,6 +81,7 @@ public class GuildFunctionTests
         Mock<IGuildRepository>? guildRepo = null,
         Mock<IRaidersRepository>? raidersRepo = null,
         Mock<IGuildPermissions>? permissions = null,
+        Mock<IGuildDocumentRefreshService>? refresh = null,
         TestLogger<GuildFunction>? logger = null)
     {
         // Ensure a freshly-created permissions mock returns a non-null record
@@ -94,10 +95,24 @@ public class GuildFunctionTests
                 .ReturnsAsync(GuildEffectivePermissions.None);
         }
 
+        if (refresh is null)
+        {
+            refresh = new Mock<IGuildDocumentRefreshService>();
+            refresh
+                .Setup(r => r.RefreshForCurrentRaiderAsync(
+                    It.IsAny<RaiderDocument>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<GuildDocument?>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((RaiderDocument _, string? _, GuildDocument? cached, CancellationToken _) =>
+                    new GuildRefreshResult(cached, RefreshAttempted: false, UsedCachedFallback: cached is not null, Failure: null));
+        }
+
         return new GuildFunction(
             (guildRepo ?? new Mock<IGuildRepository>()).Object,
             (raidersRepo ?? new Mock<IRaidersRepository>()).Object,
             permissions.Object,
+            refresh.Object,
             logger ?? new TestLogger<GuildFunction>());
     }
 
@@ -126,7 +141,7 @@ public class GuildFunctionTests
             .ReturnsAsync(GuildEffectivePermissions.None);
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger: logger);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
@@ -276,7 +291,7 @@ public class GuildFunctionTests
             .ReturnsAsync(GuildEffectivePermissions.None);
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger: logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new
         {
@@ -317,7 +332,7 @@ public class GuildFunctionTests
             .ReturnsAsync(false);
 
         var logger = new TestLogger<GuildFunction>();
-        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger: logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" });
 
@@ -366,7 +381,7 @@ public class GuildFunctionTests
         permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GuildEffectivePermissions.None);
 
-        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger: logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new
         {
@@ -466,6 +481,110 @@ public class GuildFunctionTests
     }
 
     [Fact]
+    public async Task GuildGet_Refreshes_Stale_GuildDoc_Before_Mapping()
+    {
+        var principal = MakePrincipal() with { AccessToken = "access-token" };
+        var stale = MakeGuildDoc() with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
+            ETag = "\"stale-etag\"",
+        };
+        var refreshed = stale with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.ToString("O"),
+            ETag = "\"fresh-etag\"",
+        };
+        var raiderDoc = MakeRaiderDoc();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var refresh = new Mock<IGuildDocumentRefreshService>();
+        refresh
+            .Setup(r => r.RefreshForCurrentRaiderAsync(raiderDoc, "access-token", stale, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildRefreshResult(refreshed, RefreshAttempted: true, UsedCachedFallback: false, Failure: null));
+
+        var fn = MakeFunction(guildRepo, raidersRepo, refresh: refresh);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeGetRequest();
+
+        var result = await fn.GuildGet(req, ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.True(dto.Setup.RankDataFresh);
+        Assert.Equal("\"fresh-etag\"", req.HttpContext.Response.Headers.ETag.ToString());
+    }
+
+    [Fact]
+    public async Task GuildGet_Refreshes_When_GuildDoc_Is_Missing()
+    {
+        var principal = MakePrincipal() with { AccessToken = "access-token" };
+        var raiderDoc = MakeRaiderDoc();
+        var refreshed = MakeGuildDoc() with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.ToString("O"),
+            ETag = "\"new-etag\"",
+        };
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDocument?)null);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var refresh = new Mock<IGuildDocumentRefreshService>();
+        refresh
+            .Setup(r => r.RefreshForCurrentRaiderAsync(raiderDoc, "access-token", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildRefreshResult(refreshed, RefreshAttempted: true, UsedCachedFallback: false, Failure: null));
+
+        var fn = MakeFunction(guildRepo, raidersRepo, refresh: refresh);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<GuildDto>(ok.Value);
+    }
+
+    [Fact]
+    public async Task GuildGet_Returns_502_When_No_Cache_And_Blizzard_Fails()
+    {
+        var principal = MakePrincipal() with { AccessToken = "access-token" };
+        var raiderDoc = MakeRaiderDoc();
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("12345", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDocument?)null);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiderDoc);
+
+        var refresh = new Mock<IGuildDocumentRefreshService>();
+        refresh
+            .Setup(r => r.RefreshForCurrentRaiderAsync(raiderDoc, "access-token", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildRefreshResult(null, RefreshAttempted: true, UsedCachedFallback: false, GuildRefreshFailure.BlizzardUnavailable));
+
+        var fn = MakeFunction(guildRepo, raidersRepo, refresh: refresh);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.GuildGet(MakeGetRequest(), ctx, CancellationToken.None);
+
+        var problemResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(502, problemResult.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(problemResult.Value);
+        Assert.Equal("https://github.com/lfm-org/lfm/errors#blizzard-upstream-failed", problem.Type);
+    }
+
+    [Fact]
     public async Task GuildUpdate_uses_ReplaceAsync_when_if_match_is_specific()
     {
         var principal = MakePrincipal();
@@ -523,7 +642,7 @@ public class GuildFunctionTests
         permissions.Setup(p => p.GetEffectivePermissionsAsync(It.IsAny<RaiderDocument>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GuildEffectivePermissions.None);
 
-        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger);
+        var fn = MakeFunction(guildRepo, raidersRepo, permissions, logger: logger);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest(new { timezone = "Europe/London", locale = "en-gb" }, ifMatch: "\"stale\"");
 
