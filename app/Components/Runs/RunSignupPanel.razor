@@ -1,5 +1,6 @@
 @using Lfm.Contracts.Characters
 @using Lfm.Contracts.Runs
+@using Lfm.App.Runs
 @inject IStringLocalizer Loc
 
 <div class="run-signup-panel" aria-labelledby="@HeadingId">
@@ -46,6 +47,8 @@
                          ValueChanged="@OnAttendanceChangedAsync"
                          AriaLabelledBy="@AttendanceLabelId"
                          Disabled="@_signupControlsDisabled"
+                         OptionClass="@SignupAttendanceOptionClass"
+                         OptionStyle="@SignupAttendanceOptionStyle"
                          Class="run-signup-attendance-toggle" />
         </div>
     }
@@ -117,6 +120,8 @@
                              ValueChanged="@OnAttendanceChangedAsync"
                              AriaLabelledBy="@AttendanceLabelId"
                              Disabled="@_signupControlsDisabled"
+                             OptionClass="@SignupAttendanceOptionClass"
+                             OptionStyle="@SignupAttendanceOptionStyle"
                              Class="run-signup-attendance-toggle" />
             </div>
 
@@ -196,6 +201,12 @@
         SignupAttendanceOptions
             .Select(option => (option.Value, Loc[option.LocKey].Value))
             .ToList();
+
+    private static string SignupAttendanceOptionClass(string value) =>
+        $"run-signup-attendance-toggle__option--{RunVisualization.GetAttendanceClass(value)}";
+
+    private static string SignupAttendanceOptionStyle(string value) =>
+        $"--toggle-group-selected-fill: var(--attendance-{RunVisualization.GetAttendanceClass(value)}-color); --toggle-group-selected-foreground: #fff;";
 
     private string SelectedCharacterValue => _selectedCharacterId ?? string.Empty;
 
