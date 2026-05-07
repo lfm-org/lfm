@@ -82,7 +82,7 @@ public sealed class RunFormState
     {
         AllInstances = instances;
         Expansions = expansions;
-        ExpansionId = ResolveCurrentSeasonId(expansions);
+        ExpansionId = ResolveAvailableExpansionId(instances, ResolveCurrentSeasonId(expansions));
         RefreshDifficultyOptions();
     }
 
@@ -185,5 +185,17 @@ public sealed class RunFormState
         var current = expansions.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
         if (current is not null) return current.Id;
         return expansions.Count == 0 ? 0 : expansions.MaxBy(e => e.Id)!.Id;
+    }
+
+    private static int ResolveAvailableExpansionId(IReadOnlyList<InstanceOption> instances, int preferredId)
+    {
+        if (instances.Any(i => i.ExpansionId == preferredId)) return preferredId;
+
+        var fallback = instances
+            .Where(i => i.ExpansionId is not null)
+            .Select(i => i.ExpansionId!.Value)
+            .DefaultIfEmpty(preferredId)
+            .Max();
+        return fallback;
     }
 }

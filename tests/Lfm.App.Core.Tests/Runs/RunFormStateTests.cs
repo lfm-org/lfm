@@ -87,6 +87,35 @@ public class RunFormStateTests
     }
 
     [Fact]
+    public void LoadOptions_falls_back_to_instance_expansion_when_current_season_has_no_matches()
+    {
+        var dungeon = new InstanceOption(
+            InstanceId: 1001,
+            Name: "Current Dungeon",
+            Activity: ActivityKind.Dungeon,
+            ExpansionId: 700,
+            Difficulties: [new DifficultyOption("MYTHIC_KEYSTONE", 5, "M+")]);
+        var raid = new InstanceOption(
+            InstanceId: 1002,
+            Name: "Current Raid",
+            Activity: ActivityKind.Raid,
+            ExpansionId: 700,
+            Difficulties: [new DifficultyOption("HEROIC", 25, "Heroic (25)")]);
+        var state = new RunFormState();
+
+        state.LoadOptions(
+            [dungeon, raid],
+            [new ExpansionDto(700, "Midnight"), new ExpansionDto(999, RunFormState.CurrentSeasonExpansion)]);
+
+        Assert.Equal(700, state.ExpansionId);
+        Assert.Equal(new[] { 1001 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
+
+        state.OnActivityChanged(ActivityKind.Raid);
+
+        Assert.Equal(new[] { 1002 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
+    }
+
+    [Fact]
     public void Visibility_properties_follow_activity_scope_and_instance_selection()
     {
         var state = new RunFormState();
