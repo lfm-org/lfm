@@ -49,7 +49,8 @@
                 aria-checked="@(isSelected ? "true" : "false")"
                 tabindex="@(isSelected ? 0 : -1)"
                 disabled="@Disabled"
-                class="toggle-group__option"
+                class="toggle-group__option @OptionClassFor(opt.Value)"
+                style="@OptionStyleFor(opt.Value)"
                 data-selected="@(isSelected ? "true" : "false")"
                 @ref="_buttonRefs[idx]"
                 @onclick="@(() => SelectAsync(idx))">
@@ -80,6 +81,12 @@
     [Parameter] public bool Disabled { get; set; }
 
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Optional per-option CSS hook for context-specific styling.</summary>
+    [Parameter] public Func<TValue, string?>? OptionClass { get; set; }
+
+    /// <summary>Optional per-option inline CSS custom properties.</summary>
+    [Parameter] public Func<TValue, string?>? OptionStyle { get; set; }
 
     /// <summary>
     /// When true, arrow-key semantics are swapped so that ArrowRight /
@@ -152,6 +159,10 @@
             catch { /* element may not be in the DOM yet on first render */ }
         }
     }
+
+    private string? OptionClassFor(TValue value) => OptionClass?.Invoke(value);
+
+    private string? OptionStyleFor(TValue value) => OptionStyle?.Invoke(value);
 
     private int CurrentIndex()
     {
