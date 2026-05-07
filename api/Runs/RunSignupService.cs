@@ -146,15 +146,21 @@ public sealed class RunSignupService(
                 : Guid.NewGuid().ToString();
 
             // ReviewedAttendance follows the signup's desired attendance until a
-            // separate review decision exists. For a re-signup *after* a previous
+            // rejection-list guard applies. For a re-signup *after* a previous
             // rejection (entry was removed by cancel, but the raider sits in the
             // run's rejection list), the default flips to "OUT" to close the
-            // cancel-then-resignup bypass.
+            // cancel-then-resignup bypass. Existing non-rejected mismatches are
+            // repaired because older signup writes stored DesiredAttendance
+            // correctly but left ReviewedAttendance stuck at "IN".
             var rejected = run.RejectedRaiderBattleNetIds ?? [];
             var desiredAttendance = body.DesiredAttendance!;
+            var rejectedRaider = rejected.Contains(principal.BattleNetId, StringComparer.Ordinal);
             var reviewedAttendance = existingIndex >= 0
-                ? ResolveReviewedAttendanceForExistingSignup(run.RunCharacters[existingIndex], desiredAttendance)
-                : rejected.Contains(principal.BattleNetId, StringComparer.Ordinal)
+                ? ResolveReviewedAttendanceForExistingSignup(
+                    run.RunCharacters[existingIndex],
+                    desiredAttendance,
+                    rejectedRaider)
+                : rejectedRaider
                     ? "OUT"
                     : desiredAttendance;
 
@@ -229,7 +235,9 @@ public sealed class RunSignupService(
 
     private static string ResolveReviewedAttendanceForExistingSignup(
         RunCharacterEntry existing,
-        string desiredAttendance) =>
+        string desiredAttendance,
+        bool rejectedRaider) =>
+        !rejectedRaider ||
         string.Equals(existing.ReviewedAttendance, existing.DesiredAttendance, StringComparison.Ordinal)
             ? desiredAttendance
             : existing.ReviewedAttendance;
