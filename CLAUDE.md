@@ -20,14 +20,15 @@ Hobby project. Prefer free tiers: Cosmos DB free tier, Functions Flex Consumptio
 3. **Branch:** Never implement on `main`/`master`. Before edits, work in `agents/<short-slug>` via `git switch -c`.
 4. **Worktrees:** Use an isolated worktree for implementation tasks. Worktrees live in repo-root `.worktrees/`; use `superpowers:using-git-worktrees` when available, otherwise `git worktree add .worktrees/<slug>`. Never create worktrees as sibling directories in `~/repos/`.
 5. **Size:** Keep changesets small: commits ≤ 5 files / ≤ 250 lines; branches ≤ 30 files / ≤ 900 lines vs `main`. Thresholds guide planning, not design; commit partial finishes and split into subtasks before exceeding them.
-6. **Verify:** Before claiming complete, use `superpowers:verification-before-completion` and run the relevant Verification commands below. Documentation-only changes that cannot affect build output may use targeted documentation verification; state when the full build is intentionally skipped.
-7. **Review:** Non-trivial tasks require `superpowers:requesting-code-review` before merging.
-8. **Merge:** Merge strategy is rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
-9. **Commits:** Commit messages are short and imperative, e.g. `Fix docker`, `Add runs route`.
-10. **PRs:** PR descriptions explain the change, list env/schema changes, and include screenshots for UI work.
-11. **Attribution:** No `Co-Authored-By` trailers. AI usage is acknowledged in `README.md`.
-12. **Guidance:** Document guidance changes in the same task's guidance files.
-13. **Hooks/secrets:** `scripts/pre-commit` blocks `.env`, `.pem`, `.key`, etc.; install via `scripts/pre-commit`. `scripts/pre-push` automates Verification commands; install via `cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push`. Hooks are opt-in; CI gitleaks in `.github/workflows/secrets-scan.yml` is authoritative and is chained into `deploy.yml` via `needs:`.
+6. **Ignore hygiene:** Treat ignored paths as local-only by default. Never use `git add -f`, `git add --force`, or an equivalent forced add on an ignored path unless the user explicitly approves the exact path. Before every commit, run `git -C <repo-root> ls-files -ci --exclude-standard`; output must be empty unless the same task documents a deliberate tracked exception.
+7. **Verify:** Before claiming complete, use `superpowers:verification-before-completion` and run the relevant Verification commands below. Documentation-only changes that cannot affect build output may use targeted documentation verification; state when the full build is intentionally skipped.
+8. **Review:** Non-trivial tasks require `superpowers:requesting-code-review` before merging.
+9. **Merge:** Merge strategy is rebase-and-merge. Use `superpowers:finishing-a-development-branch` to close a branch.
+10. **Commits:** Commit messages are short and imperative, e.g. `Fix docker`, `Add runs route`.
+11. **PRs:** PR descriptions explain the change, list env/schema changes, and include screenshots for UI work.
+12. **Attribution:** No `Co-Authored-By` trailers. AI usage is acknowledged in `README.md`.
+13. **Guidance:** Document guidance changes in the same task's guidance files.
+14. **Hooks/secrets:** `scripts/pre-commit` blocks `.env`, `.pem`, `.key`, etc.; install via `scripts/pre-commit`. `scripts/pre-push` automates Verification commands; install via `cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push`. Hooks are opt-in; CI gitleaks in `.github/workflows/secrets-scan.yml` is authoritative and is chained into `deploy.yml` via `needs:`.
 
 ## Configuration & Secrets
 
@@ -178,4 +179,4 @@ Every property on a `shared/Lfm.Contracts/` record must have a live consumer in 
 
 ## Documentation Separation
 
-`CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, architectural decisions. User-facing content belongs in `README.md` or `docs/user/`. Plans and specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`.
+`CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, architectural decisions. User-facing content belongs in `README.md` or `docs/user/`. The legacy `docs/superpowers/` tree is gitignored local scratch in this repo; do not force-add it. Plans and specs that must be tracked belong in an existing tracked docs area or a task-specific tracked docs path, and the chosen path should be named in the task summary.
