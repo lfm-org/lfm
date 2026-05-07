@@ -4,6 +4,14 @@ html, body {
     color: var(--neutral-foreground-rest);
 }
 
+:root {
+    --attendance-in-color: #1d8049;
+    --attendance-late-color: #a05900;
+    --attendance-bench-color: #6c757d;
+    --attendance-out-color: #c0392b;
+    --attendance-away-color: #ad4400;
+}
+
 /* Scrollbar theming */
 ::-webkit-scrollbar {
     width: 10px;
@@ -398,23 +406,23 @@ fluent-button.footer-language--active::part(control) {
  * out (5.44) already passed and are left alone. See issue #44.
  */
 .attendance-pill--in {
-    background: #1d8049;
+    background: var(--attendance-in-color);
 }
 
 .attendance-pill--late {
-    background: #a05900;
+    background: var(--attendance-late-color);
 }
 
 .attendance-pill--bench {
-    background: #6c757d;
+    background: var(--attendance-bench-color);
 }
 
 .attendance-pill--out {
-    background: #c0392b;
+    background: var(--attendance-out-color);
 }
 
 .attendance-pill--away {
-    background: #ad4400;
+    background: var(--attendance-away-color);
 }
 
 .attendance-pill--unknown {

@@ -1529,6 +1529,30 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_RunListItem_ColorsSignupBadgeFromCurrentUserAttendance()
+    {
+        var client = new Mock<IRunsClient>();
+        var summary = MakeSummary() with
+        {
+            RunCharacters = new List<RunCharacterDto>
+            {
+                MakeCharacter("Aelrin", attendance: "BENCH", isCurrentUser: true),
+            },
+        };
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var badge = cut.Find(".run-list-item__badge");
+            Assert.Contains("run-list-item__badge--bench", badge.ClassName ?? "");
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunListItem_FallsBackToAnyDungeonLabel_WhenInstanceNameIsNull()
     {
         // Mythic+ "any dungeon" runs persist InstanceName as null per the

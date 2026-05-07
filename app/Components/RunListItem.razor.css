@@ -115,10 +115,30 @@
 }
 
 .run-list-item__badge {
-    color: #2ecc71;
+    color: var(--neutral-foreground-hint-rest);
     font-size: 1.05em;
     line-height: 1;
     flex-shrink: 0;
+}
+
+.run-list-item__badge--in {
+    color: var(--attendance-in-color);
+}
+
+.run-list-item__badge--late {
+    color: var(--attendance-late-color);
+}
+
+.run-list-item__badge--bench {
+    color: var(--attendance-bench-color);
+}
+
+.run-list-item__badge--out {
+    color: var(--attendance-out-color);
+}
+
+.run-list-item__badge--away {
+    color: var(--attendance-away-color);
 }
 
 .run-list-item__composition {
