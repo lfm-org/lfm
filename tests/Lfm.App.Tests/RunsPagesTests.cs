@@ -673,6 +673,12 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Equal(Loc("runs.attendance.away"), radios[3].TextContent.Trim());
         Assert.Equal(Loc("runs.attendance.out"), radios[4].TextContent.Trim());
         Assert.Equal("true", radios[0].GetAttribute("aria-checked"));
+        Assert.Contains("run-signup-attendance-toggle__option--in", radios[0].ClassName ?? "");
+        Assert.Contains("run-signup-attendance-toggle__option--late", radios[1].ClassName ?? "");
+        Assert.Contains("run-signup-attendance-toggle__option--bench", radios[2].ClassName ?? "");
+        Assert.Contains("run-signup-attendance-toggle__option--away", radios[3].ClassName ?? "");
+        Assert.Contains("run-signup-attendance-toggle__option--out", radios[4].ClassName ?? "");
+        Assert.Contains("--toggle-group-selected-fill: var(--attendance-in-color)", radios[0].GetAttribute("style") ?? "");
         Assert.Empty(cut.FindAll("#signup-attendance-select"));
     }
 
