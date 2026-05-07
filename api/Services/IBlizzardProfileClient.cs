@@ -64,4 +64,36 @@ public interface IBlizzardProfileClient
     /// <returns>The media summary, or null when the fetch failed for any reason.</returns>
     Task<CharacterMediaSummaryResponse?> GetCharacterMediaAsync(
         string realm, string name, string accessToken, CancellationToken ct);
+
+    /// <summary>
+    /// Fetches a guild profile from the Blizzard Game Data API.
+    /// </summary>
+    /// <param name="realmSlug">The guild realm slug.</param>
+    /// <param name="guildNameSlug">The guild name slug, for example "raiders-united".</param>
+    /// <param name="accessToken">Battle.net OAuth access token from the caller's session.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="HttpRequestException">
+    /// Thrown when the Blizzard API returns a non-success status code.
+    /// </exception>
+    Task<GuildProfileResponse> GetGuildProfileAsync(
+        string realmSlug,
+        string guildNameSlug,
+        string accessToken,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Fetches a guild roster from the Blizzard Game Data API.
+    /// </summary>
+    /// <param name="realmSlug">The guild realm slug.</param>
+    /// <param name="guildNameSlug">The guild name slug, for example "raiders-united".</param>
+    /// <param name="accessToken">Battle.net OAuth access token from the caller's session.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="HttpRequestException">
+    /// Thrown when the Blizzard API returns a non-success status code.
+    /// </exception>
+    Task<GuildRosterResponse> GetGuildRosterAsync(
+        string realmSlug,
+        string guildNameSlug,
+        string accessToken,
+        CancellationToken ct);
 }
