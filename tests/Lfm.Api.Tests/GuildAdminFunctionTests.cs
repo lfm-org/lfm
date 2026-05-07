@@ -73,6 +73,58 @@ public class GuildAdminFunctionTests
         return httpContext.Request;
     }
 
+    private static GuildAdminFunction MakeFunction(
+        Mock<IGuildRepository>? guildRepo = null,
+        Mock<ISiteAdminService>? siteAdmin = null,
+        Mock<IRaidersRepository>? raidersRepo = null,
+        Mock<IGuildDocumentRefreshService>? refresh = null)
+    {
+        if (siteAdmin is null)
+        {
+            siteAdmin = new Mock<ISiteAdminService>();
+            siteAdmin
+                .Setup(s => s.IsAdminAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+        }
+
+        if (raidersRepo is null)
+        {
+            raidersRepo = new Mock<IRaidersRepository>();
+            raidersRepo
+                .Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<RaiderDocument>());
+        }
+
+        if (refresh is null)
+        {
+            refresh = new Mock<IGuildDocumentRefreshService>();
+            refresh
+                .Setup(r => r.RefreshExistingAsync(
+                    It.IsAny<GuildDocument>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((GuildDocument cached, string? _, CancellationToken _) =>
+                    new GuildRefreshResult(cached, RefreshAttempted: false, UsedCachedFallback: false, Failure: null));
+            refresh
+                .Setup(r => r.BootstrapForAdminAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<IReadOnlyList<RaiderDocument>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new GuildRefreshResult(
+                    Guild: null,
+                    RefreshAttempted: false,
+                    UsedCachedFallback: false,
+                    GuildRefreshFailure.MissingGuildContext));
+        }
+
+        return new GuildAdminFunction(
+            (guildRepo ?? new Mock<IGuildRepository>()).Object,
+            siteAdmin.Object,
+            raidersRepo.Object,
+            refresh.Object);
+    }
+
     // ---------------------------------------------------------------------------
     // Test 1: Non-admin caller gets 403
     // ---------------------------------------------------------------------------
@@ -88,7 +140,7 @@ public class GuildAdminFunctionTests
 
         var guildRepo = new Mock<IGuildRepository>();
 
-        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var fn = MakeFunction(guildRepo, siteAdmin);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakeRequest("99"), ctx, CancellationToken.None);
@@ -116,7 +168,7 @@ public class GuildAdminFunctionTests
 
         var guildRepo = new Mock<IGuildRepository>();
 
-        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var fn = MakeFunction(guildRepo, siteAdmin);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakeRequest(null), ctx, CancellationToken.None);
@@ -145,7 +197,7 @@ public class GuildAdminFunctionTests
         guildRepo.Setup(r => r.GetAsync("99", It.IsAny<CancellationToken>()))
             .ReturnsAsync(guildDoc);
 
-        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var fn = MakeFunction(guildRepo, siteAdmin);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakeRequest("99"), ctx, CancellationToken.None);
@@ -178,7 +230,7 @@ public class GuildAdminFunctionTests
         guildRepo.Setup(r => r.GetAsync("nonexistent", It.IsAny<CancellationToken>()))
             .ReturnsAsync((GuildDocument?)null);
 
-        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var fn = MakeFunction(guildRepo, siteAdmin);
         var ctx = MakeFunctionContext(principal);
 
         var result = await fn.Run(MakeRequest("nonexistent"), ctx, CancellationToken.None);
@@ -211,7 +263,7 @@ public class GuildAdminFunctionTests
             .Callback<GuildDocument, string, CancellationToken>((doc, _, _) => captured = doc)
             .ReturnsAsync((GuildDocument doc, string _, CancellationToken _) => doc with { ETag = "\"guild-etag-v2\"" });
 
-        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var fn = MakeFunction(guildRepo, siteAdmin);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest("99", new
         {
@@ -251,7 +303,7 @@ public class GuildAdminFunctionTests
 
         var guildRepo = new Mock<IGuildRepository>();
 
-        var fn = new GuildAdminFunction(guildRepo.Object, siteAdmin.Object);
+        var fn = MakeFunction(guildRepo, siteAdmin);
         var ctx = MakeFunctionContext(principal);
         var req = MakePatchRequest("99", new
         {
@@ -266,6 +318,134 @@ public class GuildAdminFunctionTests
         guildRepo.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         guildRepo.Verify(r => r.ReplaceAsync(It.IsAny<GuildDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         guildRepo.Verify(r => r.UpsertAsync(It.IsAny<GuildDocument>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Returns_Refreshed_Guild_Dto_When_Existing_Admin_Doc_Is_Stale()
+    {
+        var principal = MakePrincipal("admin-1") with { AccessToken = "access-token" };
+        var stale = MakeGuildDoc("99") with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
+            ETag = "\"stale-etag\"",
+        };
+        var refreshed = stale with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.ToString("O"),
+            ETag = "\"fresh-etag\"",
+        };
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("admin-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+
+        var refresh = new Mock<IGuildDocumentRefreshService>();
+        refresh
+            .Setup(r => r.RefreshExistingAsync(stale, "access-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildRefreshResult(refreshed, RefreshAttempted: true, UsedCachedFallback: false, Failure: null));
+
+        var fn = MakeFunction(guildRepo, siteAdmin, refresh: refresh);
+        var ctx = MakeFunctionContext(principal);
+        var req = MakeRequest("99");
+
+        var result = await fn.Run(req, ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.True(dto.Setup.RankDataFresh);
+        Assert.Equal("\"fresh-etag\"", req.HttpContext.Response.Headers.ETag.ToString());
+    }
+
+    [Fact]
+    public async Task Bootstraps_Missing_Guild_Doc_For_SiteAdmin_From_Raiders()
+    {
+        var principal = MakePrincipal("admin-1") with { AccessToken = "access-token" };
+        var bootstrapped = MakeGuildDoc("99") with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.ToString("O"),
+            ETag = "\"boot-etag\"",
+        };
+        var raiders = new List<RaiderDocument>
+        {
+            new(
+                Id: "raider-1",
+                BattleNetId: "raider-1",
+                SelectedCharacterId: "char-1",
+                Locale: null,
+                Characters:
+                [
+                    new StoredSelectedCharacter(
+                        Id: "char-1",
+                        Region: "eu",
+                        Realm: "test-realm",
+                        Name: "Adminchar",
+                        GuildId: 99,
+                        GuildName: "Test Guild"),
+                ]),
+        };
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("admin-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuildDocument?)null);
+
+        var raidersRepo = new Mock<IRaidersRepository>();
+        raidersRepo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(raiders);
+
+        var refresh = new Mock<IGuildDocumentRefreshService>();
+        refresh
+            .Setup(r => r.BootstrapForAdminAsync("99", "access-token", raiders, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildRefreshResult(bootstrapped, RefreshAttempted: true, UsedCachedFallback: false, Failure: null));
+
+        var fn = MakeFunction(guildRepo, siteAdmin, raidersRepo, refresh);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakeRequest("99"), ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<GuildDto>(ok.Value);
+        raidersRepo.Verify(r => r.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Existing_Stale_Admin_Doc_With_Blizzard_Failure_Returns_Cached_Dto()
+    {
+        var principal = MakePrincipal("admin-1") with { AccessToken = "access-token" };
+        var stale = MakeGuildDoc("99") with
+        {
+            BlizzardRosterFetchedAt = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
+            ETag = "\"stale-etag\"",
+        };
+
+        var siteAdmin = new Mock<ISiteAdminService>();
+        siteAdmin.Setup(s => s.IsAdminAsync("admin-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var guildRepo = new Mock<IGuildRepository>();
+        guildRepo.Setup(r => r.GetAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+
+        var refresh = new Mock<IGuildDocumentRefreshService>();
+        refresh
+            .Setup(r => r.RefreshExistingAsync(stale, "access-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuildRefreshResult(stale, RefreshAttempted: true, UsedCachedFallback: true, GuildRefreshFailure.BlizzardUnavailable));
+
+        var fn = MakeFunction(guildRepo, siteAdmin, refresh: refresh);
+        var ctx = MakeFunctionContext(principal);
+
+        var result = await fn.Run(MakeRequest("99"), ctx, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GuildDto>(ok.Value);
+        Assert.False(dto.Setup.RankDataFresh);
     }
 
 }
