@@ -41,6 +41,7 @@ public abstract class ComponentTestBase : BunitContext
 
         Services.AddSingleton<IThemeService, ThemeService>();
 
+        Services.AddSingleton<IDataCache, InMemoryDataCache>();
         Services.AddSingleton<ILocaleService, LocaleService>();
         Services.AddSingleton<IStringLocalizer>(_localizer);
         Services.AddSingleton<IMeClient, DefaultMeClient>();
