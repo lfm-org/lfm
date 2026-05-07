@@ -299,6 +299,41 @@ public class GuildPagesTests : ComponentTestBase
         Assert.DoesNotContain("Svenska", cut.Markup);
     }
 
+    [Fact]
+    public void GuildSettingsEditor_Keeps_Settings_Editable_When_RankSync_Is_Stale()
+    {
+        var saveCount = 0;
+        var cut = Render<GuildSettingsEditor>(parameters => parameters
+            .Add(p => p.Timezone, "Europe/Helsinki")
+            .Add(p => p.Locale, "fi")
+            .Add(p => p.Slogan, "Old slogan")
+            .Add(p => p.RankPermissions, new List<UpdateGuildRankPermission>
+            {
+                new(0, true, true, true),
+            })
+            .Add(p => p.Saving, false)
+            .Add(p => p.RankDataFresh, false)
+            .Add(p => p.TimezoneChanged, EventCallback.Factory.Create<string>(this, _ => { }))
+            .Add(p => p.LocaleChanged, EventCallback.Factory.Create<string>(this, _ => { }))
+            .Add(p => p.SloganChanged, EventCallback.Factory.Create<string>(this, _ => { }))
+            .Add(p => p.OnPermissionChange, EventCallback.Factory.Create<(int Rank, string Field, bool Checked)>(this, _ => { }))
+            .Add(p => p.OnSave, EventCallback.Factory.Create(this, () => saveCount++)));
+
+        Assert.False(cut.Find("#guild-timezone").HasAttribute("disabled"));
+        Assert.False(cut.Find("#guild-locale").HasAttribute("disabled"));
+        Assert.False(cut.Find("#guild-slogan").HasAttribute("disabled"));
+        Assert.All(cut.FindAll("fluent-checkbox"), checkbox =>
+            Assert.False(checkbox.HasAttribute("disabled")));
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.settings.save"), StringComparison.Ordinal));
+        Assert.False(saveButton.HasAttribute("disabled"));
+
+        saveButton.Click();
+
+        Assert.Equal(1, saveCount);
+    }
+
     // ── GuildAdminPage ───────────────────────────────────────────────────────
 
     [Fact]
