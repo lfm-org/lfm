@@ -75,6 +75,28 @@ public sealed class RaidersRepository(CosmosClient client, IOptions<CosmosOption
         }
     }
 
+    public async Task<IReadOnlyList<RaiderDocument>> ListAsync(CancellationToken ct)
+    {
+        const string query = """
+            SELECT * FROM c
+            """;
+
+        using var feedIterator = _container.GetItemQueryIterator<RaiderDocument>(
+            new QueryDefinition(query));
+
+        var results = new List<RaiderDocument>();
+        var totalRu = 0.0;
+        while (feedIterator.HasMoreResults)
+        {
+            var page = await feedIterator.ReadNextAsync(ct);
+            totalRu += page.RequestCharge;
+            results.AddRange(page.Select(r => r with { ETag = null }));
+        }
+
+        logger.LogRequestChargeTotal("list", ContainerName, totalRu);
+        return results;
+    }
+
     public async Task<IReadOnlyList<RaiderDocument>> ListExpiredAsync(string cutoff, CancellationToken ct)
     {
         // Cross-partition query: raiders inactive for > 90 days or with no lastSeenAt.
