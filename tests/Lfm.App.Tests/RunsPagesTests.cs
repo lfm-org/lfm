@@ -1693,6 +1693,46 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void CreateRunPage_Keeps_Instance_Options_When_CurrentSeason_Id_Has_No_Matches()
+    {
+        WireCreateRunServices(
+            instances:
+            [
+                new("1:MYTHIC_KEYSTONE:5", 1, "Windrunner Spire", "MYTHIC_KEYSTONE:5",
+                    "Midnight", "DUNGEON", 700, "MYTHIC_KEYSTONE", 5),
+                new("2:HEROIC:25", 2, "The Voidspire", "HEROIC:25",
+                    "Midnight", "RAID", 700, "HEROIC", 25),
+            ],
+            expansions:
+            [
+                new ExpansionDto(700, "Midnight"),
+                new ExpansionDto(999, CurrentSeasonExpansion),
+            ]);
+
+        var cut = Render<CreateRunPage>();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("createRun.title"), cut.Markup));
+
+        cut.FindAll("[role='radio']")
+            .Single(b => b.TextContent.Trim() == Loc("createRun.activity.raid"))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("The Voidspire", cut.Markup));
+
+        cut.FindAll("[role='radio']")
+            .Single(b => b.TextContent.Trim() == Loc("createRun.activity.dungeon"))
+            .Click();
+        cut.FindAll("[role='radio']")
+            .Single(b => b.TextContent.Trim() == Loc("createRun.dungeonScope.specific"))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Windrunner Spire", cut.Markup));
+    }
+
+    [Fact]
     public void CreateRunPage_Wnl_Button_Uses_Visible_Label_As_Accessible_Name()
     {
         WireCreateRunServices(instances: new List<InstanceDto>
