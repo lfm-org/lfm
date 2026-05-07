@@ -107,6 +107,19 @@ public class RunVisualizationTests
     }
 
     [Theory]
+    [InlineData("IN", "in")]
+    [InlineData("LATE", "late")]
+    [InlineData("BENCH", "bench")]
+    [InlineData("OUT", "out")]
+    [InlineData("AWAY", "away")]
+    [InlineData("", "unknown")]
+    [InlineData(null, "unknown")]
+    public void GetAttendanceClass_maps_attendance_tokens(string? attendance, string expected)
+    {
+        Assert.Equal(expected, RunVisualization.GetAttendanceClass(attendance));
+    }
+
+    [Theory]
     [InlineData("TANK", "TANK")]
     [InlineData("tank", "TANK")]
     [InlineData("HEALER", "HEALER")]

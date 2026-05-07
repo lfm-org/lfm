@@ -67,6 +67,16 @@ public static class RunVisualization
     public static bool IsAttending(string? reviewedAttendance) =>
         reviewedAttendance is "IN" or "LATE" or "BENCH";
 
+    public static string GetAttendanceClass(string? attendance) => attendance switch
+    {
+        "IN" => "in",
+        "LATE" => "late",
+        "BENCH" => "bench",
+        "OUT" => "out",
+        "AWAY" => "away",
+        _ => "unknown",
+    };
+
     public static string NormalizeRole(string? role) => (role ?? "").ToUpperInvariant() switch
     {
         "TANK" => "TANK",
