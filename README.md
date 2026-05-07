@@ -100,8 +100,38 @@ Optional drift check after route, selector, auth-helper, or seed-shape changes:
 ./scripts/check-e2e-drift.sh
 ```
 
+Full local suite:
+
 ```bash
 dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release
+```
+
+PR-equivalent smoke subset:
+
+```bash
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Smoke"
+```
+
+Fast sanity subset:
+
+```bash
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Fast"
+```
+
+One spec class while iterating:
+
+```bash
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "FullyQualifiedName~RunsSpec"
+```
+
+Focused category examples:
+
+```bash
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Accessibility"
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Auth flow"
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=Performance"
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=PerformanceLoad"
+dotnet test tests/Lfm.E2E/Lfm.E2E.csproj -c Release --filter "Category=VisualArtifacts"
 ```
 
 Requires a running Docker engine — Testcontainers spins up Cosmos + Azurite; the API and Blazor app are published and run in-process.
