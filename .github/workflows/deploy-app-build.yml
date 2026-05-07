@@ -58,6 +58,21 @@ jobs:
       - name: Publish API
         run: dotnet publish api/Lfm.Api.csproj -c Release -o ./publish/api --no-build
 
+      - name: Generate deployment OpenAPI snapshot
+        env:
+          API_HOSTNAME: ${{ vars.API_HOSTNAME }}
+        run: |
+          set -euo pipefail
+          test -n "${API_HOSTNAME:?API_HOSTNAME repo variable is required}"
+          dotnet run --project tools/Lfm.OpenApiGenerator \
+            -c Release \
+            --no-build \
+            -- \
+            --write \
+            --server-url "https://${API_HOSTNAME}" \
+            ./publish/api/openapi.yaml
+          test -s ./publish/api/openapi.yaml
+
       - name: Publish App
         env:
           PRIVACY_EMAIL: ${{ vars.PRIVACY_EMAIL }}
