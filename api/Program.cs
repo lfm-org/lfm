@@ -190,6 +190,7 @@ else
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
 builder.Services.AddSingleton<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();
 builder.Services.AddScoped<Lfm.Api.Services.IGuildPermissions, Lfm.Api.Services.GuildPermissions>();
+builder.Services.AddScoped<Lfm.Api.Services.IGuildDocumentRefreshService, Lfm.Api.Services.GuildDocumentRefreshService>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunCreateService, Lfm.Api.Runs.RunCreateService>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunUpdateService, Lfm.Api.Runs.RunUpdateService>();
 builder.Services.AddScoped<Lfm.Api.Runs.IRunSignupEligibility, Lfm.Api.Runs.RunSignupEligibility>();
