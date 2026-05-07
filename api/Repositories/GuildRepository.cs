@@ -30,13 +30,14 @@ public sealed class GuildRepository(CosmosClient client, IOptions<CosmosOptions>
         }
     }
 
-    public async Task UpsertAsync(GuildDocument doc, CancellationToken ct)
+    public async Task<GuildDocument> UpsertAsync(GuildDocument doc, CancellationToken ct)
     {
         var response = await _container.UpsertItemAsync(
             doc,
             new PartitionKey(doc.Id),
             cancellationToken: ct);
         logger.LogRequestCharge(response, "upsert", ContainerName, doc.Id);
+        return response.Resource with { ETag = response.ETag };
     }
 
     public async Task<GuildDocument> ReplaceAsync(GuildDocument doc, string ifMatchEtag, CancellationToken ct)
