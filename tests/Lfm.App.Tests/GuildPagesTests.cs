@@ -24,11 +24,12 @@ public class GuildPagesTests : ComponentTestBase
         bool rankDataFresh = true,
         bool canEdit = false,
         string slogan = "We ride the storm",
-        string name = "Stormchasers") =>
+        string name = "Stormchasers",
+        string locale = "fi") =>
         new(
             Guild: new GuildInfoDto(1, name, slogan, "Silvermoon", "Alliance",
                 120, 10, null, null),
-            Setup: new GuildSetupDto(isInitialized, requiresSetup, rankDataFresh, "Europe/Helsinki", "fi"),
+            Setup: new GuildSetupDto(isInitialized, requiresSetup, rankDataFresh, "Europe/Helsinki", locale),
             Settings: canEdit
                 ? new GuildSettingsDto(
                 [
@@ -425,6 +426,46 @@ public class GuildPagesTests : ComponentTestBase
         client.Verify(c => c.UpdateAsync(It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()), Times.Never);
         Assert.NotNull(captured);
         Assert.Equal("New slogan", captured!.Slogan);
+    }
+
+    [Fact]
+    public void GuildAdminPage_Save_Preserves_Existing_English_Guild_Locale()
+    {
+        this.AddAuthorization().SetAuthorized("admin#1").SetRoles("SiteAdmin");
+        var initial = MakeGuildDto(canEdit: true, slogan: "Old slogan", locale: "en-gb");
+        var updated = MakeGuildDto(canEdit: true, slogan: "New slogan", locale: "en-gb");
+        UpdateGuildRequest? captured = null;
+        var client = new Mock<IGuildClient>();
+        client.Setup(c => c.GetAdminAsync("99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(initial);
+        client.Setup(c => c.UpdateAdminAsync("99", It.IsAny<UpdateGuildRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<string, UpdateGuildRequest, CancellationToken>((_, request, _) => captured = request)
+            .ReturnsAsync(updated);
+        Services.AddSingleton(client.Object);
+        JSInterop.SetupModule("./js/unsavedChanges.js");
+
+        var cut = Render<GuildAdminPage>();
+
+        cut.Find("#guild-admin-guild-id").Change("99");
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.loadButton"), StringComparison.Ordinal))
+            .Click();
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("guildAdmin.settings.save"), cut.Markup));
+        cut.Find("#guild-slogan").Change("New slogan");
+
+        cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("guildAdmin.settings.save"), StringComparison.Ordinal))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+            client.Verify(c => c.UpdateAdminAsync(
+                "99",
+                It.IsAny<UpdateGuildRequest>(),
+                It.IsAny<CancellationToken>()),
+                Times.Once));
+        Assert.NotNull(captured);
+        Assert.Equal("en-gb", captured!.Locale);
     }
 
     [Fact]
