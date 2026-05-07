@@ -115,9 +115,11 @@ public interface IGuildRepository
     /// <summary>
     /// Upserts a guild document. Partition key is the document's Id.
     /// Does not check the ETag — used by internal flows (roster refresh, admin
-    /// override timestamps) that reconcile their own state.
+    /// override timestamps) that reconcile their own state. Returns the
+    /// persisted document with Cosmos _etag so GET callers can emit an ETag
+    /// that works for the next PATCH.
     /// </summary>
-    Task UpsertAsync(GuildDocument doc, CancellationToken ct);
+    Task<GuildDocument> UpsertAsync(GuildDocument doc, CancellationToken ct);
 
     /// <summary>
     /// Replaces a guild document under an optimistic-concurrency guard. When
