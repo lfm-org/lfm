@@ -33,6 +33,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\api\Lfm.Api.csproj" />
+    <ProjectReference Include="..\..\tools\Lfm.OpenApiGenerator\Lfm.OpenApiGenerator.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="xunit.runner.json">

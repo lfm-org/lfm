@@ -3,6 +3,7 @@
 
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
+using Lfm.OpenApiGenerator;
 using Xunit;
 
 namespace Lfm.Api.Tests.Openapi;
@@ -57,6 +58,64 @@ public class OpenApiContractTests
         Assert.False(string.IsNullOrEmpty(result.Document.Info.Version));
         Assert.NotNull(result.Document.Servers);
         Assert.NotEmpty(result.Document.Servers);
+    }
+
+    [Fact]
+    public async Task Spec_is_generated_snapshot()
+    {
+        var text = await File.ReadAllTextAsync(SpecPath);
+
+        Assert.Contains("x-generated-by: tools/Lfm.OpenApiGenerator", text);
+    }
+
+    [Fact]
+    public async Task Spec_matches_generated_output()
+    {
+        var text = (await File.ReadAllTextAsync(SpecPath)).ReplaceLineEndings("\n");
+        var generated = OpenApiSnapshotGenerator.Generate();
+
+        Assert.Equal(generated, text);
+    }
+
+    [Fact]
+    public async Task Generated_deployment_snapshot_uses_supplied_server_url()
+    {
+        const string serverUrl = "https://api.example.test";
+        var generated = OpenApiSnapshotGenerator.Generate(new OpenApiSnapshotOptions(serverUrl));
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.openapi.yaml");
+        await File.WriteAllTextAsync(path, generated);
+        try
+        {
+            var result = await OpenApiDocument.LoadAsync(path, CreateSettings());
+
+            var server = Assert.Single(result.Document!.Servers!);
+            Assert.Equal(serverUrl, server.Url);
+            Assert.Contains(serverUrl, generated);
+            Assert.DoesNotContain("url: /", generated, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Spec_does_not_publish_deployment_specific_servers()
+    {
+        var text = await File.ReadAllTextAsync(SpecPath);
+        var result = await OpenApiDocument.LoadAsync(SpecPath, CreateSettings());
+
+        Assert.DoesNotContain("dinosauruskeksi", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("localhost:7071", text, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(result.Document!.Servers);
+        Assert.All(result.Document.Servers!, server =>
+        {
+            var url = server.Url ?? string.Empty;
+            Assert.False(
+                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                url.StartsWith("http://", StringComparison.OrdinalIgnoreCase),
+                $"OpenAPI server URL '{url}' must not pin one HTTP deployment as canonical.");
+        });
     }
 
     [Fact]
