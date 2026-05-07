@@ -75,6 +75,20 @@ public class InstanceOptionsTests
     }
 
     [Fact]
+    public void Classifies_activity_from_mode_when_category_is_missing()
+    {
+        var raid = Row(1, "R", "MYTHIC", 20, category: null);
+        var dungeon = Row(2, "D", "MYTHIC_KEYSTONE", 5, category: null);
+        var other = Row(3, "O", "UNKNOWN", 0, category: null);
+
+        var opts = InstanceOptions.Build([raid, dungeon, other]);
+
+        Assert.Equal(ActivityKind.Raid, opts.Single(o => o.InstanceId == 1).Activity);
+        Assert.Equal(ActivityKind.Dungeon, opts.Single(o => o.InstanceId == 2).Activity);
+        Assert.Equal(ActivityKind.Other, opts.Single(o => o.InstanceId == 3).Activity);
+    }
+
+    [Fact]
     public void Orders_instances_alphabetically_case_insensitively()
     {
         var flat = new List<InstanceDto>

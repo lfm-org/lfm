@@ -36,9 +36,10 @@ public static class InstanceOptions
             .GroupBy(i => i.InstanceNumericId)
             .Select(g =>
             {
+                var rows = g.ToList();
                 var first = g.First();
-                var activity = ActivityKindExtensions.FromCategory(first.Category);
-                var difficulties = g
+                var activity = ResolveActivity(rows);
+                var difficulties = rows
                     .Where(i => !string.IsNullOrEmpty(i.Difficulty))
                     .Select(i => new DifficultyOption(
                         DifficultyId: i.Difficulty,
@@ -59,6 +60,19 @@ public static class InstanceOptions
             .ToList();
     }
 
+    private static ActivityKind ResolveActivity(IReadOnlyList<InstanceDto> rows)
+    {
+        var explicitActivity = ActivityKindExtensions.FromCategory(rows[0].Category);
+        if (explicitActivity != ActivityKind.Other) return explicitActivity;
+
+        if (rows.Any(r => r.Difficulty == "MYTHIC_KEYSTONE")) return ActivityKind.Dungeon;
+        if (rows.Any(r => r.Difficulty == "LFR" || r.Size > 5)) return ActivityKind.Raid;
+
+        return rows.Any(r => r.Size == 5 && IsDungeonDifficulty(r.Difficulty))
+            ? ActivityKind.Dungeon
+            : ActivityKind.Other;
+    }
+
     private static int CanonicalOrder(string difficulty) => difficulty switch
     {
         "LFR" => 0,
@@ -67,5 +81,11 @@ public static class InstanceOptions
         "MYTHIC" => 3,
         "MYTHIC_KEYSTONE" => 4,
         _ => 99,
+    };
+
+    private static bool IsDungeonDifficulty(string difficulty) => difficulty switch
+    {
+        "NORMAL" or "HEROIC" or "MYTHIC" => true,
+        _ => false,
     };
 }
