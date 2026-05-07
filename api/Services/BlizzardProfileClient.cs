@@ -114,4 +114,44 @@ public sealed class BlizzardProfileClient : IBlizzardProfileClient
             return null;
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<GuildProfileResponse> GetGuildProfileAsync(
+        string realmSlug,
+        string guildNameSlug,
+        string accessToken,
+        CancellationToken ct)
+    {
+        var path = $"data/wow/guild/{Uri.EscapeDataString(realmSlug)}/{Uri.EscapeDataString(guildNameSlug)}" +
+                   $"?namespace={Uri.EscapeDataString(_profileNamespace)}&locale=en_US";
+        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<GuildProfileResponse>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Blizzard guild profile returned empty response.");
+    }
+
+    /// <inheritdoc/>
+    public async Task<GuildRosterResponse> GetGuildRosterAsync(
+        string realmSlug,
+        string guildNameSlug,
+        string accessToken,
+        CancellationToken ct)
+    {
+        var path = $"data/wow/guild/{Uri.EscapeDataString(realmSlug)}/{Uri.EscapeDataString(guildNameSlug)}/roster" +
+                   $"?namespace={Uri.EscapeDataString(_profileNamespace)}&locale=en_US";
+        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<GuildRosterResponse>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Blizzard guild roster returned empty response.");
+    }
 }
