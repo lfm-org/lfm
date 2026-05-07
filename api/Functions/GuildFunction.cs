@@ -34,7 +34,12 @@ namespace Lfm.Api.Functions;
 ///         Mirrors the TypeScript <c>saveCurrentGuildSettings</c> logic in
 ///         <c>functions/src/lib/guild/service.ts</c>.
 /// </summary>
-public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raidersRepo, IGuildPermissions guildPermissions, ILogger<GuildFunction> logger)
+public class GuildFunction(
+    IGuildRepository guildRepo,
+    IRaidersRepository raidersRepo,
+    IGuildPermissions guildPermissions,
+    IGuildDocumentRefreshService guildRefresh,
+    ILogger<GuildFunction> logger)
 {
     // ------------------------------------------------------------------
     // GET /api/guild
@@ -61,8 +66,29 @@ public class GuildFunction(IGuildRepository guildRepo, IRaidersRepository raider
             return new OkObjectResult(GuildMapper.NoGuildDto());
 
         var guildDoc = await guildRepo.GetAsync(guildId, cancellationToken);
-        if (guildDoc is null)
-            return Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found.");
+        var refresh = await guildRefresh.RefreshForCurrentRaiderAsync(
+            raider,
+            principal.AccessToken,
+            guildDoc,
+            cancellationToken);
+
+        if (refresh.Guild is null)
+        {
+            return refresh.Failure switch
+            {
+                GuildRefreshFailure.MissingAccessToken => Problem.Unauthorized(
+                    req.HttpContext,
+                    "missing-access-token",
+                    "Battle.net access token is missing. Sign in again and retry."),
+                GuildRefreshFailure.BlizzardUnavailable => Problem.UpstreamFailed(
+                    req.HttpContext,
+                    "blizzard-upstream-failed",
+                    "Failed to refresh guild data from Blizzard."),
+                _ => Problem.NotFound(req.HttpContext, "guild-not-found", "Guild not found."),
+            };
+        }
+
+        guildDoc = refresh.Guild;
 
         var permissions = await guildPermissions.GetEffectivePermissionsAsync(raider, cancellationToken);
 
