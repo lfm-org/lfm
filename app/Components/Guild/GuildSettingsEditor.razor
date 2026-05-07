@@ -10,7 +10,7 @@
             Label="@Loc["guildAdmin.settings.timezone"]"
             Value="@Timezone"
             ValueChanged="@TimezoneChanged"
-            Disabled="@(!RankDataFresh || Saving)"
+            Disabled="@Saving"
             Style="max-width:320px">
             @foreach (var tz in TimezoneOptions)
             {
@@ -23,7 +23,7 @@
             Label="@Loc["guildAdmin.settings.locale"]"
             Value="@Locale"
             ValueChanged="@LocaleChanged"
-            Disabled="@(!RankDataFresh || Saving)"
+            Disabled="@Saving"
             Style="max-width:320px">
             @foreach (var loc in LocaleOptions)
             {
@@ -36,7 +36,7 @@
             Label="@Loc["guildAdmin.settings.slogan"]"
             Value="@Slogan"
             ValueChanged="@SloganChanged"
-            Disabled="@(!RankDataFresh || Saving)"
+            Disabled="@Saving"
             Rows="2"
             Style="max-inline-size:480px"
             @attributes="SloganAttrs" />
@@ -54,17 +54,17 @@
                                 Label="@Loc["guildAdmin.settings.canCreateRuns"]"
                                 Value="@perm.CanCreateGuildRuns"
                                 ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canCreateGuildRuns", v)))"
-                                Disabled="@(!RankDataFresh || Saving)" />
+                                Disabled="@Saving" />
                             <FluentCheckbox
                                 Label="@Loc["guildAdmin.settings.canSignUp"]"
                                 Value="@perm.CanSignupGuildRuns"
                                 ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canSignupGuildRuns", v)))"
-                                Disabled="@(!RankDataFresh || Saving)" />
+                                Disabled="@Saving" />
                             <FluentCheckbox
                                 Label="@Loc["guildAdmin.settings.canDeleteRuns"]"
                                 Value="@perm.CanDeleteGuildRuns"
                                 ValueChanged="@(v => OnPermissionChange.InvokeAsync((perm.Rank, "canDeleteGuildRuns", v)))"
-                                Disabled="@(!RankDataFresh || Saving)" />
+                                Disabled="@Saving" />
                         </FluentStack>
                     </FluentCard>
                 }
@@ -76,7 +76,7 @@
                 Type="ButtonType.Button"
                 Appearance="Appearance.Accent"
                 OnClick="@HandleSaveClicked"
-                Disabled="@(Saving || !RankDataFresh)">
+                Disabled="@Saving">
                 @(Saving ? Loc["guildAdmin.settings.saving"] : Loc["guildAdmin.settings.save"])
             </FluentButton>
         </div>
