@@ -1,0 +1,189 @@
+{
+  "svg_render_policy_schema_version": "svg-render-policy.schema.v1",
+  "semantic_profile": "archimate",
+  "page": {
+    "width": 1600,
+    "height": 1100
+  },
+  "margin": {
+    "top": 24,
+    "right": 24,
+    "bottom": 24,
+    "left": 24
+  },
+  "style": {
+    "background": {
+      "fill": "#ffffff"
+    },
+    "font": {
+      "family": "Inter, Arial, sans-serif",
+      "size": 14
+    },
+    "node": {
+      "fill": "#f8fafc",
+      "stroke": "#334155",
+      "stroke_width": 1.5,
+      "rx": 4,
+      "label_fill": "#0f172a"
+    },
+    "edge": {
+      "stroke": "#64748b",
+      "stroke_width": 1.5,
+      "label_fill": "#374151",
+      "label_horizontal_position": "center",
+      "label_horizontal_side": "auto",
+      "label_vertical_position": "center",
+      "label_vertical_side": "left"
+    },
+    "group": {
+      "fill": "#f8fafc",
+      "stroke": "#94a3b8",
+      "stroke_width": 1,
+      "rx": 4,
+      "label_fill": "#374151",
+      "label_size": 12
+    },
+    "node_type_overrides": {
+      "ApplicationComponent": {
+        "fill": "#e8f3ff",
+        "stroke": "#2563eb",
+        "label_fill": "#172554",
+        "decorator": "archimate_application_component"
+      },
+      "ApplicationInterface": {
+        "fill": "#e8f3ff",
+        "stroke": "#2563eb",
+        "label_fill": "#172554",
+        "decorator": "archimate_application_interface"
+      },
+      "ApplicationService": {
+        "fill": "#e8f3ff",
+        "stroke": "#2563eb",
+        "label_fill": "#172554",
+        "decorator": "archimate_application_service"
+      },
+      "TechnologyNode": {
+        "fill": "#ecfdf3",
+        "stroke": "#16a34a",
+        "label_fill": "#14532d",
+        "decorator": "archimate_technology_node"
+      },
+      "TechnologyService": {
+        "fill": "#ecfdf3",
+        "stroke": "#16a34a",
+        "label_fill": "#14532d",
+        "decorator": "archimate_technology_service"
+      },
+      "SystemSoftware": {
+        "fill": "#ecfdf3",
+        "stroke": "#16a34a",
+        "label_fill": "#14532d",
+        "decorator": "archimate_system_software"
+      },
+      "Artifact": {
+        "fill": "#f7fee7",
+        "stroke": "#65a30d",
+        "label_fill": "#365314",
+        "decorator": "archimate_artifact"
+      },
+      "Plateau": {
+        "fill": "#fef9c3",
+        "stroke": "#ca8a04",
+        "label_fill": "#713f12",
+        "decorator": "archimate_plateau"
+      },
+      "Gap": {
+        "fill": "#fef3c7",
+        "stroke": "#d97706",
+        "label_fill": "#78350f",
+        "decorator": "archimate_gap"
+      },
+      "ImplementationEvent": {
+        "fill": "#ffedd5",
+        "stroke": "#ea580c",
+        "label_fill": "#7c2d12",
+        "decorator": "archimate_implementation_event"
+      },
+      "WorkPackage": {
+        "fill": "#ffedd5",
+        "stroke": "#ea580c",
+        "label_fill": "#7c2d12",
+        "decorator": "archimate_work_package"
+      },
+      "Deliverable": {
+        "fill": "#fef3c7",
+        "stroke": "#d97706",
+        "label_fill": "#78350f",
+        "decorator": "archimate_deliverable"
+      },
+      "BusinessEvent": {
+        "fill": "#fefce8",
+        "stroke": "#a16207",
+        "label_fill": "#713f12",
+        "decorator": "archimate_business_event"
+      },
+      "BusinessProcess": {
+        "fill": "#fefce8",
+        "stroke": "#a16207",
+        "label_fill": "#713f12",
+        "decorator": "archimate_business_process"
+      }
+    },
+    "edge_type_overrides": {
+      "Serving": {
+        "stroke": "#2563eb",
+        "stroke_width": 1.5,
+        "label_fill": "#1e3a8a",
+        "marker_end": "open_arrow"
+      },
+      "Realization": {
+        "stroke": "#475569",
+        "stroke_width": 1.5,
+        "label_fill": "#334155",
+        "line_style": "dashed",
+        "marker_end": "hollow_triangle"
+      },
+      "Access": {
+        "stroke": "#15803d",
+        "stroke_width": 1.5,
+        "label_fill": "#166534",
+        "line_style": "dashed",
+        "marker_end": "open_arrow"
+      },
+      "Assignment": {
+        "stroke": "#64748b",
+        "stroke_width": 1.5,
+        "label_fill": "#334155",
+        "marker_end": "filled_circle"
+      },
+      "Composition": {
+        "stroke": "#475569",
+        "stroke_width": 1.5,
+        "label_fill": "#334155",
+        "marker_start": "filled_diamond"
+      },
+      "Aggregation": {
+        "stroke": "#475569",
+        "stroke_width": 1.5,
+        "label_fill": "#334155",
+        "marker_start": "hollow_diamond"
+      },
+      "Triggering": {
+        "stroke": "#b45309",
+        "stroke_width": 1.5,
+        "label_fill": "#92400e",
+        "marker_end": "filled_arrow"
+      },
+      "Flow": {
+        "stroke": "#b45309",
+        "stroke_width": 1.5,
+        "label_fill": "#92400e",
+        "line_style": "dashed",
+        "marker_end": "filled_arrow"
+      }
+    },
+    "node_overrides": {},
+    "edge_overrides": {},
+    "group_overrides": {}
+  }
+}
