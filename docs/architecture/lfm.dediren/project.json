@@ -1,0 +1,102 @@
+{
+  "schema": "souroldgeezer.architecture.dediren.project.v1",
+  "feature": "lfm",
+  "model": "model.json",
+  "views": [
+    {
+      "id": "application-cooperation",
+      "title": "LFM - Application Cooperation",
+      "diagramKind": "Application Cooperation",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/application-cooperation.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "render-metadata.json",
+        "output": "generated/svg/application-cooperation.svg"
+      }
+    },
+    {
+      "id": "technology-usage",
+      "title": "LFM - Technology Usage",
+      "diagramKind": "Technology Usage",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/technology-usage.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "render-metadata.json",
+        "output": "generated/svg/technology-usage.svg"
+      }
+    },
+    {
+      "id": "production-release-migration",
+      "title": "LFM - Production Release Migration",
+      "diagramKind": "Migration",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/production-release-migration.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "render-metadata.json",
+        "output": "generated/svg/production-release-migration.svg"
+      }
+    },
+    {
+      "id": "run-signup-process-candidate",
+      "title": "Run Signup - Business Process Candidate",
+      "diagramKind": "Business Process Cooperation",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/run-signup-process-candidate.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "render-metadata.json",
+        "output": "generated/svg/run-signup-process-candidate.svg"
+      }
+    },
+    {
+      "id": "run-signup-service-realization",
+      "title": "Run Signup - Service Realization",
+      "diagramKind": "Service Realization",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/run-signup-service-realization.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "render-metadata.json",
+        "output": "generated/svg/run-signup-service-realization.svg"
+      }
+    }
+  ]
+}
