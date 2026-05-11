@@ -68,6 +68,9 @@ node_modules/
 .cache/*
 !.cache/.gitkeep
 
+# Dediren architecture package generated outputs
+docs/architecture/*.dediren/generated/
+
 # Bicep compiled ARM templates
 infra/main.json
 
