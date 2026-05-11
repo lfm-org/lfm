@@ -30,13 +30,13 @@ The package is intentionally source-first:
 
 ## Views
 
-| # | View | Diagram kind | Source scope |
-|---|---|---|---|
-| 1 | LFM - Application Cooperation | Application Cooperation | `*.csproj`, `api/Functions/*.cs`, app-core clients, Blazor pages, Blizzard clients |
-| 2 | LFM - Technology Usage | Technology Usage | `infra/main.bicep`, `infra/modules/*.bicep`, `api/Program.cs` |
-| 3 | LFM - Production Release Migration | Migration | `.github/workflows/deploy*.yml`, `infra/**/*.bicep`, deployable app/API projects |
-| 4 | Run Signup - Business Process Candidate | Business Process Cooperation | `/runs` UI flow and `Runs*Function` endpoints |
-| 5 | Run Signup - Service Realization | Service Realization | run-signup process candidate, `Run Management` service, `Lfm.Api`, Function App, Cosmos containers |
+| # | View | Diagram kind | Render | Source scope |
+|---|---|---|---|---|
+| 1 | LFM - Application Cooperation | Application Cooperation | [`application-cooperation.svg`](renders/application-cooperation.svg) | `*.csproj`, `api/Functions/*.cs`, app-core clients, Blazor pages, Blizzard clients |
+| 2 | LFM - Technology Usage | Technology Usage | [`technology-usage.svg`](renders/technology-usage.svg) | `infra/main.bicep`, `infra/modules/*.bicep`, `api/Program.cs` |
+| 3 | LFM - Production Release Migration | Migration | [`production-release-migration.svg`](renders/production-release-migration.svg) | `.github/workflows/deploy*.yml`, `infra/**/*.bicep`, deployable app/API projects |
+| 4 | Run Signup - Business Process Candidate | Business Process Cooperation | [`run-signup-process-candidate.svg`](renders/run-signup-process-candidate.svg) | `/runs` UI flow and `Runs*Function` endpoints |
+| 5 | Run Signup - Service Realization | Service Realization | [`run-signup-service-realization.svg`](renders/run-signup-service-realization.svg) | run-signup process candidate, `Run Management` service, `Lfm.Api`, Function App, Cosmos containers |
 
 ## Source Provenance
 
@@ -64,6 +64,6 @@ jq -r '.data.content' <view>.render.json > <view>.svg
 Repeat projection/layout/render for every view listed in
 [`project.json`](lfm.dediren/project.json). `dediren render` emits a JSON
 result envelope; the SVG payload is `.data.content` and should be extracted to
-the `.svg` path declared by the project manifest. When SVG snapshots are
-committed later, keep the README view inventory and source provenance aligned
-with the package.
+the `.svg` path declared by the project manifest. Copy reviewable SVG snapshots
+to [`renders/`](renders/) and keep the README view inventory, render links, and
+source provenance aligned with the package.
