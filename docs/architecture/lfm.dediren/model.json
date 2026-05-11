@@ -1,0 +1,1563 @@
+{
+  "model_schema_version": "model.schema.v1",
+  "required_plugins": [
+    {
+      "id": "generic-graph",
+      "version": "0.1.0"
+    },
+    {
+      "id": "elk-layout",
+      "version": "0.1.0"
+    },
+    {
+      "id": "svg-render",
+      "version": "0.1.0"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "lfm-app",
+      "type": "ApplicationComponent",
+      "label": "Lfm.App",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["app/Lfm.App.csproj", "app/Program.cs", "app/Pages/*.razor"],
+        "documentation": "Blazor WebAssembly SPA hosted by Azure Static Web Apps."
+      }
+    },
+    {
+      "id": "lfm-app-core",
+      "type": "ApplicationComponent",
+      "label": "Lfm.App.Core",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["app/Lfm.App.Core/Lfm.App.Core.csproj", "app/Lfm.App.Core/Services/*.cs"],
+        "documentation": "Framework-neutral app services, API clients, localization, and auth state."
+      }
+    },
+    {
+      "id": "lfm-contracts",
+      "type": "ApplicationComponent",
+      "label": "Lfm.Contracts",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["shared/Lfm.Contracts/Lfm.Contracts.csproj", "shared/Lfm.Contracts/**/*.cs"],
+        "documentation": "Shared wire-contract library referenced by the SPA, app-core, and API."
+      }
+    },
+    {
+      "id": "lfm-api",
+      "type": "ApplicationComponent",
+      "label": "Lfm.Api",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Lfm.Api.csproj", "api/Program.cs", "api/Functions/*.cs"],
+        "documentation": ".NET isolated Azure Functions backend."
+      }
+    },
+    {
+      "id": "rest-api",
+      "type": "ApplicationInterface",
+      "label": "REST API (/api/v1/*)",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/*.cs", "api/openapi.yaml", "app/Lfm.App.Core/Services/*.cs"],
+        "documentation": "Versioned HTTP surface consumed by the SPA. Unversioned aliases remain present in the Functions source."
+      }
+    },
+    {
+      "id": "auth-session-service",
+      "type": "ApplicationService",
+      "label": "Auth and session service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/BattleNetLoginFunction.cs", "api/Functions/BattleNetCallbackFunction.cs", "api/Functions/MeFunction.cs", "api/Middleware/AuthMiddleware.cs"],
+        "documentation": "Battle.net login/callback/logout and current-user session surface."
+      }
+    },
+    {
+      "id": "run-management-service",
+      "type": "ApplicationService",
+      "label": "Run management service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/Runs*.cs", "app/Lfm.App.Core/Services/RunsClient.cs", "app/Pages/RunsPage.razor", "app/Pages/CreateRunPage.razor", "app/Pages/EditRunPage.razor"],
+        "documentation": "Create, list, inspect, edit, delete, sign up for, and cancel signup for runs."
+      }
+    },
+    {
+      "id": "guild-service",
+      "type": "ApplicationService",
+      "label": "Guild service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/GuildFunction.cs", "api/Functions/GuildAdminFunction.cs", "app/Lfm.App.Core/Services/GuildClient.cs", "app/Pages/GuildPage.razor", "app/Pages/GuildAdminPage.razor"],
+        "documentation": "Guild read/update and admin management surface."
+      }
+    },
+    {
+      "id": "raider-profile-service",
+      "type": "ApplicationService",
+      "label": "Raider profile service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/Me*.cs", "api/Functions/Raider*.cs", "app/Lfm.App.Core/Services/MeClient.cs", "app/Pages/CharactersPage.razor"],
+        "documentation": "Current-user profile, character management, enrichment, and cleanup."
+      }
+    },
+    {
+      "id": "wow-reference-service",
+      "type": "ApplicationService",
+      "label": "WoW reference service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/WowReference*.cs", "api/Services/ReferenceSync.cs", "app/Lfm.App.Core/Services/*Reference*Client.cs"],
+        "documentation": "Read and refresh static WoW reference data."
+      }
+    },
+    {
+      "id": "ops-health-service",
+      "type": "ApplicationService",
+      "label": "Operational health service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Functions/HealthFunction.cs", "api/Functions/PrivacyContactFunction.cs", "api/Functions/RunsMigrateSchemaFunction.cs"],
+        "documentation": "Health/readiness, privacy contact, and admin migration endpoints."
+      }
+    },
+    {
+      "id": "runs-ui-entry",
+      "type": "ApplicationComponent",
+      "label": "Runs UI pages",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["app/Pages/RunsPage.razor", "app/Pages/CreateRunPage.razor", "app/Pages/EditRunPage.razor"],
+        "documentation": "Blazor pages for /runs, /runs/{RunId}, /runs/new, and /runs/{RunId}/edit."
+      }
+    },
+    {
+      "id": "battlenet-oauth",
+      "type": "ApplicationService",
+      "label": "Battle.net OAuth 2.0",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Program.cs", "api/Services/BlizzardOAuthClient.cs", "api/Options/BlizzardOptions.cs"],
+        "documentation": "External OAuth service used for login and callback exchange."
+      }
+    },
+    {
+      "id": "blizzard-profile-api",
+      "type": "ApplicationService",
+      "label": "WoW Profile API",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Program.cs", "api/Services/BlizzardProfileClient.cs", "api/Services/GuildDocumentRefreshService.cs"],
+        "documentation": "External Blizzard profile and guild data API."
+      }
+    },
+    {
+      "id": "blizzard-game-data-api",
+      "type": "ApplicationService",
+      "label": "WoW Game Data API",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Program.cs", "api/Services/BlizzardGameDataClient.cs", "api/Services/ReferenceSync.cs"],
+        "documentation": "External Blizzard static game-data API used by reference-data refresh."
+      }
+    },
+    {
+      "id": "blizzard-render-cdn",
+      "type": "ApplicationService",
+      "label": "Blizzard Render CDN",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Services/CharacterPortraitService.cs", "app/Pages/CharactersPage.razor"],
+        "documentation": "External image URL source for character render assets."
+      }
+    },
+    {
+      "id": "static-web-apps",
+      "type": "TechnologyNode",
+      "label": "Azure Static Web Apps",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/swa.bicep", ".github/workflows/deploy-app.yml"],
+        "documentation": "Free SKU Static Web App hosting the Blazor app."
+      }
+    },
+    {
+      "id": "function-app",
+      "type": "TechnologyNode",
+      "label": "Azure Function App",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/functions.bicep", ".github/workflows/deploy-app.yml"],
+        "documentation": "Function App with system-assigned managed identity."
+      }
+    },
+    {
+      "id": "app-service-plan",
+      "type": "TechnologyNode",
+      "label": "App Service Plan (Y1)",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/functions.bicep"],
+        "documentation": "Dynamic Y1 plan used by the Function App."
+      }
+    },
+    {
+      "id": "functions-runtime",
+      "type": "SystemSoftware",
+      "label": "Azure Functions runtime",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["api/Lfm.Api.csproj", "api/host.json", "infra/modules/functions.bicep"],
+        "documentation": ".NET 10 isolated worker on Azure Functions v4."
+      }
+    },
+    {
+      "id": "managed-identity",
+      "type": "TechnologyService",
+      "label": "Function App managed identity",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/functions.bicep", "infra/modules/dataprotection.bicep"],
+        "documentation": "System-assigned identity and RBAC access path for data-plane resources."
+      }
+    },
+    {
+      "id": "cosmos-account",
+      "type": "TechnologyNode",
+      "label": "Cosmos DB account",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/cosmos.bicep", "api/Program.cs"],
+        "documentation": "Free-tier Cosmos account with local auth disabled."
+      }
+    },
+    {
+      "id": "cosmos-database",
+      "type": "Artifact",
+      "label": "Cosmos SQL database",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/cosmos.bicep"],
+        "documentation": "LFM logical database."
+      }
+    },
+    {
+      "id": "cosmos-runs",
+      "type": "Artifact",
+      "label": "runs container",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/cosmos.bicep", "api/Repositories/IRunsRepository.cs"],
+        "documentation": "Run documents, partitioned by id."
+      }
+    },
+    {
+      "id": "cosmos-raiders",
+      "type": "Artifact",
+      "label": "raiders container",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/cosmos.bicep", "api/Repositories/IRaidersRepository.cs"],
+        "documentation": "Raider documents, partitioned by Battle.net id."
+      }
+    },
+    {
+      "id": "cosmos-guilds",
+      "type": "Artifact",
+      "label": "guilds container",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/cosmos.bicep", "api/Repositories/IGuildRepository.cs"],
+        "documentation": "Guild documents, partitioned by guild id."
+      }
+    },
+    {
+      "id": "cosmos-idempotency",
+      "type": "Artifact",
+      "label": "idempotency container",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/cosmos.bicep", "api/Services/IdempotencyStore.cs"],
+        "documentation": "Idempotency replay records for mutating HTTP requests."
+      }
+    },
+    {
+      "id": "storage-account",
+      "type": "TechnologyNode",
+      "label": "Storage account",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/storage.bicep", "api/Program.cs"],
+        "documentation": "Standard_LRS StorageV2 account with shared key access disabled."
+      }
+    },
+    {
+      "id": "wow-reference-container",
+      "type": "Artifact",
+      "label": "wow reference blobs",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/storage.bicep", "api/Services/ReferenceSync.cs", "docs/storage-architecture.md"],
+        "documentation": "Blob container content under reference/{kind}/ for static Blizzard reference data."
+      }
+    },
+    {
+      "id": "data-protection-container",
+      "type": "Artifact",
+      "label": "data-protection key ring blob",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/storage.bicep", "infra/modules/dataprotection.bicep", "api/Program.cs"],
+        "documentation": "Durable ASP.NET Data Protection key-ring storage."
+      }
+    },
+    {
+      "id": "key-vault",
+      "type": "TechnologyNode",
+      "label": "Key Vault",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/keyvault.bicep", "infra/modules/functions.bicep", "api/Program.cs"],
+        "documentation": "RBAC-enabled vault for app secrets and Data Protection key encryption."
+      }
+    },
+    {
+      "id": "data-protection-key",
+      "type": "Artifact",
+      "label": "Data Protection key",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/keyvault.bicep", "infra/modules/dataprotection.bicep", "api/Program.cs"],
+        "documentation": "Versionless Key Vault key URI used to wrap Data Protection keys."
+      }
+    },
+    {
+      "id": "application-insights",
+      "type": "TechnologyNode",
+      "label": "Application Insights",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/functions.bicep", "api/Program.cs"],
+        "documentation": "Workspace-based telemetry component."
+      }
+    },
+    {
+      "id": "log-analytics",
+      "type": "TechnologyNode",
+      "label": "Log Analytics workspace",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/loganalytics.bicep", "infra/main.bicep"],
+        "documentation": "Shared workspace for diagnostics and Application Insights."
+      }
+    },
+    {
+      "id": "cosmos-throttle-alert",
+      "type": "TechnologyService",
+      "label": "Cosmos throttle alert",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/alerts.bicep"],
+        "documentation": "Metric alert and action group for Cosmos throttling."
+      }
+    },
+    {
+      "id": "repository-baseline",
+      "type": "Plateau",
+      "label": "Repository baseline",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml"],
+        "documentation": "Main branch source, infrastructure, and app artifacts before deployment."
+      }
+    },
+    {
+      "id": "production-plateau",
+      "type": "Plateau",
+      "label": "Production plateau",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/parameters.example.json", ".github/workflows/deploy.yml"],
+        "documentation": "Single production environment represented by deploy workflow and environment tags."
+      }
+    },
+    {
+      "id": "release-to-production-gap",
+      "type": "Gap",
+      "label": "Release to production gap",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml"],
+        "documentation": "Difference closed by the production deploy workflow."
+      }
+    },
+    {
+      "id": "deploy-to-production-event",
+      "type": "ImplementationEvent",
+      "label": "Deploy to production",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml"],
+        "documentation": "Push or manual deploy event targeting production."
+      }
+    },
+    {
+      "id": "deploy-workflow",
+      "type": "WorkPackage",
+      "label": "Deploy workflow",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml"],
+        "documentation": "Orchestrator workflow for infra and app deployment."
+      }
+    },
+    {
+      "id": "deploy-infra-workflow",
+      "type": "WorkPackage",
+      "label": "Deploy Infrastructure",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy-infra.yml", "infra/main.bicep"],
+        "documentation": "Reusable workflow that runs Bicep what-if/apply."
+      }
+    },
+    {
+      "id": "deploy-app-build-workflow",
+      "type": "WorkPackage",
+      "label": "Deploy App - Build",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy-app-build.yml"],
+        "documentation": "Reusable workflow that builds Functions zip and Blazor wwwroot artifacts."
+      }
+    },
+    {
+      "id": "deploy-app-workflow",
+      "type": "WorkPackage",
+      "label": "Deploy App",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy-app.yml"],
+        "documentation": "Reusable workflow that uploads the backend and frontend artifacts."
+      }
+    },
+    {
+      "id": "bicep-template",
+      "type": "Deliverable",
+      "label": "Bicep deployment",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/main.bicep", "infra/modules/*.bicep"],
+        "documentation": "Infrastructure definition delivered by the deploy-infra workflow."
+      }
+    },
+    {
+      "id": "function-app-package",
+      "type": "Deliverable",
+      "label": "Functions zip",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy-app-build.yml", "api/Lfm.Api.csproj"],
+        "documentation": "Backend deployable package."
+      }
+    },
+    {
+      "id": "spa-wwwroot-package",
+      "type": "Deliverable",
+      "label": "SPA wwwroot bundle",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy-app-build.yml", "app/Lfm.App.csproj"],
+        "documentation": "Frontend static bundle."
+      }
+    },
+    {
+      "id": "player-wants-run",
+      "type": "BusinessEvent",
+      "label": "Player wants to join a run",
+      "properties": {
+        "layer": "Business",
+        "authority": "candidate-from-source",
+        "confidence": "medium",
+        "source_evidence": ["app/Pages/RunsPage.razor", "app/Lfm.App.Core/Services/RunsClient.cs"],
+        "unresolved_architect_questions": ["Confirm actor naming and process boundary with stakeholders."],
+        "documentation": "Source-inferred entry event for the run-signup flow."
+      }
+    },
+    {
+      "id": "browse-open-runs",
+      "type": "BusinessProcess",
+      "label": "Browse open runs",
+      "properties": {
+        "layer": "Business",
+        "authority": "candidate-from-source",
+        "confidence": "medium",
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsListFunction.cs"],
+        "documentation": "Source-inferred process candidate backed by GET /api/v1/runs."
+      }
+    },
+    {
+      "id": "inspect-run-detail",
+      "type": "BusinessProcess",
+      "label": "Inspect run detail",
+      "properties": {
+        "layer": "Business",
+        "authority": "candidate-from-source",
+        "confidence": "medium",
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsDetailFunction.cs"],
+        "documentation": "Source-inferred process candidate backed by GET /api/v1/runs/{id}."
+      }
+    },
+    {
+      "id": "sign-up-for-run",
+      "type": "BusinessProcess",
+      "label": "Sign up for run",
+      "properties": {
+        "layer": "Business",
+        "authority": "candidate-from-source",
+        "confidence": "medium",
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsSignupFunction.cs", "api/Functions/RunsSignupOptionsFunction.cs"],
+        "documentation": "Source-inferred process candidate backed by signup options and POST /api/v1/runs/{id}/signup."
+      }
+    },
+    {
+      "id": "cancel-signup",
+      "type": "BusinessProcess",
+      "label": "Cancel signup",
+      "properties": {
+        "layer": "Business",
+        "authority": "candidate-from-source",
+        "confidence": "medium",
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsCancelSignupFunction.cs"],
+        "documentation": "Source-inferred alternate path backed by DELETE /api/v1/runs/{id}/signup."
+      }
+    },
+    {
+      "id": "signup-confirmed",
+      "type": "BusinessEvent",
+      "label": "Signup confirmed",
+      "properties": {
+        "layer": "Business",
+        "authority": "candidate-from-source",
+        "confidence": "medium",
+        "source_evidence": ["api/Functions/RunsSignupFunction.cs", "shared/Lfm.Contracts/Runs/RunDetailDto.cs"],
+        "unresolved_architect_questions": ["Confirm completion event wording with stakeholders."],
+        "documentation": "Source-inferred terminal event after a successful signup response."
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "app-core-serves-app",
+      "type": "Serving",
+      "source": "lfm-app-core",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.csproj", "app/Lfm.App.Core/Lfm.App.Core.csproj"]
+      }
+    },
+    {
+      "id": "contracts-serve-app",
+      "type": "Serving",
+      "source": "lfm-contracts",
+      "target": "lfm-app",
+      "label": "contracts",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.csproj"]
+      }
+    },
+    {
+      "id": "contracts-serve-core",
+      "type": "Serving",
+      "source": "lfm-contracts",
+      "target": "lfm-app-core",
+      "label": "contracts",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.Core/Lfm.App.Core.csproj"]
+      }
+    },
+    {
+      "id": "contracts-serve-api",
+      "type": "Serving",
+      "source": "lfm-contracts",
+      "target": "lfm-api",
+      "label": "contracts",
+      "properties": {
+        "source_evidence": ["api/Lfm.Api.csproj"]
+      }
+    },
+    {
+      "id": "api-realizes-rest-api",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "rest-api",
+      "label": "exposes",
+      "properties": {
+        "source_evidence": ["api/Functions/*.cs", "api/openapi.yaml"]
+      }
+    },
+    {
+      "id": "rest-api-serves-app",
+      "type": "Serving",
+      "source": "rest-api",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.Core/Services/*.cs"]
+      }
+    },
+    {
+      "id": "api-realizes-auth-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "auth-session-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": ["api/Functions/BattleNet*.cs", "api/Functions/Me*.cs"]
+      }
+    },
+    {
+      "id": "api-realizes-run-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "run-management-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": ["api/Functions/Runs*.cs"]
+      }
+    },
+    {
+      "id": "api-realizes-guild-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "guild-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": ["api/Functions/Guild*.cs"]
+      }
+    },
+    {
+      "id": "api-realizes-raider-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "raider-profile-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": ["api/Functions/Me*.cs", "api/Functions/Raider*.cs", "api/Functions/BattleNetCharacters*.cs"]
+      }
+    },
+    {
+      "id": "api-realizes-reference-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "wow-reference-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": ["api/Functions/WowReference*.cs", "api/Services/ReferenceSync.cs"]
+      }
+    },
+    {
+      "id": "api-realizes-ops-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "ops-health-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": ["api/Functions/HealthFunction.cs", "api/Functions/PrivacyContactFunction.cs", "api/Functions/RunsMigrateSchemaFunction.cs"]
+      }
+    },
+    {
+      "id": "auth-service-serves-app",
+      "type": "Serving",
+      "source": "auth-session-service",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Pages/LoginPage.razor", "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs"]
+      }
+    },
+    {
+      "id": "run-service-serves-app",
+      "type": "Serving",
+      "source": "run-management-service",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.Core/Services/RunsClient.cs"]
+      }
+    },
+    {
+      "id": "guild-service-serves-app",
+      "type": "Serving",
+      "source": "guild-service",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.Core/Services/GuildClient.cs"]
+      }
+    },
+    {
+      "id": "raider-service-serves-app",
+      "type": "Serving",
+      "source": "raider-profile-service",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.Core/Services/MeClient.cs", "app/Lfm.App.Core/Services/BattleNetClient.cs"]
+      }
+    },
+    {
+      "id": "reference-service-serves-app",
+      "type": "Serving",
+      "source": "wow-reference-service",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Lfm.App.Core/Services/InstancesClient.cs", "app/Lfm.App.Core/Services/SpecializationsClient.cs", "app/Lfm.App.Core/Services/ExpansionsClient.cs"]
+      }
+    },
+    {
+      "id": "ops-service-serves-app",
+      "type": "Serving",
+      "source": "ops-health-service",
+      "target": "lfm-app",
+      "label": "serves",
+      "properties": {
+        "source_evidence": ["app/Pages/AdminReferenceRefreshPage.razor", "app/Pages/PrivacyPolicyPage.razor"]
+      }
+    },
+    {
+      "id": "battlenet-oauth-serves-api",
+      "type": "Serving",
+      "source": "battlenet-oauth",
+      "target": "lfm-api",
+      "label": "OAuth",
+      "properties": {
+        "source_evidence": ["api/Services/BlizzardOAuthClient.cs"]
+      }
+    },
+    {
+      "id": "profile-api-serves-api",
+      "type": "Serving",
+      "source": "blizzard-profile-api",
+      "target": "lfm-api",
+      "label": "profile data",
+      "properties": {
+        "source_evidence": ["api/Services/BlizzardProfileClient.cs", "api/Services/GuildDocumentRefreshService.cs"]
+      }
+    },
+    {
+      "id": "game-data-api-serves-api",
+      "type": "Serving",
+      "source": "blizzard-game-data-api",
+      "target": "lfm-api",
+      "label": "game data",
+      "properties": {
+        "source_evidence": ["api/Services/BlizzardGameDataClient.cs", "api/Services/ReferenceSync.cs"]
+      }
+    },
+    {
+      "id": "render-cdn-serves-app",
+      "type": "Serving",
+      "source": "blizzard-render-cdn",
+      "target": "lfm-app",
+      "label": "images",
+      "properties": {
+        "source_evidence": ["api/Services/CharacterPortraitService.cs", "app/Pages/CharactersPage.razor"]
+      }
+    },
+    {
+      "id": "swa-hosts-app",
+      "type": "Assignment",
+      "source": "static-web-apps",
+      "target": "lfm-app",
+      "label": "hosts",
+      "properties": {
+        "source_evidence": ["infra/modules/swa.bicep"]
+      }
+    },
+    {
+      "id": "function-app-hosts-api",
+      "type": "Assignment",
+      "source": "function-app",
+      "target": "lfm-api",
+      "label": "hosts",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep", "api/Lfm.Api.csproj"]
+      }
+    },
+    {
+      "id": "plan-serves-function-app",
+      "type": "Serving",
+      "source": "app-service-plan",
+      "target": "function-app",
+      "label": "hosts plan",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "function-app-composes-runtime",
+      "type": "Composition",
+      "source": "function-app",
+      "target": "functions-runtime",
+      "label": "runtime",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep", "api/host.json"]
+      }
+    },
+    {
+      "id": "function-app-has-managed-identity",
+      "type": "Composition",
+      "source": "function-app",
+      "target": "managed-identity",
+      "label": "identity",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "cosmos-serves-function-app",
+      "type": "Serving",
+      "source": "cosmos-account",
+      "target": "function-app",
+      "label": "data plane",
+      "properties": {
+        "source_evidence": ["api/Program.cs", "infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "storage-serves-function-app",
+      "type": "Serving",
+      "source": "storage-account",
+      "target": "function-app",
+      "label": "blob data",
+      "properties": {
+        "source_evidence": ["api/Program.cs", "infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "key-vault-serves-function-app",
+      "type": "Serving",
+      "source": "key-vault",
+      "target": "function-app",
+      "label": "secrets",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep", "api/Services/KeyVaultSecretResolver.cs"]
+      }
+    },
+    {
+      "id": "app-insights-serves-function-app",
+      "type": "Serving",
+      "source": "application-insights",
+      "target": "function-app",
+      "label": "telemetry",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep", "api/Program.cs"]
+      }
+    },
+    {
+      "id": "log-analytics-aggregates-app-insights",
+      "type": "Aggregation",
+      "source": "log-analytics",
+      "target": "application-insights",
+      "label": "workspace",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep", "infra/modules/loganalytics.bicep"]
+      }
+    },
+    {
+      "id": "log-analytics-aggregates-diagnostics",
+      "type": "Aggregation",
+      "source": "log-analytics",
+      "target": "cosmos-account",
+      "label": "diagnostics",
+      "properties": {
+        "source_evidence": ["infra/main.bicep", "infra/modules/cosmos.bicep", "infra/modules/storage.bicep", "infra/modules/keyvault.bicep", "infra/modules/functions.bicep", "infra/modules/swa.bicep"]
+      }
+    },
+    {
+      "id": "cosmos-composes-database",
+      "type": "Composition",
+      "source": "cosmos-account",
+      "target": "cosmos-database",
+      "label": "database",
+      "properties": {
+        "source_evidence": ["infra/modules/cosmos.bicep"]
+      }
+    },
+    {
+      "id": "database-composes-runs",
+      "type": "Composition",
+      "source": "cosmos-database",
+      "target": "cosmos-runs",
+      "label": "container",
+      "properties": {
+        "source_evidence": ["infra/modules/cosmos.bicep"]
+      }
+    },
+    {
+      "id": "database-composes-raiders",
+      "type": "Composition",
+      "source": "cosmos-database",
+      "target": "cosmos-raiders",
+      "label": "container",
+      "properties": {
+        "source_evidence": ["infra/modules/cosmos.bicep"]
+      }
+    },
+    {
+      "id": "database-composes-guilds",
+      "type": "Composition",
+      "source": "cosmos-database",
+      "target": "cosmos-guilds",
+      "label": "container",
+      "properties": {
+        "source_evidence": ["infra/modules/cosmos.bicep"]
+      }
+    },
+    {
+      "id": "database-composes-idempotency",
+      "type": "Composition",
+      "source": "cosmos-database",
+      "target": "cosmos-idempotency",
+      "label": "container",
+      "properties": {
+        "source_evidence": ["infra/modules/cosmos.bicep"]
+      }
+    },
+    {
+      "id": "storage-composes-wow-reference",
+      "type": "Composition",
+      "source": "storage-account",
+      "target": "wow-reference-container",
+      "label": "blob container",
+      "properties": {
+        "source_evidence": ["infra/modules/storage.bicep"]
+      }
+    },
+    {
+      "id": "storage-composes-data-protection",
+      "type": "Composition",
+      "source": "storage-account",
+      "target": "data-protection-container",
+      "label": "blob container",
+      "properties": {
+        "source_evidence": ["infra/modules/storage.bicep", "api/Program.cs"]
+      }
+    },
+    {
+      "id": "key-vault-composes-data-protection-key",
+      "type": "Composition",
+      "source": "key-vault",
+      "target": "data-protection-key",
+      "label": "key",
+      "properties": {
+        "source_evidence": ["infra/modules/keyvault.bicep", "api/Program.cs"]
+      }
+    },
+    {
+      "id": "managed-identity-accesses-key-vault",
+      "type": "Access",
+      "source": "managed-identity",
+      "target": "key-vault",
+      "label": "Secrets User",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "managed-identity-accesses-cosmos",
+      "type": "Access",
+      "source": "managed-identity",
+      "target": "cosmos-account",
+      "label": "Data Contributor",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "managed-identity-accesses-storage",
+      "type": "Access",
+      "source": "managed-identity",
+      "target": "storage-account",
+      "label": "Blob/Queue/Table roles",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep", "infra/modules/dataprotection.bicep"]
+      }
+    },
+    {
+      "id": "managed-identity-accesses-app-insights",
+      "type": "Access",
+      "source": "managed-identity",
+      "target": "application-insights",
+      "label": "Metrics Publisher",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "managed-identity-accesses-data-protection-key",
+      "type": "Access",
+      "source": "managed-identity",
+      "target": "data-protection-key",
+      "label": "Crypto User",
+      "properties": {
+        "source_evidence": ["infra/modules/dataprotection.bicep"]
+      }
+    },
+    {
+      "id": "cosmos-throttle-alert-monitors-cosmos",
+      "type": "Access",
+      "source": "cosmos-throttle-alert",
+      "target": "cosmos-account",
+      "label": "monitors 429s",
+      "properties": {
+        "source_evidence": ["infra/modules/alerts.bicep"]
+      }
+    },
+    {
+      "id": "repository-triggers-deploy-workflow",
+      "type": "Triggering",
+      "source": "repository-baseline",
+      "target": "deploy-workflow",
+      "label": "push/manual",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "deploy-workflow-composes-infra",
+      "type": "Composition",
+      "source": "deploy-workflow",
+      "target": "deploy-infra-workflow",
+      "label": "infra",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/deploy-infra.yml"]
+      }
+    },
+    {
+      "id": "deploy-workflow-composes-build",
+      "type": "Composition",
+      "source": "deploy-workflow",
+      "target": "deploy-app-build-workflow",
+      "label": "build",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/deploy-app-build.yml"]
+      }
+    },
+    {
+      "id": "deploy-workflow-composes-app",
+      "type": "Composition",
+      "source": "deploy-workflow",
+      "target": "deploy-app-workflow",
+      "label": "app",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/deploy-app.yml"]
+      }
+    },
+    {
+      "id": "deploy-infra-realizes-bicep",
+      "type": "Realization",
+      "source": "deploy-infra-workflow",
+      "target": "bicep-template",
+      "label": "applies",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy-infra.yml", "infra/main.bicep"]
+      }
+    },
+    {
+      "id": "deploy-build-realizes-functions-package",
+      "type": "Realization",
+      "source": "deploy-app-build-workflow",
+      "target": "function-app-package",
+      "label": "builds",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy-app-build.yml"]
+      }
+    },
+    {
+      "id": "deploy-build-realizes-spa-package",
+      "type": "Realization",
+      "source": "deploy-app-build-workflow",
+      "target": "spa-wwwroot-package",
+      "label": "builds",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy-app-build.yml"]
+      }
+    },
+    {
+      "id": "deploy-infra-triggers-app-deploy",
+      "type": "Triggering",
+      "source": "deploy-infra-workflow",
+      "target": "deploy-app-workflow",
+      "label": "before app",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "deploy-app-realizes-production",
+      "type": "Realization",
+      "source": "deploy-app-workflow",
+      "target": "production-plateau",
+      "label": "updates",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy-app.yml"]
+      }
+    },
+    {
+      "id": "release-gap-realized-by-deploy",
+      "type": "Realization",
+      "source": "deploy-workflow",
+      "target": "release-to-production-gap",
+      "label": "closes",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "deploy-workflow-triggers-event",
+      "type": "Triggering",
+      "source": "deploy-workflow",
+      "target": "deploy-to-production-event",
+      "label": "deploys",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "deploy-event-realizes-production",
+      "type": "Realization",
+      "source": "deploy-to-production-event",
+      "target": "production-plateau",
+      "label": "reaches",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "bicep-deploys-static-web-apps",
+      "type": "Realization",
+      "source": "bicep-template",
+      "target": "static-web-apps",
+      "label": "provisions",
+      "properties": {
+        "source_evidence": ["infra/modules/swa.bicep"]
+      }
+    },
+    {
+      "id": "bicep-deploys-function-app",
+      "type": "Realization",
+      "source": "bicep-template",
+      "target": "function-app",
+      "label": "provisions",
+      "properties": {
+        "source_evidence": ["infra/modules/functions.bicep"]
+      }
+    },
+    {
+      "id": "function-package-deploys-api",
+      "type": "Realization",
+      "source": "function-app-package",
+      "target": "lfm-api",
+      "label": "deploys",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy-app.yml", "api/Lfm.Api.csproj"]
+      }
+    },
+    {
+      "id": "spa-package-deploys-app",
+      "type": "Realization",
+      "source": "spa-wwwroot-package",
+      "target": "lfm-app",
+      "label": "deploys",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy-app.yml", "app/Lfm.App.csproj"]
+      }
+    },
+    {
+      "id": "player-event-triggers-browse",
+      "type": "Triggering",
+      "source": "player-wants-run",
+      "target": "browse-open-runs",
+      "label": "starts",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor"]
+      }
+    },
+    {
+      "id": "browse-triggers-inspect",
+      "type": "Triggering",
+      "source": "browse-open-runs",
+      "target": "inspect-run-detail",
+      "label": "selects",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsDetailFunction.cs"]
+      }
+    },
+    {
+      "id": "inspect-triggers-signup",
+      "type": "Triggering",
+      "source": "inspect-run-detail",
+      "target": "sign-up-for-run",
+      "label": "joins",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsSignupFunction.cs"]
+      }
+    },
+    {
+      "id": "signup-triggers-confirmed",
+      "type": "Triggering",
+      "source": "sign-up-for-run",
+      "target": "signup-confirmed",
+      "label": "confirms",
+      "properties": {
+        "source_evidence": ["api/Functions/RunsSignupFunction.cs"]
+      }
+    },
+    {
+      "id": "signup-flows-to-cancel",
+      "type": "Flow",
+      "source": "sign-up-for-run",
+      "target": "cancel-signup",
+      "label": "alternate path",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor", "api/Functions/RunsCancelSignupFunction.cs"]
+      }
+    },
+    {
+      "id": "runs-ui-serves-browse",
+      "type": "Serving",
+      "source": "runs-ui-entry",
+      "target": "browse-open-runs",
+      "label": "UI",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor"]
+      }
+    },
+    {
+      "id": "runs-ui-serves-inspect",
+      "type": "Serving",
+      "source": "runs-ui-entry",
+      "target": "inspect-run-detail",
+      "label": "UI",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor"]
+      }
+    },
+    {
+      "id": "runs-ui-serves-signup",
+      "type": "Serving",
+      "source": "runs-ui-entry",
+      "target": "sign-up-for-run",
+      "label": "UI",
+      "properties": {
+        "source_evidence": ["app/Pages/RunsPage.razor"]
+      }
+    },
+    {
+      "id": "run-service-serves-browse",
+      "type": "Serving",
+      "source": "run-management-service",
+      "target": "browse-open-runs",
+      "label": "realization",
+      "properties": {
+        "source_evidence": ["api/Functions/RunsListFunction.cs", "app/Lfm.App.Core/Services/RunsClient.cs"]
+      }
+    },
+    {
+      "id": "run-service-serves-inspect",
+      "type": "Serving",
+      "source": "run-management-service",
+      "target": "inspect-run-detail",
+      "label": "realization",
+      "properties": {
+        "source_evidence": ["api/Functions/RunsDetailFunction.cs", "app/Lfm.App.Core/Services/RunsClient.cs"]
+      }
+    },
+    {
+      "id": "run-service-serves-signup",
+      "type": "Serving",
+      "source": "run-management-service",
+      "target": "sign-up-for-run",
+      "label": "realization",
+      "properties": {
+        "source_evidence": ["api/Functions/RunsSignupFunction.cs", "api/Functions/RunsSignupOptionsFunction.cs", "app/Lfm.App.Core/Services/RunsClient.cs"]
+      }
+    },
+    {
+      "id": "run-service-serves-cancel",
+      "type": "Serving",
+      "source": "run-management-service",
+      "target": "cancel-signup",
+      "label": "realization",
+      "properties": {
+        "source_evidence": ["api/Functions/RunsCancelSignupFunction.cs", "app/Lfm.App.Core/Services/RunsClient.cs"]
+      }
+    },
+    {
+      "id": "run-service-accesses-runs",
+      "type": "Access",
+      "source": "run-management-service",
+      "target": "cosmos-runs",
+      "label": "reads/writes",
+      "properties": {
+        "source_evidence": ["api/Repositories/IRunsRepository.cs", "api/Runs/*.cs"]
+      }
+    },
+    {
+      "id": "run-service-accesses-raiders",
+      "type": "Access",
+      "source": "run-management-service",
+      "target": "cosmos-raiders",
+      "label": "signup options",
+      "properties": {
+        "source_evidence": ["api/Functions/RunsSignupOptionsFunction.cs", "api/Runs/RunSignupService.cs"]
+      }
+    }
+  ],
+  "plugins": {
+    "generic-graph": {
+      "views": [
+        {
+          "id": "application-cooperation",
+          "label": "LFM - Application Cooperation",
+          "nodes": [
+            "lfm-app",
+            "lfm-app-core",
+            "lfm-contracts",
+            "lfm-api",
+            "rest-api",
+            "auth-session-service",
+            "run-management-service",
+            "guild-service",
+            "raider-profile-service",
+            "wow-reference-service",
+            "ops-health-service",
+            "battlenet-oauth",
+            "blizzard-profile-api",
+            "blizzard-game-data-api",
+            "blizzard-render-cdn"
+          ],
+          "relationships": [
+            "app-core-serves-app",
+            "contracts-serve-app",
+            "contracts-serve-core",
+            "contracts-serve-api",
+            "api-realizes-rest-api",
+            "rest-api-serves-app",
+            "api-realizes-auth-service",
+            "api-realizes-run-service",
+            "api-realizes-guild-service",
+            "api-realizes-raider-service",
+            "api-realizes-reference-service",
+            "api-realizes-ops-service",
+            "auth-service-serves-app",
+            "run-service-serves-app",
+            "guild-service-serves-app",
+            "raider-service-serves-app",
+            "reference-service-serves-app",
+            "ops-service-serves-app",
+            "battlenet-oauth-serves-api",
+            "profile-api-serves-api",
+            "game-data-api-serves-api",
+            "render-cdn-serves-app"
+          ]
+        },
+        {
+          "id": "technology-usage",
+          "label": "LFM - Technology Usage",
+          "nodes": [
+            "static-web-apps",
+            "function-app",
+            "app-service-plan",
+            "functions-runtime",
+            "managed-identity",
+            "cosmos-account",
+            "cosmos-database",
+            "cosmos-runs",
+            "cosmos-raiders",
+            "cosmos-guilds",
+            "cosmos-idempotency",
+            "storage-account",
+            "wow-reference-container",
+            "data-protection-container",
+            "key-vault",
+            "data-protection-key",
+            "application-insights",
+            "log-analytics",
+            "cosmos-throttle-alert",
+            "lfm-app",
+            "lfm-api"
+          ],
+          "relationships": [
+            "swa-hosts-app",
+            "function-app-hosts-api",
+            "plan-serves-function-app",
+            "function-app-composes-runtime",
+            "function-app-has-managed-identity",
+            "cosmos-serves-function-app",
+            "storage-serves-function-app",
+            "key-vault-serves-function-app",
+            "app-insights-serves-function-app",
+            "log-analytics-aggregates-app-insights",
+            "log-analytics-aggregates-diagnostics",
+            "cosmos-composes-database",
+            "database-composes-runs",
+            "database-composes-raiders",
+            "database-composes-guilds",
+            "database-composes-idempotency",
+            "storage-composes-wow-reference",
+            "storage-composes-data-protection",
+            "key-vault-composes-data-protection-key",
+            "managed-identity-accesses-key-vault",
+            "managed-identity-accesses-cosmos",
+            "managed-identity-accesses-storage",
+            "managed-identity-accesses-app-insights",
+            "managed-identity-accesses-data-protection-key",
+            "cosmos-throttle-alert-monitors-cosmos"
+          ]
+        },
+        {
+          "id": "production-release-migration",
+          "label": "LFM - Production Release Migration",
+          "nodes": [
+            "repository-baseline",
+            "production-plateau",
+            "release-to-production-gap",
+            "deploy-to-production-event",
+            "deploy-workflow",
+            "deploy-infra-workflow",
+            "deploy-app-build-workflow",
+            "deploy-app-workflow",
+            "bicep-template",
+            "function-app-package",
+            "spa-wwwroot-package",
+            "static-web-apps",
+            "function-app",
+            "lfm-app",
+            "lfm-api"
+          ],
+          "relationships": [
+            "repository-triggers-deploy-workflow",
+            "deploy-workflow-composes-infra",
+            "deploy-workflow-composes-build",
+            "deploy-workflow-composes-app",
+            "deploy-infra-realizes-bicep",
+            "deploy-build-realizes-functions-package",
+            "deploy-build-realizes-spa-package",
+            "deploy-infra-triggers-app-deploy",
+            "deploy-app-realizes-production",
+            "release-gap-realized-by-deploy",
+            "deploy-workflow-triggers-event",
+            "deploy-event-realizes-production",
+            "bicep-deploys-static-web-apps",
+            "bicep-deploys-function-app",
+            "function-package-deploys-api",
+            "spa-package-deploys-app"
+          ]
+        },
+        {
+          "id": "run-signup-process-candidate",
+          "label": "Run Signup - Business Process Candidate",
+          "nodes": [
+            "player-wants-run",
+            "browse-open-runs",
+            "inspect-run-detail",
+            "sign-up-for-run",
+            "cancel-signup",
+            "signup-confirmed"
+          ],
+          "relationships": [
+            "player-event-triggers-browse",
+            "browse-triggers-inspect",
+            "inspect-triggers-signup",
+            "signup-triggers-confirmed",
+            "signup-flows-to-cancel"
+          ]
+        },
+        {
+          "id": "run-signup-service-realization",
+          "label": "Run Signup - Service Realization",
+          "nodes": [
+            "browse-open-runs",
+            "inspect-run-detail",
+            "sign-up-for-run",
+            "cancel-signup",
+            "runs-ui-entry",
+            "run-management-service",
+            "lfm-api",
+            "function-app",
+            "cosmos-runs",
+            "cosmos-raiders"
+          ],
+          "relationships": [
+            "runs-ui-serves-browse",
+            "runs-ui-serves-inspect",
+            "runs-ui-serves-signup",
+            "run-service-serves-browse",
+            "run-service-serves-inspect",
+            "run-service-serves-signup",
+            "run-service-serves-cancel",
+            "api-realizes-run-service",
+            "function-app-hosts-api",
+            "run-service-accesses-runs",
+            "run-service-accesses-raiders"
+          ]
+        }
+      ]
+    }
+  }
+}
