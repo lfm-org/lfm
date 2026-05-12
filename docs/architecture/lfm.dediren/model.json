@@ -456,6 +456,28 @@
       }
     },
     {
+      "id": "secret-scan-workflow",
+      "type": "WorkPackage",
+      "label": "Secret Scanning",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/secrets-scan.yml"],
+        "documentation": "Reusable Gitleaks workflow that gates deploy app build and infrastructure deployment jobs."
+      }
+    },
+    {
+      "id": "infrastructure-analysis-workflow",
+      "type": "WorkPackage",
+      "label": "Analyze Infrastructure",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/analyze-infra.yml", "ps-rule.yaml"],
+        "documentation": "Reusable PSRule for Azure analysis workflow that gates infrastructure deployment."
+      }
+    },
+    {
       "id": "deploy-infra-workflow",
       "type": "WorkPackage",
       "label": "Deploy Infrastructure",
@@ -1088,6 +1110,26 @@
       }
     },
     {
+      "id": "deploy-workflow-composes-secret-scan",
+      "type": "Composition",
+      "source": "deploy-workflow",
+      "target": "secret-scan-workflow",
+      "label": "secret gate",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/secrets-scan.yml"]
+      }
+    },
+    {
+      "id": "deploy-workflow-composes-infra-analysis",
+      "type": "Composition",
+      "source": "deploy-workflow",
+      "target": "infrastructure-analysis-workflow",
+      "label": "infra analysis",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/analyze-infra.yml"]
+      }
+    },
+    {
       "id": "deploy-workflow-composes-build",
       "type": "Composition",
       "source": "deploy-workflow",
@@ -1135,6 +1177,36 @@
       "label": "builds",
       "properties": {
         "source_evidence": [".github/workflows/deploy-app-build.yml"]
+      }
+    },
+    {
+      "id": "secret-scan-triggers-build",
+      "type": "Triggering",
+      "source": "secret-scan-workflow",
+      "target": "deploy-app-build-workflow",
+      "label": "gate",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "secret-scan-triggers-infra-deploy",
+      "type": "Triggering",
+      "source": "secret-scan-workflow",
+      "target": "deploy-infra-workflow",
+      "label": "gate",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
+      "id": "infrastructure-analysis-triggers-infra-deploy",
+      "type": "Triggering",
+      "source": "infrastructure-analysis-workflow",
+      "target": "deploy-infra-workflow",
+      "label": "gate",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml", ".github/workflows/analyze-infra.yml"]
       }
     },
     {
@@ -1414,6 +1486,35 @@
             "profile-api-serves-api",
             "game-data-api-serves-api",
             "render-cdn-serves-app"
+          ],
+          "groups": [
+            {
+              "id": "application-cooperation-lfm-owned",
+              "label": "LFM-owned application surface",
+              "members": [
+                "lfm-app",
+                "lfm-app-core",
+                "lfm-contracts",
+                "lfm-api",
+                "rest-api",
+                "auth-session-service",
+                "run-management-service",
+                "guild-service",
+                "raider-profile-service",
+                "wow-reference-service",
+                "ops-health-service"
+              ]
+            },
+            {
+              "id": "application-cooperation-external-blizzard",
+              "label": "External Blizzard dependencies",
+              "members": [
+                "battlenet-oauth",
+                "blizzard-profile-api",
+                "blizzard-game-data-api",
+                "blizzard-render-cdn"
+              ]
+            }
           ]
         },
         {
@@ -1468,6 +1569,53 @@
             "managed-identity-accesses-app-insights",
             "managed-identity-accesses-data-protection-key",
             "cosmos-throttle-alert-monitors-cosmos"
+          ],
+          "groups": [
+            {
+              "id": "technology-usage-frontend-hosting",
+              "label": "Frontend hosting",
+              "members": [
+                "static-web-apps",
+                "lfm-app"
+              ]
+            },
+            {
+              "id": "technology-usage-functions-hosting",
+              "label": "Functions hosting",
+              "members": [
+                "function-app",
+                "app-service-plan",
+                "functions-runtime",
+                "managed-identity",
+                "lfm-api"
+              ]
+            },
+            {
+              "id": "technology-usage-data-plane",
+              "label": "Data plane and secrets",
+              "members": [
+                "cosmos-account",
+                "cosmos-database",
+                "cosmos-runs",
+                "cosmos-raiders",
+                "cosmos-guilds",
+                "cosmos-idempotency",
+                "storage-account",
+                "wow-reference-container",
+                "data-protection-container",
+                "key-vault",
+                "data-protection-key"
+              ]
+            },
+            {
+              "id": "technology-usage-observability",
+              "label": "Observability and alerting",
+              "members": [
+                "application-insights",
+                "log-analytics",
+                "cosmos-throttle-alert"
+              ]
+            }
           ]
         },
         {
@@ -1479,6 +1627,8 @@
             "release-to-production-gap",
             "deploy-to-production-event",
             "deploy-workflow",
+            "secret-scan-workflow",
+            "infrastructure-analysis-workflow",
             "deploy-infra-workflow",
             "deploy-app-build-workflow",
             "deploy-app-workflow",
@@ -1493,11 +1643,16 @@
           "relationships": [
             "repository-triggers-deploy-workflow",
             "deploy-workflow-composes-infra",
+            "deploy-workflow-composes-secret-scan",
+            "deploy-workflow-composes-infra-analysis",
             "deploy-workflow-composes-build",
             "deploy-workflow-composes-app",
             "deploy-infra-realizes-bicep",
             "deploy-build-realizes-functions-package",
             "deploy-build-realizes-spa-package",
+            "secret-scan-triggers-build",
+            "secret-scan-triggers-infra-deploy",
+            "infrastructure-analysis-triggers-infra-deploy",
             "deploy-infra-triggers-app-deploy",
             "deploy-app-realizes-production",
             "release-gap-realized-by-deploy",
@@ -1507,6 +1662,48 @@
             "bicep-deploys-function-app",
             "function-package-deploys-api",
             "spa-package-deploys-app"
+          ],
+          "groups": [
+            {
+              "id": "production-release-orchestration",
+              "label": "Deploy orchestration",
+              "members": [
+                "repository-baseline",
+                "deploy-workflow",
+                "deploy-to-production-event"
+              ]
+            },
+            {
+              "id": "production-release-quality-gates",
+              "label": "Deployment quality gates",
+              "members": [
+                "secret-scan-workflow",
+                "infrastructure-analysis-workflow"
+              ]
+            },
+            {
+              "id": "production-release-build-and-deploy",
+              "label": "Build and deploy stages",
+              "members": [
+                "deploy-infra-workflow",
+                "deploy-app-build-workflow",
+                "deploy-app-workflow",
+                "bicep-template",
+                "function-app-package",
+                "spa-wwwroot-package"
+              ]
+            },
+            {
+              "id": "production-release-deployed-runtime",
+              "label": "Production runtime",
+              "members": [
+                "production-plateau",
+                "static-web-apps",
+                "function-app",
+                "lfm-app",
+                "lfm-api"
+              ]
+            }
           ]
         },
         {
@@ -1555,6 +1752,36 @@
             "function-app-hosts-api",
             "run-service-accesses-runs",
             "run-service-accesses-raiders"
+          ],
+          "groups": [
+            {
+              "id": "run-signup-realization-ui-flow",
+              "label": "Run signup UI flow",
+              "members": [
+                "browse-open-runs",
+                "inspect-run-detail",
+                "sign-up-for-run",
+                "cancel-signup",
+                "runs-ui-entry"
+              ]
+            },
+            {
+              "id": "run-signup-realization-api-host",
+              "label": "API realization and host",
+              "members": [
+                "run-management-service",
+                "lfm-api",
+                "function-app"
+              ]
+            },
+            {
+              "id": "run-signup-realization-data",
+              "label": "Signup data dependencies",
+              "members": [
+                "cosmos-runs",
+                "cosmos-raiders"
+              ]
+            }
           ]
         }
       ]
