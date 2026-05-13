@@ -62,7 +62,7 @@
         "label_fill": "#172554",
         "decorator": "archimate_application_service"
       },
-      "TechnologyNode": {
+      "Node": {
         "fill": "#ecfdf3",
         "stroke": "#16a34a",
         "label_fill": "#14532d",
