@@ -15,10 +15,17 @@ services:
       - -lc
       - |
         printf '%s' "$COSMOS_KEY_CONTENT" > /tmp/cosmos.key
+        mkdir -p /tmp/cosmos-workspace
+        export HOME=/tmp/cosmos-workspace
         export KEY_FILE=/tmp/cosmos.key
+        export WORKSPACE_ROOT=/tmp/cosmos-workspace
         exec /home/cosmosdev/docker_entrypoint.sh
     tmpfs:
       - /tmp
+      - /logs:rw,mode=1777
+      - /socket:rw,mode=1777
+    volumes:
+      - cosmos-data:/data
     ports:
       - "${COSMOS_PORT:-8081}:8081"
       - "${COSMOS_EXPLORER_PORT:-1234}:1234"
@@ -91,6 +98,7 @@ services:
       - functions-logfiles:/home/LogFiles
 
 volumes:
+  cosmos-data:
   azurite-data:
   functions-data:
   functions-logfiles:

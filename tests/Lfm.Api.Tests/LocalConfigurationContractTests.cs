@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Xunit;
 
 namespace Lfm.Api.Tests;
@@ -173,6 +174,34 @@ public sealed class LocalConfigurationContractTests
         Assert.Contains($"    mem_limit: {memLimit}", block);
         Assert.Contains($"    cpus: \"{cpus}\"", block);
         Assert.Contains($"    pids_limit: {pidsLimit}", block);
+    }
+
+    [Fact]
+    public void Docker_compose_cosmosdb_declares_writable_emulator_runtime_paths()
+    {
+        var compose = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
+        var block = ExtractYamlBlock(compose, "  cosmosdb:");
+
+        Assert.Contains("        mkdir -p /tmp/cosmos-workspace", block);
+        Assert.Contains("        export HOME=/tmp/cosmos-workspace", block);
+        Assert.Contains("        export WORKSPACE_ROOT=/tmp/cosmos-workspace", block);
+        Assert.Contains("    read_only: true", block);
+        Assert.Contains("      - /tmp", block);
+        Assert.Contains("      - /logs:rw,mode=1777", block);
+        Assert.Contains("      - /socket:rw,mode=1777", block);
+        Assert.Contains("    volumes:", block);
+        Assert.Contains("      - cosmos-data:/data", block);
+        Assert.Contains("  cosmos-data:", compose);
+    }
+
+    [Fact]
+    public void Blazor_appsettings_points_at_local_compose_functions_endpoint()
+    {
+        var path = Path.Combine(FindRepositoryRoot(), "app", "wwwroot", "appsettings.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var apiBaseUrl = document.RootElement.GetProperty("ApiBaseUrl").GetString();
+
+        Assert.Equal("http://localhost:7071", apiBaseUrl);
     }
 
     private static string FindRepositoryRoot()
