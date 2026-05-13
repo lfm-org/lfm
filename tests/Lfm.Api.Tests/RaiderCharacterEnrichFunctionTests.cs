@@ -81,6 +81,53 @@ public class RaiderCharacterEnrichFunctionTests
     }
 
     [Fact]
+    public async Task Retries_conflicting_character_write_and_preserves_latest_characters()
+    {
+        var initial = MakeRaider(
+            accountChars: [("stormreaver", "Shalena")],
+            etag: "\"etag-1\"");
+        var latest = MakeRaider(
+            characters: [StoredCharacter("eu-stormreaver-valoneito", "Valoneito")],
+            accountChars: [("stormreaver", "Shalena")],
+            etag: "\"etag-2\"");
+        var readCall = 0;
+        var replaceCall = 0;
+        RaiderDocument? retriedWrite = null;
+
+        var repo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => ++readCall == 1 ? initial : latest);
+        repo.Setup(r => r.ReplaceAsync(
+                It.IsAny<RaiderDocument>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<RaiderDocument, string, CancellationToken>((doc, _, _) =>
+            {
+                replaceCall++;
+                if (replaceCall == 1)
+                    throw new ConcurrencyConflictException();
+
+                retriedWrite = doc;
+                return Task.FromResult(doc with { ETag = "\"etag-3\"" });
+            });
+
+        var fn = MakeFunction(repo.Object, MakeProfileClient().Object);
+        var result = await fn.Run(MakeRequest(), CharId, MakeCtx(), CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(2, replaceCall);
+        Assert.NotNull(retriedWrite);
+        Assert.Contains(retriedWrite.Characters!, c => c.Id == CharId);
+        Assert.Contains(retriedWrite.Characters!, c => c.Id == "eu-stormreaver-valoneito");
+        repo.Verify(r => r.ReplaceAsync(
+            It.Is<RaiderDocument>(d => d.Characters != null
+                && d.Characters.Any(c => c.Id == CharId)
+                && d.Characters.Any(c => c.Id == "eu-stormreaver-valoneito")),
+            "\"etag-2\"",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Calls_Blizzard_with_dashed_realm_slug_intact()
     {
         const string dashedId = "eu-the-maelstrom-kalmatar";
@@ -207,7 +254,8 @@ public class RaiderCharacterEnrichFunctionTests
     private static RaiderDocument MakeRaider(
         string? selected = null,
         IReadOnlyList<StoredSelectedCharacter>? characters = null,
-        IEnumerable<(string Realm, string Name)>? accountChars = null)
+        IEnumerable<(string Realm, string Name)>? accountChars = null,
+        string? etag = null)
         => new(
             Id: "bnet-1", BattleNetId: "bnet-1",
             SelectedCharacterId: selected, Locale: null,
@@ -218,7 +266,15 @@ public class RaiderCharacterEnrichFunctionTests
                     Characters: accountChars.Select(c =>
                         new StoredBlizzardAccountCharacter(
                             Name: c.Name, Level: 80,
-                            Realm: new StoredBlizzardRealmRef(Slug: c.Realm))).ToList())]));
+                            Realm: new StoredBlizzardRealmRef(Slug: c.Realm))).ToList())]),
+            ETag: etag);
+
+    private static StoredSelectedCharacter StoredCharacter(string id, string name) =>
+        new(
+            Id: id,
+            Region: "eu",
+            Realm: "stormreaver",
+            Name: name);
 
     private static Mock<IBlizzardProfileClient> MakeProfileClient()
     {

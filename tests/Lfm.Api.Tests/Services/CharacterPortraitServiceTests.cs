@@ -24,10 +24,9 @@ public class CharacterPortraitServiceTests
             => Task.FromResult(response);
     }
 
-    private static CharacterPortraitService MakeService(HttpMessageHandler handler)
+    private static CharacterPortraitService MakeService(HttpMessageHandler handler, IRaidersRepository? repo = null)
     {
         var httpClient = new HttpClient(handler);
-        var repo = new Mock<IRaidersRepository>().Object;
         var opts = Microsoft.Extensions.Options.Options.Create(new BlizzardOptions
         {
             ClientId = "id",
@@ -36,7 +35,7 @@ public class CharacterPortraitServiceTests
             RedirectUri = "https://example.com/callback",
             AppBaseUrl = "https://example.com",
         });
-        return new CharacterPortraitService(repo, httpClient, opts);
+        return new CharacterPortraitService(repo ?? new Mock<IRaidersRepository>().Object, httpClient, opts);
     }
 
     // -------------------------------------------------------------------------
@@ -98,5 +97,78 @@ public class CharacterPortraitServiceTests
         // The portrait is unresolved but the call succeeds.
         Assert.NotNull(result);
         Assert.False(result.Portraits.ContainsKey("eu-silvermoon-legolas"));
+    }
+
+    [Fact]
+    public async Task ResolveAsync_retries_conflicting_cache_write_and_preserves_latest_characters()
+    {
+        var initial = new RaiderDocument(
+            Id: "bnet-1",
+            BattleNetId: "bnet-1",
+            SelectedCharacterId: null,
+            Locale: null,
+            ETag: "\"etag-1\"");
+        var latest = initial with
+        {
+            Characters =
+            [
+                new StoredSelectedCharacter(
+                    Id: "eu-stormreaver-valoneito",
+                    Region: "eu",
+                    Realm: "stormreaver",
+                    Name: "Valoneito")
+            ],
+            ETag = "\"etag-2\"",
+        };
+        var repo = new Mock<IRaidersRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByBattleNetIdAsync("bnet-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(latest);
+
+        var replaceCall = 0;
+        RaiderDocument? retriedWrite = null;
+        repo.Setup(r => r.ReplaceAsync(
+                It.IsAny<RaiderDocument>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<RaiderDocument, string, CancellationToken>((doc, _, _) =>
+            {
+                replaceCall++;
+                if (replaceCall == 1)
+                    throw new ConcurrencyConflictException();
+
+                retriedWrite = doc;
+                return Task.FromResult(doc with { ETag = "\"etag-3\"" });
+            });
+
+        var payload = """
+            {"assets":[{"key":"avatar","value":"https://render.worldofwarcraft.com/eu/avatar.jpg"}]}
+            """;
+        var service = MakeService(
+            new StubHandler(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(payload),
+            }),
+            repo.Object);
+
+        var result = await service.ResolveAsync(
+            initial,
+            [new CharacterPortraitRequest(Region: "eu", Realm: "stormreaver", Name: "Shalena")],
+            "fake-token",
+            CancellationToken.None);
+
+        Assert.Equal("https://render.worldofwarcraft.com/eu/avatar.jpg", result.Portraits["eu-stormreaver-shalena"]);
+        Assert.Equal(2, replaceCall);
+        Assert.NotNull(retriedWrite);
+        Assert.Contains(retriedWrite.Characters!, c => c.Id == "eu-stormreaver-valoneito");
+        Assert.Equal(
+            "https://render.worldofwarcraft.com/eu/avatar.jpg",
+            retriedWrite.PortraitCache!["eu-stormreaver-shalena"]);
+        repo.Verify(r => r.ReplaceAsync(
+            It.Is<RaiderDocument>(d => d.Characters != null
+                && d.Characters.Any(c => c.Id == "eu-stormreaver-valoneito")
+                && d.PortraitCache != null
+                && d.PortraitCache.ContainsKey("eu-stormreaver-shalena")),
+            "\"etag-2\"",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

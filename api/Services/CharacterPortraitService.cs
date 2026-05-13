@@ -47,6 +47,8 @@ public sealed class CharacterPortraitService(
             : new List<StoredSelectedCharacter>();
         var result = new Dictionary<string, string>();
         var toFetch = new List<(string Region, string Realm, string Name, string Id)>();
+        var characterUpdates = new Dictionary<string, StoredSelectedCharacter>(StringComparer.OrdinalIgnoreCase);
+        var portraitUpdates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var cacheUpdated = false;
 
         foreach (var req in requests)
@@ -67,12 +69,15 @@ public sealed class CharacterPortraitService(
                 result[characterId] = storedPortraitUrl;
                 if (stored is not null && stored.PortraitUrl != storedPortraitUrl)
                 {
-                    characters[storedIndex] = stored with { PortraitUrl = storedPortraitUrl };
+                    var updatedStored = stored with { PortraitUrl = storedPortraitUrl };
+                    characters[storedIndex] = updatedStored;
+                    characterUpdates[characterId] = updatedStored;
                     cacheUpdated = true;
                 }
                 if (!portraitCache.TryGetValue(characterId, out var existingCached) || existingCached != storedPortraitUrl)
                 {
                     portraitCache[characterId] = storedPortraitUrl;
+                    portraitUpdates[characterId] = storedPortraitUrl;
                     cacheUpdated = true;
                 }
                 continue;
@@ -84,7 +89,9 @@ public sealed class CharacterPortraitService(
                 result[characterId] = cachedUrl;
                 if (stored is not null && stored.PortraitUrl != cachedUrl)
                 {
-                    characters[storedIndex] = stored with { PortraitUrl = cachedUrl };
+                    var updatedStored = stored with { PortraitUrl = cachedUrl };
+                    characters[storedIndex] = updatedStored;
+                    characterUpdates[characterId] = updatedStored;
                     cacheUpdated = true;
                 }
                 continue;
@@ -118,6 +125,7 @@ public sealed class CharacterPortraitService(
                 {
                     result[outcome.Id] = outcome.Url;
                     portraitCache[outcome.Id] = outcome.Url;
+                    portraitUpdates[outcome.Id] = outcome.Url;
                     cacheUpdated = true;
                 }
             }
@@ -126,16 +134,47 @@ public sealed class CharacterPortraitService(
         // Persist raider if cache was updated.
         if (cacheUpdated)
         {
-            var updated = raider with
-            {
-                Characters = characters,
-                PortraitCache = portraitCache,
-                Ttl = 180 * 86400,
-            };
-            await repo.UpsertAsync(updated, ct);
+            await RaiderDocumentConcurrency.ReplaceWithRetryAsync(
+                repo,
+                raider,
+                current => WithPortraitUpdates(current, characterUpdates.Values, portraitUpdates),
+                ct);
         }
 
         return new PortraitResponse(result);
+    }
+
+    private static RaiderDocument WithPortraitUpdates(
+        RaiderDocument raider,
+        IEnumerable<StoredSelectedCharacter> characterUpdates,
+        IReadOnlyDictionary<string, string> portraitUpdates)
+    {
+        IReadOnlyList<StoredSelectedCharacter>? mergedCharacters = raider.Characters;
+        var updates = characterUpdates.ToList();
+        if (updates.Count > 0)
+        {
+            var characters = (raider.Characters ?? []).ToList();
+            foreach (var updatedCharacter in updates)
+            {
+                var idx = characters.FindIndex(c => c.Id == updatedCharacter.Id);
+                if (idx >= 0) characters[idx] = updatedCharacter; else characters.Add(updatedCharacter);
+            }
+
+            mergedCharacters = characters;
+        }
+
+        var mergedPortraitCache = raider.PortraitCache is not null
+            ? new Dictionary<string, string>(raider.PortraitCache)
+            : new Dictionary<string, string>();
+        foreach (var kvp in portraitUpdates)
+            mergedPortraitCache[kvp.Key] = kvp.Value;
+
+        return raider with
+        {
+            Characters = mergedCharacters,
+            PortraitCache = mergedPortraitCache,
+            Ttl = 180 * 86400,
+        };
     }
 
     // ---------------------------------------------------------------------------
