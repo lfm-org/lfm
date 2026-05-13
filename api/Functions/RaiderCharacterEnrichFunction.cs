@@ -126,15 +126,25 @@ public sealed class RaiderCharacterEnrichFunction(
                 existing, id, region, realm, originalName, profile, specs, media, nowIso, plan);
         }
 
-        var updatedCharacters = (raider.Characters ?? []).ToList();
-        var idx = updatedCharacters.FindIndex(c => c.Id == id);
-        if (idx >= 0) updatedCharacters[idx] = stored; else updatedCharacters.Add(stored);
-
-        // Preserve SelectedCharacterId — do NOT mutate it.
-        var updated = raider with { Characters = updatedCharacters };
-        await repo.UpsertAsync(updated, ct);
+        var persisted = await RaiderDocumentConcurrency.ReplaceWithRetryAsync(
+            repo,
+            raider,
+            current => WithStoredCharacter(current, stored),
+            ct);
+        if (persisted is null)
+            return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
         return new OkObjectResult(RaiderCharacterAddFunction.MapToCharacterDto(stored));
+    }
+
+    private static RaiderDocument WithStoredCharacter(RaiderDocument raider, StoredSelectedCharacter stored)
+    {
+        var updatedCharacters = (raider.Characters ?? []).ToList();
+        var idx = updatedCharacters.FindIndex(c => c.Id == stored.Id);
+        if (idx >= 0) updatedCharacters[idx] = stored; else updatedCharacters.Add(stored);
+
+        // Preserve SelectedCharacterId and any fields written by concurrent raider updates.
+        return raider with { Characters = updatedCharacters };
     }
 
     /// <summary>
