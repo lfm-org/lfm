@@ -195,6 +195,17 @@ public sealed class LocalConfigurationContractTests
     }
 
     [Fact]
+    public void Docker_compose_functions_declares_writable_host_secrets_path()
+    {
+        var compose = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
+        var block = ExtractYamlBlock(compose, "  functions:");
+
+        Assert.Contains("    read_only: true", block);
+        Assert.Contains("      - /tmp", block);
+        Assert.Contains("      - /azure-functions-host/Secrets:rw,mode=1777", block);
+    }
+
+    [Fact]
     public void Blazor_appsettings_points_at_local_compose_functions_endpoint()
     {
         var path = Path.Combine(FindRepositoryRoot(), "app", "wwwroot", "appsettings.json");

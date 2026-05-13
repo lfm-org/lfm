@@ -72,6 +72,7 @@ services:
       - azurite
     tmpfs:
       - /tmp
+      - /azure-functions-host/Secrets:rw,mode=1777
     environment:
       AZURE_FUNCTIONS_ENVIRONMENT: Development
       AzureWebJobsStorage: ${AzureWebJobsStorage}
