@@ -18,4 +18,9 @@ public sealed class AuthOptions
     // Key Vault URL for reading the site-admin secret (e.g. https://lfm-kv.vault.azure.net).
     // When null/empty, isSiteAdmin always returns false (no Key Vault configured).
     public string? KeyVaultUrl { get; init; }
+
+    // Local development escape hatch only. When true, authenticated users are
+    // treated as site admins only if the host environment is Development.
+    // Deployed environments ignore this setting even if it is accidentally set.
+    public bool LocalDevAllAuthenticatedUsersAreSiteAdmins { get; init; }
 }

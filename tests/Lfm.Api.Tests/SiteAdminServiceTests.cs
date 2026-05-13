@@ -4,6 +4,7 @@
 using Azure;
 using Lfm.Api.Options;
 using Lfm.Api.Services;
+using Microsoft.Extensions.Hosting;
 using Moq;
 using MsOptions = Microsoft.Extensions.Options.Options;
 using Xunit;
@@ -15,14 +16,25 @@ public class SiteAdminServiceTests
     private const string TestVaultUrl = "https://kv.example.net/";
     private const string SecretName = "site-admin-battle-net-ids";
 
-    private static SiteAdminService MakeSut(string? keyVaultUrl = null, ISecretResolver? secretResolver = null) =>
-        new(
+    private static SiteAdminService MakeSut(
+        string? keyVaultUrl = null,
+        ISecretResolver? secretResolver = null,
+        bool localDevAllAuthenticatedUsersAreSiteAdmins = false,
+        string environmentName = "Production")
+    {
+        var environment = new Mock<IHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(environmentName);
+
+        return new SiteAdminService(
             MsOptions.Create(new AuthOptions
             {
                 CookieName = "battlenet_token",
                 KeyVaultUrl = keyVaultUrl,
+                LocalDevAllAuthenticatedUsersAreSiteAdmins = localDevAllAuthenticatedUsersAreSiteAdmins,
             }),
-            secretResolver ?? Mock.Of<ISecretResolver>());
+            secretResolver ?? Mock.Of<ISecretResolver>(),
+            environment.Object);
+    }
 
     [Fact]
     public async Task IsAdminAsync_returns_false_when_battle_net_id_is_empty()
@@ -91,6 +103,61 @@ public class SiteAdminServiceTests
         Assert.False(first);
         Assert.False(second);
         Assert.False(third);
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_true_for_authenticated_user_when_local_dev_bypass_enabled_in_development()
+    {
+        var sut = MakeSut(
+            keyVaultUrl: null,
+            localDevAllAuthenticatedUsersAreSiteAdmins: true,
+            environmentName: Environments.Development);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_for_empty_id_when_local_dev_bypass_enabled_in_development()
+    {
+        var sut = MakeSut(
+            keyVaultUrl: null,
+            localDevAllAuthenticatedUsersAreSiteAdmins: true,
+            environmentName: Environments.Development);
+
+        var result = await sut.IsAdminAsync(string.Empty, CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_returns_false_when_local_dev_bypass_enabled_outside_development()
+    {
+        var sut = MakeSut(
+            keyVaultUrl: null,
+            localDevAllAuthenticatedUsersAreSiteAdmins: true,
+            environmentName: Environments.Production);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsAdminAsync_does_not_read_key_vault_when_local_dev_bypass_is_active()
+    {
+        var resolver = new Mock<ISecretResolver>(MockBehavior.Strict);
+        var sut = MakeSut(
+            keyVaultUrl: TestVaultUrl,
+            secretResolver: resolver.Object,
+            localDevAllAuthenticatedUsersAreSiteAdmins: true,
+            environmentName: Environments.Development);
+
+        var result = await sut.IsAdminAsync("player#1234", CancellationToken.None);
+
+        Assert.True(result);
+        resolver.VerifyNoOtherCalls();
     }
 
     // ── Key Vault fetch path ────────────────────────────────────────────────
