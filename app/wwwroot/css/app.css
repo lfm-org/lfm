@@ -43,6 +43,13 @@ a, .btn-link {
     color: var(--accent-fill-rest);
 }
 
+.fluent-messagebar {
+    /* Fluent UI sets width:100% plus inline padding; keep that padding inside the parent. */
+    box-sizing: border-box;
+    inline-size: 100%;
+    max-inline-size: 100%;
+}
+
 #blazor-error-ui {
     background: var(--neutral-layer-3);
     color: var(--neutral-foreground-rest);
