@@ -90,6 +90,7 @@ services:
       Auth__CookieName: ${Auth__CookieName:-battlenet_token}
       Auth__CookieMaxAgeHours: ${Auth__CookieMaxAgeHours:-24}
       Auth__KeyVaultUrl: ${Auth__KeyVaultUrl}
+      Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins: ${Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins:-false}
       PrivacyContact__Email: ${PrivacyContact__Email:-privacy@example.com}
       Audit__HashSalt: ${Audit__HashSalt}
     ports:
