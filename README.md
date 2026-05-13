@@ -46,6 +46,7 @@ Edit `.env` and fill in the required values. See the table below for details.
 | `Auth__CookieName` | Default ok | `battlenet_token` |
 | `Auth__CookieMaxAgeHours` | Default ok | `24` |
 | `Auth__KeyVaultUrl` | No | Leave empty for local dev |
+| `Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins` | No | `false`; set `true` only for local Development to make authenticated local users site admins |
 | `PrivacyContact__Email` | Default ok | Privacy contact returned by the API |
 | `Audit__HashSalt` | No | Empty logs plaintext actor IDs only in Development/E2E; deployed environments fail closed unless this is a resolved secret |
 

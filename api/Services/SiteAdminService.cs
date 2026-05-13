@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
 using Lfm.Api.Options;
 
 namespace Lfm.Api.Services;
@@ -12,9 +13,15 @@ namespace Lfm.Api.Services;
 /// window; the ceiling is traded against Key Vault read frequency. Free-tier
 /// Key Vault grants handle the 6× increase over the original 60 s TTL easily
 /// at this project's scale (a handful of admin operations per hour at most).
-/// When KeyVaultUrl is not configured, IsAdminAsync always returns false.
+/// A deliberately loud local-development option can promote every authenticated
+/// local user to site admin, but only when the host environment is Development.
+/// When KeyVaultUrl is not configured and that local-dev option is off,
+/// IsAdminAsync always returns false.
 /// </summary>
-public sealed class SiteAdminService(IOptions<AuthOptions> authOpts, ISecretResolver secretResolver) : ISiteAdminService
+public sealed class SiteAdminService(
+    IOptions<AuthOptions> authOpts,
+    ISecretResolver secretResolver,
+    IHostEnvironment environment) : ISiteAdminService
 {
     private const string SecretName = "site-admin-battle-net-ids";
 
@@ -32,6 +39,9 @@ public sealed class SiteAdminService(IOptions<AuthOptions> authOpts, ISecretReso
     public async Task<bool> IsAdminAsync(string battleNetId, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(battleNetId)) return false;
+
+        if (_auth.LocalDevAllAuthenticatedUsersAreSiteAdmins && environment.IsDevelopment())
+            return true;
 
         var ids = await GetAdminIdsAsync(ct);
         return ids.Contains(battleNetId);

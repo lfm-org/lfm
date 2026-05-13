@@ -40,6 +40,7 @@ public sealed class LocalConfigurationContractTests
         "Auth__CookieName",
         "Auth__CookieMaxAgeHours",
         "Auth__KeyVaultUrl",
+        "Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins",
         "PrivacyContact__Email",
         "Audit__HashSalt",
     ];
