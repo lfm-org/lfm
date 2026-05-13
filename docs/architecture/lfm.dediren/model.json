@@ -3,15 +3,15 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.1.0"
+      "version": "0.3.0"
     },
     {
       "id": "elk-layout",
-      "version": "0.1.0"
+      "version": "0.3.0"
     },
     {
       "id": "svg-render",
-      "version": "0.1.0"
+      "version": "0.3.0"
     }
   ],
   "nodes": [
@@ -193,7 +193,7 @@
     },
     {
       "id": "static-web-apps",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Azure Static Web Apps",
       "properties": {
         "layer": "Technology",
@@ -204,7 +204,7 @@
     },
     {
       "id": "function-app",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Azure Function App",
       "properties": {
         "layer": "Technology",
@@ -215,7 +215,7 @@
     },
     {
       "id": "app-service-plan",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "App Service Plan (Y1)",
       "properties": {
         "layer": "Technology",
@@ -248,7 +248,7 @@
     },
     {
       "id": "cosmos-account",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Cosmos DB account",
       "properties": {
         "layer": "Technology",
@@ -314,7 +314,7 @@
     },
     {
       "id": "storage-account",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Storage account",
       "properties": {
         "layer": "Technology",
@@ -347,7 +347,7 @@
     },
     {
       "id": "key-vault",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Key Vault",
       "properties": {
         "layer": "Technology",
@@ -369,7 +369,7 @@
     },
     {
       "id": "application-insights",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Application Insights",
       "properties": {
         "layer": "Technology",
@@ -380,7 +380,7 @@
     },
     {
       "id": "log-analytics",
-      "type": "TechnologyNode",
+      "type": "Node",
       "label": "Log Analytics workspace",
       "properties": {
         "layer": "Technology",
@@ -841,7 +841,7 @@
     },
     {
       "id": "swa-hosts-app",
-      "type": "Assignment",
+      "type": "Serving",
       "source": "static-web-apps",
       "target": "lfm-app",
       "label": "hosts",
@@ -851,7 +851,7 @@
     },
     {
       "id": "function-app-hosts-api",
-      "type": "Assignment",
+      "type": "Serving",
       "source": "function-app",
       "target": "lfm-api",
       "label": "hosts",
@@ -881,7 +881,7 @@
     },
     {
       "id": "function-app-has-managed-identity",
-      "type": "Composition",
+      "type": "Association",
       "source": "function-app",
       "target": "managed-identity",
       "label": "identity",
@@ -951,7 +951,7 @@
     },
     {
       "id": "cosmos-composes-database",
-      "type": "Composition",
+      "type": "Association",
       "source": "cosmos-account",
       "target": "cosmos-database",
       "label": "database",
@@ -1001,7 +1001,7 @@
     },
     {
       "id": "storage-composes-wow-reference",
-      "type": "Composition",
+      "type": "Association",
       "source": "storage-account",
       "target": "wow-reference-container",
       "label": "blob container",
@@ -1011,7 +1011,7 @@
     },
     {
       "id": "storage-composes-data-protection",
-      "type": "Composition",
+      "type": "Association",
       "source": "storage-account",
       "target": "data-protection-container",
       "label": "blob container",
@@ -1021,7 +1021,7 @@
     },
     {
       "id": "key-vault-composes-data-protection-key",
-      "type": "Composition",
+      "type": "Association",
       "source": "key-vault",
       "target": "data-protection-key",
       "label": "key",
@@ -1031,7 +1031,7 @@
     },
     {
       "id": "managed-identity-accesses-key-vault",
-      "type": "Access",
+      "type": "Association",
       "source": "managed-identity",
       "target": "key-vault",
       "label": "Secrets User",
@@ -1041,7 +1041,7 @@
     },
     {
       "id": "managed-identity-accesses-cosmos",
-      "type": "Access",
+      "type": "Association",
       "source": "managed-identity",
       "target": "cosmos-account",
       "label": "Data Contributor",
@@ -1051,7 +1051,7 @@
     },
     {
       "id": "managed-identity-accesses-storage",
-      "type": "Access",
+      "type": "Association",
       "source": "managed-identity",
       "target": "storage-account",
       "label": "Blob/Queue/Table roles",
@@ -1061,7 +1061,7 @@
     },
     {
       "id": "managed-identity-accesses-app-insights",
-      "type": "Access",
+      "type": "Association",
       "source": "managed-identity",
       "target": "application-insights",
       "label": "Metrics Publisher",
@@ -1081,7 +1081,7 @@
     },
     {
       "id": "cosmos-throttle-alert-monitors-cosmos",
-      "type": "Access",
+      "type": "Association",
       "source": "cosmos-throttle-alert",
       "target": "cosmos-account",
       "label": "monitors 429s",
@@ -1231,7 +1231,7 @@
     },
     {
       "id": "release-gap-realized-by-deploy",
-      "type": "Realization",
+      "type": "Association",
       "source": "deploy-workflow",
       "target": "release-to-production-gap",
       "label": "closes",
@@ -1251,7 +1251,7 @@
     },
     {
       "id": "deploy-event-realizes-production",
-      "type": "Realization",
+      "type": "Association",
       "source": "deploy-to-production-event",
       "target": "production-plateau",
       "label": "reaches",
