@@ -395,7 +395,18 @@
         // the OnAfterRenderAsync handling for the same teardown failure mode.
         try
         {
-            await JS.InvokeVoidAsync("lfmSetDocumentLang", LocaleService.CurrentLocale);
+            var locale = LocaleService.CurrentLocale;
+            if (Loc is JsonStringLocalizer jsonLocalizer)
+            {
+                await jsonLocalizer.LoadLocaleAsync(locale);
+            }
+
+            if (!string.Equals(LocaleService.CurrentLocale, locale, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await JS.InvokeVoidAsync("lfmSetDocumentLang", locale);
             await InvokeAsync(StateHasChanged);
         }
         catch (Microsoft.JSInterop.JSDisconnectedException) { /* JS channel disposed during teardown. */ }
