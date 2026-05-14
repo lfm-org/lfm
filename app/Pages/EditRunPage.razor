@@ -39,6 +39,10 @@
             break;
 
         case LoadingState<RunDetailDto>.Success s:
+            <FluentButton Appearance="Appearance.Outline" OnClick="@NavigateBackToRuns" Disabled="@(_saving || _deleting)">
+                @Loc["editRun.backToRuns"]
+            </FluentButton>
+
             <FluentCard Class="run-form-card">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                     <FluentLabel Typo="Typography.H4">@Loc["editRun.runDetails"]</FluentLabel>
@@ -522,6 +526,8 @@
                 await UnsavedGuard.RefreshAsync();
                 Toast.ShowSuccess(Loc["editRun.saveSuccess"]);
                 _state = new LoadingState<RunDetailDto>.Success(updatedEnvelope.Run);
+                await DisposeUnsavedChangesGuardAsync();
+                Nav.NavigateTo("/runs");
             }
         }
         catch (StaleEtagException)
@@ -541,6 +547,8 @@
             _saving = false;
         }
     }
+
+    private void NavigateBackToRuns() => Nav.NavigateTo("/runs");
 
     private void HandleCancel() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(RunId!)}");
 
