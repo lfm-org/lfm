@@ -362,6 +362,23 @@ public class LayoutTests : ComponentTestBase
     }
 
     [Fact]
+    public void MainLayout_Main_Content_Uses_Centered_Readable_Rail()
+    {
+        this.AddAuthorization();
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        var main = cut.Find("main#main-content.app-main");
+
+        Assert.Contains("page content", main.TextContent);
+        Assert.Contains(".app-main", cut.Markup);
+        Assert.Contains("inline-size: min(100%, 90rem);", cut.Markup);
+        Assert.Contains("margin-inline: auto;", cut.Markup);
+        Assert.Contains("box-sizing: border-box;", cut.Markup);
+        Assert.Contains("padding-inline: 16px;", cut.Markup);
+    }
+
+    [Fact]
     public void MainLayout_Locale_Change_Survives_JSDisconnectedException()
     {
         // Regression: HandleLocaleChanged is `async void` and crosses JS interop.
