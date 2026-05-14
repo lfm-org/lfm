@@ -7,8 +7,11 @@ using Lfm.App.Auth;
 using Lfm.App.Layout;
 using Lfm.App.Services;
 using Lfm.App.i18n;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using System.Security.Claims;
+using System.Text.Json;
 using Xunit;
 
 namespace Lfm.App.Tests;
@@ -117,6 +120,34 @@ public class LayoutTests : ComponentTestBase
         var activeLanguage = cut.Find("fluent-button.footer-language--active");
         Assert.Equal("true", activeLanguage.GetAttribute("aria-pressed"));
         Assert.Contains(Loc("locale.fi"), activeLanguage.TextContent);
+    }
+
+    [Fact]
+    public async Task MainLayout_Footer_Language_Click_Renders_After_Locale_File_Loads()
+    {
+        this.AddAuthorization();
+        var localeService = new LocaleService();
+        using var handler = new DeferredLocaleHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") };
+        var localizer = new JsonStringLocalizer(http, localeService);
+        await localizer.LoadLocaleAsync("en");
+        Services.RemoveAll<ILocaleService>();
+        Services.RemoveAll<IStringLocalizer>();
+        Services.AddSingleton<ILocaleService>(localeService);
+        Services.AddSingleton<IStringLocalizer>(localizer);
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        Assert.Contains("Privacy Notice", cut.Markup);
+
+        cut.Find("fluent-button[title='FI']").Click();
+        await handler.WaitForFinnishRequestAsync();
+        Assert.DoesNotContain("Tietosuojaseloste", cut.Markup);
+
+        handler.ReleaseFinnishLocale();
+
+        cut.WaitForAssertion(() => Assert.Contains("Tietosuojaseloste", cut.Markup));
     }
 
     [Fact]
@@ -394,5 +425,62 @@ public class LayoutTests : ComponentTestBase
             caught = ex;
         }
         Assert.Null(caught);
+    }
+
+    private sealed class DeferredLocaleHandler : HttpMessageHandler
+    {
+        private readonly TaskCompletionSource _finnishRequested =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _releaseFinnish =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task WaitForFinnishRequestAsync() => _finnishRequested.Task;
+
+        public void ReleaseFinnishLocale() => _releaseFinnish.TrySetResult();
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            var locale = Path.GetFileNameWithoutExtension(request.RequestUri?.AbsolutePath);
+            if (locale == "fi")
+            {
+                _finnishRequested.TrySetResult();
+                await _releaseFinnish.Task.WaitAsync(cancellationToken);
+            }
+
+            var strings = locale switch
+            {
+                "fi" => new Dictionary<string, string>
+                {
+                    ["a11y.skipToContent"] = "Siirry sisaltoon",
+                    ["footer.privacyPolicy"] = "Tietosuojaseloste",
+                    ["footer.source"] = "Lahdekoodi",
+                    ["locale.en"] = "EN",
+                    ["locale.fi"] = "FI",
+                    ["nav.logo"] = "LFM",
+                    ["nav.signIn"] = "Kirjaudu",
+                    ["theme.switchToDark"] = "Vaihda tummaan tilaan",
+                    ["theme.switchToLight"] = "Vaihda vaaleaan tilaan",
+                },
+                _ => new Dictionary<string, string>
+                {
+                    ["a11y.skipToContent"] = "Skip to content",
+                    ["footer.privacyPolicy"] = "Privacy Notice",
+                    ["footer.source"] = "Source",
+                    ["locale.en"] = "EN",
+                    ["locale.fi"] = "FI",
+                    ["nav.logo"] = "LFM",
+                    ["nav.signIn"] = "Sign in",
+                    ["theme.switchToDark"] = "Switch to dark mode",
+                    ["theme.switchToLight"] = "Switch to light mode",
+                },
+            };
+
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(strings)),
+            };
+        }
     }
 }
