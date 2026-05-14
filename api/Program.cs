@@ -185,7 +185,23 @@ if (string.Equals(builder.Configuration["E2E_TEST_MODE"], "true", StringComparis
 else
 #endif
 {
-    builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver, Lfm.Api.Services.KeyVaultSecretResolver>();
+    builder.Services.AddSingleton<Lfm.Api.Services.ISecretResolver>(sp =>
+    {
+        var auth = sp.GetRequiredService<IOptions<AuthOptions>>().Value;
+        var environment = sp.GetRequiredService<IHostEnvironment>();
+        if (Lfm.Api.Services.LocalFileSecretResolver.IsLocalFileSecretUrl(auth.KeyVaultUrl))
+        {
+            if (!environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "file:// Auth__KeyVaultUrl is only allowed in the local Development environment.");
+            }
+
+            return new Lfm.Api.Services.LocalFileSecretResolver();
+        }
+
+        return new Lfm.Api.Services.KeyVaultSecretResolver();
+    });
 }
 builder.Services.AddSingleton<Lfm.Api.Services.ISiteAdminService, Lfm.Api.Services.SiteAdminService>();
 builder.Services.AddSingleton<Lfm.Api.Services.IIdempotencyStore, Lfm.Api.Services.IdempotencyStore>();

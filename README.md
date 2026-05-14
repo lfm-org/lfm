@@ -40,17 +40,20 @@ Edit `.env` and fill in the required values. See the table below for details.
 | `Cosmos__DatabaseName` | Default ok | `lfm` |
 | `Cosmos__ConnectionMode` | Default ok | `Gateway` for the Linux emulator |
 | `Local__AzuriteConnectionString` | Default ok | Azurite connection string; compose maps this to `AzureWebJobsStorage` and `Storage__BlobConnectionString` |
+| `Local__SiteAdminBattleNetIds` | No | Optional comma- or newline-separated local site-admin allowlist. Compose writes it to a Docker secret volume consumed only by the local Functions container |
 | `Auth__CookieName` | Default ok | `battlenet_token` |
 | `Auth__CookieMaxAgeHours` | Default ok | `24` |
-| `Auth__KeyVaultUrl` | No | Leave empty for local dev |
-| `Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins` | No | `false`; set `true` only for local Development to make authenticated local users site admins |
 | `PrivacyContact__Email` | Default ok | Privacy contact returned by the API |
 | `Audit__HashSalt` | No | Empty logs plaintext actor IDs only in Development/E2E; deployed environments fail closed unless this is a resolved secret |
 
 `example.env` lists human-editable local source values. `docker-compose.local.yml`
 maps those sources into platform/app settings such as
 `AZURE_FUNCTIONS_ENVIRONMENT`, `AzureWebJobsStorage`, and
-`Storage__BlobConnectionString`. Deployment and build-time source variables
+`Storage__BlobConnectionString`. The local compose init container uses
+CosmosDBShell inside the container to create the Cosmos emulator
+database/containers and writes the optional local site-admin allowlist to a
+Docker volume mounted into the Functions container as
+`Auth__KeyVaultUrl=file:///home/local-secrets`. Deployment and build-time source variables
 such as `PRIVACY_EMAIL`, `API_HOSTNAME`, and `FRONTEND_HOSTNAME` are documented
 under Deployment and are intentionally not part of the local `.env` template.
 
@@ -64,6 +67,8 @@ This starts:
 
 - Cosmos emulator on `http://127.0.0.1:8081` (explorer on port 1234)
 - Azurite blob storage on `http://127.0.0.1:10000`
+- a one-shot local init container that creates the `lfm` Cosmos database and
+  `raiders`, `guilds`, `runs`, and `idempotency` containers
 - Azure Functions on `http://localhost:7071`
 
 ### 4. Run the Blazor app

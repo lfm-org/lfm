@@ -53,6 +53,32 @@ services:
     volumes:
       - azurite-data:/data
 
+  local-init:
+    build:
+      context: .
+      dockerfile: docker/local-init/Dockerfile
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: "0.5"
+    pids_limit: 128
+    depends_on:
+      - cosmosdb
+    tmpfs:
+      - /tmp
+    environment:
+      Cosmos__Endpoint: ${Cosmos__Endpoint}
+      Cosmos__AuthKey: ${Cosmos__AuthKey}
+      Cosmos__DatabaseName: ${Cosmos__DatabaseName}
+      Local__SiteAdminBattleNetIds: ${Local__SiteAdminBattleNetIds:-}
+    command: ["bash", "/usr/local/bin/local-dev-init.sh"]
+    volumes:
+      - local-secrets:/home/local-secrets
+      - ./scripts/local-dev-init.sh:/usr/local/bin/local-dev-init.sh:ro
+
   functions:
     build:
       context: .
@@ -68,8 +94,12 @@ services:
     cpus: "1.0"
     pids_limit: 256
     depends_on:
-      - cosmosdb
-      - azurite
+      cosmosdb:
+        condition: service_started
+      azurite:
+        condition: service_started
+      local-init:
+        condition: service_completed_successfully
     tmpfs:
       - /tmp
       - /azure-functions-host/Secrets:rw,mode=1777
@@ -89,8 +119,7 @@ services:
       Storage__BlobConnectionString: ${Local__AzuriteConnectionString}
       Auth__CookieName: ${Auth__CookieName:-battlenet_token}
       Auth__CookieMaxAgeHours: ${Auth__CookieMaxAgeHours:-24}
-      Auth__KeyVaultUrl: ${Auth__KeyVaultUrl}
-      Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins: ${Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins:-false}
+      Auth__KeyVaultUrl: file:///home/local-secrets
       PrivacyContact__Email: ${PrivacyContact__Email:-privacy@example.com}
       Audit__HashSalt: ${Audit__HashSalt}
     ports:
@@ -98,9 +127,11 @@ services:
     volumes:
       - functions-data:/home/data
       - functions-logfiles:/home/LogFiles
+      - local-secrets:/home/local-secrets:ro
 
 volumes:
   cosmos-data:
   azurite-data:
   functions-data:
   functions-logfiles:
+  local-secrets:
