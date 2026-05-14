@@ -2003,6 +2003,28 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void EditRunPage_Back_To_Runs_Action_Navigates_To_List()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        WireEditRunServices(runsClient);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.backToRuns"), cut.Markup));
+
+        var backButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.backToRuns"), StringComparison.Ordinal));
+        backButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
+    }
+
+    [Fact]
     public void EditRunPage_Wnl_Button_Uses_Visible_Label_As_Accessible_Name()
     {
         var mplusInstance = new InstanceDto(
@@ -2205,6 +2227,32 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() => Assert.Equal(2, ifMatches.Count));
 
         Assert.Equal(["\"etag-v1\"", "\"etag-v2\""], ifMatches);
+    }
+
+    [Fact]
+    public void EditRunPage_Save_Navigates_To_Runs_List_On_Success()
+    {
+        var runsClient = new Mock<IRunsClient>();
+        runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
+        runsClient.Setup(c => c.UpdateAsync("run-1", It.IsAny<UpdateRunRequest>(), "\"etag-v1\"", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunDetailWithEtag(MakeDetail() with { Description = "Updated notes" }, "\"etag-v2\""));
+        WireEditRunServices(runsClient);
+        var nav = Services.GetRequiredService<BunitNavigationManager>();
+
+        var cut = Render<EditRunPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains(Loc("editRun.saveChanges"), cut.Markup));
+        cut.Find("#description-input").Change("Updated notes");
+
+        var saveButton = cut.FindAll("fluent-button")
+            .First(b => b.TextContent.Contains(Loc("editRun.saveChanges"), StringComparison.Ordinal));
+        saveButton.Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("/runs", new Uri(nav.Uri).AbsolutePath));
+        Assert.Equal(NavigationState.Succeeded, nav.History.First().State);
     }
 
     [Fact]
