@@ -315,6 +315,18 @@ public sealed class LocalConfigurationContractTests
     }
 
     [Fact]
+    public void Local_init_dockerfile_declares_non_root_runtime_user()
+    {
+        var dockerfile = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "docker", "local-init", "Dockerfile"));
+
+        Assert.Contains("useradd --system --uid 10001 --gid 10001", dockerfile);
+        Assert.Contains("chown -R 10001:10001 /home/local-secrets /tmp/local-init-home", dockerfile);
+        Assert.Contains("USER 10001:10001", dockerfile);
+        Assert.DoesNotContain("USER root", dockerfile);
+        Assert.DoesNotContain("USER 0", dockerfile);
+    }
+
+    [Fact]
     public void Local_dev_init_script_runs_setup_tool_from_repo_root()
     {
         var root = FindRepositoryRoot();
