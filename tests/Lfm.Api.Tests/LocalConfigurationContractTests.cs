@@ -24,6 +24,7 @@ public sealed class LocalConfigurationContractTests
         {
             { "cosmosdb", "3g", "2.0", "512" },
             { "azurite", "512m", "0.5", "128" },
+            { "local-init", "512m", "0.5", "128" },
             { "functions", "1g", "1.0", "256" },
         };
 
@@ -40,10 +41,9 @@ public sealed class LocalConfigurationContractTests
         "Cosmos__DatabaseName",
         "Cosmos__ConnectionMode",
         "Local__AzuriteConnectionString",
+        "Local__SiteAdminBattleNetIds",
         "Auth__CookieName",
         "Auth__CookieMaxAgeHours",
-        "Auth__KeyVaultUrl",
-        "Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins",
         "PrivacyContact__Email",
         "Audit__HashSalt",
     ];
@@ -66,7 +66,6 @@ public sealed class LocalConfigurationContractTests
         "Auth__CookieName",
         "Auth__CookieMaxAgeHours",
         "Auth__KeyVaultUrl",
-        "Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins",
         "PrivacyContact__Email",
         "Audit__HashSalt",
     ];
@@ -98,6 +97,8 @@ public sealed class LocalConfigurationContractTests
         "Storage__BlobConnectionString",
         "Cosmos__EmulatorKeyContent",
         "COSMOS_KEY_CONTENT",
+        "Auth__KeyVaultUrl",
+        "Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins",
         "PRIVACY_EMAIL",
         "EXPIRES_SECURITY_TXT",
         "SECURITY_POLICY_URL",
@@ -287,6 +288,60 @@ public sealed class LocalConfigurationContractTests
 
         Assert.Contains("      AzureWebJobsStorage: ${Local__AzuriteConnectionString}", block);
         Assert.Contains("      Storage__BlobConnectionString: ${Local__AzuriteConnectionString}", block);
+    }
+
+    [Fact]
+    public void Docker_compose_runs_local_init_before_functions()
+    {
+        var compose = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
+        var dockerfile = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "docker", "local-init", "Dockerfile"));
+        var initBlock = ExtractYamlBlock(compose, "  local-init:");
+        var block = ExtractYamlBlock(compose, "  functions:");
+
+        Assert.Contains("      dockerfile: docker/local-init/Dockerfile", initBlock);
+        Assert.Contains("dotnet tool install --tool-path /opt/cosmosdbshell CosmosDBShell --version 1.0.213-preview", dockerfile);
+        Assert.Contains("ENV PATH=\"/opt/cosmosdbshell:${PATH}\"", dockerfile);
+        Assert.Contains("WORKDIR /tmp", dockerfile);
+        Assert.Contains("      - ./scripts/local-dev-init.sh:/usr/local/bin/local-dev-init.sh:ro", initBlock);
+        Assert.Contains("    command: [\"bash\", \"/usr/local/bin/local-dev-init.sh\"]", initBlock);
+        Assert.Contains("      Cosmos__Endpoint: ${Cosmos__Endpoint}", initBlock);
+        Assert.Contains("      Local__SiteAdminBattleNetIds: ${Local__SiteAdminBattleNetIds:-}", initBlock);
+        Assert.Contains("      - local-secrets:/home/local-secrets", initBlock);
+        Assert.Contains("      local-init:", block);
+        Assert.Contains("        condition: service_completed_successfully", block);
+        Assert.Contains("      - local-secrets:/home/local-secrets:ro", block);
+        Assert.Contains("      Auth__KeyVaultUrl: file:///home/local-secrets", block);
+        Assert.DoesNotContain("Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins", compose);
+    }
+
+    [Fact]
+    public void Local_dev_init_script_runs_setup_tool_from_repo_root()
+    {
+        var root = FindRepositoryRoot();
+        var script = File.ReadAllText(Path.Combine(root, "scripts", "local-dev-init.sh"));
+        var toolProject = Path.Combine(root, "tools", "Lfm.LocalDevSetup", "Lfm.LocalDevSetup.csproj");
+
+        Assert.False(File.Exists(toolProject), "Local compose setup should not add another .NET project.");
+        Assert.Contains("cd \"$HOME\"", script);
+        Assert.Contains("cosmosdbshell --connect \"$connection_string\" --connect-mode gateway -c \"$command\"", script);
+        Assert.Contains("already exists|conflict|409", script);
+        Assert.Contains("mkdb \\\"$Cosmos__DatabaseName\\\"", script);
+        Assert.Contains("mkcon raiders /battleNetId --database=\\\"$Cosmos__DatabaseName\\\"", script);
+        Assert.Contains("mkcon guilds /id --database=\\\"$Cosmos__DatabaseName\\\"", script);
+        Assert.Contains("mkcon runs /id --database=\\\"$Cosmos__DatabaseName\\\"", script);
+        Assert.Contains("mkcon idempotency /battleNetId --database=\\\"$Cosmos__DatabaseName\\\"", script);
+        Assert.Contains("site-admin-battle-net-ids", script);
+    }
+
+    [Fact]
+    public void Api_auth_options_do_not_expose_all_local_users_admin_bypass()
+    {
+        var root = FindRepositoryRoot();
+        var authOptions = File.ReadAllText(Path.Combine(root, "api", "Options", "AuthOptions.cs"));
+        var siteAdminService = File.ReadAllText(Path.Combine(root, "api", "Services", "SiteAdminService.cs"));
+
+        Assert.DoesNotContain("LocalDevAllAuthenticatedUsersAreSiteAdmins", authOptions);
+        Assert.DoesNotContain("LocalDevAllAuthenticatedUsersAreSiteAdmins", siteAdminService);
     }
 
     [Fact]
