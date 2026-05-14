@@ -129,7 +129,7 @@
     </AuthorizeView>
 
     <!-- Page content -->
-    <main id="main-content" tabindex="-1" @ref="_mainRef" style="flex:1;padding-block:24px;padding-inline:16px">
+    <main id="main-content" class="app-main" tabindex="-1" @ref="_mainRef">
         @Body
     </main>
 
@@ -164,6 +164,15 @@
 </div>
 
 <style>
+    .app-main {
+        flex: 1;
+        box-sizing: border-box;
+        inline-size: min(100%, 90rem);
+        margin-inline: auto;
+        padding-block: 24px;
+        padding-inline: 16px;
+    }
+
     .account-menu-container {
         position: relative;
         display: inline-flex;
