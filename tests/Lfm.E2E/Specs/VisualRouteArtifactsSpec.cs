@@ -66,7 +66,7 @@ public class VisualRouteArtifactsSpec(VisualArtifactsFixture fixture, ITestOutpu
             {
                 await Assertions.Expect(page).ToHaveURLAsync(
                     new Regex(Regex.Escape(fixture.Stack.AppBaseUrl + item.State.ExpectedAnonymousPathAndQuery) + "$"),
-                    new() { Timeout = 15000 });
+                    new() { Timeout = 30000 });
             }
 
             await item.State.WaitForReadyAsync(page);

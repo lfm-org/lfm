@@ -6,9 +6,11 @@ Deployers of this project each maintain their own security-contact policy.
 For the security contact of a specific deployed instance, consult that
 instance's `/.well-known/security.txt` (or the deployment's maintainer).
 
-Forkers: set the `PRIVACY_EMAIL` environment variable (see [`example.env`](example.env))
-and the build-time substitution in [`app/Lfm.App.csproj`](app/Lfm.App.csproj)
-will insert it into the deployed `/.well-known/security.txt`.
+Forkers: configure the deployment privacy contact (`PRIVACY_EMAIL` for the
+GitHub Actions deployment flow, or the `PrivacyEmail` MSBuild property for
+local packaging; see Deployment Configuration in [`README.md`](README.md)).
+The build-time substitution in [`app/Lfm.App.csproj`](app/Lfm.App.csproj) will
+insert it into the deployed `/.well-known/security.txt`.
 
 For **vulnerabilities in the code of this repository itself** (not in a
 specific deployment), open a GitHub issue tagged `security` on the

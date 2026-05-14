@@ -37,8 +37,7 @@ internal static class VisualRouteManifest
         Public("/goodbye", "goodbye", "goodbye", Heading("Goodbye", "Näkemiin")),
 
         ProtectedRedirect("/runs", "runs anonymous", "runs-anonymous", "/login?redirect=%2Fruns", Heading("Sign In", "Kirjaudu")),
-        Authenticated("/runs", "runs authenticated", "runs-authenticated",
-            HeadingAndText("Runs", "Runit", ("Liberation of Undermine", "Liberation of Undermine"))),
+        Authenticated("/runs", "runs authenticated", "runs-authenticated", RunsListReadyAsync),
 
         ProtectedRedirect($"/runs/{DefaultSeed.TestRunId}", "runs detail anonymous", "runs-detail-anonymous", "/login?redirect=%2Fruns%2Fe2e-run-001", Heading("Sign In", "Kirjaudu")),
         Authenticated($"/runs/{DefaultSeed.TestRunId}", "runs detail authenticated", "runs-detail-authenticated", Heading("Runs", "Runit"), SelectRunAsync),
@@ -100,6 +99,14 @@ internal static class VisualRouteManifest
                     .ToBeVisibleAsync(new() { Timeout = 15000 });
             }
         };
+
+    private static async Task RunsListReadyAsync(IPage page)
+    {
+        await Heading("Runs", "Runit")(page);
+        var runsPage = new RunsPage(page);
+        await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
+    }
 
     private static async Task LoadGuildAdminAsync(IPage page, string apiBaseUrl, string appBaseUrl)
     {

@@ -72,6 +72,7 @@ public class StackFixture : IAsyncLifetime
     private const string AzuriteNetworkAlias = "azurite";
     private const string CosmosNetworkAlias = "cosmos";
     private const string HostGatewayName = "host.docker.internal";
+    private const string PrivacyEmail = "privacy@e2e.test";
     private int _apiPort = DefaultApiPort;
     private int _appPort = DefaultAppPort;
 
@@ -406,8 +407,8 @@ public class StackFixture : IAsyncLifetime
             ["Blizzard__TokenEndpoint"] = oauthProvider.ApiTokenEndpoint,
             ["Blizzard__UserInfoEndpoint"] = oauthProvider.ApiUserInfoEndpoint,
             ["Cors__AllowedOrigins__0"] = $"http://localhost:{_appPort}",
-            ["PRIVACY_EMAIL"] = "privacy@e2e.test",
-            ["PrivacyContact__Email"] = "privacy@e2e.test",
+            ["PRIVACY_EMAIL"] = PrivacyEmail,
+            ["PrivacyContact__Email"] = PrivacyEmail,
             ["RateLimit__Enabled"] = "false",
         };
     }
