@@ -47,7 +47,7 @@
                 <FluentLabel Typo="Typography.H4">@Loc["guildAdmin.settings.rankPermissions"]</FluentLabel>
                 @foreach (var perm in RankPermissions)
                 {
-                    <FluentCard>
+                    <FluentCard Style="box-sizing:border-box;display:block;inline-size:100%;min-block-size:8rem">
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
                             <FluentLabel Typo="Typography.Body">@Loc["guildAdmin.settings.rank", perm.Rank]</FluentLabel>
                             <FluentCheckbox

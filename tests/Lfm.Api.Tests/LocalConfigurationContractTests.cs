@@ -9,9 +9,13 @@ namespace Lfm.Api.Tests;
 
 public sealed class LocalConfigurationContractTests
 {
-    public static TheoryData<string> RuntimeOptionKeyData => ToTheoryData(RuntimeOptionKeys);
+    public static TheoryData<string> ExampleEnvKeyData => ToTheoryData(ExampleEnvKeys);
+
+    public static TheoryData<string> ComposeFunctionsEnvironmentKeyData => ToTheoryData(ComposeFunctionsEnvironmentKeys);
 
     public static TheoryData<string> LegacyFlatKeyData => ToTheoryData(LegacyFlatKeys);
+
+    public static TheoryData<string> RemovedExampleEnvKeyData => ToTheoryData(RemovedExampleEnvKeys);
 
     public static TheoryData<string> DockerIgnoreRequiredPatternData => ToTheoryData(DockerIgnoreRequiredPatterns);
 
@@ -23,19 +27,41 @@ public sealed class LocalConfigurationContractTests
             { "functions", "1g", "1.0", "256" },
         };
 
-    private static readonly string[] RuntimeOptionKeys =
+    private static readonly string[] ExampleEnvKeys =
     [
         "Blizzard__ClientId",
         "Blizzard__ClientSecret",
         "Blizzard__Region",
         "Blizzard__RedirectUri",
         "Blizzard__AppBaseUrl",
-        "AZURE_FUNCTIONS_ENVIRONMENT",
+        "Cors__AllowedOrigins__0",
         "Cosmos__Endpoint",
         "Cosmos__AuthKey",
         "Cosmos__DatabaseName",
         "Cosmos__ConnectionMode",
+        "Local__AzuriteConnectionString",
+        "Auth__CookieName",
+        "Auth__CookieMaxAgeHours",
+        "Auth__KeyVaultUrl",
+        "Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins",
+        "PrivacyContact__Email",
+        "Audit__HashSalt",
+    ];
+
+    private static readonly string[] ComposeFunctionsEnvironmentKeys =
+    [
+        "AZURE_FUNCTIONS_ENVIRONMENT",
+        "AzureWebJobsStorage",
+        "Blizzard__ClientId",
+        "Blizzard__ClientSecret",
+        "Blizzard__Region",
+        "Blizzard__RedirectUri",
+        "Blizzard__AppBaseUrl",
         "Cors__AllowedOrigins__0",
+        "Cosmos__Endpoint",
+        "Cosmos__AuthKey",
+        "Cosmos__DatabaseName",
+        "Cosmos__ConnectionMode",
         "Storage__BlobConnectionString",
         "Auth__CookieName",
         "Auth__CookieMaxAgeHours",
@@ -65,6 +91,21 @@ public sealed class LocalConfigurationContractTests
         "TEST_MODE",
     ];
 
+    private static readonly string[] RemovedExampleEnvKeys =
+    [
+        "AZURE_FUNCTIONS_ENVIRONMENT",
+        "AzureWebJobsStorage",
+        "Storage__BlobConnectionString",
+        "Cosmos__EmulatorKeyContent",
+        "COSMOS_KEY_CONTENT",
+        "PRIVACY_EMAIL",
+        "EXPIRES_SECURITY_TXT",
+        "SECURITY_POLICY_URL",
+        "API_HOSTNAME",
+        "FRONTEND_HOSTNAME",
+        "STORAGE_ACCOUNT_NAME",
+    ];
+
     private static readonly string[] DockerIgnoreRequiredPatterns =
     [
         ".git/",
@@ -83,12 +124,31 @@ public sealed class LocalConfigurationContractTests
     ];
 
     [Theory]
-    [MemberData(nameof(RuntimeOptionKeyData))]
-    public void Example_env_documents_section_style_runtime_option(string key)
+    [MemberData(nameof(ExampleEnvKeyData))]
+    public void Example_env_documents_local_configuration_key(string key)
     {
         var keys = ReadEnvKeys(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "example.env"));
 
         Assert.Contains(key, keys);
+    }
+
+    [Fact]
+    public void Example_env_omits_all_caps_keys()
+    {
+        var keys = ReadEnvKeys(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "example.env"));
+
+        Assert.DoesNotContain(keys, static key =>
+            key.Any(char.IsLetter) &&
+            key.All(static c => !char.IsLetter(c) || char.IsUpper(c)));
+    }
+
+    [Theory]
+    [MemberData(nameof(RemovedExampleEnvKeyData))]
+    public void Example_env_omits_deploy_build_and_old_compose_keys(string key)
+    {
+        var keys = ReadEnvKeys(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "example.env"));
+
+        Assert.DoesNotContain(key, keys);
     }
 
     [Theory]
@@ -101,8 +161,8 @@ public sealed class LocalConfigurationContractTests
     }
 
     [Theory]
-    [MemberData(nameof(RuntimeOptionKeyData))]
-    public void Docker_compose_functions_environment_uses_section_style_runtime_option(string key)
+    [MemberData(nameof(ComposeFunctionsEnvironmentKeyData))]
+    public void Docker_compose_functions_environment_uses_expected_configuration_key(string key)
     {
         var keys = ReadComposeFunctionsEnvironmentKeys(
             Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
@@ -121,13 +181,13 @@ public sealed class LocalConfigurationContractTests
     }
 
     [Theory]
-    [MemberData(nameof(RuntimeOptionKeyData))]
-    public void Readme_local_configuration_table_documents_section_style_runtime_option(string key)
+    [MemberData(nameof(ExampleEnvKeyData))]
+    public void Readme_local_configuration_table_documents_local_configuration_key(string key)
     {
         var readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "README.md"));
-        var localSection = ExtractBetween(readme, "### 2. Configure environment", "### 3. Start local stack");
+        var localTable = ExtractLocalConfigurationTable(readme);
 
-        Assert.Contains($"`{key}`", localSection);
+        Assert.Contains($"`{key}`", localTable);
     }
 
     [Theory]
@@ -135,9 +195,29 @@ public sealed class LocalConfigurationContractTests
     public void Readme_local_configuration_table_omits_legacy_flat_runtime_option(string key)
     {
         var readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "README.md"));
-        var localSection = ExtractBetween(readme, "### 2. Configure environment", "### 3. Start local stack");
+        var localTable = ExtractLocalConfigurationTable(readme);
 
-        Assert.DoesNotContain($"`{key}`", localSection);
+        Assert.DoesNotContain($"| `{key}` |", localTable);
+    }
+
+    [Theory]
+    [MemberData(nameof(RemovedExampleEnvKeyData))]
+    public void Readme_local_configuration_table_omits_deploy_build_and_old_compose_keys(string key)
+    {
+        var readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "README.md"));
+        var localTable = ExtractLocalConfigurationTable(readme);
+
+        Assert.DoesNotContain($"| `{key}` |", localTable);
+    }
+
+    [Fact]
+    public void Readme_deployment_configuration_documents_privacy_email_source_to_runtime_sink()
+    {
+        var readme = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "README.md"));
+        var deploymentSection = ExtractBetween(readme, "## Deployment", "### Required GitHub Actions Secrets");
+
+        Assert.Contains("`PRIVACY_EMAIL`", deploymentSection);
+        Assert.Contains("`PrivacyContact__Email`", deploymentSection);
     }
 
     [Theory]
@@ -183,6 +263,10 @@ public sealed class LocalConfigurationContractTests
         var compose = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
         var block = ExtractYamlBlock(compose, "  cosmosdb:");
 
+        Assert.Contains("        printf '%s' \"$Cosmos__AuthKey\" > /tmp/cosmos.key", block);
+        Assert.Contains("      Cosmos__AuthKey: ${Cosmos__AuthKey}", block);
+        Assert.DoesNotContain("Cosmos__EmulatorKeyContent", block);
+        Assert.DoesNotContain("COSMOS_KEY_CONTENT", block);
         Assert.Contains("        mkdir -p /tmp/cosmos-workspace", block);
         Assert.Contains("        export HOME=/tmp/cosmos-workspace", block);
         Assert.Contains("        export WORKSPACE_ROOT=/tmp/cosmos-workspace", block);
@@ -193,6 +277,16 @@ public sealed class LocalConfigurationContractTests
         Assert.Contains("    volumes:", block);
         Assert.Contains("      - cosmos-data:/data", block);
         Assert.Contains("  cosmos-data:", compose);
+    }
+
+    [Fact]
+    public void Docker_compose_maps_local_azurite_source_to_required_storage_sinks()
+    {
+        var compose = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LocalConfig", "docker-compose.local.yml"));
+        var block = ExtractYamlBlock(compose, "  functions:");
+
+        Assert.Contains("      AzureWebJobsStorage: ${Local__AzuriteConnectionString}", block);
+        Assert.Contains("      Storage__BlobConnectionString: ${Local__AzuriteConnectionString}", block);
     }
 
     [Fact]
@@ -300,6 +394,13 @@ public sealed class LocalConfigurationContractTests
         Assert.True(end > start, $"{endMarker} should exist after {startMarker}.");
 
         return value[start..end];
+    }
+
+    private static string ExtractLocalConfigurationTable(string readme)
+    {
+        var localSection = ExtractBetween(readme, "### 2. Configure environment", "### 3. Start local stack");
+
+        return ExtractBetween(localSection, "| Variable | Required | Notes |", "\n\n");
     }
 
     private static string ExtractYamlBlock(string value, string startMarker)

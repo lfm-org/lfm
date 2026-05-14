@@ -14,7 +14,7 @@ services:
       - /bin/bash
       - -lc
       - |
-        printf '%s' "$COSMOS_KEY_CONTENT" > /tmp/cosmos.key
+        printf '%s' "$Cosmos__AuthKey" > /tmp/cosmos.key
         mkdir -p /tmp/cosmos-workspace
         export HOME=/tmp/cosmos-workspace
         export KEY_FILE=/tmp/cosmos.key
@@ -32,7 +32,7 @@ services:
     environment:
       PROTOCOL: http
       GATEWAY_PUBLIC_ENDPOINT: cosmosdb
-      COSMOS_KEY_CONTENT: ${COSMOS_KEY_CONTENT}
+      Cosmos__AuthKey: ${Cosmos__AuthKey}
 
   azurite:
     # Tag: mcr.microsoft.com/azure-storage/azurite:latest
@@ -75,7 +75,7 @@ services:
       - /azure-functions-host/Secrets:rw,mode=1777
     environment:
       AZURE_FUNCTIONS_ENVIRONMENT: Development
-      AzureWebJobsStorage: ${AzureWebJobsStorage}
+      AzureWebJobsStorage: ${Local__AzuriteConnectionString}
       Cosmos__Endpoint: ${Cosmos__Endpoint}
       Cosmos__AuthKey: ${Cosmos__AuthKey}
       Cosmos__DatabaseName: ${Cosmos__DatabaseName}
@@ -86,7 +86,7 @@ services:
       Blizzard__Region: ${Blizzard__Region:-eu}
       Blizzard__RedirectUri: ${Blizzard__RedirectUri:-http://localhost:7071/api/battlenet/callback}
       Blizzard__AppBaseUrl: ${Blizzard__AppBaseUrl:-http://localhost:5138}
-      Storage__BlobConnectionString: ${Storage__BlobConnectionString}
+      Storage__BlobConnectionString: ${Local__AzuriteConnectionString}
       Auth__CookieName: ${Auth__CookieName:-battlenet_token}
       Auth__CookieMaxAgeHours: ${Auth__CookieMaxAgeHours:-24}
       Auth__KeyVaultUrl: ${Auth__KeyVaultUrl}

@@ -34,21 +34,25 @@ Edit `.env` and fill in the required values. See the table below for details.
 | `Blizzard__Region` | Default ok | `eu` |
 | `Blizzard__RedirectUri` | Default ok | `http://localhost:7071/api/battlenet/callback` |
 | `Blizzard__AppBaseUrl` | Default ok | `http://localhost:5138` (Blazor dev server port, no trailing slash) |
-| `AZURE_FUNCTIONS_ENVIRONMENT` | Default ok | `Development`; required when `Audit__HashSalt` is empty |
 | `Cors__AllowedOrigins__0` | Default ok | `http://localhost:5138` |
-| `COSMOS_KEY_CONTENT` | Yes | Cosmos emulator master key (base64). Generate: `openssl rand -base64 32` |
 | `Cosmos__Endpoint` | Default ok | `http://cosmosdb:8081` for the compose network |
-| `Cosmos__AuthKey` | Yes | Must match the key derived from `COSMOS_KEY_CONTENT` |
+| `Cosmos__AuthKey` | Yes | Cosmos emulator master key (base64). Generate: `openssl rand -base64 32`; compose uses this for both the emulator key file and API client auth |
 | `Cosmos__DatabaseName` | Default ok | `lfm` |
 | `Cosmos__ConnectionMode` | Default ok | `Gateway` for the Linux emulator |
-| `AzureWebJobsStorage` | Yes | Azurite connection string: `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;` |
-| `Storage__BlobConnectionString` | Yes | Same Azurite connection string as `AzureWebJobsStorage` |
+| `Local__AzuriteConnectionString` | Default ok | Azurite connection string; compose maps this to `AzureWebJobsStorage` and `Storage__BlobConnectionString` |
 | `Auth__CookieName` | Default ok | `battlenet_token` |
 | `Auth__CookieMaxAgeHours` | Default ok | `24` |
 | `Auth__KeyVaultUrl` | No | Leave empty for local dev |
 | `Auth__LocalDevAllAuthenticatedUsersAreSiteAdmins` | No | `false`; set `true` only for local Development to make authenticated local users site admins |
 | `PrivacyContact__Email` | Default ok | Privacy contact returned by the API |
 | `Audit__HashSalt` | No | Empty logs plaintext actor IDs only in Development/E2E; deployed environments fail closed unless this is a resolved secret |
+
+`example.env` lists human-editable local source values. `docker-compose.local.yml`
+maps those sources into platform/app settings such as
+`AZURE_FUNCTIONS_ENVIRONMENT`, `AzureWebJobsStorage`, and
+`Storage__BlobConnectionString`. Deployment and build-time source variables
+such as `PRIVACY_EMAIL`, `API_HOSTNAME`, and `FRONTEND_HOSTNAME` are documented
+under Deployment and are intentionally not part of the local `.env` template.
 
 ### 3. Start local stack
 
@@ -181,7 +185,7 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 
 | Variable | Purpose |
 |----------|---------|
-| `PRIVACY_EMAIL` | Privacy contact email; substituted into `/.well-known/security.txt` at build time |
+| `PRIVACY_EMAIL` | Privacy contact email; maps to the API runtime setting `PrivacyContact__Email`, alert email, and `/.well-known/security.txt` at build time |
 | `BATTLE_NET_REGION` | Battle.net region code |
 
 **Build-time template substitution** (used by the `GenerateStaticTemplates` MSBuild target):
@@ -192,9 +196,12 @@ Infrastructure is deployed via the `Deploy Infrastructure` GitHub Actions workfl
 | `SECURITY_POLICY_URL` | URL to the deployer's `SECURITY.md` (e.g. `https://github.com/<you>/<repo>/blob/main/SECURITY.md`) |
 | `API_HOSTNAME` | API custom domain; injected into the CSP `connect-src` and `img-src` allowlist in `staticwebapp.config.json` |
 | `FRONTEND_HOSTNAME` | Frontend custom domain; injected into the `security.txt` `Canonical` field |
-| `STORAGE_ACCOUNT_NAME` | Storage account name; used to build the blob endpoint in the CSP allowlist |
 
-These five variables are set in the `dotnet publish` step of `deploy-app.yml`. `app/wwwroot/.well-known/security.txt` and `app/wwwroot/staticwebapp.config.json` are generated from their `.template` counterparts and gitignored.
+The app build workflow sets `PRIVACY_EMAIL` plus the four template variables
+above in the `dotnet publish` step of `deploy-app.yml`.
+`app/wwwroot/.well-known/security.txt` and
+`app/wwwroot/staticwebapp.config.json` are generated from their `.template`
+counterparts and gitignored.
 
 `frontendOrigin`, `battleNetRedirectUri`, and resource `tags` are derived from the above in the workflow.
 
