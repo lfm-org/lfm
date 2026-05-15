@@ -407,8 +407,30 @@
       "properties": {
         "layer": "ImplementationMigration",
         "authority": "lifted-from-source",
-        "source_evidence": [".github/workflows/deploy.yml"],
-        "documentation": "Main branch source, infrastructure, and app artifacts before deployment."
+        "source_evidence": ["scripts/pre-commit", "scripts/pre-push", ".github/workflows/deploy.yml"],
+        "documentation": "Main branch source, infrastructure, and app artifacts after local hook and workflow gates."
+      }
+    },
+    {
+      "id": "pre-commit-secret-guard",
+      "type": "WorkPackage",
+      "label": "Pre-commit secret guard",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": ["scripts/pre-commit", "CLAUDE.md"],
+        "documentation": "Local opt-in hook blocks staged environment files, SSH private keys, certificates, application secrets, Terraform state, and private-key content before commit."
+      }
+    },
+    {
+      "id": "pre-push-verification-gate",
+      "type": "WorkPackage",
+      "label": "Pre-push verification gate",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": ["scripts/pre-push", "CLAUDE.md"],
+        "documentation": "Local opt-in hook runs shell lint, workflow permission checks, locale readiness, .NET format/build, and vulnerable-package audit before push."
       }
     },
     {
@@ -1100,6 +1122,36 @@
       }
     },
     {
+      "id": "pre-commit-guards-repository",
+      "type": "Association",
+      "source": "pre-commit-secret-guard",
+      "target": "repository-baseline",
+      "label": "blocks secret staging",
+      "properties": {
+        "source_evidence": ["scripts/pre-commit", "CLAUDE.md"]
+      }
+    },
+    {
+      "id": "pre-commit-complements-secret-scan",
+      "type": "Association",
+      "source": "pre-commit-secret-guard",
+      "target": "secret-scan-workflow",
+      "label": "local + CI secret controls",
+      "properties": {
+        "source_evidence": ["scripts/pre-commit", ".github/workflows/secrets-scan.yml"]
+      }
+    },
+    {
+      "id": "pre-push-guards-repository",
+      "type": "Association",
+      "source": "pre-push-verification-gate",
+      "target": "repository-baseline",
+      "label": "local verification",
+      "properties": {
+        "source_evidence": ["scripts/pre-push", "CLAUDE.md"]
+      }
+    },
+    {
       "id": "deploy-workflow-composes-infra",
       "type": "Composition",
       "source": "deploy-workflow",
@@ -1622,6 +1674,8 @@
           "id": "production-release-migration",
           "label": "LFM - Production Release Migration",
           "nodes": [
+            "pre-commit-secret-guard",
+            "pre-push-verification-gate",
             "repository-baseline",
             "production-plateau",
             "release-to-production-gap",
@@ -1641,6 +1695,9 @@
             "lfm-api"
           ],
           "relationships": [
+            "pre-commit-guards-repository",
+            "pre-commit-complements-secret-scan",
+            "pre-push-guards-repository",
             "repository-triggers-deploy-workflow",
             "deploy-workflow-composes-infra",
             "deploy-workflow-composes-secret-scan",
@@ -1664,6 +1721,14 @@
             "spa-package-deploys-app"
           ],
           "groups": [
+            {
+              "id": "production-release-local-gates",
+              "label": "Local repository gates",
+              "members": [
+                "pre-commit-secret-guard",
+                "pre-push-verification-gate"
+              ]
+            },
             {
               "id": "production-release-orchestration",
               "label": "Deploy orchestration",
