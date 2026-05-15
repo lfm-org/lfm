@@ -3,15 +3,15 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.3.0"
+      "version": "0.8.3"
     },
     {
       "id": "elk-layout",
-      "version": "0.3.0"
+      "version": "0.8.3"
     },
     {
       "id": "svg-render",
-      "version": "0.3.0"
+      "version": "0.8.3"
     }
   ],
   "nodes": [
@@ -343,6 +343,17 @@
         "authority": "lifted-from-source",
         "source_evidence": ["infra/modules/storage.bicep", "infra/modules/dataprotection.bicep", "api/Program.cs"],
         "documentation": "Durable ASP.NET Data Protection key-ring storage."
+      }
+    },
+    {
+      "id": "deployment-container",
+      "type": "Artifact",
+      "label": "deployments blob container",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": ["infra/modules/storage.bicep"],
+        "documentation": "Private storage container named deployments, provisioned by the storage module."
       }
     },
     {
@@ -1042,6 +1053,16 @@
       }
     },
     {
+      "id": "storage-composes-deployments",
+      "type": "Association",
+      "source": "storage-account",
+      "target": "deployment-container",
+      "label": "blob container",
+      "properties": {
+        "source_evidence": ["infra/modules/storage.bicep"]
+      }
+    },
+    {
       "id": "key-vault-composes-data-protection-key",
       "type": "Association",
       "source": "key-vault",
@@ -1587,6 +1608,7 @@
             "storage-account",
             "wow-reference-container",
             "data-protection-container",
+            "deployment-container",
             "key-vault",
             "data-protection-key",
             "application-insights",
@@ -1614,6 +1636,7 @@
             "database-composes-idempotency",
             "storage-composes-wow-reference",
             "storage-composes-data-protection",
+            "storage-composes-deployments",
             "key-vault-composes-data-protection-key",
             "managed-identity-accesses-key-vault",
             "managed-identity-accesses-cosmos",
@@ -1655,6 +1678,7 @@
                 "storage-account",
                 "wow-reference-container",
                 "data-protection-container",
+                "deployment-container",
                 "key-vault",
                 "data-protection-key"
               ]

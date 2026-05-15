@@ -20,6 +20,11 @@
         "policy": "render-policy.json",
         "metadata": "render-metadata.json",
         "output": "generated/svg/application-cooperation.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/application-cooperation.json"
       }
     },
     {
@@ -39,6 +44,11 @@
         "policy": "render-policy.json",
         "metadata": "render-metadata.json",
         "output": "generated/svg/technology-usage.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/technology-usage.json"
       }
     },
     {
@@ -58,6 +68,11 @@
         "policy": "render-policy.json",
         "metadata": "render-metadata.json",
         "output": "generated/svg/production-release-migration.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/production-release-migration.json"
       }
     },
     {
@@ -77,6 +92,11 @@
         "policy": "render-policy.json",
         "metadata": "render-metadata.json",
         "output": "generated/svg/run-signup-process-candidate.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/run-signup-process-candidate.json"
       }
     },
     {
@@ -96,6 +116,11 @@
         "policy": "render-policy.json",
         "metadata": "render-metadata.json",
         "output": "generated/svg/run-signup-service-realization.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/run-signup-service-realization.json"
       }
     }
   ]
