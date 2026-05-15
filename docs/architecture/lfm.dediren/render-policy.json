@@ -33,7 +33,9 @@
       "label_horizontal_position": "center",
       "label_horizontal_side": "auto",
       "label_vertical_position": "center",
-      "label_vertical_side": "left"
+      "label_vertical_side": "left",
+      "marker_start": "none",
+      "marker_end": "none"
     },
     "group": {
       "fill": "#f8fafc",
@@ -160,13 +162,15 @@
         "stroke": "#475569",
         "stroke_width": 1.5,
         "label_fill": "#334155",
-        "marker_start": "filled_diamond"
+        "marker_start": "filled_diamond",
+        "marker_end": "none"
       },
       "Aggregation": {
         "stroke": "#475569",
         "stroke_width": 1.5,
         "label_fill": "#334155",
-        "marker_start": "hollow_diamond"
+        "marker_start": "hollow_diamond",
+        "marker_end": "none"
       },
       "Triggering": {
         "stroke": "#b45309",
@@ -180,6 +184,13 @@
         "label_fill": "#92400e",
         "line_style": "dashed",
         "marker_end": "filled_arrow"
+      },
+      "Association": {
+        "stroke": "#64748b",
+        "stroke_width": 1.5,
+        "label_fill": "#374151",
+        "marker_start": "none",
+        "marker_end": "none"
       }
     },
     "node_overrides": {},
