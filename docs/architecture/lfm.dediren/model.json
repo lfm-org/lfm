@@ -3,15 +3,15 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.8.3"
+      "version": "0.9.1"
     },
     {
       "id": "elk-layout",
-      "version": "0.8.3"
+      "version": "0.9.1"
     },
     {
       "id": "svg-render",
-      "version": "0.8.3"
+      "version": "0.9.1"
     }
   ],
   "nodes": [
@@ -486,6 +486,17 @@
         "authority": "lifted-from-source",
         "source_evidence": [".github/workflows/deploy.yml"],
         "documentation": "Orchestrator workflow for infra and app deployment."
+      }
+    },
+    {
+      "id": "deploy-change-detection",
+      "type": "WorkPackage",
+      "label": "Detect deploy changes",
+      "properties": {
+        "layer": "ImplementationMigration",
+        "authority": "lifted-from-source",
+        "source_evidence": [".github/workflows/deploy.yml"],
+        "documentation": "Deploy workflow job that resolves manual stage input or path-filtered infra/app changes before conditional reusable workflows run."
       }
     },
     {
@@ -1173,6 +1184,16 @@
       }
     },
     {
+      "id": "deploy-workflow-composes-change-detection",
+      "type": "Composition",
+      "source": "deploy-workflow",
+      "target": "deploy-change-detection",
+      "label": "change filter",
+      "properties": {
+        "source_evidence": [".github/workflows/deploy.yml"]
+      }
+    },
+    {
       "id": "deploy-workflow-composes-infra",
       "type": "Composition",
       "source": "deploy-workflow",
@@ -1515,6 +1536,7 @@
   ],
   "plugins": {
     "generic-graph": {
+      "semantic_profile": "archimate",
       "views": [
         {
           "id": "application-cooperation",
@@ -1705,6 +1727,7 @@
             "release-to-production-gap",
             "deploy-to-production-event",
             "deploy-workflow",
+            "deploy-change-detection",
             "secret-scan-workflow",
             "infrastructure-analysis-workflow",
             "deploy-infra-workflow",
@@ -1723,6 +1746,7 @@
             "pre-commit-complements-secret-scan",
             "pre-push-guards-repository",
             "repository-triggers-deploy-workflow",
+            "deploy-workflow-composes-change-detection",
             "deploy-workflow-composes-infra",
             "deploy-workflow-composes-secret-scan",
             "deploy-workflow-composes-infra-analysis",
@@ -1759,6 +1783,7 @@
               "members": [
                 "repository-baseline",
                 "deploy-workflow",
+                "deploy-change-detection",
                 "deploy-to-production-event"
               ]
             },

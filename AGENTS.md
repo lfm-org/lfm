@@ -15,5 +15,9 @@ Before changing files in this repo:
 For delegated or parallel agent work, pass along the same instruction: read and
 follow [CLAUDE.md](CLAUDE.md) before making changes.
 
+Markdown rendering convention: tracked Markdown must stay GitHub-renderable;
+gitignored local Markdown may use local preview enhancements when useful. See
+[CLAUDE.md](CLAUDE.md) for the source-of-truth wording.
+
 Keep this file thin. Put repository guidance changes in [CLAUDE.md](CLAUDE.md).
 Update `AGENTS.md` only when this delegation behavior changes.
