@@ -24,9 +24,10 @@ The package is intentionally source-first:
 | [`lfm.dediren/project.json`](lfm.dediren/project.json) | Project manifest and actual view list |
 | [`lfm.dediren/model.json`](lfm.dediren/model.json) | Canonical source graph, relationships, source evidence, and view membership |
 | [`lfm.dediren/render-policy.json`](lfm.dediren/render-policy.json) | SVG page, colors, decorators, and relationship markers |
-| [`lfm.dediren/render-metadata.json`](lfm.dediren/render-metadata.json) | ArchiMate semantic type selectors for renderer notation |
 
-`lfm.dediren/generated/` is reproducible tool output and ignored by git.
+Per-view render metadata, layout output, and intermediate SVGs are generated
+from the package. `lfm.dediren/generated/` is reproducible tool output and
+ignored by git.
 
 ## Views
 
@@ -54,10 +55,12 @@ plugin. The canonical evidence loop is:
 
 ```bash
 dediren validate --input docs/architecture/lfm.dediren/model.json
+dediren validate --plugin generic-graph --profile archimate --input docs/architecture/lfm.dediren/model.json
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view application-cooperation --target layout-request
+dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view application-cooperation --target render-metadata
 dediren layout --plugin elk-layout --input <projection.json>
 dediren validate-layout --input <layout.json>
-dediren render --plugin svg-render --policy docs/architecture/lfm.dediren/render-policy.json --metadata docs/architecture/lfm.dediren/render-metadata.json --input <layout.json> > <view>.render.json
+dediren render --plugin svg-render --policy docs/architecture/lfm.dediren/render-policy.json --metadata <render-metadata.json> --input <layout.json> > <view>.render.json
 jq -r '.data.content' <view>.render.json > <view>.svg
 ```
 
