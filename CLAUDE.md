@@ -180,3 +180,9 @@ Every property on a `shared/Lfm.Contracts/` record must have a live consumer in 
 ## Documentation Separation
 
 `CLAUDE.md` and `docs/` are Claude-facing: guidance, workflow rules, architectural decisions. User-facing content belongs in `README.md` or `docs/user/`. The legacy `docs/superpowers/` tree is gitignored local scratch in this repo; do not force-add it. Plans and specs that must be tracked belong in an existing tracked docs area or a task-specific tracked docs path, and the chosen path should be named in the task summary.
+
+Tracked Markdown must remain GitHub-renderable. Do not use renderer-specific
+extensions such as Markdown Preview Enhanced imports, embedded styles, or
+preview-only directives in files that are tracked or intended to be tracked.
+Gitignored local Markdown, especially under `.cache/`, may use local
+renderer-specific enhancements when that improves readability.
