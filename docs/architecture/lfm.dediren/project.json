@@ -4,32 +4,8 @@
   "model": "model.json",
   "views": [
     {
-      "id": "application-cooperation",
-      "title": "LFM - Application Cooperation",
-      "diagramKind": "Application Cooperation",
-      "projection": {
-        "plugin": "generic-graph",
-        "target": "layout-request"
-      },
-      "layout": {
-        "plugin": "elk-layout",
-        "output": "generated/layout/application-cooperation.json"
-      },
-      "render": {
-        "plugin": "svg-render",
-        "policy": "render-policy.json",
-        "metadata": "generated/render-metadata/application-cooperation.json",
-        "output": "generated/svg/application-cooperation.svg"
-      },
-      "metadata": {
-        "plugin": "generic-graph",
-        "target": "render-metadata",
-        "output": "generated/render-metadata/application-cooperation.json"
-      }
-    },
-    {
       "id": "technology-usage",
-      "title": "LFM - Technology Usage",
+      "title": "LFM - Technology Usage Overview",
       "diagramKind": "Technology Usage",
       "projection": {
         "plugin": "generic-graph",
@@ -52,6 +28,54 @@
       }
     },
     {
+      "id": "technology-data-plane",
+      "title": "LFM - Data Plane and Secrets",
+      "diagramKind": "Technology Usage",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/technology-data-plane.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/technology-data-plane.json",
+        "output": "generated/svg/technology-data-plane.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/technology-data-plane.json"
+      }
+    },
+    {
+      "id": "technology-observability",
+      "title": "LFM - Observability and Alerting",
+      "diagramKind": "Technology Usage",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/technology-observability.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/technology-observability.json",
+        "output": "generated/svg/technology-observability.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/technology-observability.json"
+      }
+    },
+    {
       "id": "production-release-migration",
       "title": "LFM - Production Release Migration",
       "diagramKind": "Migration",
@@ -67,7 +91,7 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/production-release-migration.json",
-        "output": "generated/svg/production-release-migration.svg"
+        "output": "generated/svg/implementation-migration-production-release-migration.svg"
       },
       "metadata": {
         "plugin": "generic-graph",
@@ -91,7 +115,7 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-process-candidate.json",
-        "output": "generated/svg/run-signup-process-candidate.svg"
+        "output": "generated/svg/business-run-signup-process-candidate.svg"
       },
       "metadata": {
         "plugin": "generic-graph",
@@ -115,12 +139,156 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-service-realization.json",
-        "output": "generated/svg/run-signup-service-realization.svg"
+        "output": "generated/svg/application-run-signup-service-realization.svg"
       },
       "metadata": {
         "plugin": "generic-graph",
         "target": "render-metadata",
         "output": "generated/render-metadata/run-signup-service-realization.json"
+      }
+    },
+    {
+      "id": "run-maintenance-application-process",
+      "title": "Run Maintenance - Application Process",
+      "diagramKind": "Application Process",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/run-maintenance-application-process.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/run-maintenance-application-process.json",
+        "output": "generated/svg/application-run-maintenance-application-process.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/run-maintenance-application-process.json"
+      }
+    },
+    {
+      "id": "auth-profile-realization",
+      "title": "Auth and Profile - Service Realization",
+      "diagramKind": "Service Realization",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/auth-profile-realization.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/auth-profile-realization.json",
+        "output": "generated/svg/application-auth-profile-realization.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/auth-profile-realization.json"
+      }
+    },
+    {
+      "id": "account-deletion-application-process",
+      "title": "Account Deletion - Application Process",
+      "diagramKind": "Application Process",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/account-deletion-application-process.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/account-deletion-application-process.json",
+        "output": "generated/svg/application-account-deletion-application-process.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/account-deletion-application-process.json"
+      }
+    },
+    {
+      "id": "guild-realization",
+      "title": "Guild - Service Realization",
+      "diagramKind": "Service Realization",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/guild-realization.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/guild-realization.json",
+        "output": "generated/svg/application-guild-realization.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/guild-realization.json"
+      }
+    },
+    {
+      "id": "wow-reference-realization",
+      "title": "WoW Reference Data - Service Realization",
+      "diagramKind": "Service Realization",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/wow-reference-realization.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/wow-reference-realization.json",
+        "output": "generated/svg/application-wow-reference-realization.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/wow-reference-realization.json"
+      }
+    },
+    {
+      "id": "ops-health-realization",
+      "title": "Operational Readiness - Service Realization",
+      "diagramKind": "Service Realization",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/ops-health-realization.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/ops-health-realization.json",
+        "output": "generated/svg/application-ops-health-realization.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/ops-health-realization.json"
       }
     }
   ]
