@@ -160,103 +160,110 @@
                         var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
                         var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
 
-                        <div class="run-detail-stack">
-                            <FluentCard>
-                                <section class="run-detail-summary" data-testid="run-detail-summary">
-                                    <div class="run-detail-header">
-                                        <div class="run-detail-heading">
-                                            <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
-                                            @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
-                                            {
-                                                <p class="run-detail-description">@selectedRun.Description</p>
-                                            }
+                        <div class="run-detail-workbench" data-testid="run-detail-workbench">
+                            <div class="run-detail-main" data-testid="run-detail-main">
+                                <FluentCard>
+                                    <section class="run-detail-summary" data-testid="run-detail-summary">
+                                        <div class="run-detail-header">
+                                            <div class="run-detail-heading">
+                                                <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
+                                                @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
+                                                {
+                                                    <p class="run-detail-description">@selectedRun.Description</p>
+                                                }
+                                            </div>
+                                            <DifficultyPill Difficulty="@selectedRun.Difficulty" />
+                                            <FluentButton Appearance="Appearance.Outline"
+                                                          OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
+                                                          Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
+                                                @Loc["runs.edit"]
+                                            </FluentButton>
                                         </div>
-                                        <DifficultyPill Difficulty="@selectedRun.Difficulty" />
-                                        <FluentButton Appearance="Appearance.Outline"
-                                                      OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
-                                                      Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
-                                            @Loc["runs.edit"]
-                                        </FluentButton>
-                                    </div>
 
-                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
-                                        <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
-                                        <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
-                                        <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
-                                    </FluentStack>
-                                </section>
-                            </FluentCard>
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
+                                            <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
+                                            <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
+                                            <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
+                                        </FluentStack>
+                                    </section>
+                                </FluentCard>
 
-                            <section class="run-signup-surface" data-testid="run-signup-surface">
-                                <RunSignupPanel RunId="@selectedRun.Id"
-                                                CurrentSignup="@currentSignup"
-                                                Characters="@_signupCharacters"
-                                                SignupClosed="@IsSignupClosed(selectedRun.SignupCloseTime)"
-                                                OptionsLoading="@_signupOptionsLoading"
-                                                OptionsForbidden="@_signupOptionsForbidden"
-                                                PreferredCharacterId="@_preferredSignupCharacterId"
-                                                CurrentSpecIconUrl="@SpecIconUrlFor(currentSignup)"
-                                                SignupError="@_signupError"
-                                                SignupSubmitting="@_signupSubmitting"
-                                                CancelSubmitting="@_cancelSubmitting"
-                                                OnSignup="@SubmitSignup"
-                                                OnCancelConfirmed="@CancelSignup"
-                                                OnOptionsRequested="@EnsureSignupOptionsLoaded" />
-                            </section>
-
-                            <section class="run-roster @(selectedRun.RunCharacters.Count == 0 ? "run-roster--empty" : "")" data-testid="run-roster">
-                                @if (selectedRun.RunCharacters.Count == 0)
-                                {
-                                    <h3 class="roster-section-title" data-testid="roster-attending-title">
-                                        @Loc["runs.attendingSection"] (0)
-                                    </h3>
-                                    <div class="run-roster-empty">
-                                        <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
-                                    </div>
-                                }
-                                else
-                                {
-                                    @if (attending.Count > 0)
+                                <section class="run-roster @(selectedRun.RunCharacters.Count == 0 ? "run-roster--empty" : "")" data-testid="run-roster">
+                                    @if (selectedRun.RunCharacters.Count == 0)
                                     {
                                         <h3 class="roster-section-title" data-testid="roster-attending-title">
-                                            @Loc["runs.attendingSection"] (@attending.Count)
+                                            @Loc["runs.attendingSection"] (0)
                                         </h3>
-                                        <div class="roster-role-grid">
-                                            @foreach (var (roleKey, roleLabel) in RoleColumns)
-                                            {
-                                                var roleChars = attending.Where(c => RunVisualization.NormalizeRole(c.Role) == roleKey).ToList();
-                                                <div class="roster-role-column">
-                                                    <h4 class="roster-role-column-title">@roleLabel (@roleChars.Count)</h4>
-                                                    @if (roleChars.Count == 0)
-                                                    {
-                                                        <div class="roster-role-empty">@Loc["runs.role.empty"]</div>
-                                                    }
-                                                    else
-                                                    {
-                                                        @foreach (var character in roleChars)
-                                                        {
-                                                            <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
-                                                        }
-                                                    }
-                                                </div>
-                                            }
+                                        <div class="run-roster-empty">
+                                            <FluentLabel>@Loc["runs.noSignups"]</FluentLabel>
                                         </div>
                                     }
-
-                                    @if (notAttending.Count > 0)
+                                    else
                                     {
-                                        <h3 class="roster-section-title" data-testid="roster-not-attending-title">
-                                            @Loc["runs.notAttendingSection"] (@notAttending.Count)
-                                        </h3>
-                                        <div class="roster-rows">
-                                            @foreach (var character in notAttending)
-                                            {
-                                                <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
-                                            }
-                                        </div>
+                                        @if (attending.Count > 0)
+                                        {
+                                            <h3 class="roster-section-title" data-testid="roster-attending-title">
+                                                @Loc["runs.attendingSection"] (@attending.Count)
+                                            </h3>
+                                            <div class="roster-role-grid">
+                                                @foreach (var (roleKey, roleLabel) in RoleColumns)
+                                                {
+                                                    var roleChars = attending.Where(c => RunVisualization.NormalizeRole(c.Role) == roleKey).ToList();
+                                                    <div class="roster-role-column">
+                                                        <h4 class="roster-role-column-title" data-testid="roster-role-title-@RoleTitleTestId(roleKey)">
+                                                            @RoleTitleIcon(roleKey)
+                                                            <span>@roleLabel (@roleChars.Count)</span>
+                                                        </h4>
+                                                        @if (roleChars.Count == 0)
+                                                        {
+                                                            <div class="roster-role-empty">@Loc["runs.role.empty"]</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            @foreach (var character in roleChars)
+                                                            {
+                                                                <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
+                                                            }
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+
+                                        @if (notAttending.Count > 0)
+                                        {
+                                            <h3 class="roster-section-title" data-testid="roster-not-attending-title">
+                                                @Loc["runs.notAttendingSection"] (@notAttending.Count)
+                                            </h3>
+                                            <div class="roster-rows">
+                                                @foreach (var character in notAttending)
+                                                {
+                                                    <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
+                                                }
+                                            </div>
+                                        }
                                     }
-                                }
-                            </section>
+                                </section>
+                            </div>
+
+                            <aside class="run-signup-rail" data-testid="run-signup-rail">
+                                <section class="run-signup-surface" data-testid="run-signup-surface">
+                                    <RunSignupPanel RunId="@selectedRun.Id"
+                                                    CurrentSignup="@currentSignup"
+                                                    Characters="@_signupCharacters"
+                                                    SignupClosed="@IsSignupClosed(selectedRun.SignupCloseTime)"
+                                                    OptionsLoading="@_signupOptionsLoading"
+                                                    OptionsForbidden="@_signupOptionsForbidden"
+                                                    PreferredCharacterId="@_preferredSignupCharacterId"
+                                                    CurrentSpecIconUrl="@SpecIconUrlFor(currentSignup)"
+                                                    SignupError="@_signupError"
+                                                    SignupSubmitting="@_signupSubmitting"
+                                                    CancelSubmitting="@_cancelSubmitting"
+                                                    OnSignup="@SubmitSignup"
+                                                    OnCancelConfirmed="@CancelSignup"
+                                                    OnOptionsRequested="@EnsureSignupOptionsLoaded" />
+                                </section>
+                            </aside>
                         </div>
                     }
                     else
@@ -307,6 +314,31 @@
 
     private IEnumerable<(string Key, string Label)> RoleColumns =>
         RoleColumnKeys.Select(x => (x.Key, Loc[x.LocKey].Value));
+
+    private static string RoleTitleTestId(string roleKey) =>
+        roleKey.ToLowerInvariant();
+
+    private static RenderFragment RoleTitleIcon(string roleKey) => roleKey switch
+    {
+        "TANK" => @<svg class="roster-role-title__icon roster-role-title__icon--tank" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 3.5 19 6v5.3c0 4.3-2.6 7.5-7 9.2-4.4-1.7-7-4.9-7-9.2V6l7-2.5Z" />
+        </svg>,
+        "HEALER" => @<svg class="roster-role-title__icon roster-role-title__icon--healer" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8.2" />
+            <path d="M12 7.4v9.2" />
+            <path d="M7.4 12h9.2" />
+        </svg>,
+        "DPS" => @<svg class="roster-role-title__icon roster-role-title__icon--dps" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <g class="roster-role-title__icon-dagger" transform="rotate(45 12 12)">
+                <path class="roster-role-title__icon-blade" d="M12 3.2 13.7 13.1 12 15.1 10.3 13.1 12 3.2Z" />
+                <path class="roster-role-title__icon-edge" d="M12 5.8v7.4" />
+                <path class="roster-role-title__icon-guard" d="M8.1 13.9h7.8" />
+                <path class="roster-role-title__icon-grip" d="M12 14.7v4.8" />
+                <circle class="roster-role-title__icon-pommel" cx="12" cy="20.5" r="0.9" />
+            </g>
+        </svg>,
+        _ => builder => { },
+    };
 
     protected override async Task OnInitializedAsync()
     {

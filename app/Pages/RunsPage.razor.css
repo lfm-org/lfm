@@ -27,16 +27,17 @@
     display: none;
 }
 
-/* Two-column split once the detail pane can still keep a usable roster area.
-   The sidebar stays deliberately narrow so mid-width desktop windows do not
-   collapse back into a single oversized detail card. */
+/* Two-column shell once the detail pane can still keep a usable roster area.
+   Wider screens split the selected run again into center detail + signup rail. */
 @media (min-width: 56em) {
     .runs-layout {
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: clamp(15.5rem, 24vw, 18rem) minmax(0, 1fr);
+        align-items: start;
     }
 
     .runs-sidebar {
-        inline-size: clamp(15.5rem, 26vw, 19rem);
+        inline-size: 100%;
     }
 }
 
@@ -262,11 +263,54 @@
     align-items: center;
 }
 
-.run-detail-stack {
+.run-detail-workbench {
     display: flex;
     flex-direction: column;
     gap: 16px;
     inline-size: 100%;
+}
+
+.run-detail-main {
+    display: contents;
+}
+
+.run-detail-main > fluent-card {
+    order: 0;
+}
+
+.run-signup-rail {
+    order: 1;
+    min-inline-size: 0;
+}
+
+.run-roster {
+    order: 2;
+}
+
+@media (min-width: 72em) {
+    .run-detail-workbench {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(23.5rem, 27vw, 25rem);
+        align-items: start;
+    }
+
+    .run-detail-main {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-inline-size: 0;
+    }
+
+    .run-detail-main > fluent-card,
+    .run-signup-rail,
+    .run-roster {
+        order: initial;
+    }
+
+    .run-signup-rail {
+        position: sticky;
+        inset-block-start: 16px;
+    }
 }
 
 .run-detail-summary {
@@ -342,19 +386,39 @@
     gap: 16px;
 }
 
-@media (min-width: 48em) {
-    .roster-role-grid {
-        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-    }
-}
-
 .roster-role-column-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
     color: var(--neutral-foreground-hint-rest);
     font-size: 0.95em;
     margin: 0 0 8px 0;
+}
+
+.roster-role-title__icon {
+    flex: 0 0 auto;
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.roster-role-title__icon--tank {
+    color: #7db7ff;
+}
+
+.roster-role-title__icon--healer {
+    color: #69d37d;
+}
+
+.roster-role-title__icon--dps {
+    color: #f06f64;
 }
 
 .roster-role-column {
@@ -374,9 +438,16 @@
 }
 
 .roster-rows {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 8px;
+}
+
+@media (min-width: 88em) {
+    .roster-role-grid,
+    .roster-rows {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 .run-roster-empty {
