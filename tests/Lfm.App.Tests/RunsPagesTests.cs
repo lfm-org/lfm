@@ -1296,10 +1296,54 @@ public class RunsPagesTests : ComponentTestBase
         var roleColumns = cut.FindAll(".roster-role-column");
         Assert.Equal(3, roleColumns.Count);
 
+        var tankTitle = cut.Find("[data-testid='roster-role-title-tank']");
+        var healerTitle = cut.Find("[data-testid='roster-role-title-healer']");
+        var dpsTitle = cut.Find("[data-testid='roster-role-title-dps']");
+
+        Assert.Equal($"{Loc("runs.role.tank")} (1)", tankTitle.TextContent.Trim());
+        Assert.Equal($"{Loc("runs.role.healer")} (1)", healerTitle.TextContent.Trim());
+        Assert.Equal($"{Loc("runs.role.dps")} (1)", dpsTitle.TextContent.Trim());
+        AssertRoleIconIsInlineSvg(tankTitle, "tank");
+        AssertRoleIconIsInlineSvg(healerTitle, "healer");
+        var dpsIcon = AssertRoleIconIsInlineSvg(dpsTitle, "dps");
+        Assert.Single(tankTitle.QuerySelectorAll(".roster-role-title__icon--tank path"));
+        Assert.Null(dpsIcon.QuerySelector("polygon"));
+        var dpsDagger = dpsIcon.QuerySelector(".roster-role-title__icon-dagger");
+        Assert.NotNull(dpsDagger);
+        Assert.Equal("rotate(45 12 12)", dpsDagger.GetAttribute("transform"));
+        Assert.NotNull(dpsIcon.QuerySelector(".roster-role-title__icon-blade"));
+        Assert.NotNull(dpsIcon.QuerySelector(".roster-role-title__icon-edge"));
+        Assert.NotNull(dpsIcon.QuerySelector(".roster-role-title__icon-guard"));
+        Assert.NotNull(dpsIcon.QuerySelector(".roster-role-title__icon-grip"));
+        Assert.NotNull(dpsIcon.QuerySelector(".roster-role-title__icon-pommel"));
+
         var markup = cut.Markup;
+        Assert.DoesNotContain("images/wow/role-", markup);
+        Assert.DoesNotContain("render.worldofwarcraft.com/eu/icons/56/ability_warrior_defensivestance.jpg", markup);
+        Assert.DoesNotContain("render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg", markup);
+        Assert.DoesNotContain("render.worldofwarcraft.com/eu/icons/56/inv_weapon_shortblade_01.jpg", markup);
+        Assert.DoesNotContain("14.8 3.8 17.2 6.2", markup);
+        Assert.DoesNotContain("M16.9 3.4 20.6 7.1", markup);
+        Assert.DoesNotContain("M21 2.8", markup);
+        Assert.DoesNotContain("M12 2.6 15.6 12.7", markup);
+        Assert.Contains("M12 3.2 13.7 13.1", markup);
+        Assert.DoesNotContain("M16.2 3.8 20.2 7.8", markup);
+        Assert.DoesNotContain("M8.5 5.4 5.6 18.6", markup);
         Assert.Contains("Tankington", markup);
         Assert.Contains("Healsworth", markup);
         Assert.Contains("Dpsalot", markup);
+
+        static IElement AssertRoleIconIsInlineSvg(IElement title, string role)
+        {
+            Assert.Null(title.QuerySelector("img"));
+
+            var icon = title.QuerySelector($"svg.roster-role-title__icon--{role}")!;
+            Assert.NotNull(icon);
+            Assert.Equal("true", icon.GetAttribute("aria-hidden"));
+            Assert.Equal("false", icon.GetAttribute("focusable"));
+            Assert.Equal("0 0 24 24", icon.GetAttribute("viewBox"));
+            return icon;
+        }
     }
 
     [Fact]
@@ -1326,7 +1370,7 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void RunsPage_Detail_Separates_Summary_Signup_And_Roster_Regions()
+    public void RunsPage_Detail_Uses_Workbench_Main_And_Signup_Rail()
     {
         var client = new Mock<IRunsClient>();
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
@@ -1349,17 +1393,24 @@ public class RunsPagesTests : ComponentTestBase
         var summary = cut.Find("[data-testid='run-detail-summary']");
         var signup = cut.Find("[data-testid='run-signup-surface']");
         var roster = cut.Find("[data-testid='run-roster']");
+        var main = cut.Find("[data-testid='run-detail-main']");
+        var rail = cut.Find("[data-testid='run-signup-rail']");
 
         Assert.NotNull(summary.Closest("fluent-card"));
         Assert.Null(roster.Closest("fluent-card"));
+        Assert.NotNull(main);
+        Assert.NotNull(rail);
+        Assert.Equal("run-detail-main", summary.Closest("[data-testid='run-detail-main']")?.GetAttribute("data-testid"));
+        Assert.Equal("run-detail-main", roster.Closest("[data-testid='run-detail-main']")?.GetAttribute("data-testid"));
+        Assert.Equal("run-signup-rail", signup.Closest("[data-testid='run-signup-rail']")?.GetAttribute("data-testid"));
 
         var markup = cut.Markup;
         Assert.True(
             markup.IndexOf("data-testid=\"run-detail-summary\"", StringComparison.Ordinal) <
-            markup.IndexOf("data-testid=\"run-signup-surface\"", StringComparison.Ordinal));
-        Assert.True(
-            markup.IndexOf("data-testid=\"run-signup-surface\"", StringComparison.Ordinal) <
             markup.IndexOf("data-testid=\"run-roster\"", StringComparison.Ordinal));
+        Assert.True(
+            markup.IndexOf("data-testid=\"run-roster\"", StringComparison.Ordinal) <
+            markup.IndexOf("data-testid=\"run-signup-surface\"", StringComparison.Ordinal));
         Assert.Contains(Loc("runs.attendingSection"), roster.TextContent);
     }
 
