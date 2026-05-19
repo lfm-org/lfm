@@ -18,6 +18,17 @@ public class RunsPageCssContractTests
     }
 
     [Fact]
+    public void Signup_attendance_toggle_fills_available_panel_width()
+    {
+        var css = File.ReadAllText(FindRepoFile("app", "Components", "Runs", "RunSignupPanel.razor.css"));
+
+        Assert.Contains("::deep .run-signup-attendance-toggle", css);
+        Assert.Contains("inline-size: 100%;", css);
+        Assert.Contains("::deep .run-signup-attendance-toggle .toggle-group__option", css);
+        Assert.Contains("flex: 1 1 0;", css);
+    }
+
+    [Fact]
     public void Wide_roster_uses_matching_three_column_grids_for_attending_and_not_attending()
     {
         var css = File.ReadAllText(FindRepoFile("app", "Pages", "RunsPage.razor.css"));
