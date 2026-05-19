@@ -1435,6 +1435,26 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_DetailSummary_DoesNotRenderDifficultyPill()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() with { Difficulty = "MYTHIC" } });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetail() with { Difficulty = "MYTHIC" });
+        Services.AddSingleton(client.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var summary = cut.Find("[data-testid='run-detail-summary']");
+            Assert.Empty(summary.QuerySelectorAll(".difficulty-pill"));
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunCards_Render_Mobile_Detail_Toggles()
     {
         var client = new Mock<IRunsClient>();
