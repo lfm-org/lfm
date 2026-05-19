@@ -33,11 +33,18 @@ ignored by git.
 
 | # | View | Diagram kind | Render | Source scope |
 |---|---|---|---|---|
-| 1 | LFM - Application Cooperation | Application Cooperation | [`application-cooperation.svg`](renders/application-cooperation.svg) | `*.csproj`, `api/Functions/*.cs`, app-core clients, Blazor pages, Blizzard clients |
-| 2 | LFM - Technology Usage | Technology Usage | [`technology-usage.svg`](renders/technology-usage.svg) | `infra/main.bicep`, `infra/modules/*.bicep`, `api/Program.cs` |
-| 3 | LFM - Production Release Migration | Migration | [`production-release-migration.svg`](renders/production-release-migration.svg) | local hook gates, `.github/workflows/deploy*.yml`, `secrets-scan.yml`, `analyze-infra.yml`, `infra/**/*.bicep`, deployable app/API projects |
-| 4 | Run Signup - Business Process Candidate | Business Process Cooperation | [`run-signup-process-candidate.svg`](renders/run-signup-process-candidate.svg) | `/runs` UI flow and `Runs*Function` endpoints |
-| 5 | Run Signup - Service Realization | Service Realization | [`run-signup-service-realization.svg`](renders/run-signup-service-realization.svg) | run-signup process candidate, `Run Management` service, `Lfm.Api`, Function App, Cosmos containers |
+| 1 | LFM - Technology Usage Overview | Technology Usage | [`technology-usage.svg`](renders/technology-usage.svg) | top-level Azure hosting, runtime identity, platform dependencies, telemetry |
+| 2 | LFM - Data Plane and Secrets | Technology Usage | [`technology-data-plane.svg`](renders/technology-data-plane.svg) | Cosmos containers, blob containers, Key Vault, data-protection key, Function App managed identity |
+| 3 | LFM - Observability and Alerting | Technology Usage | [`technology-observability.svg`](renders/technology-observability.svg) | Application Insights, Log Analytics, Cosmos throttle alert, telemetry publishing role |
+| 4 | LFM - Production Release Migration | Migration | [`implementation-migration-production-release-migration.svg`](renders/implementation-migration-production-release-migration.svg) | local hook gates, `.github/workflows/deploy*.yml`, `secrets-scan.yml`, `analyze-infra.yml`, `infra/**/*.bicep`, deployable app/API projects |
+| 5 | Run Signup - Business Process Candidate | Business Process Cooperation | [`business-run-signup-process-candidate.svg`](renders/business-run-signup-process-candidate.svg) | `/runs` UI flow and `Runs*Function` signup endpoints; source-derived candidate |
+| 6 | Run Signup - Service Realization | Service Realization | [`application-run-signup-service-realization.svg`](renders/application-run-signup-service-realization.svg) | run-signup process candidate, `Run Management` service, `Lfm.Api`, Cosmos containers |
+| 7 | Run Maintenance - Application Process | Application Process | [`application-run-maintenance-application-process.svg`](renders/application-run-maintenance-application-process.svg) | `CreateRunPage`, `EditRunPage`, `RunsCreateFunction`, `RunsUpdateFunction`, `RunsDeleteFunction`, run Cosmos state |
+| 8 | Auth and Profile - Service Realization | Service Realization | [`application-auth-profile-realization.svg`](renders/application-auth-profile-realization.svg) | sign-in UI, `BattleNet*Function`, `Me*Function`, `Raider*Function`, raider Cosmos state, Battle.net OAuth, WoW Profile API, render CDN |
+| 9 | Account Deletion - Application Process | Application Process | [`application-account-deletion-application-process.svg`](renders/application-account-deletion-application-process.svg) | `CharactersPage`, `MeClient.DeleteAsync`, `MeDeleteFunction`, raider/run/idempotency data effects |
+| 10 | Guild - Service Realization | Service Realization | [`application-guild-realization.svg`](renders/application-guild-realization.svg) | `/guild` and `/guild/admin` UI, `GuildFunction`, `GuildAdminFunction`, guild/raider Cosmos state, WoW Profile API guild refresh |
+| 11 | WoW Reference Data - Service Realization | Service Realization | [`application-wow-reference-realization.svg`](renders/application-wow-reference-realization.svg) | reference-data UI consumers, admin refresh UI, `WowReference*` read endpoints, `WowReferenceRefresh*` endpoints, blob reference data, WoW Game Data API |
+| 12 | Operational Readiness - Service Realization | Service Realization | [`application-ops-health-realization.svg`](renders/application-ops-health-realization.svg) | `HealthFunction`, `RunsMigrateSchemaFunction`, Cosmos readiness, Application Insights |
 
 ## Source Provenance
 
@@ -47,6 +54,8 @@ ignored by git.
 | Technology | [`infra/main.bicep`](../../infra/main.bicep), [`infra/modules/`](../../infra/modules/), [`api/Program.cs`](../../api/Program.cs), [`api/host.json`](../../api/host.json) |
 | Implementation & Migration | [`scripts/pre-commit`](../../scripts/pre-commit), [`scripts/pre-push`](../../scripts/pre-push), [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml), [`.github/workflows/secrets-scan.yml`](../../.github/workflows/secrets-scan.yml), [`.github/workflows/analyze-infra.yml`](../../.github/workflows/analyze-infra.yml), [`.github/workflows/deploy-infra.yml`](../../.github/workflows/deploy-infra.yml), [`.github/workflows/deploy-app-build.yml`](../../.github/workflows/deploy-app-build.yml), [`.github/workflows/deploy-app.yml`](../../.github/workflows/deploy-app.yml) |
 | Business Process candidates | [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor), [`app/Lfm.App.Core/Services/RunsClient.cs`](../../app/Lfm.App.Core/Services/RunsClient.cs), [`api/Functions/RunsListFunction.cs`](../../api/Functions/RunsListFunction.cs), [`api/Functions/RunsDetailFunction.cs`](../../api/Functions/RunsDetailFunction.cs), [`api/Functions/RunsSignupFunction.cs`](../../api/Functions/RunsSignupFunction.cs), [`api/Functions/RunsSignupOptionsFunction.cs`](../../api/Functions/RunsSignupOptionsFunction.cs), [`api/Functions/RunsCancelSignupFunction.cs`](../../api/Functions/RunsCancelSignupFunction.cs) |
+| Application Process views | [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Lfm.App.Core/Services/MeClient.cs`](../../app/Lfm.App.Core/Services/MeClient.cs), [`api/Functions/RunsCreateFunction.cs`](../../api/Functions/RunsCreateFunction.cs), [`api/Functions/RunsUpdateFunction.cs`](../../api/Functions/RunsUpdateFunction.cs), [`api/Functions/RunsDeleteFunction.cs`](../../api/Functions/RunsDeleteFunction.cs), [`api/Functions/MeDeleteFunction.cs`](../../api/Functions/MeDeleteFunction.cs) |
+| Service realization | [`app/Pages/LoginPage.razor`](../../app/Pages/LoginPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Pages/GoodbyePage.razor`](../../app/Pages/GoodbyePage.razor), [`app/Pages/GuildPage.razor`](../../app/Pages/GuildPage.razor), [`app/Pages/GuildAdminPage.razor`](../../app/Pages/GuildAdminPage.razor), [`app/Pages/InstancesPage.razor`](../../app/Pages/InstancesPage.razor), [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/AdminReferenceRefreshPage.razor`](../../app/Pages/AdminReferenceRefreshPage.razor), [`app/Pages/PrivacyPolicyPage.razor`](../../app/Pages/PrivacyPolicyPage.razor), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
 
 ## Rendering And Validation
 
@@ -56,8 +65,8 @@ plugin. The canonical evidence loop is:
 ```bash
 dediren validate --input docs/architecture/lfm.dediren/model.json
 dediren validate --plugin generic-graph --profile archimate --input docs/architecture/lfm.dediren/model.json
-dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view application-cooperation --target layout-request
-dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view application-cooperation --target render-metadata
+dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target layout-request
+dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target render-metadata
 dediren layout --plugin elk-layout --input <projection.json>
 dediren validate-layout --input <layout.json>
 dediren render --plugin svg-render --policy docs/architecture/lfm.dediren/render-policy.json --metadata <render-metadata.json> --input <layout.json> > <view>.render.json
