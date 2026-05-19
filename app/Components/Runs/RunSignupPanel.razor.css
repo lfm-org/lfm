@@ -82,7 +82,12 @@
 }
 
 ::deep .run-signup-attendance-toggle {
+    inline-size: 100%;
     max-inline-size: 100%;
+}
+
+::deep .run-signup-attendance-toggle .toggle-group__option {
+    flex: 1 1 0;
 }
 
 .run-signup-form__actions {
