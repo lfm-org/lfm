@@ -398,7 +398,7 @@
     margin: 0 0 8px 0;
 }
 
-.roster-role-title__icon {
+.roster-role-column-title ::deep .roster-role-title__icon {
     flex: 0 0 auto;
     inline-size: 1.15rem;
     block-size: 1.15rem;
@@ -409,15 +409,15 @@
     stroke-linejoin: round;
 }
 
-.roster-role-title__icon--tank {
+.roster-role-column-title ::deep .roster-role-title__icon--tank {
     color: #7db7ff;
 }
 
-.roster-role-title__icon--healer {
+.roster-role-column-title ::deep .roster-role-title__icon--healer {
     color: #69d37d;
 }
 
-.roster-role-title__icon--dps {
+.roster-role-column-title ::deep .roster-role-title__icon--dps {
     color: #f06f64;
 }
 
