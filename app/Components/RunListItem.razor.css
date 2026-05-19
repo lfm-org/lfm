@@ -153,29 +153,37 @@
 
 .run-list-item__roleslot {
     display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    padding-block: 1px;
-    padding-inline: 7px;
+    align-items: center;
+    gap: 5px;
+    padding-block: 2px;
+    padding-inline: 6px 7px;
     border-radius: 999px;
     background: var(--neutral-fill-rest);
+    border: 1px solid var(--neutral-stroke-rest);
+    color: var(--neutral-foreground-rest);
+    line-height: 1;
 }
 
-.run-list-item__roleslot--short {
-    /*
-     * #c0392b on white clears 5.44:1 (WCAG 2.2 AA); matches the existing
-     * attendance-pill--out shade so the "shortage" signal feels consistent.
-     */
-    color: #fff;
-    background: #c0392b;
+.run-list-item__roleslot--tank {
+    --run-list-role-color: #7db7ff;
 }
 
-.run-list-item__rolekey {
-    font-weight: 700;
-    font-size: 0.9em;
-    opacity: 0.75;
+.run-list-item__roleslot--healer {
+    --run-list-role-color: #69d37d;
 }
 
-.run-list-item__roleslot--short .run-list-item__rolekey {
-    opacity: 1;
+.run-list-item__roleslot--dps {
+    --run-list-role-color: #f06f64;
+}
+
+.run-list-item__roleslot ::deep .run-list-item__roleicon {
+    flex: 0 0 auto;
+    inline-size: 0.95rem;
+    block-size: 0.95rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: var(--run-list-role-color, currentColor);
 }

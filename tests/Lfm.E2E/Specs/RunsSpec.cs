@@ -9,6 +9,7 @@ using Lfm.E2E.Seeds;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Playwright;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -58,12 +59,15 @@ public class RunsSpec(RunsFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(runsPage.EmptyDetailTitle).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(runsPage.SelectRunPlaceholder).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(runsPage.RoleLabel("Tank").First).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(runsPage.RoleLabel("Healer").First).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(runsPage.RoleLabel("DPS").First).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         // Seed data has at least one run
         await Assertions.Expect(runsPage.RunItem(DefaultSeed.TestRunId)).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(runsPage.RunCompositionRoleChip(DefaultSeed.TestRunId, "tank"))
+            .ToHaveAttributeAsync("aria-label", new Regex(@"^Tank \d+/\d+$"), new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RunCompositionRoleChip(DefaultSeed.TestRunId, "healer"))
+            .ToHaveAttributeAsync("aria-label", new Regex(@"^Healer \d+/\d+$"), new() { Timeout = 10000 });
+        await Assertions.Expect(runsPage.RunCompositionRoleChip(DefaultSeed.TestRunId, "dps"))
+            .ToHaveAttributeAsync("aria-label", new Regex(@"^DPS \d+/\d+$"), new() { Timeout = 10000 });
     }
 
     // E2E scope: proves creating a run through the browser appears in list and detail views.

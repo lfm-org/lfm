@@ -211,7 +211,7 @@
                                                     var roleChars = attending.Where(c => RunVisualization.NormalizeRole(c.Role) == roleKey).ToList();
                                                     <div class="roster-role-column">
                                                         <h4 class="roster-role-column-title" data-testid="roster-role-title-@RoleTitleTestId(roleKey)">
-                                                            @RoleTitleIcon(roleKey)
+                                                            <RoleIcon Role="@roleKey" ClassPrefix="roster-role-title__icon" />
                                                             <span>@roleLabel (@roleChars.Count)</span>
                                                         </h4>
                                                         @if (roleChars.Count == 0)
@@ -317,28 +317,6 @@
 
     private static string RoleTitleTestId(string roleKey) =>
         roleKey.ToLowerInvariant();
-
-    private static RenderFragment RoleTitleIcon(string roleKey) => roleKey switch
-    {
-        "TANK" => @<svg class="roster-role-title__icon roster-role-title__icon--tank" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M12 3.5 19 6v5.3c0 4.3-2.6 7.5-7 9.2-4.4-1.7-7-4.9-7-9.2V6l7-2.5Z" />
-        </svg>,
-        "HEALER" => @<svg class="roster-role-title__icon roster-role-title__icon--healer" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="8.2" />
-            <path d="M12 7.4v9.2" />
-            <path d="M7.4 12h9.2" />
-        </svg>,
-        "DPS" => @<svg class="roster-role-title__icon roster-role-title__icon--dps" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <g class="roster-role-title__icon-dagger" transform="rotate(45 12 12)">
-                <path class="roster-role-title__icon-blade" d="M12 3.2 13.7 13.1 12 15.1 10.3 13.1 12 3.2Z" />
-                <path class="roster-role-title__icon-edge" d="M12 5.8v7.4" />
-                <path class="roster-role-title__icon-guard" d="M8.1 13.9h7.8" />
-                <path class="roster-role-title__icon-grip" d="M12 14.7v4.8" />
-                <circle class="roster-role-title__icon-pommel" cx="12" cy="20.5" r="0.9" />
-            </g>
-        </svg>,
-        _ => builder => { },
-    };
 
     protected override async Task OnInitializedAsync()
     {

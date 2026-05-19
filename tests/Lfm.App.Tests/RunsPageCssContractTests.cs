@@ -39,6 +39,19 @@ public class RunsPageCssContractTests
         Assert.DoesNotContain("rgb(255 255 255", css);
     }
 
+    [Fact]
+    public void Run_list_composition_chips_are_muted_indicators_not_alerts()
+    {
+        var css = File.ReadAllText(FindRepoFile("app", "Components", "RunListItem.razor.css"));
+
+        Assert.Contains(".run-list-item__roleicon", css);
+        Assert.Contains(".run-list-item__roleslot--tank", css);
+        Assert.Contains(".run-list-item__roleslot--healer", css);
+        Assert.Contains(".run-list-item__roleslot--dps", css);
+        Assert.DoesNotContain(".run-list-item__roleslot--short", css);
+        Assert.DoesNotContain("#c0392b", css);
+    }
+
     private static string FindRepoFile(params string[] segments)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
