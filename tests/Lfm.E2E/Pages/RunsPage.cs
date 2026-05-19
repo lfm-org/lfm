@@ -66,6 +66,9 @@ public class RunsPage(IPage page)
     public ILocator RoleLabel(string label) =>
         _page.GetByText(label, new() { Exact = true });
 
+    public ILocator RunCompositionRoleChip(string runId, string role) =>
+        RunItem(runId).Locator($".run-list-item__roleslot--{role}");
+
     public ILocator OpenRoleSlots =>
         _page.GetByText("Open slot", new() { Exact = true });
 

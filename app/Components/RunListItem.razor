@@ -26,16 +26,16 @@
         }
     </span>
     <span class="run-list-item__composition" aria-label="@_compositionAria">
-        <span class="run-list-item__roleslot @(_counts.Tank.IsShortage ? "run-list-item__roleslot--short" : "")">
-            <span class="run-list-item__rolekey">@Loc["runs.role.tank"]</span>
+        <span class="run-list-item__roleslot run-list-item__roleslot--tank" aria-label='@RoleSlotLabel("runs.role.tank", _counts.Tank)'>
+            <RoleIcon Role="TANK" ClassPrefix="run-list-item__roleicon" />
             @RenderCount(_counts.Tank)
         </span>
-        <span class="run-list-item__roleslot @(_counts.Healer.IsShortage ? "run-list-item__roleslot--short" : "")">
-            <span class="run-list-item__rolekey">@Loc["runs.role.healer"]</span>
+        <span class="run-list-item__roleslot run-list-item__roleslot--healer" aria-label='@RoleSlotLabel("runs.role.healer", _counts.Healer)'>
+            <RoleIcon Role="HEALER" ClassPrefix="run-list-item__roleicon" />
             @RenderCount(_counts.Healer)
         </span>
-        <span class="run-list-item__roleslot @(_counts.Dps.IsShortage ? "run-list-item__roleslot--short" : "")">
-            <span class="run-list-item__rolekey">@Loc["runs.role.dps"]</span>
+        <span class="run-list-item__roleslot run-list-item__roleslot--dps" aria-label='@RoleSlotLabel("runs.role.dps", _counts.Dps)'>
+            <RoleIcon Role="DPS" ClassPrefix="run-list-item__roleicon" />
             @RenderCount(_counts.Dps)
         </span>
     </span>
@@ -79,5 +79,8 @@
 
     private static string RenderCount(RoleCount slot) =>
         slot.Target > 0 ? $"{slot.Attending}/{slot.Target}" : slot.Attending.ToString();
+
+    private string RoleSlotLabel(string locKey, RoleCount slot) =>
+        $"{Loc[locKey].Value} {RenderCount(slot)}";
 
 }

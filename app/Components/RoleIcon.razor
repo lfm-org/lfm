@@ -1,0 +1,47 @@
+<svg class="@IconClass" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    @switch (NormalizedRole)
+    {
+        case "TANK":
+            <path d="M12 3.5 19 6v5.3c0 4.3-2.6 7.5-7 9.2-4.4-1.7-7-4.9-7-9.2V6l7-2.5Z" />
+            break;
+        case "HEALER":
+            <circle cx="12" cy="12" r="8.2" />
+            <path d="M12 7.4v9.2" />
+            <path d="M7.4 12h9.2" />
+            break;
+        default:
+            <g class="@ElementClass("dagger")" transform="rotate(45 12 12)">
+                <path class="@ElementClass("blade")" d="M12 3.2 13.7 13.1 12 15.1 10.3 13.1 12 3.2Z" />
+                <path class="@ElementClass("edge")" d="M12 5.8v7.4" />
+                <path class="@ElementClass("guard")" d="M8.1 13.9h7.8" />
+                <path class="@ElementClass("grip")" d="M12 14.7v4.8" />
+                <circle class="@ElementClass("pommel")" cx="12" cy="20.5" r="0.9" />
+            </g>
+            break;
+    }
+</svg>
+
+@code {
+    [Parameter] public string? Role { get; set; }
+    [Parameter] public string ClassPrefix { get; set; } = "role-icon";
+    [Parameter] public string? Class { get; set; }
+
+    private string NormalizedRole => (Role ?? "").ToUpperInvariant() switch
+    {
+        "TANK" => "TANK",
+        "HEALER" or "HEAL" => "HEALER",
+        _ => "DPS",
+    };
+
+    private string RoleClass => NormalizedRole.ToLowerInvariant();
+
+    private string IconClass =>
+        string.Join(" ", new[]
+        {
+            ClassPrefix,
+            $"{ClassPrefix}--{RoleClass}",
+            Class,
+        }.Where(c => !string.IsNullOrWhiteSpace(c)));
+
+    private string ElementClass(string name) => $"{ClassPrefix}-{name}";
+}
