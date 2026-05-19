@@ -331,7 +331,7 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void RunsPage_RunListItem_Uses_Readable_Composition_Labels()
+    public void RunsPage_RunListItem_Uses_Muted_Role_Icon_Composition_Chips()
     {
         var client = new Mock<IRunsClient>();
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
@@ -342,12 +342,32 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            var roleKeys = cut.FindAll(".run-list-item__rolekey").Select(e => e.TextContent.Trim()).ToArray();
-            Assert.Contains(Loc("runs.role.tank"), roleKeys);
-            Assert.Contains(Loc("runs.role.healer"), roleKeys);
-            Assert.Contains(Loc("runs.role.dps"), roleKeys);
-            Assert.DoesNotContain(Loc("runs.roleShort.tank"), roleKeys);
+            var roleSlots = cut.FindAll(".run-list-item__roleslot");
+            Assert.Equal(3, roleSlots.Count);
+            Assert.Empty(cut.FindAll(".run-list-item__rolekey"));
+
+            AssertRunListRoleChip(cut, "tank", Loc("runs.role.tank"), "0/2");
+            AssertRunListRoleChip(cut, "healer", Loc("runs.role.healer"), "0/5");
+            AssertRunListRoleChip(cut, "dps", Loc("runs.role.dps"), "0/18");
         });
+
+        static void AssertRunListRoleChip(
+            IRenderedComponent<RunsPage> cut,
+            string role,
+            string label,
+            string count)
+        {
+            var chip = cut.Find($".run-list-item__roleslot--{role}");
+            Assert.Contains(count, chip.TextContent);
+            Assert.Contains(label, chip.GetAttribute("aria-label") ?? "");
+            Assert.Contains(count, chip.GetAttribute("aria-label") ?? "");
+
+            var icon = chip.QuerySelector($"svg.run-list-item__roleicon--{role}")!;
+            Assert.NotNull(icon);
+            Assert.Equal("true", icon.GetAttribute("aria-hidden"));
+            Assert.Equal("false", icon.GetAttribute("focusable"));
+            Assert.Equal("0 0 24 24", icon.GetAttribute("viewBox"));
+        }
     }
 
     [Fact]
@@ -1537,9 +1557,8 @@ public class RunsPagesTests : ComponentTestBase
     {
         var client = new Mock<IRunsClient>();
         // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC 25-man raid.
-        // Standard composition target for 25-man is 2T / 5H / 18D, so the
-        // rendered composition summary is "Tank 0/2 · Healer 0/5 · DPS 2/18" with the
-        // tank + healer slots carrying the shortage modifier class.
+        // Standard composition target for 25-man is 2T / 5H / 18D, but the
+        // run-list chips are indicative, muted counts rather than red quota warnings.
         var summary = MakeSummary() with { Difficulty = "MYTHIC", Size = 25 };
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunSummaryDto>
@@ -1568,11 +1587,9 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Contains("0/5", composition.TextContent);
         Assert.Contains("2/18", composition.TextContent);
 
-        // All three role slots are under-target for this partially-filled
-        // 25-man so each carries the shortage modifier.
         var slots = cut.FindAll(".run-list-item__roleslot");
         Assert.Equal(3, slots.Count);
-        Assert.All(slots, s => Assert.Contains("run-list-item__roleslot--short", s.ClassName ?? ""));
+        Assert.All(slots, s => Assert.DoesNotContain("run-list-item__roleslot--short", s.ClassName ?? ""));
 
         // Difficulty + kind drive data-attributes on the item so CSS can
         // stripe the left edge from `data-kind` without inline style
