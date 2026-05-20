@@ -1,0 +1,3068 @@
+{
+  "model_schema_version": "model.schema.v1",
+  "required_plugins": [
+    {
+      "id": "generic-graph",
+      "version": "0.14.6"
+    },
+    {
+      "id": "elk-layout",
+      "version": "0.14.6"
+    },
+    {
+      "id": "svg-render",
+      "version": "0.14.6"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pkg-application-handoff-uml",
+      "type": "Package",
+      "label": "LFM Application Handoff UML",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json",
+          "docs/architecture/README.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          },
+          "documentation": "UML handoff package covering the remaining source-evidenced application flows after run-signup."
+        }
+      }
+    },
+    {
+      "id": "pkg-ui-pages",
+      "type": "Package",
+      "label": "Blazor pages",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-app",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-app-core-clients",
+      "type": "Package",
+      "label": "App Core clients",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-app-core",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-api-functions",
+      "type": "Package",
+      "label": "Function adapters",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-api-services",
+      "type": "Package",
+      "label": "API services and policies",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-api-repositories",
+      "type": "Package",
+      "label": "Persistence adapters",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-contracts",
+      "type": "Package",
+      "label": "Wire contracts",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-contracts",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-external",
+      "type": "Package",
+      "label": "External clients",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "blizzard-profile-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "activity-run-maintenance",
+      "type": "Activity",
+      "label": "Run maintenance",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CreateRunPage.razor",
+          "app/Pages/EditRunPage.razor",
+          "api/Functions/RunsCreateFunction.cs",
+          "api/Functions/RunsUpdateFunction.cs",
+          "api/Functions/RunsDeleteFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-run-maintenance",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-open-run-maintenance-page",
+      "type": "Action",
+      "label": "Open create or edit page",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CreateRunPage.razor",
+          "app/Pages/EditRunPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-maintenance-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-load-run-editor-data",
+      "type": "Action",
+      "label": "Load guild, run, reference data",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CreateRunPage.razor",
+          "app/Pages/EditRunPage.razor",
+          "app/Lfm.App.Core/Services/GuildClient.cs",
+          "app/Lfm.App.Core/Services/RunsClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-maintenance-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-run-maintenance-command",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-create-run-request",
+      "type": "Action",
+      "label": "POST create run",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/RunsClient.cs",
+          "api/Functions/RunsCreateFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "create-run-process",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-update-run-request",
+      "type": "Action",
+      "label": "PUT update run",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/RunsClient.cs",
+          "api/Functions/RunsUpdateFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "edit-run-process",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-delete-run-request",
+      "type": "Action",
+      "label": "DELETE run",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/RunsClient.cs",
+          "api/Functions/RunsDeleteFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "delete-run-process",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-apply-run-policy",
+      "type": "Action",
+      "label": "Apply guild/admin policy",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/RunAccessPolicy.cs",
+          "api/Services/GuildPermissions.cs",
+          "api/Services/SiteAdminService.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-persist-run-state",
+      "type": "Action",
+      "label": "Persist runs state",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/RunsRepository.cs",
+          "api/Repositories/RaidersRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-run-result",
+      "type": "Action",
+      "label": "Return run result",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/RunDetailDto.cs",
+          "shared/Lfm.Contracts/Runs/RunSummaryDto.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-run-maintenance",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "activity-auth-profile",
+      "type": "Activity",
+      "label": "Auth and profile",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/LoginPage.razor",
+          "app/Pages/CharactersPage.razor",
+          "api/Functions/BattleNetLoginFunction.cs",
+          "api/Functions/BattleNetCallbackFunction.cs",
+          "api/Functions/MeFunction.cs",
+          "api/Functions/RaiderCharacterFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "auth-session-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-auth-profile",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-start-login",
+      "type": "Action",
+      "label": "Start Battle.net login",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/LoginPage.razor",
+          "api/Functions/BattleNetLoginFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "auth-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-exchange-oauth-code",
+      "type": "Action",
+      "label": "Exchange OAuth callback",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/BattleNetCallbackFunction.cs",
+          "api/Services/BlizzardOAuthClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "auth-session-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-store-session-profile",
+      "type": "Action",
+      "label": "Store session profile",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/RaidersRepository.cs",
+          "api/Services/CharacterPortraitService.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-raiders",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-load-me-and-characters",
+      "type": "Action",
+      "label": "Load me and characters",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CharactersPage.razor",
+          "app/Lfm.App.Core/Services/MeClient.cs",
+          "api/Functions/MeFunction.cs",
+          "api/Functions/BattleNetCharactersFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "raider-profile-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-character-action",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-refresh-character-cache",
+      "type": "Action",
+      "label": "Refresh Blizzard character data",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/BattleNetCharactersRefreshFunction.cs",
+          "api/Services/BlizzardProfileClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "blizzard-profile-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-select-character",
+      "type": "Action",
+      "label": "Select active character",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CharactersPage.razor",
+          "api/Functions/RaiderCharacterFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "raider-profile-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-profile-state",
+      "type": "Action",
+      "label": "Return profile state",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Me/MeResponse.cs",
+          "shared/Lfm.Contracts/Characters/CharacterDto.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "raider-profile-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-auth-profile",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "activity-account-deletion",
+      "type": "Activity",
+      "label": "Account deletion",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CharactersPage.razor",
+          "app/Lfm.App.Core/Services/MeClient.cs",
+          "api/Functions/MeDeleteFunction.cs",
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "account-deletion-process",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-account-deletion",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-open-delete-account",
+      "type": "Action",
+      "label": "Open account deletion dialog",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CharactersPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "account-deletion-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-delete-confirmed",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-call-delete-me",
+      "type": "Action",
+      "label": "DELETE current user",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/MeClient.cs",
+          "api/Functions/MeDeleteFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "account-deletion-process",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-remove-raider-document",
+      "type": "Action",
+      "label": "Remove raider document",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/RaidersRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-raiders",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-remove-run-references",
+      "type": "Action",
+      "label": "Remove run references",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/RunsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-purge-idempotency",
+      "type": "Action",
+      "label": "Purge replay cache",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-idempotency",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-goodbye",
+      "type": "Action",
+      "label": "Navigate to goodbye",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/GoodbyePage.razor",
+          "app/Pages/CharactersPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "account-deletion-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-account-deletion",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "activity-guild",
+      "type": "Activity",
+      "label": "Guild settings and refresh",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/GuildPage.razor",
+          "app/Pages/GuildAdminPage.razor",
+          "api/Functions/GuildFunction.cs",
+          "api/Functions/GuildAdminFunction.cs",
+          "api/Services/GuildDocumentRefreshService.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-guild",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-open-guild-page",
+      "type": "Action",
+      "label": "Open guild page",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/GuildPage.razor",
+          "app/Pages/GuildAdminPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-load-guild",
+      "type": "Action",
+      "label": "Load current or admin guild",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/GuildClient.cs",
+          "api/Functions/GuildFunction.cs",
+          "api/Functions/GuildAdminFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-guild-refresh-or-update",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-refresh-guild-from-blizzard",
+      "type": "Action",
+      "label": "Refresh guild profile and roster",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/GuildDocumentRefreshService.cs",
+          "api/Services/BlizzardProfileClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "blizzard-profile-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-update-guild-settings",
+      "type": "Action",
+      "label": "Update rank permissions and settings",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Guild/UpdateGuildRequest.cs",
+          "api/Functions/GuildSettingsUpdate.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-admin-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-persist-guild-document",
+      "type": "Action",
+      "label": "Persist guild document",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/GuildRepository.cs",
+          "api/Repositories/RaidersRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-guilds",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-guild-dto",
+      "type": "Action",
+      "label": "Return GuildDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Guild/GuildDto.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-guild",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "activity-wow-reference",
+      "type": "Activity",
+      "label": "WoW reference lookup and refresh",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/InstancesPage.razor",
+          "app/Pages/AdminReferenceRefreshPage.razor",
+          "api/Functions/WowReferenceInstancesFunction.cs",
+          "api/Functions/WowReferenceSpecializationsFunction.cs",
+          "api/Functions/WowReferenceExpansionsFunction.cs",
+          "api/Functions/WowReferenceRefreshFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-wow-reference",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-open-reference-consumer",
+      "type": "Action",
+      "label": "Open reference consumer",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/InstancesPage.razor",
+          "app/Pages/CreateRunPage.razor",
+          "app/Pages/EditRunPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "reference-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-reference-mode",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-read-reference-blobs",
+      "type": "Action",
+      "label": "Read cached reference blobs",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/InstancesRepository.cs",
+          "api/Repositories/SpecializationsRepository.cs",
+          "api/Repositories/ExpansionsRepository.cs",
+          "api/Services/BlobReferenceClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-container",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-open-reference-admin",
+      "type": "Action",
+      "label": "Open reference refresh admin",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/AdminReferenceRefreshPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "reference-refresh-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-run-reference-sync",
+      "type": "Action",
+      "label": "Run reference sync",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/WowReferenceRefreshFunction.cs",
+          "api/Services/ReferenceSync.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "reference-refresh-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-fetch-game-data",
+      "type": "Action",
+      "label": "Fetch WoW Game Data",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/BlizzardGameDataClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "blizzard-game-data-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-write-reference-blobs",
+      "type": "Action",
+      "label": "Write reference blobs",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/BlobReferenceClient.cs",
+          "api/Repositories/InstancesRepository.cs",
+          "api/Repositories/SpecializationsRepository.cs",
+          "api/Repositories/ExpansionsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-container",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-reference-result",
+      "type": "Action",
+      "label": "Return DTOs or refresh progress",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Instances/InstanceDto.cs",
+          "shared/Lfm.Contracts/Specializations/SpecializationDto.cs",
+          "shared/Lfm.Contracts/Expansions/ExpansionDto.cs",
+          "shared/Lfm.Contracts/Admin/WowReferenceRefreshResponse.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-wow-reference",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "activity-ops-readiness",
+      "type": "Activity",
+      "label": "Operational readiness",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/HealthFunction.cs",
+          "api/Functions/RunsMigrateSchemaFunction.cs",
+          "api/Functions/PrivacyContactFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "ops-health-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-ops-readiness",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "decision-ops-readiness-command",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-call-health",
+      "type": "Action",
+      "label": "GET health",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/HealthFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "ops-health-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-check-cosmos-readiness",
+      "type": "Action",
+      "label": "Check Cosmos readiness",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/HealthFunction.cs",
+          "api/Repositories/RunsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-database",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-emit-telemetry",
+      "type": "Action",
+      "label": "Emit telemetry",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/HealthFunction.cs",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "application-insights",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-run-schema-migration",
+      "type": "Action",
+      "label": "Run schema migration",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/RunsMigrateSchemaFunction.cs",
+          "api/Repositories/RunsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "ops-health-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-readiness",
+      "type": "Action",
+      "label": "Return readiness response",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Health/HealthResponse.cs",
+          "shared/Lfm.Contracts/Privacy/PrivacyEmailResponse.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "ops-health-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-ops-readiness",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "class-ui-pages",
+      "type": "Class",
+      "label": "Blazor pages",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/CreateRunPage.razor",
+          "app/Pages/EditRunPage.razor",
+          "app/Pages/LoginPage.razor",
+          "app/Pages/CharactersPage.razor",
+          "app/Pages/GuildPage.razor",
+          "app/Pages/GuildAdminPage.razor",
+          "app/Pages/InstancesPage.razor",
+          "app/Pages/AdminReferenceRefreshPage.razor"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-app",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-ui-pages",
+          "operations": [
+            {
+              "name": "render flow state",
+              "visibility": "public",
+              "return_type": "Component UI"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-app-clients",
+      "type": "Interface",
+      "label": "App Core service clients",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/IRunsClient.cs",
+          "app/Lfm.App.Core/Services/IMeClient.cs",
+          "app/Lfm.App.Core/Services/IGuildClient.cs",
+          "app/Lfm.App.Core/Services/IInstancesClient.cs",
+          "app/Lfm.App.Core/Services/ISpecializationsClient.cs",
+          "app/Lfm.App.Core/Services/IExpansionsClient.cs",
+          "app/Lfm.App.Core/Services/IWowReferenceAdminClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-app-core",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-app-core-clients",
+          "operations": [
+            {
+              "name": "call API endpoints",
+              "visibility": "public",
+              "return_type": "DTOs"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-function-adapters",
+      "type": "Class",
+      "label": "HTTP Function adapters",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/RunsCreateFunction.cs",
+          "api/Functions/RunsUpdateFunction.cs",
+          "api/Functions/RunsDeleteFunction.cs",
+          "api/Functions/BattleNetLoginFunction.cs",
+          "api/Functions/MeFunction.cs",
+          "api/Functions/GuildFunction.cs",
+          "api/Functions/WowReferenceInstancesFunction.cs",
+          "api/Functions/HealthFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-api-functions",
+          "operations": [
+            {
+              "name": "map HTTP request",
+              "visibility": "public",
+              "return_type": "HTTP response"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-domain-services",
+      "type": "Class",
+      "label": "Domain services and policies",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/RunAccessPolicy.cs",
+          "api/Services/GuildPermissions.cs",
+          "api/Services/GuildDocumentRefreshService.cs",
+          "api/Services/ReferenceSync.cs",
+          "api/Services/CharacterPortraitService.cs",
+          "api/Services/SiteAdminService.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-api-services",
+          "operations": [
+            {
+              "name": "enforce policy",
+              "visibility": "public",
+              "return_type": "Domain result"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-repositories",
+      "type": "Interface",
+      "label": "Repository interfaces",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRunsRepository.cs",
+          "api/Repositories/IRaidersRepository.cs",
+          "api/Repositories/IGuildRepository.cs",
+          "api/Repositories/IInstancesRepository.cs",
+          "api/Repositories/ISpecializationsRepository.cs",
+          "api/Repositories/IExpansionsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-api-repositories",
+          "operations": [
+            {
+              "name": "load and persist",
+              "visibility": "public",
+              "return_type": "Documents"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-external-clients",
+      "type": "Interface",
+      "label": "Blizzard and blob clients",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/IBlizzardOAuthClient.cs",
+          "api/Services/IBlizzardProfileClient.cs",
+          "api/Services/IBlizzardGameDataClient.cs",
+          "api/Services/IBlobReferenceClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "blizzard-profile-api",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-external",
+          "operations": [
+            {
+              "name": "fetch external data",
+              "visibility": "public",
+              "return_type": "External payloads"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-idempotency-store",
+      "type": "Interface",
+      "label": "IIdempotencyStore",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-idempotency",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-api-services",
+          "operations": [
+            {
+              "name": "TryGetAsync",
+              "visibility": "public",
+              "return_type": "IdempotencyEntry?"
+            },
+            {
+              "name": "PutAsync",
+              "visibility": "public",
+              "return_type": "void"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-create-run-request",
+      "type": "DataType",
+      "label": "CreateRunRequest",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/CreateRunRequest.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Title",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "StartsAt",
+              "type": "DateTimeOffset",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Visibility",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "SignupDeadline",
+              "type": "DateTimeOffset?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-update-run-request",
+      "type": "DataType",
+      "label": "UpdateRunRequest",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/UpdateRunRequest.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Title",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "StartsAt",
+              "type": "DateTimeOffset",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Visibility",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-guild-dto",
+      "type": "DataType",
+      "label": "GuildDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Guild/GuildDto.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Guild",
+              "type": "GuildInfoDto",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Setup",
+              "type": "GuildSetupDto",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "MemberPermissions",
+              "type": "GuildMemberPermissionsDto",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-update-guild-request",
+      "type": "DataType",
+      "label": "UpdateGuildRequest",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Guild/UpdateGuildRequest.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "guild-admin-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Locale",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Slogan",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "RankPermissions",
+              "type": "UpdateGuildRankPermission",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-me-response",
+      "type": "DataType",
+      "label": "MeResponse",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Me/MeResponse.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "raider-profile-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "BattleTag",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "GuildName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "SelectedCharacter",
+              "type": "SelectedCharacterSummaryDto",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-character-dto",
+      "type": "DataType",
+      "label": "CharacterDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Characters/CharacterDto.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "raider-profile-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Name",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Realm",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "PortraitUrl",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-reference-dtos",
+      "type": "DataType",
+      "label": "Reference DTOs",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Instances/InstanceDto.cs",
+          "shared/Lfm.Contracts/Specializations/SpecializationDto.cs",
+          "shared/Lfm.Contracts/Expansions/ExpansionDto.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Instances",
+              "type": "InstanceDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Specializations",
+              "type": "SpecializationDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Expansions",
+              "type": "ExpansionDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-reference-refresh-response",
+      "type": "DataType",
+      "label": "WowReferenceRefreshResponse",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Admin/WowReferenceRefreshResponse.cs",
+          "shared/Lfm.Contracts/Admin/WowReferenceRefreshProgress.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "reference-refresh-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Results",
+              "type": "WowReferenceRefreshEntityResult",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Progress",
+              "type": "WowReferenceRefreshProgress",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-health-response",
+      "type": "DataType",
+      "label": "HealthResponse",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Health/HealthResponse.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "ops-health-service",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Status",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Timestamp",
+              "type": "DateTimeOffset",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-run-document",
+      "type": "DataType",
+      "label": "RunDocument",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRunsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "RunCharacters",
+              "type": "RunCharacterEntry",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "CreatorBattleNetId",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "ETag",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-raider-document",
+      "type": "DataType",
+      "label": "RaiderDocument",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRaidersRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-raiders",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "BattleNetId",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "SelectedCharacterId",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Characters",
+              "type": "StoredSelectedCharacter",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-guild-document",
+      "type": "DataType",
+      "label": "GuildDocument",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IGuildRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-guilds",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "GuildId",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Settings",
+              "type": "GuildSetup",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Roster",
+              "type": "StoredGuildRoster",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-idempotency-entry",
+      "type": "DataType",
+      "label": "IdempotencyEntry",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-idempotency",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "BattleNetId",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "IdempotencyKey",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "StatusCode",
+              "type": "Int32",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "ExpiresAt",
+              "type": "DateTimeOffset",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-reference-blob-documents",
+      "type": "DataType",
+      "label": "Reference blob documents",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/InstancesRepository.cs",
+          "api/Repositories/SpecializationsRepository.cs",
+          "api/Repositories/ExpansionsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-container",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "Instances",
+              "type": "InstanceDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Specializations",
+              "type": "SpecializationDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Expansions",
+              "type": "ExpansionDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "flow-run-maintenance-open-load",
+      "type": "ControlFlow",
+      "source": "initial-run-maintenance",
+      "target": "action-open-run-maintenance-page",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-run-maintenance-load-data",
+      "type": "ControlFlow",
+      "source": "action-open-run-maintenance-page",
+      "target": "action-load-run-editor-data",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-run-maintenance-command",
+      "type": "ControlFlow",
+      "source": "action-load-run-editor-data",
+      "target": "decision-run-maintenance-command",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-run-maintenance-create",
+      "type": "ControlFlow",
+      "source": "decision-run-maintenance-command",
+      "target": "action-create-run-request",
+      "label": "create",
+      "properties": {
+        "uml": {
+          "guard": "create"
+        }
+      }
+    },
+    {
+      "id": "flow-run-maintenance-update",
+      "type": "ControlFlow",
+      "source": "decision-run-maintenance-command",
+      "target": "action-update-run-request",
+      "label": "edit",
+      "properties": {
+        "uml": {
+          "guard": "edit"
+        }
+      }
+    },
+    {
+      "id": "flow-run-maintenance-delete",
+      "type": "ControlFlow",
+      "source": "decision-run-maintenance-command",
+      "target": "action-delete-run-request",
+      "label": "delete",
+      "properties": {
+        "uml": {
+          "guard": "delete"
+        }
+      }
+    },
+    {
+      "id": "flow-create-policy",
+      "type": "ControlFlow",
+      "source": "action-create-run-request",
+      "target": "action-apply-run-policy",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-update-policy",
+      "type": "ControlFlow",
+      "source": "action-update-run-request",
+      "target": "action-apply-run-policy",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-delete-policy",
+      "type": "ControlFlow",
+      "source": "action-delete-run-request",
+      "target": "action-apply-run-policy",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-policy-persist-run",
+      "type": "ControlFlow",
+      "source": "action-apply-run-policy",
+      "target": "action-persist-run-state",
+      "label": "allowed",
+      "properties": {
+        "uml": {
+          "guard": "allowed"
+        }
+      }
+    },
+    {
+      "id": "flow-persist-run-result",
+      "type": "ControlFlow",
+      "source": "action-persist-run-state",
+      "target": "action-return-run-result",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-run-result-final",
+      "type": "ControlFlow",
+      "source": "action-return-run-result",
+      "target": "final-run-maintenance",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-start",
+      "type": "ControlFlow",
+      "source": "initial-auth-profile",
+      "target": "action-start-login",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-exchange",
+      "type": "ControlFlow",
+      "source": "action-start-login",
+      "target": "action-exchange-oauth-code",
+      "label": "callback",
+      "properties": {
+        "uml": {
+          "guard": "callback"
+        }
+      }
+    },
+    {
+      "id": "flow-auth-store-profile",
+      "type": "ControlFlow",
+      "source": "action-exchange-oauth-code",
+      "target": "action-store-session-profile",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-load-me",
+      "type": "ControlFlow",
+      "source": "action-store-session-profile",
+      "target": "action-load-me-and-characters",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-character-decision",
+      "type": "ControlFlow",
+      "source": "action-load-me-and-characters",
+      "target": "decision-character-action",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-refresh",
+      "type": "ControlFlow",
+      "source": "decision-character-action",
+      "target": "action-refresh-character-cache",
+      "label": "refresh",
+      "properties": {
+        "uml": {
+          "guard": "refresh"
+        }
+      }
+    },
+    {
+      "id": "flow-auth-select",
+      "type": "ControlFlow",
+      "source": "decision-character-action",
+      "target": "action-select-character",
+      "label": "select",
+      "properties": {
+        "uml": {
+          "guard": "select"
+        }
+      }
+    },
+    {
+      "id": "flow-auth-refresh-return",
+      "type": "ControlFlow",
+      "source": "action-refresh-character-cache",
+      "target": "action-return-profile-state",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-select-return",
+      "type": "ControlFlow",
+      "source": "action-select-character",
+      "target": "action-return-profile-state",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-final",
+      "type": "ControlFlow",
+      "source": "action-return-profile-state",
+      "target": "final-auth-profile",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-open",
+      "type": "ControlFlow",
+      "source": "initial-account-deletion",
+      "target": "action-open-delete-account",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-confirm",
+      "type": "ControlFlow",
+      "source": "action-open-delete-account",
+      "target": "decision-delete-confirmed",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-delete",
+      "type": "ControlFlow",
+      "source": "decision-delete-confirmed",
+      "target": "action-call-delete-me",
+      "label": "confirmed",
+      "properties": {
+        "uml": {
+          "guard": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "flow-account-remove-raider",
+      "type": "ControlFlow",
+      "source": "action-call-delete-me",
+      "target": "action-remove-raider-document",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-remove-runs",
+      "type": "ControlFlow",
+      "source": "action-remove-raider-document",
+      "target": "action-remove-run-references",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-purge-idempotency",
+      "type": "ControlFlow",
+      "source": "action-remove-run-references",
+      "target": "action-purge-idempotency",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-goodbye",
+      "type": "ControlFlow",
+      "source": "action-purge-idempotency",
+      "target": "action-return-goodbye",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-account-final",
+      "type": "ControlFlow",
+      "source": "action-return-goodbye",
+      "target": "final-account-deletion",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-open",
+      "type": "ControlFlow",
+      "source": "initial-guild",
+      "target": "action-open-guild-page",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-load",
+      "type": "ControlFlow",
+      "source": "action-open-guild-page",
+      "target": "action-load-guild",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-decision",
+      "type": "ControlFlow",
+      "source": "action-load-guild",
+      "target": "decision-guild-refresh-or-update",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-refresh",
+      "type": "ControlFlow",
+      "source": "decision-guild-refresh-or-update",
+      "target": "action-refresh-guild-from-blizzard",
+      "label": "refresh",
+      "properties": {
+        "uml": {
+          "guard": "refresh"
+        }
+      }
+    },
+    {
+      "id": "flow-guild-update",
+      "type": "ControlFlow",
+      "source": "decision-guild-refresh-or-update",
+      "target": "action-update-guild-settings",
+      "label": "update",
+      "properties": {
+        "uml": {
+          "guard": "update"
+        }
+      }
+    },
+    {
+      "id": "flow-guild-refresh-persist",
+      "type": "ControlFlow",
+      "source": "action-refresh-guild-from-blizzard",
+      "target": "action-persist-guild-document",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-update-persist",
+      "type": "ControlFlow",
+      "source": "action-update-guild-settings",
+      "target": "action-persist-guild-document",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-return",
+      "type": "ControlFlow",
+      "source": "action-persist-guild-document",
+      "target": "action-return-guild-dto",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-guild-final",
+      "type": "ControlFlow",
+      "source": "action-return-guild-dto",
+      "target": "final-guild",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-mode",
+      "type": "ControlFlow",
+      "source": "initial-wow-reference",
+      "target": "decision-reference-mode",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-open-consumer",
+      "type": "ControlFlow",
+      "source": "decision-reference-mode",
+      "target": "action-open-reference-consumer",
+      "label": "lookup",
+      "properties": {
+        "uml": {
+          "guard": "lookup"
+        }
+      }
+    },
+    {
+      "id": "flow-ref-read-blobs",
+      "type": "ControlFlow",
+      "source": "action-open-reference-consumer",
+      "target": "action-read-reference-blobs",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-consumer-return",
+      "type": "ControlFlow",
+      "source": "action-read-reference-blobs",
+      "target": "action-return-reference-result",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-admin-open",
+      "type": "ControlFlow",
+      "source": "decision-reference-mode",
+      "target": "action-open-reference-admin",
+      "label": "admin",
+      "properties": {
+        "uml": {
+          "guard": "admin"
+        }
+      }
+    },
+    {
+      "id": "flow-ref-run-sync",
+      "type": "ControlFlow",
+      "source": "action-open-reference-admin",
+      "target": "action-run-reference-sync",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-fetch",
+      "type": "ControlFlow",
+      "source": "action-run-reference-sync",
+      "target": "action-fetch-game-data",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-write",
+      "type": "ControlFlow",
+      "source": "action-fetch-game-data",
+      "target": "action-write-reference-blobs",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-write-return",
+      "type": "ControlFlow",
+      "source": "action-write-reference-blobs",
+      "target": "action-return-reference-result",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ref-final",
+      "type": "ControlFlow",
+      "source": "action-return-reference-result",
+      "target": "final-wow-reference",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ops-mode",
+      "type": "ControlFlow",
+      "source": "initial-ops-readiness",
+      "target": "decision-ops-readiness-command",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ops-health",
+      "type": "ControlFlow",
+      "source": "decision-ops-readiness-command",
+      "target": "action-call-health",
+      "label": "health",
+      "properties": {
+        "uml": {
+          "guard": "health"
+        }
+      }
+    },
+    {
+      "id": "flow-ops-cosmos",
+      "type": "ControlFlow",
+      "source": "action-call-health",
+      "target": "action-check-cosmos-readiness",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ops-telemetry",
+      "type": "ControlFlow",
+      "source": "action-check-cosmos-readiness",
+      "target": "action-emit-telemetry",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ops-migration",
+      "type": "ControlFlow",
+      "source": "decision-ops-readiness-command",
+      "target": "action-run-schema-migration",
+      "label": "migrate",
+      "properties": {
+        "uml": {
+          "guard": "migrate"
+        }
+      }
+    },
+    {
+      "id": "flow-ops-return-health",
+      "type": "ControlFlow",
+      "source": "action-emit-telemetry",
+      "target": "action-return-readiness",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ops-return-migration",
+      "type": "ControlFlow",
+      "source": "action-run-schema-migration",
+      "target": "action-return-readiness",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-ops-final",
+      "type": "ControlFlow",
+      "source": "action-return-readiness",
+      "target": "final-ops-readiness",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "dep-ui-clients",
+      "type": "Dependency",
+      "source": "class-ui-pages",
+      "target": "interface-app-clients",
+      "label": "calls",
+      "properties": {
+        "uml": {
+          "guard": "calls"
+        }
+      }
+    },
+    {
+      "id": "realize-clients-http",
+      "type": "Realization",
+      "source": "interface-app-clients",
+      "target": "class-function-adapters",
+      "label": "HTTP",
+      "properties": {
+        "uml": {
+          "guard": "HTTP"
+        }
+      }
+    },
+    {
+      "id": "dep-functions-services",
+      "type": "Dependency",
+      "source": "class-function-adapters",
+      "target": "class-domain-services",
+      "label": "uses",
+      "properties": {
+        "uml": {
+          "guard": "uses"
+        }
+      }
+    },
+    {
+      "id": "dep-services-repositories",
+      "type": "Dependency",
+      "source": "class-domain-services",
+      "target": "interface-repositories",
+      "label": "persists",
+      "properties": {
+        "uml": {
+          "guard": "persists"
+        }
+      }
+    },
+    {
+      "id": "dep-services-external",
+      "type": "Dependency",
+      "source": "class-domain-services",
+      "target": "interface-external-clients",
+      "label": "fetches",
+      "properties": {
+        "uml": {
+          "guard": "fetches"
+        }
+      }
+    },
+    {
+      "id": "dep-functions-idempotency",
+      "type": "Dependency",
+      "source": "class-function-adapters",
+      "target": "interface-idempotency-store",
+      "label": "mutations",
+      "properties": {
+        "uml": {
+          "guard": "mutations"
+        }
+      }
+    },
+    {
+      "id": "dep-functions-contracts",
+      "type": "Dependency",
+      "source": "class-function-adapters",
+      "target": "datatype-create-run-request",
+      "label": "DTOs",
+      "properties": {
+        "uml": {
+          "guard": "DTOs"
+        }
+      }
+    },
+    {
+      "id": "dep-services-contracts",
+      "type": "Dependency",
+      "source": "class-domain-services",
+      "target": "datatype-guild-dto",
+      "label": "returns",
+      "properties": {
+        "uml": {
+          "guard": "returns"
+        }
+      }
+    },
+    {
+      "id": "dep-create-run-request-run-document",
+      "type": "Dependency",
+      "source": "datatype-create-run-request",
+      "target": "class-run-document",
+      "label": "creates",
+      "properties": {
+        "uml": {
+          "guard": "creates"
+        }
+      }
+    },
+    {
+      "id": "dep-update-run-request-run-document",
+      "type": "Dependency",
+      "source": "datatype-update-run-request",
+      "target": "class-run-document",
+      "label": "updates",
+      "properties": {
+        "uml": {
+          "guard": "updates"
+        }
+      }
+    },
+    {
+      "id": "comp-guild-dto-info",
+      "type": "Composition",
+      "source": "datatype-guild-dto",
+      "target": "datatype-update-guild-request",
+      "label": "settings",
+      "properties": {
+        "uml": {
+          "guard": "settings"
+        }
+      }
+    },
+    {
+      "id": "comp-me-character",
+      "type": "Composition",
+      "source": "datatype-me-response",
+      "target": "datatype-character-dto",
+      "label": "selected",
+      "properties": {
+        "uml": {
+          "guard": "selected"
+        }
+      }
+    },
+    {
+      "id": "dep-reference-dtos-blobs",
+      "type": "Dependency",
+      "source": "datatype-reference-dtos",
+      "target": "class-reference-blob-documents",
+      "label": "projected from",
+      "properties": {
+        "uml": {
+          "guard": "projected from"
+        }
+      }
+    },
+    {
+      "id": "dep-refresh-response-blobs",
+      "type": "Dependency",
+      "source": "datatype-reference-refresh-response",
+      "target": "class-reference-blob-documents",
+      "label": "writes",
+      "properties": {
+        "uml": {
+          "guard": "writes"
+        }
+      }
+    },
+    {
+      "id": "assoc-run-raider-documents",
+      "type": "Association",
+      "source": "class-run-document",
+      "target": "class-raider-document",
+      "label": "participants",
+      "properties": {
+        "uml": {
+          "guard": "participants"
+        }
+      }
+    },
+    {
+      "id": "assoc-guild-raider-documents",
+      "type": "Association",
+      "source": "class-guild-document",
+      "target": "class-raider-document",
+      "label": "members",
+      "properties": {
+        "uml": {
+          "guard": "members"
+        }
+      }
+    },
+    {
+      "id": "assoc-idempotency-raider",
+      "type": "Association",
+      "source": "class-idempotency-entry",
+      "target": "class-raider-document",
+      "label": "battleNetId",
+      "properties": {
+        "uml": {
+          "guard": "battleNetId"
+        }
+      }
+    }
+  ],
+  "plugins": {
+    "generic-graph": {
+      "semantic_profile": "uml",
+      "views": [
+        {
+          "id": "run-maintenance-activity",
+          "label": "Run Maintenance - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-run-maintenance",
+            "initial-run-maintenance",
+            "action-open-run-maintenance-page",
+            "action-load-run-editor-data",
+            "decision-run-maintenance-command",
+            "action-create-run-request",
+            "action-update-run-request",
+            "action-delete-run-request",
+            "action-apply-run-policy",
+            "action-persist-run-state",
+            "action-return-run-result",
+            "final-run-maintenance"
+          ],
+          "relationships": [
+            "flow-run-maintenance-open-load",
+            "flow-run-maintenance-load-data",
+            "flow-run-maintenance-command",
+            "flow-run-maintenance-create",
+            "flow-run-maintenance-update",
+            "flow-run-maintenance-delete",
+            "flow-create-policy",
+            "flow-update-policy",
+            "flow-delete-policy",
+            "flow-policy-persist-run",
+            "flow-persist-run-result",
+            "flow-run-result-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "auth-profile-activity",
+          "label": "Auth and Profile - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-auth-profile",
+            "initial-auth-profile",
+            "action-start-login",
+            "action-exchange-oauth-code",
+            "action-store-session-profile",
+            "action-load-me-and-characters",
+            "decision-character-action",
+            "action-refresh-character-cache",
+            "action-select-character",
+            "action-return-profile-state",
+            "final-auth-profile"
+          ],
+          "relationships": [
+            "flow-auth-start",
+            "flow-auth-exchange",
+            "flow-auth-store-profile",
+            "flow-auth-load-me",
+            "flow-auth-character-decision",
+            "flow-auth-refresh",
+            "flow-auth-select",
+            "flow-auth-refresh-return",
+            "flow-auth-select-return",
+            "flow-auth-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "account-deletion-activity",
+          "label": "Account Deletion - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-account-deletion",
+            "initial-account-deletion",
+            "action-open-delete-account",
+            "decision-delete-confirmed",
+            "action-call-delete-me",
+            "action-remove-raider-document",
+            "action-remove-run-references",
+            "action-purge-idempotency",
+            "action-return-goodbye",
+            "final-account-deletion"
+          ],
+          "relationships": [
+            "flow-account-open",
+            "flow-account-confirm",
+            "flow-account-delete",
+            "flow-account-remove-raider",
+            "flow-account-remove-runs",
+            "flow-account-purge-idempotency",
+            "flow-account-goodbye",
+            "flow-account-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "guild-activity",
+          "label": "Guild - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-guild",
+            "initial-guild",
+            "action-open-guild-page",
+            "action-load-guild",
+            "decision-guild-refresh-or-update",
+            "action-refresh-guild-from-blizzard",
+            "action-update-guild-settings",
+            "action-persist-guild-document",
+            "action-return-guild-dto",
+            "final-guild"
+          ],
+          "relationships": [
+            "flow-guild-open",
+            "flow-guild-load",
+            "flow-guild-decision",
+            "flow-guild-refresh",
+            "flow-guild-update",
+            "flow-guild-refresh-persist",
+            "flow-guild-update-persist",
+            "flow-guild-return",
+            "flow-guild-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "wow-reference-activity",
+          "label": "WoW Reference Data - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-wow-reference",
+            "initial-wow-reference",
+            "decision-reference-mode",
+            "action-open-reference-consumer",
+            "action-read-reference-blobs",
+            "action-open-reference-admin",
+            "action-run-reference-sync",
+            "action-fetch-game-data",
+            "action-write-reference-blobs",
+            "action-return-reference-result",
+            "final-wow-reference"
+          ],
+          "relationships": [
+            "flow-ref-mode",
+            "flow-ref-open-consumer",
+            "flow-ref-read-blobs",
+            "flow-ref-consumer-return",
+            "flow-ref-admin-open",
+            "flow-ref-run-sync",
+            "flow-ref-fetch",
+            "flow-ref-write",
+            "flow-ref-write-return",
+            "flow-ref-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "ops-readiness-activity",
+          "label": "Operational Readiness - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-ops-readiness",
+            "initial-ops-readiness",
+            "decision-ops-readiness-command",
+            "action-call-health",
+            "action-check-cosmos-readiness",
+            "action-emit-telemetry",
+            "action-run-schema-migration",
+            "action-return-readiness",
+            "final-ops-readiness"
+          ],
+          "relationships": [
+            "flow-ops-mode",
+            "flow-ops-health",
+            "flow-ops-cosmos",
+            "flow-ops-telemetry",
+            "flow-ops-migration",
+            "flow-ops-return-health",
+            "flow-ops-return-migration",
+            "flow-ops-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "application-handoff-class",
+          "label": "Application Handoff - UML Class Boundary",
+          "kind": "uml-class",
+          "nodes": [
+            "class-ui-pages",
+            "interface-app-clients",
+            "class-function-adapters",
+            "class-domain-services",
+            "interface-repositories",
+            "interface-external-clients",
+            "interface-idempotency-store"
+          ],
+          "relationships": [
+            "dep-ui-clients",
+            "realize-clients-http",
+            "dep-functions-services",
+            "dep-services-repositories",
+            "dep-services-external",
+            "dep-functions-idempotency"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": [
+            {
+              "id": "group-class-ui",
+              "label": "UI and clients",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-ui-pages",
+              "members": [
+                "class-ui-pages",
+                "interface-app-clients"
+              ]
+            },
+            {
+              "id": "group-class-api",
+              "label": "API boundary",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-api-functions",
+              "members": [
+                "class-function-adapters",
+                "class-domain-services",
+                "interface-idempotency-store"
+              ]
+            },
+            {
+              "id": "group-class-data",
+              "label": "Data and external ports",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-api-repositories",
+              "members": [
+                "interface-repositories",
+                "interface-external-clients"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "application-handoff-data",
+          "label": "Application Handoff - UML Data",
+          "kind": "uml-data",
+          "nodes": [
+            "datatype-create-run-request",
+            "datatype-update-run-request",
+            "datatype-guild-dto",
+            "datatype-update-guild-request",
+            "datatype-me-response",
+            "datatype-character-dto",
+            "datatype-reference-dtos",
+            "datatype-reference-refresh-response",
+            "datatype-health-response",
+            "class-run-document",
+            "class-raider-document",
+            "class-guild-document",
+            "class-idempotency-entry",
+            "class-reference-blob-documents"
+          ],
+          "relationships": [
+            "dep-create-run-request-run-document",
+            "dep-update-run-request-run-document",
+            "comp-me-character",
+            "dep-reference-dtos-blobs",
+            "assoc-run-raider-documents",
+            "assoc-guild-raider-documents",
+            "assoc-idempotency-raider"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        }
+      ]
+    }
+  }
+}

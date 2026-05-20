@@ -1,0 +1,199 @@
+{
+  "schema": "souroldgeezer.architecture.dediren.project.v1",
+  "feature": "lfm-application-handoff-uml",
+  "model": "model.json",
+  "views": [
+    {
+      "id": "run-maintenance-activity",
+      "title": "Run Maintenance - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/run-maintenance-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/run-maintenance-activity.json",
+        "output": "generated/svg/run-maintenance-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/run-maintenance-activity.json"
+      }
+    },
+    {
+      "id": "auth-profile-activity",
+      "title": "Auth and Profile - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/auth-profile-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/auth-profile-activity.json",
+        "output": "generated/svg/auth-profile-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/auth-profile-activity.json"
+      }
+    },
+    {
+      "id": "account-deletion-activity",
+      "title": "Account Deletion - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/account-deletion-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/account-deletion-activity.json",
+        "output": "generated/svg/account-deletion-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/account-deletion-activity.json"
+      }
+    },
+    {
+      "id": "guild-activity",
+      "title": "Guild - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/guild-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/guild-activity.json",
+        "output": "generated/svg/guild-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/guild-activity.json"
+      }
+    },
+    {
+      "id": "wow-reference-activity",
+      "title": "WoW Reference Data - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/wow-reference-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/wow-reference-activity.json",
+        "output": "generated/svg/wow-reference-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/wow-reference-activity.json"
+      }
+    },
+    {
+      "id": "ops-readiness-activity",
+      "title": "Operational Readiness - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/ops-readiness-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/ops-readiness-activity.json",
+        "output": "generated/svg/ops-readiness-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/ops-readiness-activity.json"
+      }
+    },
+    {
+      "id": "application-handoff-class",
+      "title": "Application Handoff - UML Class Boundary",
+      "diagramKind": "UML Class",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/application-handoff-class.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/application-handoff-class.json",
+        "output": "generated/svg/application-handoff-class.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/application-handoff-class.json"
+      }
+    },
+    {
+      "id": "application-handoff-data",
+      "title": "Application Handoff - UML Data",
+      "diagramKind": "UML Data",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/application-handoff-data.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/application-handoff-data.json",
+        "output": "generated/svg/application-handoff-data.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/application-handoff-data.json"
+      }
+    }
+  ]
+}
