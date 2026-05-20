@@ -6,6 +6,7 @@ using Lfm.App.Auth;
 using Lfm.App.i18n;
 using Lfm.App.Services;
 using Lfm.Contracts.Me;
+using Microsoft.AspNetCore.Components.Authorization;
 using Moq;
 using Xunit;
 
@@ -215,5 +216,38 @@ public class AppAuthenticationStateProviderTests
         sut.NotifyStateChanged();
 
         Assert.True(eventFired);
+    }
+
+    [Fact]
+    public async Task HasAuthenticatedSession_tracks_only_cached_authenticated_state()
+    {
+        var meClient = new Mock<IMeClient>();
+        meClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(MakeMe());
+        var sut = new AppAuthenticationStateProvider(meClient.Object, Mock.Of<ILocaleService>());
+
+        Assert.False(sut.HasAuthenticatedSession);
+
+        await sut.GetAuthenticationStateAsync();
+
+        Assert.True(sut.HasAuthenticatedSession);
+    }
+
+    [Fact]
+    public async Task MarkSessionExpired_clears_cached_state_and_notifies_anonymous_without_refetch()
+    {
+        var meClient = new Mock<IMeClient>();
+        meClient.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(MakeMe());
+        var sut = new AppAuthenticationStateProvider(meClient.Object, Mock.Of<ILocaleService>());
+        await sut.GetAuthenticationStateAsync();
+        Task<AuthenticationState>? notifiedState = null;
+        sut.AuthenticationStateChanged += state => notifiedState = state;
+
+        sut.MarkSessionExpired();
+
+        Assert.False(sut.HasAuthenticatedSession);
+        Assert.NotNull(notifiedState);
+        var state = await notifiedState!;
+        Assert.False(state.User.Identity!.IsAuthenticated);
+        meClient.Verify(c => c.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -59,6 +59,7 @@ builder.Services.AddScoped<IBattleNetClient, BattleNetClient>();
 builder.Services.AddScoped<UnsavedChangesGuard>();
 
 builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<ISessionExpiryNotifier, SessionExpiryNotifier>();
 builder.Services.AddScoped<AppAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<AppAuthenticationStateProvider>());
 builder.Services.AddScoped<IAuthStateRefresher>(sp => sp.GetRequiredService<AppAuthenticationStateProvider>());

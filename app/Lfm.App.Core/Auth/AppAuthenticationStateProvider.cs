@@ -21,6 +21,11 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleSe
     public const string SelectedCharacterPortraitUrlClaim = "selected_character_portrait_url";
 
     private AuthenticationState? _cached;
+    private static readonly AuthenticationState AnonymousState =
+        new(new ClaimsPrincipal(new ClaimsIdentity()));
+
+    public bool HasAuthenticatedSession =>
+        _cached?.User.Identity?.IsAuthenticated == true;
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
@@ -33,7 +38,7 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleSe
             // Do not cache the anonymous result — a transient network failure
             // or cold-start race must not cement the user as anonymous for the
             // rest of the session. Let the next call retry MeClient.
-            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            return AnonymousState;
         }
 
         // Apply the user's persisted locale preference (overrides browser detection).
@@ -72,5 +77,11 @@ public sealed class AppAuthenticationStateProvider(IMeClient meClient, ILocaleSe
     {
         _cached = null;
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+    }
+
+    public void MarkSessionExpired()
+    {
+        _cached = AnonymousState;
+        NotifyAuthenticationStateChanged(Task.FromResult(_cached));
     }
 }
