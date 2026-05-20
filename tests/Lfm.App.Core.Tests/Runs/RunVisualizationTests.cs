@@ -25,18 +25,29 @@ public class RunVisualizationTests
     [Theory]
     [InlineData(5, 1, 1, 3)]
     [InlineData(10, 2, 2, 6)]
+    [InlineData(11, 2, 3, 9)]
+    [InlineData(14, 2, 3, 9)]
+    [InlineData(15, 2, 4, 14)]
     [InlineData(20, 2, 4, 14)]
+    [InlineData(21, 2, 5, 18)]
     [InlineData(25, 2, 5, 18)]
+    [InlineData(26, 2, 6, 22)]
     [InlineData(30, 2, 6, 22)]
     [InlineData(0, 0, 0, 0)]
     [InlineData(40, 0, 0, 0)]
-    public void GetRoleTargets_returns_standard_comp(int size, int tanks, int healers, int dps)
+    public void GetRoleTargets_returns_role_quota_targets(int size, int tanks, int healers, int dps)
     {
         Assert.Equal((tanks, healers, dps), RunVisualization.GetRoleTargets(size));
     }
 
     [Fact]
-    public void CountRoles_counts_attending_per_role_and_fills_targets()
+    public void GetRoleTargets_uses_twenty_player_targets_for_mythic_raids()
+    {
+        Assert.Equal((2, 4, 14), RunVisualization.GetRoleTargets(RunKind.Raid, "MYTHIC", size: 25));
+    }
+
+    [Fact]
+    public void CountRoles_counts_attending_per_role_and_fills_mythic_targets()
     {
         var chars = new List<RunCharacterDto>
         {
@@ -50,7 +61,7 @@ public class RunVisualizationTests
             MakeChar(null, "IN"),
         };
 
-        var counts = RunVisualization.CountRoles(chars, size: 20);
+        var counts = RunVisualization.CountRoles(chars, RunKind.Raid, "MYTHIC", size: 20);
 
         Assert.Equal(1, counts.Tank.Attending);
         Assert.Equal(2, counts.Tank.Target);
@@ -58,6 +69,66 @@ public class RunVisualizationTests
         Assert.Equal(4, counts.Healer.Target);
         Assert.Equal(2, counts.Dps.Attending);
         Assert.Equal(14, counts.Dps.Target);
+    }
+
+    [Fact]
+    public void CountRoles_uses_current_flexible_raid_signup_count_for_targets()
+    {
+        var chars = new List<RunCharacterDto>
+        {
+            MakeChar("TANK", "IN"),
+            MakeChar("TANK", "IN"),
+            MakeChar("HEALER", "IN"),
+            MakeChar("HEALER", "IN"),
+            MakeChar("HEALER", "IN"),
+        };
+        chars.AddRange(Enumerable.Range(0, 9).Select(_ => MakeChar("DPS", "IN")));
+
+        var counts = RunVisualization.CountRoles(chars, RunKind.Raid, "HEROIC", size: 25);
+
+        Assert.Equal(2, counts.Tank.Target);
+        Assert.Equal(3, counts.Healer.Target);
+        Assert.Equal(9, counts.Dps.Target);
+    }
+
+    [Fact]
+    public void CountRoles_moves_flexible_raid_to_next_recommended_preset()
+    {
+        var chars = new List<RunCharacterDto>
+        {
+            MakeChar("TANK", "IN"),
+            MakeChar("TANK", "IN"),
+            MakeChar("HEALER", "IN"),
+            MakeChar("HEALER", "IN"),
+            MakeChar("HEALER", "IN"),
+        };
+        chars.AddRange(Enumerable.Range(0, 10).Select(_ => MakeChar("DPS", "IN")));
+
+        var counts = RunVisualization.CountRoles(chars, RunKind.Raid, "HEROIC", size: 25);
+
+        Assert.Equal(2, counts.Tank.Target);
+        Assert.Equal(4, counts.Healer.Target);
+        Assert.Equal(14, counts.Dps.Target);
+    }
+
+    [Fact]
+    public void CountRoles_counts_dungeon_roles_with_dungeon_targets()
+    {
+        var chars = new List<RunCharacterDto>
+        {
+            MakeChar("TANK", "IN"),
+            MakeChar("HEALER", "IN"),
+            MakeChar("DPS", "IN"),
+        };
+
+        var counts = RunVisualization.CountRoles(chars, RunKind.Dungeon, "MYTHIC_KEYSTONE", size: 5);
+
+        Assert.Equal(1, counts.Tank.Attending);
+        Assert.Equal(1, counts.Tank.Target);
+        Assert.Equal(1, counts.Healer.Attending);
+        Assert.Equal(1, counts.Healer.Target);
+        Assert.Equal(1, counts.Dps.Attending);
+        Assert.Equal(3, counts.Dps.Target);
     }
 
     [Fact]

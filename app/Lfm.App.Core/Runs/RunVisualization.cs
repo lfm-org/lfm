@@ -31,6 +31,11 @@ public readonly record struct RunRoleCounts(RoleCount Tank, RoleCount Healer, Ro
 
 public static class RunVisualization
 {
+    private const int MinimumRaidSize = 10;
+    private const int MaximumRaidSize = 30;
+    private const int MythicRaidSize = 20;
+    private const int RaidTankTarget = 2;
+
     public static RunKind GetKind(int size) => size switch
     {
         <= 0 => RunKind.Unknown,
@@ -54,15 +59,40 @@ public static class RunVisualization
         _ => "unknown",
     };
 
-    public static (int Tank, int Healer, int Dps) GetRoleTargets(int size) => size switch
+    public static (int Tank, int Healer, int Dps) GetRoleTargets(int size) =>
+        GetRoleTargets(GetKind(size), difficulty: null, size);
+
+    public static (int Tank, int Healer, int Dps) GetRoleTargets(
+        RunKind kind,
+        string? difficulty,
+        int size)
     {
-        5 => (1, 1, 3),
-        10 => (2, 2, 6),
-        20 => (2, 4, 14),
-        25 => (2, 5, 18),
-        30 => (2, 6, 22),
-        _ => (0, 0, 0),
-    };
+        if (kind == RunKind.Dungeon)
+        {
+            return (1, 1, 3);
+        }
+
+        if (kind != RunKind.Raid)
+        {
+            return (0, 0, 0);
+        }
+
+        var targetSize = difficulty == "MYTHIC" ? MythicRaidSize : size;
+        return GetRaidRoleTargets(targetSize);
+    }
+
+    private static (int Tank, int Healer, int Dps) GetRaidRoleTargets(int size)
+    {
+        return size switch
+        {
+            < MinimumRaidSize or > MaximumRaidSize => (0, 0, 0),
+            <= 10 => (RaidTankTarget, 2, 6),
+            <= 14 => (RaidTankTarget, 3, 9),
+            <= 20 => (RaidTankTarget, 4, 14),
+            <= 25 => (RaidTankTarget, 5, 18),
+            _ => (RaidTankTarget, 6, 22),
+        };
+    }
 
     public static bool IsAttending(string? reviewedAttendance) =>
         reviewedAttendance is "IN" or "LATE" or "BENCH";
@@ -85,10 +115,15 @@ public static class RunVisualization
         _ => "DPS",
     };
 
-    public static RunRoleCounts CountRoles(IEnumerable<RunCharacterDto> characters, int size)
-    {
-        var (tTarget, hTarget, dTarget) = GetRoleTargets(size);
+    public static RunRoleCounts CountRoles(IEnumerable<RunCharacterDto> characters, int size) =>
+        CountRoles(characters, GetKind(size), difficulty: null, size);
 
+    public static RunRoleCounts CountRoles(
+        IEnumerable<RunCharacterDto> characters,
+        RunKind kind,
+        string? difficulty,
+        int size)
+    {
         int tAttend = 0, hAttend = 0, dAttend = 0;
         foreach (var c in characters)
         {
@@ -103,6 +138,11 @@ public static class RunVisualization
                 default: dAttend++; break;
             }
         }
+
+        var targetSize = difficulty == "MYTHIC"
+            ? MythicRaidSize
+            : Math.Clamp(tAttend + hAttend + dAttend, MinimumRaidSize, MaximumRaidSize);
+        var (tTarget, hTarget, dTarget) = GetRoleTargets(kind, difficulty, targetSize);
 
         return new RunRoleCounts(
             new RoleCount(tAttend, tTarget),
