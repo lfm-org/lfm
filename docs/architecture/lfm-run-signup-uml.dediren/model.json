@@ -1,0 +1,1977 @@
+{
+  "model_schema_version": "model.schema.v1",
+  "required_plugins": [
+    {
+      "id": "generic-graph",
+      "version": "0.14.6"
+    },
+    {
+      "id": "elk-layout",
+      "version": "0.14.6"
+    },
+    {
+      "id": "svg-render",
+      "version": "0.14.6"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pkg-run-signup-uml",
+      "type": "Package",
+      "label": "LFM Run Signup UML",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json",
+          "app/Pages/RunsPage.razor",
+          "app/Lfm.App.Core/Services/RunsClient.cs",
+          "api/Functions/RunsSignupFunction.cs",
+          "api/Functions/RunsSignupOptionsFunction.cs",
+          "api/Functions/RunsCancelSignupFunction.cs",
+          "api/Runs/RunSignupService.cs",
+          "api/Runs/RunSignupOptionsService.cs"
+        ],
+        "documentation": "Detailed UML handoff package for the ArchiMate run-signup service realization.",
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-app-core",
+      "type": "Package",
+      "label": "Lfm.App.Core",
+      "properties": {
+        "uml": {
+          "package": "pkg-run-signup-uml",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "runs-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-api-functions",
+      "type": "Package",
+      "label": "Lfm.Api.Functions",
+      "properties": {
+        "uml": {
+          "package": "pkg-run-signup-uml",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-api-runs",
+      "type": "Package",
+      "label": "Lfm.Api.Runs",
+      "properties": {
+        "uml": {
+          "package": "pkg-run-signup-uml",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-api-repositories",
+      "type": "Package",
+      "label": "Lfm.Api.Repositories",
+      "properties": {
+        "uml": {
+          "package": "pkg-run-signup-uml",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-contracts-runs",
+      "type": "Package",
+      "label": "Lfm.Contracts.Runs",
+      "properties": {
+        "uml": {
+          "package": "pkg-run-signup-uml",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "activity-run-signup",
+      "type": "Activity",
+      "label": "Run signup and cancel",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/RunsPage.razor",
+          "app/Lfm.App.Core/Services/RunsClient.cs",
+          "api/Functions/RunsSignupFunction.cs",
+          "api/Functions/RunsSignupOptionsFunction.cs",
+          "api/Functions/RunsCancelSignupFunction.cs",
+          "api/Runs/RunSignupService.cs"
+        ],
+        "uml": {
+          "package": "pkg-run-signup-uml",
+          "partitions": [
+            "Blazor page",
+            "Client",
+            "Function adapter",
+            "Run policy",
+            "Cosmos"
+          ],
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "sign-up-for-run",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-run-detail-open",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Blazor page"
+        }
+      }
+    },
+    {
+      "id": "action-open-run-detail",
+      "type": "Action",
+      "label": "Open run detail",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Blazor page"
+        }
+      }
+    },
+    {
+      "id": "decision-submit-or-cancel",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Blazor page"
+        }
+      }
+    },
+    {
+      "id": "action-load-signup-options",
+      "type": "Action",
+      "label": "Load signup options",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Client"
+        }
+      }
+    },
+    {
+      "id": "decision-options-cached",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Client"
+        }
+      }
+    },
+    {
+      "id": "action-refresh-characters",
+      "type": "Action",
+      "label": "Refresh characters",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Client"
+        }
+      }
+    },
+    {
+      "id": "action-post-signup",
+      "type": "Action",
+      "label": "POST signup request",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Client"
+        }
+      }
+    },
+    {
+      "id": "action-validate-request",
+      "type": "Action",
+      "label": "Validate SignupRequest",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Function adapter"
+        }
+      }
+    },
+    {
+      "id": "action-authorize-signup",
+      "type": "Action",
+      "label": "Load raider, run, guild gates",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Run policy"
+        }
+      }
+    },
+    {
+      "id": "decision-signup-allowed",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Run policy"
+        }
+      }
+    },
+    {
+      "id": "action-upsert-signup-entry",
+      "type": "Action",
+      "label": "Upsert runCharacters entry",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Run policy"
+        }
+      }
+    },
+    {
+      "id": "action-delete-signup",
+      "type": "Action",
+      "label": "DELETE signup",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Client"
+        }
+      }
+    },
+    {
+      "id": "action-remove-signup-entry",
+      "type": "Action",
+      "label": "Remove own entry",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Function adapter"
+        }
+      }
+    },
+    {
+      "id": "action-persist-run",
+      "type": "Action",
+      "label": "Persist run document",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Cosmos"
+        }
+      }
+    },
+    {
+      "id": "action-return-run-detail",
+      "type": "Action",
+      "label": "Return sanitized RunDetailDto",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Function adapter"
+        }
+      }
+    },
+    {
+      "id": "action-return-problem",
+      "type": "Action",
+      "label": "Return problem+json",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Function adapter"
+        }
+      }
+    },
+    {
+      "id": "final-run-signup",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "activity": "activity-run-signup",
+          "partition": "Blazor page"
+        }
+      }
+    },
+    {
+      "id": "class-runs-page",
+      "type": "Class",
+      "label": "RunsPage",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Pages/RunsPage.razor"
+        ],
+        "uml": {
+          "package": "pkg-app-core",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "runs-ui-entry",
+            "relationship": "elaborates"
+          },
+          "operations": [
+            {
+              "name": "EnsureSignupOptionsLoaded",
+              "visibility": "private",
+              "parameters": [],
+              "return_type": "Task"
+            },
+            {
+              "name": "SubmitSignup",
+              "visibility": "private",
+              "parameters": [
+                {
+                  "name": "request",
+                  "type": "SignupRequest"
+                }
+              ],
+              "return_type": "Task"
+            },
+            {
+              "name": "CancelSignup",
+              "visibility": "private",
+              "parameters": [],
+              "return_type": "Task"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-iruns-client",
+      "type": "Interface",
+      "label": "IRunsClient",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/IRunsClient.cs"
+        ],
+        "uml": {
+          "package": "pkg-app-core",
+          "operations": [
+            {
+              "name": "SignupAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                },
+                {
+                  "name": "request",
+                  "type": "SignupRequest"
+                }
+              ],
+              "return_type": "RunDetailDto?"
+            },
+            {
+              "name": "GetSignupOptionsAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                }
+              ],
+              "return_type": "CharactersFetchResult"
+            },
+            {
+              "name": "CancelSignupAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                }
+              ],
+              "return_type": "RunDetailDto?"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-runs-client",
+      "type": "Class",
+      "label": "RunsClient",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/RunsClient.cs"
+        ],
+        "uml": {
+          "package": "pkg-app-core",
+          "operations": [
+            {
+              "name": "SignupAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                },
+                {
+                  "name": "request",
+                  "type": "SignupRequest"
+                }
+              ],
+              "return_type": "RunDetailDto?"
+            },
+            {
+              "name": "GetSignupOptionsAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                }
+              ],
+              "return_type": "CharactersFetchResult"
+            },
+            {
+              "name": "CancelSignupAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                }
+              ],
+              "return_type": "RunDetailDto?"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-runs-signup-function",
+      "type": "Class",
+      "label": "RunsSignupFunction",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/RunsSignupFunction.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-functions",
+          "operations": [
+            {
+              "name": "Run",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "req",
+                  "type": "HttpRequest"
+                },
+                {
+                  "name": "id",
+                  "type": "String"
+                }
+              ],
+              "return_type": "IActionResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-runs-signup-options-function",
+      "type": "Class",
+      "label": "RunsSignupOptionsFunction",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/RunsSignupOptionsFunction.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-functions",
+          "operations": [
+            {
+              "name": "Run",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "req",
+                  "type": "HttpRequest"
+                },
+                {
+                  "name": "id",
+                  "type": "String"
+                }
+              ],
+              "return_type": "IActionResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-runs-cancel-signup-function",
+      "type": "Class",
+      "label": "RunsCancelSignupFunction",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/RunsCancelSignupFunction.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-functions",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cancel-signup",
+            "relationship": "elaborates"
+          },
+          "operations": [
+            {
+              "name": "Run",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "req",
+                  "type": "HttpRequest"
+                },
+                {
+                  "name": "id",
+                  "type": "String"
+                }
+              ],
+              "return_type": "IActionResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-irun-signup-service",
+      "type": "Interface",
+      "label": "IRunSignupService",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Runs/IRunSignupService.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-runs",
+          "operations": [
+            {
+              "name": "SignupAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                },
+                {
+                  "name": "body",
+                  "type": "SignupRequest"
+                },
+                {
+                  "name": "principal",
+                  "type": "SessionPrincipal"
+                }
+              ],
+              "return_type": "RunOperationResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-run-signup-service",
+      "type": "Class",
+      "label": "RunSignupService",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Runs/RunSignupService.cs"
+        ],
+        "documentation": "Runs the signup policy: raider lookup, character ownership, close-time, guild/rank/roster gates, upsert, and optimistic concurrency retry.",
+        "uml": {
+          "package": "pkg-api-runs",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "run-management-service",
+            "relationship": "elaborates"
+          },
+          "operations": [
+            {
+              "name": "SignupAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                },
+                {
+                  "name": "body",
+                  "type": "SignupRequest"
+                },
+                {
+                  "name": "principal",
+                  "type": "SessionPrincipal"
+                }
+              ],
+              "return_type": "RunOperationResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-irun-signup-options-service",
+      "type": "Interface",
+      "label": "IRunSignupOptionsService",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Runs/IRunSignupOptionsService.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-runs",
+          "operations": [
+            {
+              "name": "GetAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                },
+                {
+                  "name": "principal",
+                  "type": "SessionPrincipal"
+                }
+              ],
+              "return_type": "RunSignupOptionsResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-run-signup-options-service",
+      "type": "Class",
+      "label": "RunSignupOptionsService",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Runs/RunSignupOptionsService.cs"
+        ],
+        "documentation": "Loads and filters account-owned characters to the run guild roster before the signup form is submitted.",
+        "uml": {
+          "package": "pkg-api-runs",
+          "operations": [
+            {
+              "name": "GetAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "runId",
+                  "type": "String"
+                },
+                {
+                  "name": "principal",
+                  "type": "SessionPrincipal"
+                }
+              ],
+              "return_type": "RunSignupOptionsResult"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-iruns-repository",
+      "type": "Interface",
+      "label": "IRunsRepository",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRunsRepository.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-repositories",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          },
+          "operations": [
+            {
+              "name": "GetByIdAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "String"
+                }
+              ],
+              "return_type": "RunDocument?"
+            },
+            {
+              "name": "UpdateAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "run",
+                  "type": "RunDocument"
+                },
+                {
+                  "name": "ifMatchEtag",
+                  "type": "String?"
+                }
+              ],
+              "return_type": "RunDocument"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-iraiders-repository",
+      "type": "Interface",
+      "label": "IRaidersRepository",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRaidersRepository.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-repositories",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-raiders",
+            "relationship": "elaborates"
+          },
+          "operations": [
+            {
+              "name": "GetByBattleNetIdAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "battleNetId",
+                  "type": "String"
+                }
+              ],
+              "return_type": "RaiderDocument?"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-iguild-permissions",
+      "type": "Interface",
+      "label": "IGuildPermissions",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/IGuildPermissions.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-runs",
+          "operations": [
+            {
+              "name": "CanSignupGuildRunsAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "raider",
+                  "type": "RaiderDocument"
+                }
+              ],
+              "return_type": "Boolean"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-isite-admin-service",
+      "type": "Interface",
+      "label": "ISiteAdminService",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/ISiteAdminService.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-runs",
+          "operations": [
+            {
+              "name": "IsAdminAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "battleNetId",
+                  "type": "String"
+                }
+              ],
+              "return_type": "Boolean"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-irun-signup-eligibility",
+      "type": "Interface",
+      "label": "IRunSignupEligibility",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Runs/IRunSignupEligibility.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-runs",
+          "operations": [
+            {
+              "name": "IsSignupCharacterInRunGuildAsync",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "run",
+                  "type": "RunDocument"
+                },
+                {
+                  "name": "character",
+                  "type": "StoredSelectedCharacter"
+                }
+              ],
+              "return_type": "Boolean"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-signup-request",
+      "type": "DataType",
+      "label": "SignupRequest",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/SignupRequest.cs",
+          "api/Validation/RequestValidators.cs"
+        ],
+        "uml": {
+          "package": "pkg-contracts-runs",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "sign-up-for-run",
+            "relationship": "elaborates"
+          },
+          "attributes": [
+            {
+              "name": "CharacterId",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "DesiredAttendance",
+              "type": "DesiredAttendance?",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "SpecId",
+              "type": "Integer?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-run-signup-options-dto",
+      "type": "DataType",
+      "label": "RunSignupOptionsDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/RunSignupOptionsDto.cs"
+        ],
+        "uml": {
+          "package": "pkg-contracts-runs",
+          "attributes": [
+            {
+              "name": "Characters",
+              "type": "CharacterDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-character-dto",
+      "type": "DataType",
+      "label": "CharacterDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Characters/CharacterDto.cs"
+        ],
+        "uml": {
+          "package": "pkg-contracts-runs",
+          "attributes": [
+            {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Name",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Realm",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "ClassId",
+              "type": "Integer",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-run-detail-dto",
+      "type": "DataType",
+      "label": "RunDetailDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/RunDetailDto.cs"
+        ],
+        "uml": {
+          "package": "pkg-contracts-runs",
+          "attributes": [
+            {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "RunCharacters",
+              "type": "RunCharacterDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Visibility",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-run-character-dto",
+      "type": "DataType",
+      "label": "RunCharacterDto",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Runs/RunCharacterDto.cs"
+        ],
+        "documentation": "Sanitized participant shape: omits raiderBattleNetId, internal entry id, level, and race fields.",
+        "uml": {
+          "package": "pkg-contracts-runs",
+          "attributes": [
+            {
+              "name": "CharacterId",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "CharacterName",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "DesiredAttendance",
+              "type": "DesiredAttendance",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "ReviewedAttendance",
+              "type": "DesiredAttendance",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "IsCurrentUser",
+              "type": "Boolean",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "enum-desired-attendance",
+      "type": "Enumeration",
+      "label": "DesiredAttendance",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Validation/RequestValidators.cs"
+        ],
+        "uml": {
+          "package": "pkg-contracts-runs",
+          "literals": [
+            "IN",
+            "OUT",
+            "BENCH",
+            "LATE",
+            "AWAY"
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-run-document",
+      "type": "Class",
+      "label": "RunDocument",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRunsRepository.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-repositories",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          },
+          "attributes": [
+            {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "RunCharacters",
+              "type": "RunCharacterEntry",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "CreatorBattleNetId",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "RejectedRaiderBattleNetIds",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "ETag",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-run-character-entry",
+      "type": "Class",
+      "label": "RunCharacterEntry",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRunsRepository.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-repositories",
+          "attributes": [
+            {
+              "name": "CharacterId",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "RaiderBattleNetId",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "DesiredAttendance",
+              "type": "DesiredAttendance",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "ReviewedAttendance",
+              "type": "DesiredAttendance",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "SpecId",
+              "type": "Integer?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-raider-document",
+      "type": "Class",
+      "label": "RaiderDocument",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRaidersRepository.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-repositories",
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-raiders",
+            "relationship": "elaborates"
+          },
+          "attributes": [
+            {
+              "name": "BattleNetId",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Characters",
+              "type": "StoredSelectedCharacter",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "AccountProfileSummary",
+              "type": "Object?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-stored-selected-character",
+      "type": "Class",
+      "label": "StoredSelectedCharacter",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Repositories/IRaidersRepository.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-repositories",
+          "attributes": [
+            {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Realm",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "GuildId",
+              "type": "Integer?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "SpecializationsSummary",
+              "type": "Object?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-run-operation-result",
+      "type": "Class",
+      "label": "RunOperationResult",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Runs/RunOperationResult.cs"
+        ],
+        "uml": {
+          "package": "pkg-api-runs",
+          "documentation": "Discriminated result translated by Function adapters into success or problem+json responses."
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "flow-initial-open-run",
+      "type": "ControlFlow",
+      "source": "initial-run-detail-open",
+      "target": "action-open-run-detail",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-open-decision",
+      "type": "ControlFlow",
+      "source": "action-open-run-detail",
+      "target": "decision-submit-or-cancel",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-decision-to-options",
+      "type": "ControlFlow",
+      "source": "decision-submit-or-cancel",
+      "target": "action-load-signup-options",
+      "label": "signup",
+      "properties": {
+        "uml": {
+          "guard": "signup"
+        }
+      }
+    },
+    {
+      "id": "flow-options-to-cache-check",
+      "type": "ControlFlow",
+      "source": "action-load-signup-options",
+      "target": "decision-options-cached",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-cache-miss-refresh",
+      "type": "ControlFlow",
+      "source": "decision-options-cached",
+      "target": "action-refresh-characters",
+      "label": "stale",
+      "properties": {
+        "uml": {
+          "guard": "stale"
+        }
+      }
+    },
+    {
+      "id": "flow-refresh-post-signup",
+      "type": "ControlFlow",
+      "source": "action-refresh-characters",
+      "target": "action-post-signup",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-cache-hit-post-signup",
+      "type": "ControlFlow",
+      "source": "decision-options-cached",
+      "target": "action-post-signup",
+      "label": "cached",
+      "properties": {
+        "uml": {
+          "guard": "cached"
+        }
+      }
+    },
+    {
+      "id": "flow-post-validate",
+      "type": "ControlFlow",
+      "source": "action-post-signup",
+      "target": "action-validate-request",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-validate-authorize",
+      "type": "ControlFlow",
+      "source": "action-validate-request",
+      "target": "action-authorize-signup",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-authorize-allowed",
+      "type": "ControlFlow",
+      "source": "action-authorize-signup",
+      "target": "decision-signup-allowed",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-allowed-upsert",
+      "type": "ControlFlow",
+      "source": "decision-signup-allowed",
+      "target": "action-upsert-signup-entry",
+      "label": "yes",
+      "properties": {
+        "uml": {
+          "guard": "yes"
+        }
+      }
+    },
+    {
+      "id": "flow-denied-problem",
+      "type": "ControlFlow",
+      "source": "decision-signup-allowed",
+      "target": "action-return-problem",
+      "label": "no",
+      "properties": {
+        "uml": {
+          "guard": "no"
+        }
+      }
+    },
+    {
+      "id": "flow-decision-to-cancel",
+      "type": "ControlFlow",
+      "source": "decision-submit-or-cancel",
+      "target": "action-delete-signup",
+      "label": "cancel",
+      "properties": {
+        "uml": {
+          "guard": "cancel"
+        }
+      }
+    },
+    {
+      "id": "flow-cancel-remove",
+      "type": "ControlFlow",
+      "source": "action-delete-signup",
+      "target": "action-remove-signup-entry",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-upsert-persist",
+      "type": "ControlFlow",
+      "source": "action-upsert-signup-entry",
+      "target": "action-persist-run",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-remove-persist",
+      "type": "ControlFlow",
+      "source": "action-remove-signup-entry",
+      "target": "action-persist-run",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-persist-return",
+      "type": "ControlFlow",
+      "source": "action-persist-run",
+      "target": "action-return-run-detail",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-return-final",
+      "type": "ControlFlow",
+      "source": "action-return-run-detail",
+      "target": "final-run-signup",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-problem-final",
+      "type": "ControlFlow",
+      "source": "action-return-problem",
+      "target": "final-run-signup",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "runs-client-realizes-interface",
+      "type": "Realization",
+      "source": "class-runs-client",
+      "target": "interface-iruns-client",
+      "label": "implements",
+      "properties": {}
+    },
+    {
+      "id": "runs-page-uses-client",
+      "type": "Dependency",
+      "source": "class-runs-page",
+      "target": "interface-iruns-client",
+      "label": "uses",
+      "properties": {}
+    },
+    {
+      "id": "runs-client-uses-signup-request",
+      "type": "Dependency",
+      "source": "class-runs-client",
+      "target": "datatype-signup-request",
+      "label": "posts",
+      "properties": {}
+    },
+    {
+      "id": "runs-client-returns-run-detail",
+      "type": "Dependency",
+      "source": "class-runs-client",
+      "target": "datatype-run-detail-dto",
+      "label": "returns",
+      "properties": {}
+    },
+    {
+      "id": "signup-function-uses-service",
+      "type": "Dependency",
+      "source": "class-runs-signup-function",
+      "target": "interface-irun-signup-service",
+      "label": "delegates",
+      "properties": {}
+    },
+    {
+      "id": "signup-options-function-uses-service",
+      "type": "Dependency",
+      "source": "class-runs-signup-options-function",
+      "target": "interface-irun-signup-options-service",
+      "label": "delegates",
+      "properties": {}
+    },
+    {
+      "id": "cancel-function-uses-runs-repo",
+      "type": "Dependency",
+      "source": "class-runs-cancel-signup-function",
+      "target": "interface-iruns-repository",
+      "label": "loads/writes run",
+      "properties": {}
+    },
+    {
+      "id": "cancel-function-uses-raiders-repo",
+      "type": "Dependency",
+      "source": "class-runs-cancel-signup-function",
+      "target": "interface-iraiders-repository",
+      "label": "loads raider",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-realizes-interface",
+      "type": "Realization",
+      "source": "class-run-signup-service",
+      "target": "interface-irun-signup-service",
+      "label": "implements",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-options-service-realizes-interface",
+      "type": "Realization",
+      "source": "class-run-signup-options-service",
+      "target": "interface-irun-signup-options-service",
+      "label": "implements",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-uses-runs-repo",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "interface-iruns-repository",
+      "label": "read/modify/write",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-uses-raiders-repo",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "interface-iraiders-repository",
+      "label": "loads caller",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-uses-guild-permissions",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "interface-iguild-permissions",
+      "label": "rank gate",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-uses-site-admin",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "interface-isite-admin-service",
+      "label": "override",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-uses-eligibility",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "interface-irun-signup-eligibility",
+      "label": "roster gate",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-uses-request",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "datatype-signup-request",
+      "label": "input",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-service-returns-result",
+      "type": "Dependency",
+      "source": "class-run-signup-service",
+      "target": "class-run-operation-result",
+      "label": "result",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-options-service-uses-runs-repo",
+      "type": "Dependency",
+      "source": "class-run-signup-options-service",
+      "target": "interface-iruns-repository",
+      "label": "loads run",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-options-service-uses-raiders-repo",
+      "type": "Dependency",
+      "source": "class-run-signup-options-service",
+      "target": "interface-iraiders-repository",
+      "label": "loads caller",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-options-service-uses-guild-permissions",
+      "type": "Dependency",
+      "source": "class-run-signup-options-service",
+      "target": "interface-iguild-permissions",
+      "label": "rank gate",
+      "properties": {}
+    },
+    {
+      "id": "run-signup-options-service-uses-site-admin",
+      "type": "Dependency",
+      "source": "class-run-signup-options-service",
+      "target": "interface-isite-admin-service",
+      "label": "override",
+      "properties": {}
+    },
+    {
+      "id": "runs-repo-returns-run-document",
+      "type": "Dependency",
+      "source": "interface-iruns-repository",
+      "target": "class-run-document",
+      "label": "stores",
+      "properties": {}
+    },
+    {
+      "id": "raiders-repo-returns-raider-document",
+      "type": "Dependency",
+      "source": "interface-iraiders-repository",
+      "target": "class-raider-document",
+      "label": "stores",
+      "properties": {}
+    },
+    {
+      "id": "signup-request-uses-attendance",
+      "type": "Dependency",
+      "source": "datatype-signup-request",
+      "target": "enum-desired-attendance",
+      "label": "attendance",
+      "properties": {}
+    },
+    {
+      "id": "options-has-characters",
+      "type": "Composition",
+      "source": "datatype-run-signup-options-dto",
+      "target": "datatype-character-dto",
+      "label": "characters",
+      "properties": {
+        "uml": {
+          "source_role": "options",
+          "target_role": "characters",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*"
+        }
+      }
+    },
+    {
+      "id": "detail-has-run-characters",
+      "type": "Composition",
+      "source": "datatype-run-detail-dto",
+      "target": "datatype-run-character-dto",
+      "label": "runCharacters",
+      "properties": {
+        "uml": {
+          "source_role": "run",
+          "target_role": "runCharacters",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*"
+        }
+      }
+    },
+    {
+      "id": "run-document-has-entries",
+      "type": "Composition",
+      "source": "class-run-document",
+      "target": "class-run-character-entry",
+      "label": "runCharacters",
+      "properties": {
+        "uml": {
+          "source_role": "run",
+          "target_role": "entries",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*"
+        }
+      }
+    },
+    {
+      "id": "raider-document-has-characters",
+      "type": "Composition",
+      "source": "class-raider-document",
+      "target": "class-stored-selected-character",
+      "label": "characters",
+      "properties": {
+        "uml": {
+          "source_role": "raider",
+          "target_role": "characters",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*"
+        }
+      }
+    },
+    {
+      "id": "entry-copies-stored-character",
+      "type": "Association",
+      "source": "class-run-character-entry",
+      "target": "class-stored-selected-character",
+      "label": "copied from",
+      "properties": {}
+    },
+    {
+      "id": "entry-projects-to-dto",
+      "type": "Dependency",
+      "source": "class-run-character-entry",
+      "target": "datatype-run-character-dto",
+      "label": "sanitized",
+      "properties": {}
+    },
+    {
+      "id": "run-document-projects-to-detail",
+      "type": "Dependency",
+      "source": "class-run-document",
+      "target": "datatype-run-detail-dto",
+      "label": "mapped to",
+      "properties": {}
+    },
+    {
+      "id": "entry-uses-attendance",
+      "type": "Dependency",
+      "source": "class-run-character-entry",
+      "target": "enum-desired-attendance",
+      "label": "attendance",
+      "properties": {}
+    },
+    {
+      "id": "dto-uses-attendance",
+      "type": "Dependency",
+      "source": "datatype-run-character-dto",
+      "target": "enum-desired-attendance",
+      "label": "attendance",
+      "properties": {}
+    }
+  ],
+  "plugins": {
+    "generic-graph": {
+      "semantic_profile": "uml",
+      "views": [
+        {
+          "id": "run-signup-activity",
+          "label": "Run Signup - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-run-signup",
+            "initial-run-detail-open",
+            "action-open-run-detail",
+            "decision-submit-or-cancel",
+            "action-load-signup-options",
+            "decision-options-cached",
+            "action-refresh-characters",
+            "action-post-signup",
+            "action-validate-request",
+            "action-authorize-signup",
+            "decision-signup-allowed",
+            "action-upsert-signup-entry",
+            "action-delete-signup",
+            "action-remove-signup-entry",
+            "action-persist-run",
+            "action-return-run-detail",
+            "action-return-problem",
+            "final-run-signup"
+          ],
+          "relationships": [
+            "flow-initial-open-run",
+            "flow-open-decision",
+            "flow-decision-to-options",
+            "flow-options-to-cache-check",
+            "flow-cache-miss-refresh",
+            "flow-refresh-post-signup",
+            "flow-cache-hit-post-signup",
+            "flow-post-validate",
+            "flow-validate-authorize",
+            "flow-authorize-allowed",
+            "flow-allowed-upsert",
+            "flow-denied-problem",
+            "flow-decision-to-cancel",
+            "flow-cancel-remove",
+            "flow-upsert-persist",
+            "flow-remove-persist",
+            "flow-persist-return",
+            "flow-return-final",
+            "flow-problem-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "off"
+            }
+          }
+        },
+        {
+          "id": "run-signup-data",
+      "label": "Run Signup - UML Data",
+          "kind": "uml-data",
+          "nodes": [
+            "datatype-signup-request",
+            "datatype-run-signup-options-dto",
+            "datatype-character-dto",
+            "datatype-run-detail-dto",
+            "datatype-run-character-dto",
+            "enum-desired-attendance",
+            "class-run-document",
+            "class-run-character-entry",
+            "class-raider-document",
+            "class-stored-selected-character"
+          ],
+          "relationships": [
+            "signup-request-uses-attendance",
+            "options-has-characters",
+            "detail-has-run-characters",
+            "run-document-has-entries",
+            "raider-document-has-characters",
+            "entry-copies-stored-character"
+          ],
+          "groups": [
+            {
+              "id": "run-signup-contracts-boundary",
+              "label": "Wire contracts",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-contracts-runs",
+              "members": [
+                "datatype-signup-request",
+                "datatype-run-signup-options-dto",
+                "datatype-character-dto",
+                "datatype-run-detail-dto",
+                "datatype-run-character-dto",
+                "enum-desired-attendance"
+              ]
+            },
+            {
+              "id": "run-signup-store-boundary",
+              "label": "Stored documents",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-api-repositories",
+              "members": [
+                "class-run-document",
+                "class-run-character-entry",
+                "class-raider-document",
+                "class-stored-selected-character"
+              ]
+            }
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "readable",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "off"
+            }
+          }
+        },
+        {
+          "id": "run-signup-class",
+          "label": "Run Signup - UML Class Boundary",
+          "kind": "uml-class",
+          "nodes": [
+            "class-runs-page",
+            "interface-iruns-client",
+            "class-runs-client",
+            "class-runs-signup-function",
+            "class-runs-signup-options-function",
+            "class-runs-cancel-signup-function",
+            "interface-irun-signup-service",
+            "class-run-signup-service",
+            "interface-irun-signup-options-service",
+            "class-run-signup-options-service",
+            "interface-iruns-repository",
+            "interface-iraiders-repository",
+            "interface-iguild-permissions",
+            "interface-isite-admin-service",
+            "interface-irun-signup-eligibility"
+          ],
+          "relationships": [
+            "runs-client-realizes-interface",
+            "runs-page-uses-client",
+            "signup-function-uses-service",
+            "signup-options-function-uses-service",
+            "cancel-function-uses-runs-repo",
+            "cancel-function-uses-raiders-repo",
+            "run-signup-service-realizes-interface",
+            "run-signup-options-service-realizes-interface",
+            "run-signup-service-uses-runs-repo",
+            "run-signup-service-uses-raiders-repo",
+            "run-signup-service-uses-guild-permissions",
+            "run-signup-service-uses-site-admin",
+            "run-signup-service-uses-eligibility",
+            "run-signup-options-service-uses-runs-repo",
+            "run-signup-options-service-uses-raiders-repo",
+            "run-signup-options-service-uses-guild-permissions",
+            "run-signup-options-service-uses-site-admin"
+          ],
+          "groups": [
+            {
+              "id": "class-boundary-app-core",
+              "label": "App client",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-app-core",
+              "members": [
+                "class-runs-page",
+                "interface-iruns-client",
+                "class-runs-client"
+              ]
+            },
+            {
+              "id": "class-boundary-functions",
+              "label": "HTTP adapters",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-api-functions",
+              "members": [
+                "class-runs-signup-function",
+                "class-runs-signup-options-function",
+                "class-runs-cancel-signup-function"
+              ]
+            },
+            {
+              "id": "class-boundary-policy",
+              "label": "Run policy",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-api-runs",
+              "members": [
+                "interface-irun-signup-service",
+                "class-run-signup-service",
+                "interface-irun-signup-options-service",
+                "class-run-signup-options-service",
+                "interface-iguild-permissions",
+                "interface-isite-admin-service",
+                "interface-irun-signup-eligibility"
+              ]
+            },
+            {
+              "id": "class-boundary-repositories",
+              "label": "Repositories",
+              "role": "semantic-boundary",
+              "semantic_source_id": "pkg-api-repositories",
+              "members": [
+                "interface-iruns-repository",
+                "interface-iraiders-repository"
+              ]
+            }
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "readable",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "off"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
