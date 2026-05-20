@@ -43,6 +43,9 @@ filenames instead of creating one package directory per diagram.
 | [`lfm-run-signup-uml.dediren/project.json`](lfm-run-signup-uml.dediren/project.json) | UML project manifest for the run-signup implementation handoff |
 | [`lfm-run-signup-uml.dediren/model.json`](lfm-run-signup-uml.dediren/model.json) | UML activity, data, and class-boundary source graph linked to ArchiMate context |
 | [`lfm-run-signup-uml.dediren/render-policy.json`](lfm-run-signup-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
+| [`lfm-application-handoff-uml.dediren/project.json`](lfm-application-handoff-uml.dediren/project.json) | UML project manifest for remaining application implementation handoffs |
+| [`lfm-application-handoff-uml.dediren/model.json`](lfm-application-handoff-uml.dediren/model.json) | UML activity, data, and class-boundary source graph for application handoffs linked to ArchiMate context |
+| [`lfm-application-handoff-uml.dediren/render-policy.json`](lfm-application-handoff-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
 
 Per-view render metadata, layout output, and intermediate SVGs are generated
 from the packages. `*.dediren/generated/` is reproducible tool output and
@@ -74,11 +77,20 @@ source package directory without the `.dediren` suffix.
 | 1 | Run Signup - UML Activity | UML Activity | [`uml-run-signup-activity.svg`](renders/lfm-run-signup-uml/uml-run-signup-activity.svg) | `RunsPage`, `RunsClient`, signup-options, signup, and cancel-signup HTTP paths |
 | 2 | Run Signup - UML Data | UML Data | [`uml-run-signup-data.svg`](renders/lfm-run-signup-uml/uml-run-signup-data.svg) | signup request/options/detail DTOs plus `RunDocument`, `RunCharacterEntry`, and raider character state |
 | 3 | Run Signup - UML Class Boundary | UML Class | [`uml-run-signup-class.svg`](renders/lfm-run-signup-uml/uml-run-signup-class.svg) | Blazor client boundary, Function adapters, run-signup services, policy gates, and repositories |
+| 4 | Run Maintenance - UML Activity | UML Activity | [`run-maintenance-activity.svg`](renders/lfm-application-handoff-uml/run-maintenance-activity.svg) | create, edit, and delete run UI/API paths plus run repository effects |
+| 5 | Auth and Profile - UML Activity | UML Activity | [`auth-profile-activity.svg`](renders/lfm-application-handoff-uml/auth-profile-activity.svg) | Battle.net sign-in, identity probe, profile refresh, and raider profile persistence paths |
+| 6 | Account Deletion - UML Activity | UML Activity | [`account-deletion-activity.svg`](renders/lfm-application-handoff-uml/account-deletion-activity.svg) | account deletion request, goodbye redirect, raider cleanup, run cleanup, and idempotency effects |
+| 7 | Guild - UML Activity | UML Activity | [`guild-activity.svg`](renders/lfm-application-handoff-uml/guild-activity.svg) | guild read and admin refresh flows across UI, API, repository, and WoW Profile API |
+| 8 | WoW Reference Data - UML Activity | UML Activity | [`wow-reference-activity.svg`](renders/lfm-application-handoff-uml/wow-reference-activity.svg) | reference-data reads, admin refresh, blob reference storage, and WoW Game Data API |
+| 9 | Operational Readiness - UML Activity | UML Activity | [`ops-readiness-activity.svg`](renders/lfm-application-handoff-uml/ops-readiness-activity.svg) | health probe, schema migration, Cosmos readiness, and telemetry publication paths |
+| 10 | Application Handoff - UML Class Boundary | UML Class | [`application-handoff-class.svg`](renders/lfm-application-handoff-uml/application-handoff-class.svg) | UI pages, app-core clients, API functions, service layer, repositories, and external ports |
+| 11 | Application Handoff - UML Data | UML Data | [`application-handoff-data.svg`](renders/lfm-application-handoff-uml/application-handoff-data.svg) | LFM contracts, Cosmos document families, idempotency state, blob reference data, and external API data |
 
-The run-signup UML package links upward to ArchiMate element ids
-`sign-up-for-run`, `cancel-signup`, `runs-ui-entry`, `lfm-api`,
-`run-management-service`, `cosmos-runs`, and `cosmos-raiders` through
-`properties.uml.architecture_context`.
+The UML packages link upward to ArchiMate element ids through
+`properties.uml.architecture_context`. Keep Technology Usage, Data Plane,
+Observability, and Production Migration topology in the ArchiMate package unless
+UML adds concrete implementation handoff value for a flow, class boundary, or
+data shape.
 
 ## Source Provenance
 
@@ -90,6 +102,7 @@ The run-signup UML package links upward to ArchiMate element ids
 | Business Process candidates | [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor), [`app/Lfm.App.Core/Services/RunsClient.cs`](../../app/Lfm.App.Core/Services/RunsClient.cs), [`api/Functions/RunsListFunction.cs`](../../api/Functions/RunsListFunction.cs), [`api/Functions/RunsDetailFunction.cs`](../../api/Functions/RunsDetailFunction.cs), [`api/Functions/RunsSignupFunction.cs`](../../api/Functions/RunsSignupFunction.cs), [`api/Functions/RunsSignupOptionsFunction.cs`](../../api/Functions/RunsSignupOptionsFunction.cs), [`api/Functions/RunsCancelSignupFunction.cs`](../../api/Functions/RunsCancelSignupFunction.cs) |
 | Application Process views | [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Lfm.App.Core/Services/MeClient.cs`](../../app/Lfm.App.Core/Services/MeClient.cs), [`api/Functions/RunsCreateFunction.cs`](../../api/Functions/RunsCreateFunction.cs), [`api/Functions/RunsUpdateFunction.cs`](../../api/Functions/RunsUpdateFunction.cs), [`api/Functions/RunsDeleteFunction.cs`](../../api/Functions/RunsDeleteFunction.cs), [`api/Functions/MeDeleteFunction.cs`](../../api/Functions/MeDeleteFunction.cs) |
 | Service realization | [`app/Pages/LoginPage.razor`](../../app/Pages/LoginPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Pages/GoodbyePage.razor`](../../app/Pages/GoodbyePage.razor), [`app/Pages/GuildPage.razor`](../../app/Pages/GuildPage.razor), [`app/Pages/GuildAdminPage.razor`](../../app/Pages/GuildAdminPage.razor), [`app/Pages/InstancesPage.razor`](../../app/Pages/InstancesPage.razor), [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/AdminReferenceRefreshPage.razor`](../../app/Pages/AdminReferenceRefreshPage.razor), [`app/Pages/PrivacyPolicyPage.razor`](../../app/Pages/PrivacyPolicyPage.razor), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
+| Supplemental UML handoff | [`docs/architecture/lfm.dediren/model.json`](lfm.dediren/model.json), [`app/Pages/`](../../app/Pages/), [`app/Lfm.App.Core/Services/`](../../app/Lfm.App.Core/Services/), [`shared/Lfm.Contracts/`](../../shared/Lfm.Contracts/), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
 
 ## Rendering And Validation
 
@@ -101,6 +114,8 @@ dediren validate --input docs/architecture/lfm.dediren/model.json
 dediren validate --plugin generic-graph --profile archimate --input docs/architecture/lfm.dediren/model.json
 dediren validate --input docs/architecture/lfm-run-signup-uml.dediren/model.json
 dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-run-signup-uml.dediren/model.json
+dediren validate --input docs/architecture/lfm-application-handoff-uml.dediren/model.json
+dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-application-handoff-uml.dediren/model.json
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target layout-request
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target render-metadata
 dediren layout --plugin elk-layout --input <projection.json>
