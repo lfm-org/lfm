@@ -1,0 +1,80 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IAuthStateRefresher AuthStateRefresher
+@inject ISessionExpiryNotifier SessionExpiryNotifier
+
+@code {
+    private readonly string _registrationId = $"auth-session-monitor-{Guid.NewGuid():N}";
+    private DotNetObjectReference<AuthSessionMonitor>? _dotNetRef;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        SessionExpiryNotifier.SessionExpired += HandleSessionExpired;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _dotNetRef = DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("lfmRegisterAuthResumeProbe", _registrationId, _dotNetRef);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    [JSInvokable]
+    public Task CheckSessionAsync()
+    {
+        if (!_disposed && AuthStateRefresher.HasAuthenticatedSession)
+            AuthStateRefresher.RefreshAuthenticationState();
+
+        return Task.CompletedTask;
+    }
+
+    private void HandleSessionExpired() => _ = InvokeAsync(ExpireAndRedirect);
+
+    private void ExpireAndRedirect()
+    {
+        if (_disposed || !AuthStateRefresher.HasAuthenticatedSession)
+            return;
+
+        AuthStateRefresher.MarkSessionExpired();
+        var currentPath = new Uri(Nav.Uri).PathAndQuery;
+        if (IsLoginOrAuthFailurePath(currentPath))
+            return;
+
+        Nav.NavigateTo($"/login?redirect={Uri.EscapeDataString(currentPath)}", replace: true);
+    }
+
+    private static bool IsLoginOrAuthFailurePath(string path) =>
+        path.StartsWith("/login", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/auth/failure", StringComparison.OrdinalIgnoreCase);
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        SessionExpiryNotifier.SessionExpired -= HandleSessionExpired;
+
+        if (_dotNetRef is null)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("lfmUnregisterAuthResumeProbe", _registrationId);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        finally
+        {
+            _dotNetRef.Dispose();
+        }
+    }
+}

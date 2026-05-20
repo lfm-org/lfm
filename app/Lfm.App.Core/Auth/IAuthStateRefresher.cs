@@ -8,5 +8,7 @@ namespace Lfm.App.Auth;
 /// </summary>
 public interface IAuthStateRefresher
 {
+    bool HasAuthenticatedSession { get; }
     void RefreshAuthenticationState();
+    void MarkSessionExpired();
 }

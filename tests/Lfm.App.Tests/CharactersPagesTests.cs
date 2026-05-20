@@ -496,8 +496,14 @@ public class CharactersPagesTests : ComponentTestBase
 
     private sealed class ActionAuthStateRefresher(Action refresh) : IAuthStateRefresher
     {
+        public bool HasAuthenticatedSession => true;
+
         public void RefreshAuthenticationState() =>
             refresh();
+
+        public void MarkSessionExpired()
+        {
+        }
     }
 
     [Theory]
