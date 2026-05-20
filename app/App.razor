@@ -6,6 +6,7 @@
                    ModeChanged="@OnModeChanged"
                    StorageName="lfm-theme">
     <CascadingAuthenticationState>
+        <AuthSessionMonitor />
         <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
             <Found Context="routeData">
                 @if (RequiresGuildSetupGate(routeData))

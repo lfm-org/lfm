@@ -28,3 +28,51 @@ window.lfmGetStoredTheme = function () {
         return null;
     }
 };
+
+window.lfmRegisterAuthResumeProbe = function (id, dotNetRef) {
+    window.__lfmAuthResumeProbes = window.__lfmAuthResumeProbes || new Map();
+    window.lfmUnregisterAuthResumeProbe(id);
+
+    let pending = false;
+    const trigger = function () {
+        if (pending) {
+            return;
+        }
+
+        pending = true;
+        Promise.resolve(dotNetRef.invokeMethodAsync('CheckSessionAsync'))
+            .catch(function () { })
+            .finally(function () {
+                pending = false;
+            });
+    };
+    const triggerWhenVisible = function () {
+        if (document.visibilityState === 'visible') {
+            trigger();
+        }
+    };
+
+    window.addEventListener('focus', trigger);
+    window.addEventListener('pageshow', trigger);
+    window.addEventListener('online', trigger);
+    document.addEventListener('visibilitychange', triggerWhenVisible);
+
+    window.__lfmAuthResumeProbes.set(id, {
+        trigger,
+        triggerWhenVisible
+    });
+};
+
+window.lfmUnregisterAuthResumeProbe = function (id) {
+    const probes = window.__lfmAuthResumeProbes;
+    if (!probes || !probes.has(id)) {
+        return;
+    }
+
+    const registration = probes.get(id);
+    window.removeEventListener('focus', registration.trigger);
+    window.removeEventListener('pageshow', registration.trigger);
+    window.removeEventListener('online', registration.trigger);
+    document.removeEventListener('visibilitychange', registration.triggerWhenVisible);
+    probes.delete(id);
+};

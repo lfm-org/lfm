@@ -47,6 +47,7 @@ public abstract class ComponentTestBase : BunitContext
         Services.AddSingleton<IMeClient, DefaultMeClient>();
         Services.AddSingleton<IBattleNetClient, DefaultBattleNetClient>();
         Services.AddSingleton<ISpecializationsClient, DefaultSpecializationsClient>();
+        Services.AddSingleton<ISessionExpiryNotifier, SessionExpiryNotifier>();
         Services.AddSingleton<IAuthStateRefresher, NoopAuthStateRefresher>();
     }
 
@@ -112,7 +113,13 @@ internal sealed class DefaultSpecializationsClient : ISpecializationsClient
 
 internal sealed class NoopAuthStateRefresher : IAuthStateRefresher
 {
+    public bool HasAuthenticatedSession => false;
+
     public void RefreshAuthenticationState()
+    {
+    }
+
+    public void MarkSessionExpired()
     {
     }
 }
