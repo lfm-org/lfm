@@ -59,12 +59,13 @@
     protected override void OnParametersSet()
     {
         _difficultyClass = RunVisualization.GetDifficultyClass(Run.Difficulty);
-        _kindClass = RunVisualization.GetKindClass(RunVisualization.GetKind(Run.Size));
+        var kind = RunVisualization.GetKind(Run.Size);
+        _kindClass = RunVisualization.GetKindClass(kind);
         var currentUserSignup = Run.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
         _isMe = currentUserSignup is not null;
         _isCurrentUserClass = _isMe ? "true" : "false";
         _currentUserAttendanceClass = RunVisualization.GetAttendanceClass(currentUserSignup?.ReviewedAttendance);
-        _counts = RunVisualization.CountRoles(Run.RunCharacters, Run.Size);
+        _counts = RunVisualization.CountRoles(Run.RunCharacters, kind, Run.Difficulty, Run.Size);
         // Mythic+ "any dungeon" runs carry no InstanceName; fall back to a
         // localized label so the list entry isn't missing a heading.
         _title = string.IsNullOrEmpty(Run.InstanceName)

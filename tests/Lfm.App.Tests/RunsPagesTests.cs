@@ -347,8 +347,8 @@ public class RunsPagesTests : ComponentTestBase
             Assert.Empty(cut.FindAll(".run-list-item__rolekey"));
 
             AssertRunListRoleChip(cut, "tank", Loc("runs.role.tank"), "0/2");
-            AssertRunListRoleChip(cut, "healer", Loc("runs.role.healer"), "0/5");
-            AssertRunListRoleChip(cut, "dps", Loc("runs.role.dps"), "0/18");
+            AssertRunListRoleChip(cut, "healer", Loc("runs.role.healer"), "0/2");
+            AssertRunListRoleChip(cut, "dps", Loc("runs.role.dps"), "0/6");
         });
 
         static void AssertRunListRoleChip(
@@ -1576,9 +1576,9 @@ public class RunsPagesTests : ComponentTestBase
     public void RunsPage_RunListItem_RendersDifficultyPillAndCompositionSummary()
     {
         var client = new Mock<IRunsClient>();
-        // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC 25-man raid.
-        // Standard composition target for 25-man is 2T / 5H / 18D, but the
-        // run-list chips are indicative, muted counts rather than red quota warnings.
+        // Seed 2 DPS attending (IN) and 1 DPS OUT in a MYTHIC raid. Mythic
+        // raids are fixed at 20 players, even when stale data carries a
+        // different size.
         var summary = MakeSummary() with { Difficulty = "MYTHIC", Size = 25 };
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RunSummaryDto>
@@ -1604,8 +1604,8 @@ public class RunsPagesTests : ComponentTestBase
 
         var composition = cut.Find(".run-list-item__composition");
         Assert.Contains("0/2", composition.TextContent);
-        Assert.Contains("0/5", composition.TextContent);
-        Assert.Contains("2/18", composition.TextContent);
+        Assert.Contains("0/4", composition.TextContent);
+        Assert.Contains("2/14", composition.TextContent);
 
         var slots = cut.FindAll(".run-list-item__roleslot");
         Assert.Equal(3, slots.Count);
@@ -1620,6 +1620,74 @@ public class RunsPagesTests : ComponentTestBase
         Assert.Equal("mythic", item.GetAttribute("data-difficulty"));
         Assert.Equal("raid", item.GetAttribute("data-kind"));
         Assert.False(item.HasAttribute("style"));
+    }
+
+    [Fact]
+    public void RunsPage_RunListItem_UsesFlexibleRaidRoleTargets()
+    {
+        var client = new Mock<IRunsClient>();
+        var signups = new List<RunCharacterDto>
+        {
+            MakeCharacter("Shielda", role: "TANK"),
+            MakeCharacter("Guardia", role: "TANK"),
+            MakeCharacter("Mendor", role: "HEALER"),
+            MakeCharacter("Bloom", role: "HEALER"),
+            MakeCharacter("Serene", role: "HEALER"),
+        };
+        signups.AddRange(Enumerable.Range(1, 10).Select(i => MakeCharacter($"Bolt{i}", role: "DPS")));
+
+        var summary = MakeSummary() with { Difficulty = "HEROIC", Size = 25 };
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto>
+            {
+                summary with
+                {
+                    RunCharacters = signups,
+                },
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var composition = cut.Find(".run-list-item__composition");
+            Assert.Contains("2/2", composition.TextContent);
+            Assert.Contains("3/4", composition.TextContent);
+            Assert.Contains("10/14", composition.TextContent);
+        });
+    }
+
+    [Fact]
+    public void RunsPage_RunListItem_ShowsDungeonRoleCountsWithDungeonTargets()
+    {
+        var client = new Mock<IRunsClient>();
+        var summary = MakeSummary() with { Difficulty = "MYTHIC_KEYSTONE", Size = 5 };
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto>
+            {
+                summary with
+                {
+                    InstanceName = null,
+                    RunCharacters = new List<RunCharacterDto>
+                    {
+                        MakeCharacter("Shielda", role: "TANK"),
+                        MakeCharacter("Mendor", role: "HEALER"),
+                        MakeCharacter("Bolt", role: "DPS"),
+                    },
+                },
+            });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("1/1", cut.Find(".run-list-item__roleslot--tank").TextContent);
+            Assert.Contains("1/1", cut.Find(".run-list-item__roleslot--healer").TextContent);
+            Assert.Contains("1/3", cut.Find(".run-list-item__roleslot--dps").TextContent);
+            Assert.Equal("dungeon", cut.Find("button.run-list-item").GetAttribute("data-kind"));
+        });
     }
 
     [Fact]
