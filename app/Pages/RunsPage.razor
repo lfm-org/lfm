@@ -213,18 +213,11 @@
                                                             <RoleIcon Role="@roleKey" ClassPrefix="roster-role-title__icon" />
                                                             <span>@roleLabel (@roleChars.Count)</span>
                                                         </h4>
-                                                        @if (roleChars.Count == 0)
+                                                        @foreach (var character in roleChars)
                                                         {
-                                                            <div class="roster-role-empty">@Loc["runs.role.empty"]</div>
-                                                        }
-                                                        else
-                                                        {
-                                                            @foreach (var character in roleChars)
-                                                            {
-                                                                <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)"
-                                                                              Character="character"
-                                                                              SpecIconUrl="@SpecIconUrlFor(character)" />
-                                                            }
+                                                            <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)"
+                                                                          Character="character"
+                                                                          SpecIconUrl="@SpecIconUrlFor(character)" />
                                                         }
                                                     </div>
                                                 }

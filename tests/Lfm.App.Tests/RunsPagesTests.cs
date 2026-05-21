@@ -1416,7 +1416,7 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void RunsPage_RoleColumns_Show_Muted_Empty_State_For_Open_Roles()
+    public void RunsPage_RoleColumns_Omit_Open_Role_Placeholders()
     {
         var client = new Mock<IRunsClient>();
         client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
@@ -1432,9 +1432,9 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            var emptySlots = cut.FindAll(".roster-role-empty");
-            Assert.Equal(2, emptySlots.Count);
-            Assert.All(emptySlots, slot => Assert.Contains(Loc("runs.role.empty"), slot.TextContent));
+            Assert.Equal(3, cut.FindAll(".roster-role-column").Count);
+            Assert.Empty(cut.FindAll(".roster-role-empty"));
+            Assert.DoesNotContain(Loc("runs.role.empty"), cut.Markup);
         });
     }
 
