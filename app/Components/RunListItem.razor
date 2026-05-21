@@ -14,7 +14,7 @@
         @onclick="HandleClick">
     <span class="run-list-item__header">
         <span class="run-list-item__title">@_title</span>
-        <DifficultyPill Difficulty="@Run.Difficulty" />
+        <DifficultyPill Difficulty="@Run.Difficulty" KeystoneLevel="@Run.KeystoneLevel" />
     </span>
     <span class="run-list-item__meta">
             <span class="run-list-item__date">@RunDateFormatter.FormatDisplay(Run.StartTime)</span>

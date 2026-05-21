@@ -1691,6 +1691,24 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_RunListItem_ShowsKeystoneLevelInMythicPlusPill()
+    {
+        var client = new Mock<IRunsClient>();
+        var summary = MakeSummary() with { Difficulty = "MYTHIC_KEYSTONE", Size = 5, KeystoneLevel = 12 };
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
+        Services.AddSingleton(client.Object);
+
+        var cut = Render<RunsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var pill = cut.Find(".difficulty-pill--mplus");
+            Assert.Equal("M+12", pill.TextContent.Trim());
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunListItem_ColorsSignupBadgeFromCurrentUserAttendance()
     {
         var client = new Mock<IRunsClient>();
