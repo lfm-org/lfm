@@ -1,0 +1,103 @@
+{
+  "schema": "souroldgeezer.architecture.dediren.project.v1",
+  "feature": "lfm-platform-operations-uml",
+  "model": "model.json",
+  "views": [
+    {
+      "id": "platform-hosting-class",
+      "title": "Platform Hosting - UML Class Boundary",
+      "diagramKind": "UML Class",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/platform-hosting-class.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/platform-hosting-class.json",
+        "output": "generated/svg/platform-hosting-class.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/platform-hosting-class.json"
+      }
+    },
+    {
+      "id": "platform-data-plane",
+      "title": "Platform Data Plane - UML Data",
+      "diagramKind": "UML Data",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/platform-data-plane.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/platform-data-plane.json",
+        "output": "generated/svg/platform-data-plane.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/platform-data-plane.json"
+      }
+    },
+    {
+      "id": "observability-activity",
+      "title": "Observability - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/observability-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/observability-activity.json",
+        "output": "generated/svg/observability-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/observability-activity.json"
+      }
+    },
+    {
+      "id": "production-release-activity",
+      "title": "Production Release - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/production-release-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/production-release-activity.json",
+        "output": "generated/svg/production-release-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/production-release-activity.json"
+      }
+    }
+  ]
+}
