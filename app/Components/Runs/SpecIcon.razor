@@ -1,22 +1,39 @@
-@if (!string.IsNullOrWhiteSpace(IconUrl) && !_imageFailed)
+@using Lfm.App.Services
+@inject IConfiguration Config
+
+@if (!string.IsNullOrWhiteSpace(CachedIconUrl) && !_imageFailed)
 {
-    <span class="spec-icon spec-icon--image" role="img" aria-label="@Label">
-        <img class="spec-icon__image" src="@IconUrl" alt="" decoding="async" @onerror="OnImageError" />
+    <span class="@CssClass" role="@IconRole" aria-label="@IconLabel" aria-hidden="@AriaHidden">
+        <img class="spec-icon__image" src="@CachedIconUrl" alt="" decoding="async" @onerror="OnImageError" />
     </span>
 }
 else
 {
-    <span class="spec-icon" role="img" aria-label="@Label">@Abbreviation</span>
+    <span class="@CssClass" role="@IconRole" aria-label="@IconLabel" aria-hidden="@AriaHidden">@Abbreviation</span>
 }
 
 @code {
     [Parameter] public string? SpecName { get; set; }
     [Parameter] public string? IconUrl { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Decorative { get; set; }
 
     private bool _imageFailed;
     private string? _lastIconUrl;
 
     private string Label => string.IsNullOrWhiteSpace(SpecName) ? "Unknown spec" : SpecName;
+    private string? CachedIconUrl => WowMediaUrls.ToCachedUrl(IconUrl, Config["ApiBaseUrl"]);
+    private string CssClass => string.Join(
+        ' ',
+        new[]
+        {
+            "spec-icon",
+            !string.IsNullOrWhiteSpace(CachedIconUrl) && !_imageFailed ? "spec-icon--image" : null,
+            Class,
+        }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    private string? IconRole => Decorative ? null : "img";
+    private string? IconLabel => Decorative ? null : Label;
+    private string? AriaHidden => Decorative ? "true" : null;
 
     protected override void OnParametersSet()
     {

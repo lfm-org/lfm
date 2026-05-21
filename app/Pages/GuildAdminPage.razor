@@ -8,6 +8,7 @@
 @inject ToastHelper Toast
 @inject IStringLocalizer Loc
 @inject UnsavedChangesGuard UnsavedGuard
+@inject IConfiguration Config
 @implements IAsyncDisposable
 
 <PageTitle>@Loc["guildAdmin.title"]</PageTitle>
@@ -63,9 +64,9 @@
                             <FluentLabel>@guildData.Guild.Slogan</FluentLabel>
                         }
                         <FluentLabel>@guildData.Guild.RealmName@(guildData.Guild.FactionName != null ? $" \u00b7 {guildData.Guild.FactionName}" : "")</FluentLabel>
-                        @if (guildData.Guild.CrestEmblemUrl != null)
+                        @if (CachedMediaUrl(guildData.Guild.CrestEmblemUrl) is { } crestEmblemUrl)
                         {
-                            <img src="@guildData.Guild.CrestEmblemUrl"
+                            <img src="@crestEmblemUrl"
                                  alt="@Loc["guild.crestAlt"]"
                                  class="guild-crest"
                                  width="88"
@@ -153,6 +154,7 @@ else if (showLoadConfirmation)
     private string draftLocale = "fi";
     private string draftSlogan = string.Empty;
     private IReadOnlyList<UpdateGuildRankPermission> draftPermissions = [];
+    private string? CachedMediaUrl(string? sourceUrl) => WowMediaUrls.ToCachedUrl(sourceUrl, Config["ApiBaseUrl"]);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

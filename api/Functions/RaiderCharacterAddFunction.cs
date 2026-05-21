@@ -174,7 +174,10 @@ public class RaiderCharacterAddFunction(
         await repo.UpsertAsync(updatedRaider, ct);
 
         // 8. Map to CharacterDto and return.
-        var dto = MapToCharacterDto(stored);
+        var dto = MapToCharacterDto(stored) with
+        {
+            PortraitUrl = ApiMediaUrls.ToCachedUrl(req, stored.PortraitUrl),
+        };
         return new OkObjectResult(new AddCharacterResponse(
             SelectedCharacterId: characterId,
             Character: dto));

@@ -3,6 +3,7 @@
 
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Media;
 using Lfm.Contracts.WoW;
 
 namespace Lfm.Api.Mappers;
@@ -91,5 +92,5 @@ internal static class AccountCharacterMapper
     /// <c>functions/src/lib/character-portrait.ts</c>.
     /// </summary>
     private static bool IsBlizzardRenderUrl(string url)
-        => url.StartsWith("https://render.worldofwarcraft.com/", StringComparison.OrdinalIgnoreCase);
+        => BlizzardMediaCache.IsBlizzardRenderUrl(url);
 }

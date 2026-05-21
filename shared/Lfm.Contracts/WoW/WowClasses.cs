@@ -45,9 +45,24 @@ public static class WowClasses
             [13] = "#33937F",  // Evoker
         };
 
-    /// <summary>
-    /// Returns the hex colour for a WoW class ID, or white for unknown IDs.
-    /// </summary>
+    private static readonly IReadOnlyDictionary<int, string> IconNames =
+        new Dictionary<int, string>
+        {
+            [1] = "classicon_warrior",
+            [2] = "classicon_paladin",
+            [3] = "classicon_hunter",
+            [4] = "classicon_rogue",
+            [5] = "classicon_priest",
+            [6] = "spell_deathknight_classicon",
+            [7] = "classicon_shaman",
+            [8] = "classicon_mage",
+            [9] = "classicon_warlock",
+            [10] = "classicon_monk",
+            [11] = "classicon_druid",
+            [12] = "classicon_demonhunter",
+            [13] = "classicon_evoker",
+        };
+
     /// <summary>
     /// Returns the English name for a WoW class ID, or "Unknown" for unknown IDs.
     /// </summary>
@@ -59,4 +74,12 @@ public static class WowClasses
     /// </summary>
     public static string GetColor(int classId) =>
         Colors.TryGetValue(classId, out var color) ? color : "#FFFFFF";
+
+    /// <summary>
+    /// Returns the render asset path for a WoW class ID, or null for unknown IDs.
+    /// Callers that render this as an image must route it through the app media
+    /// cache instead of linking directly to Blizzard.
+    /// </summary>
+    public static string? GetIconPath(int classId) =>
+        IconNames.TryGetValue(classId, out var iconName) ? $"icons/56/{iconName}.jpg" : null;
 }

@@ -531,6 +531,30 @@ paths:
                 $ref: '#/components/schemas/RunSignupOptionsDto'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/wow/media/cache:
+    get:
+      tags:
+        - 'WoW Reference'
+      summary: 'GET /api/v1/wow/media/cache'
+      operationId: getWowMediaCache
+      parameters:
+        - name: source
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Base64url-encoded Blizzard render-CDN URL.
+      security: []
+      responses:
+        '200':
+          description: Success.
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Problem'
   /api/v1/wow/reference/expansions:
     get:
       tags:

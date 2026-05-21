@@ -18,6 +18,7 @@ using Lfm.Contracts.Characters;
 using Lfm.Contracts.Expansions;
 using Lfm.Contracts.Guild;
 using Lfm.Contracts.Instances;
+using Lfm.Contracts.Media;
 using Lfm.Contracts.Me;
 using Lfm.Contracts.Runs;
 using Lfm.Contracts.Specializations;
@@ -40,6 +41,9 @@ public class RunsPagesTests : ComponentTestBase
         DateTimeOffset.UtcNow.AddDays(30).ToString("o");
     private static readonly string FutureSignupCloseTime =
         DateTimeOffset.UtcNow.AddDays(30).AddHours(-2).ToString("o");
+
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"http://localhost:7071/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
 
     private static RunSummaryDto MakeSummary(string id = "run-1") =>
         new(
@@ -910,7 +914,7 @@ public class RunsPagesTests : ComponentTestBase
                     Name: "Holy",
                     ClassId: 5,
                     Role: "HEALER",
-                    IconUrl: "https://render.example/holy.jpg"),
+                    IconUrl: "https://render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg"),
             ]);
         Services.AddSingleton(specializations.Object);
 
@@ -918,9 +922,54 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            var icon = cut.Find("img.spec-icon__image");
-            Assert.Equal("https://render.example/holy.jpg", icon.GetAttribute("src"));
+            var icon = cut.Find("[data-testid='run-signup-surface'] img.spec-icon__image");
+            Assert.Equal(CachedMediaUrl("https://render.worldofwarcraft.com/eu/icons/56/spell_holy_holybolt.jpg"), icon.GetAttribute("src"));
             Assert.Equal("", icon.GetAttribute("alt"));
+        });
+        specializations.Verify(c => c.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void RunsPage_AttendingRows_Render_Class_And_Spec_Media_Icons()
+    {
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { MakeSummary() });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeDetailWithRoster(new List<RunCharacterDto>
+            {
+                MakeCharacter("Shalena", classId: 9, className: "Warlock", role: "DPS", spec: "Demonology"),
+            }));
+        Services.AddSingleton(client.Object);
+
+        var specializations = new Mock<ISpecializationsClient>();
+        specializations.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new SpecializationDto(
+                    Id: 266,
+                    Name: "Demonology",
+                    ClassId: 9,
+                    Role: "DPS",
+                    IconUrl: "https://render.worldofwarcraft.com/eu/icons/56/spell_warlock_demonology.jpg"),
+            ]);
+        Services.AddSingleton(specializations.Object);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var row = cut.Find(".character-row");
+            Assert.Contains("Warlock \u00B7 Demonology", row.TextContent);
+
+            var classIcon = row.QuerySelector(".character-row__class-icon img");
+            Assert.NotNull(classIcon);
+            Assert.Equal(CachedMediaUrl("https://render.worldofwarcraft.com/icons/56/classicon_warlock.jpg"), classIcon.GetAttribute("src"));
+            Assert.Equal("", classIcon.GetAttribute("alt"));
+
+            var specIcon = row.QuerySelector(".character-row__spec-icon img");
+            Assert.NotNull(specIcon);
+            Assert.Equal(CachedMediaUrl("https://render.worldofwarcraft.com/eu/icons/56/spell_warlock_demonology.jpg"), specIcon.GetAttribute("src"));
+            Assert.Equal("", specIcon.GetAttribute("alt"));
         });
         specializations.Verify(c => c.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

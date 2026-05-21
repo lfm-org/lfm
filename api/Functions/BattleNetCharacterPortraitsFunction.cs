@@ -18,11 +18,11 @@ namespace Lfm.Api.Functions;
 /// POST /api/battlenet/character-portraits
 ///
 /// Accepts a JSON array of <c>{ region, realm, name }</c> objects and returns a
-/// map of "{region}-{realm}-{name}" → portrait URL for each character that has a
-/// resolvable portrait.
+/// map of "{region}-{realm}-{name}" → media-cache URL for each character that
+/// has a resolvable portrait.
 ///
 /// Portrait URL resolution order (see <see cref="ICharacterPortraitService"/>):
-///   1. Stored character's <c>portraitUrl</c> (Blizzard CDN URL).
+///   1. Stored character's <c>portraitUrl</c> (Blizzard render source URL).
 ///   2. Stored character's <c>mediaSummary.assets[key="avatar"]</c>.
 ///   3. The raider's <c>portraitCache</c> map.
 ///   4. Blizzard character-media API call using the session access token.
@@ -76,7 +76,11 @@ public class BattleNetCharacterPortraitsFunction(
         var accessToken = principal.AccessToken ?? string.Empty;
 
         var response = await portraitService.ResolveAsync(raider, requests, accessToken, cancellationToken);
-        return new OkObjectResult(response);
+        var mapped = response.Portraits.ToDictionary(
+            kvp => kvp.Key,
+            kvp => ApiMediaUrls.ToCachedUrl(req, kvp.Value) ?? kvp.Value,
+            StringComparer.OrdinalIgnoreCase);
+        return new OkObjectResult(new PortraitResponse(mapped));
     }
 
     /// <summary>

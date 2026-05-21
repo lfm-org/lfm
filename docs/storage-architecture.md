@@ -11,7 +11,7 @@ This document is the rule for where any piece of data the app persists should li
 | **Per-entity caches of Blizzard responses** (one user's account profile, one guild's roster) | **Cosmos, embedded** | inside the owning raider/guild document, with a `*FetchedAt` timestamp |
 | **Operational bytes** (ASP.NET Data Protection keys, Functions runtime state, deploy zip artifacts) | **Blob** | `lfmstore/{dataprotection,deployments,azure-webjobs-hosts,azure-webjobs-secrets}` |
 | **Secrets** (OAuth client secret, DP wrapping key) | **Key Vault** | referenced from App Settings via Key Vault references |
-| **Image bytes** | **Not cached by us** | browser HTTP cache + Blizzard render CDN (`render.worldofwarcraft.com`) |
+| **Blizzard media image bytes** | **Blob** | `lfmstore/wow/media-cache/render/{sha256}.{ext}`, served through `/api/v1/wow/media/cache` |
 
 ## Why the split
 
@@ -22,19 +22,26 @@ This document is the rule for where any piece of data the app persists should li
 
 ## Image caching policy
 
-We cache Blizzard CDN **URLs**, not image bytes. Rationale:
+Blizzard media documents may contain `https://render.worldofwarcraft.com/...`
+asset URLs. Store those source URLs next to the owning reference or user cache,
+but do not render them directly in browser image tags.
 
-- Blizzard render URLs are content-addressed (the path includes an asset hash), so the browser's HTTP cache works correctly across visits — a repeat viewer gets the image from their disk, not the network. That's the byte cache.
-- A second byte cache on our side would add egress cost per image load and a staleness window when Blizzard updates art, for zero user-visible win at our scale.
-- The SWA CSP already allows `img-src 'self' https://render.worldofwarcraft.com …`, so the `<img>` tag loads directly from the Blizzard CDN.
+Browser-facing image URLs must go through `/api/v1/wow/media/cache?source=...`:
 
-A URL is a string. It lives next to the other fields of whatever record needs it:
+- The `source` value is base64url-encoded.
+- The API accepts only HTTPS URLs on `render.worldofwarcraft.com`.
+- The API first reads `wow/media-cache/render/{sha256}.{ext}` from blob.
+- On a cache miss, the API fetches the Blizzard image, validates an `image/*`
+  content type and the size cap, stores the bytes in blob, then serves our copy.
+- The SWA CSP allows `img-src 'self' https://{{API_HOSTNAME}}`; it does not
+  allow direct `render.worldofwarcraft.com` image loads.
 
-- Spec icons: `reference/playable-specialization-media/{id}.json` → surfaced as `SpecializationDto.IconUrl` via the spec list endpoint's manifest.
-- Instance portraits: `reference/journal-instance-media/{id}.json` → surfaced as `InstanceDto.PortraitUrl`.
-- Character portraits: `raiders.PortraitCache` (Cosmos map of `{region-realm-name → render URL}` inside the owner's doc — not shared, not reference data, stays per-user).
+The source URL remains a string in the record that discovered it:
 
-If we ever need byte caching (Blizzard CDN reliability changes our mind, offline PWA support, etc.), the escape hatch is a new `lfmstore/media-cache/{kind}/{id}.{ext}` container, populated by the ingester during the weekly refresh. Not done today.
+- Spec icons: `reference/playable-specialization-media/{id}.json` → surfaced as `SpecializationDto.IconUrl` after the API/app maps the source to the media-cache URL.
+- Instance portraits: `reference/journal-instance-media/{id}.json` → surfaced as `InstanceDto.PortraitUrl` after the API/app maps the source to the media-cache URL.
+- Character portraits: `raiders.PortraitCache` (Cosmos map of `{region-realm-name → render URL}` inside the owner's doc — not shared, not reference data, stays per-user) → surfaced as a media-cache URL.
+- Guild crest fields, if populated, use the same media-cache URL mapping before rendering.
 
 ## Decision flow for a new data kind
 
@@ -83,7 +90,7 @@ For every reference kind that has a list endpoint, the ingester emits `reference
 ]
 ```
 
-The per-id detail blobs (`{kind}/{id}.json`, `{kind}-media/{id}.json`) stay for future endpoints (detail pages, hero talents) and as the source of truth the manifest is derived from.
+The per-id detail blobs (`{kind}/{id}.json`, `{kind}-media/{id}.json`) stay for future endpoints (detail pages, hero talents) and as the source of truth the manifest is derived from. Manifest media fields store Blizzard source URLs; HTTP handlers and Blazor image components convert them to `/api/v1/wow/media/cache` before browser rendering.
 
 ## Known exceptions to flag
 
@@ -120,6 +127,8 @@ Blob — lfmstore
 │       ├── playable-class/             (not yet consumed)
 │       ├── playable-race/              (not yet consumed)
 │       └── hero-talent-tree/           (future)
+│   └── media-cache/
+│       └── render/                      cached Blizzard render-CDN image bytes
 ├── dataprotection                      ASP.NET DP keys, KV-wrapped
 ├── deployments                         Functions zip deploy artifacts
 ├── azure-webjobs-hosts                 Functions runtime state (auto-managed)

@@ -11,6 +11,7 @@ using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Api.Services.Blizzard.Models;
+using Lfm.Contracts.Media;
 using Lfm.Contracts.Raiders;
 using System.Text;
 using System.Text.Json;
@@ -60,6 +61,8 @@ public class RaiderCharacterAddFunctionTests
     private static HttpRequest MakePostRequest(object body)
     {
         var httpContext = new DefaultHttpContext();
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new HostString("api.lfm.test");
         httpContext.Request.Method = "POST";
         httpContext.Request.ContentType = "application/json";
         var json = JsonSerializer.Serialize(body);
@@ -67,6 +70,9 @@ public class RaiderCharacterAddFunctionTests
         httpContext.Request.ContentLength = httpContext.Request.Body.Length;
         return httpContext.Request;
     }
+
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"https://api.lfm.test/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
 
     private static RaiderCharacterAddFunction MakeFunction(
         Mock<IRaidersRepository> repoMock,
@@ -169,7 +175,7 @@ public class RaiderCharacterAddFunctionTests
         Assert.Equal(80, response.Character.Level);
         Assert.Equal(65, response.Character.ActiveSpecId);
         Assert.Equal("Holy", response.Character.SpecName);
-        Assert.Equal("https://render.worldofwarcraft.com/avatar.jpg", response.Character.PortraitUrl);
+        Assert.Equal(CachedMediaUrl("https://render.worldofwarcraft.com/avatar.jpg"), response.Character.PortraitUrl);
 
         // Upsert called once with selected character updated, the stored character present,
         // and the portrait cache populated.
@@ -232,7 +238,7 @@ public class RaiderCharacterAddFunctionTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<AddCharacterResponse>(ok.Value);
         Assert.Equal("eu-silvermoon-aelrin", response.SelectedCharacterId);
-        Assert.Equal("https://render.worldofwarcraft.com/cached.jpg", response.Character.PortraitUrl);
+        Assert.Equal(CachedMediaUrl("https://render.worldofwarcraft.com/cached.jpg"), response.Character.PortraitUrl);
 
         // Blizzard calls were skipped.
         profileClient.Verify(p => p.GetCharacterProfileAsync(

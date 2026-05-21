@@ -47,6 +47,10 @@ public class FunctionAuthorizationContractTests
         // Public privacy contact — the SPA reveals this only on user click.
         "privacy-email",
         "privacy-email-v1",
+        // Public image cache — source is restricted to Blizzard render-CDN URLs,
+        // and <img> requests must work without an API JSON preflight.
+        "wow-media-cache",
+        "wow-media-cache-v1",
         // Catch-all OPTIONS preflight handler — short-circuited by CorsMiddleware.
         "cors-preflight",
     };

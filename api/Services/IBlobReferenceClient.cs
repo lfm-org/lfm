@@ -21,6 +21,12 @@ public interface IBlobReferenceClient
     Task<T?> GetAsync<T>(string blobName, CancellationToken ct) where T : class;
 
     /// <summary>
+    /// Reads a binary blob from the reference container. Returns null when the
+    /// blob does not exist.
+    /// </summary>
+    Task<ReferenceBlobContent?> GetContentAsync(string blobName, CancellationToken ct);
+
+    /// <summary>
     /// Enumerates every blob under <paramref name="prefix"/>, deserializing each one,
     /// skipping manifest-shaped blobs (<c>index.json</c>, <c>meta.json</c>) so callers
     /// receive only per-id detail documents.
@@ -34,4 +40,13 @@ public interface IBlobReferenceClient
     /// documents and the list-endpoint manifest (<c>reference/{kind}/index.json</c>).
     /// </summary>
     Task UploadAsync<T>(string blobName, T payload, CancellationToken ct);
+
+    /// <summary>
+    /// Uploads binary content to the reference container, overwriting any existing
+    /// blob and preserving the supplied content type for downstream image
+    /// responses.
+    /// </summary>
+    Task UploadContentAsync(string blobName, byte[] content, string contentType, CancellationToken ct);
 }
+
+public sealed record ReferenceBlobContent(byte[] Content, string ContentType);

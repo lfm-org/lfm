@@ -54,7 +54,12 @@ public class BattleNetCharactersFunction(
             raider.AccountProfileSummary!,
             region,
             raider.Characters,
-            raider.PortraitCache);
+            raider.PortraitCache)
+            .Select(character => character with
+            {
+                PortraitUrl = ApiMediaUrls.ToCachedUrl(req, character.PortraitUrl),
+            })
+            .ToList();
 
         req.HttpContext.Response.Headers["Cache-Control"] = "private, max-age=300";
         return new OkObjectResult(characters);
