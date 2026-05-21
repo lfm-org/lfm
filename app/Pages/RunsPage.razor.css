@@ -427,16 +427,6 @@
     gap: 8px;
 }
 
-.roster-role-empty {
-    min-block-size: 44px;
-    padding-block: 10px;
-    padding-inline: 12px;
-    color: var(--neutral-foreground-hint-rest);
-    background: var(--neutral-fill-rest);
-    border: 1px dashed var(--neutral-stroke-rest);
-    border-radius: calc(var(--control-corner-radius) * 1px);
-}
-
 .roster-rows {
     display: grid;
     grid-template-columns: 1fr;
