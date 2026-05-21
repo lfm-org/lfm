@@ -51,17 +51,18 @@ public class RunsPageCssContractTests
     }
 
     [Fact]
-    public void Character_row_places_name_attendance_and_icons_in_requested_card_rows()
+    public void Character_row_keeps_two_visual_rows_while_reordering_content()
     {
         var css = File.ReadAllText(FindRepoFile("app", "wwwroot", "css", "app.css"));
 
         Assert.Contains("grid-template-areas:", css);
-        Assert.Contains("\"name name\"", css);
-        Assert.Contains("\". attendance\"", css);
-        Assert.Contains("\"icons .\"", css);
+        Assert.Contains("\"name attendance\"", css);
+        Assert.Contains("\"icons attendance\"", css);
+        Assert.DoesNotContain("\". attendance\"", css);
         Assert.Contains("grid-area: name;", css);
         Assert.Contains("grid-area: attendance;", css);
         Assert.Contains("grid-area: icons;", css);
+        Assert.Contains("align-self: center;", css);
     }
 
     [Fact]
