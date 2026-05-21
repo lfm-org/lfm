@@ -22,6 +22,9 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
         MissingMemberHandling = MissingMemberHandling.Ignore,
     };
 
+    private readonly SemaphoreSlim _ensureContainerLock = new(1, 1);
+    private bool _containerEnsured;
+
     public async Task<T?> GetAsync<T>(string blobName, CancellationToken ct) where T : class
     {
         var blob = container.GetBlobClient(blobName);
@@ -72,6 +75,7 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
         var json = JsonConvert.SerializeObject(payload, JsonSettings);
         var bytes = System.Text.Encoding.UTF8.GetBytes(json);
         using var stream = new MemoryStream(bytes);
+        await EnsureContainerExistsAsync(ct);
         var blob = container.GetBlobClient(blobName);
         await blob.UploadAsync(
             stream,
@@ -83,6 +87,24 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
                 },
             },
             ct);
+    }
+
+    private async Task EnsureContainerExistsAsync(CancellationToken ct)
+    {
+        if (_containerEnsured) return;
+
+        await _ensureContainerLock.WaitAsync(ct);
+        try
+        {
+            if (_containerEnsured) return;
+
+            await container.CreateIfNotExistsAsync(cancellationToken: ct);
+            _containerEnsured = true;
+        }
+        finally
+        {
+            _ensureContainerLock.Release();
+        }
     }
 
     private static bool IsManifestBlob(string blobName)
