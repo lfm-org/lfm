@@ -57,6 +57,7 @@ builder.Services.AddScoped<IGuildClient, GuildClient>();
 builder.Services.AddScoped<IRunsClient, RunsClient>();
 builder.Services.AddScoped<IBattleNetClient, BattleNetClient>();
 builder.Services.AddScoped<UnsavedChangesGuard>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<ISessionExpiryNotifier, SessionExpiryNotifier>();

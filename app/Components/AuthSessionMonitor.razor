@@ -3,10 +3,13 @@
 @inject NavigationManager Nav
 @inject IAuthStateRefresher AuthStateRefresher
 @inject ISessionExpiryNotifier SessionExpiryNotifier
+@inject TimeProvider TimeProvider
 
 @code {
+    private static readonly TimeSpan ResumeProbeMinimumInterval = TimeSpan.FromMinutes(5);
     private readonly string _registrationId = $"auth-session-monitor-{Guid.NewGuid():N}";
     private DotNetObjectReference<AuthSessionMonitor>? _dotNetRef;
+    private DateTimeOffset? _lastSessionCheckAt;
     private bool _disposed;
 
     protected override void OnInitialized()
@@ -32,8 +35,15 @@
     [JSInvokable]
     public Task CheckSessionAsync()
     {
-        if (!_disposed && AuthStateRefresher.HasAuthenticatedSession)
-            AuthStateRefresher.RefreshAuthenticationState();
+        if (_disposed || !AuthStateRefresher.HasAuthenticatedSession)
+            return Task.CompletedTask;
+
+        var now = TimeProvider.GetUtcNow();
+        if (_lastSessionCheckAt is not null && now - _lastSessionCheckAt < ResumeProbeMinimumInterval)
+            return Task.CompletedTask;
+
+        _lastSessionCheckAt = now;
+        AuthStateRefresher.RefreshAuthenticationState();
 
         return Task.CompletedTask;
     }

@@ -67,6 +67,27 @@ public class AuthSessionMonitorTests : ComponentTestBase
     }
 
     [Fact]
+    public async Task Resume_probe_rate_limits_repeated_auth_state_refreshes()
+    {
+        var notifier = new SessionExpiryNotifier();
+        var refresher = new RecordingAuthStateRefresher(hasAuthenticatedSession: true);
+        var timeProvider = new ManualTimeProvider(new DateTimeOffset(2026, 5, 21, 12, 0, 0, TimeSpan.Zero));
+        Services.AddSingleton<ISessionExpiryNotifier>(notifier);
+        Services.AddSingleton<IAuthStateRefresher>(refresher);
+        Services.AddSingleton<TimeProvider>(timeProvider);
+        var cut = Render<AuthSessionMonitor>();
+
+        await cut.Instance.CheckSessionAsync();
+        await cut.Instance.CheckSessionAsync();
+        timeProvider.Advance(TimeSpan.FromMinutes(4));
+        await cut.Instance.CheckSessionAsync();
+        timeProvider.Advance(TimeSpan.FromMinutes(1));
+        await cut.Instance.CheckSessionAsync();
+
+        Assert.Equal(2, refresher.RefreshCount);
+    }
+
+    [Fact]
     public async Task CredentialsHandler_notifies_session_expiry_on_401_response()
     {
         var notifier = new SessionExpiryNotifier();
@@ -115,6 +136,15 @@ public class AuthSessionMonitorTests : ComponentTestBase
             MarkExpiredCount++;
             HasAuthenticatedSession = false;
         }
+    }
+
+    private sealed class ManualTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        private DateTimeOffset _utcNow = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan delta) => _utcNow += delta;
     }
 
     private sealed class StaticResponseHandler(HttpStatusCode statusCode) : HttpMessageHandler

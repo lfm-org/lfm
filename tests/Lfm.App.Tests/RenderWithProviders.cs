@@ -40,6 +40,7 @@ public abstract class ComponentTestBase : BunitContext
         Services.AddHttpClient("api", c => c.BaseAddress = new Uri("http://localhost:7071"));
 
         Services.AddSingleton<IThemeService, ThemeService>();
+        Services.AddSingleton(TimeProvider.System);
 
         Services.AddSingleton<IDataCache, InMemoryDataCache>();
         Services.AddSingleton<ILocaleService, LocaleService>();
