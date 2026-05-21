@@ -1,0 +1,1736 @@
+{
+  "model_schema_version": "model.schema.v1",
+  "required_plugins": [
+    {
+      "id": "generic-graph",
+      "version": "0.14.6"
+    },
+    {
+      "id": "elk-layout",
+      "version": "0.14.6"
+    },
+    {
+      "id": "svg-render",
+      "version": "0.14.6"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pkg-platform-operations-uml",
+      "type": "Package",
+      "label": "Platform operations UML",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/architecture/lfm.dediren/model.json"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "production-plateau",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-hosting",
+      "type": "Package",
+      "label": "Hosting surfaces",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/swa.bicep",
+          "infra/modules/functions.bicep",
+          ".github/workflows/deploy-app.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "function-app",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-data-plane",
+      "type": "Package",
+      "label": "Data plane and secrets",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep",
+          "infra/modules/storage.bicep",
+          "infra/modules/keyvault.bicep",
+          "infra/modules/dataprotection.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-account",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-observability",
+      "type": "Package",
+      "label": "Observability",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep",
+          "infra/modules/loganalytics.bicep",
+          "infra/modules/alerts.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "application-insights",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "pkg-release",
+      "type": "Package",
+      "label": "Release workflow",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy.yml",
+          ".github/workflows/deploy-infra.yml",
+          ".github/workflows/deploy-app-build.yml",
+          ".github/workflows/deploy-app.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "class-static-web-apps",
+      "type": "Class",
+      "label": "Azure Static Web Apps",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/swa.bicep",
+          ".github/workflows/deploy-app.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "static-web-apps",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "serve Blazor wwwroot",
+              "visibility": "public",
+              "return_type": "Static site"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-function-app",
+      "type": "Class",
+      "label": "Azure Function App",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep",
+          ".github/workflows/deploy-app.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "function-app",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "host HTTP functions",
+              "visibility": "public",
+              "return_type": "API runtime"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-app-service-plan",
+      "type": "Class",
+      "label": "App Service Plan (Y1)",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "app-service-plan",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "allocate consumption plan",
+              "visibility": "public",
+              "return_type": "Plan capacity"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-functions-runtime",
+      "type": "Class",
+      "label": "Azure Functions runtime",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Lfm.Api.csproj",
+          "api/host.json",
+          "infra/modules/functions.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "functions-runtime",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "run .NET isolated worker",
+              "visibility": "public",
+              "return_type": "Function host"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-blazor-app",
+      "type": "Class",
+      "label": "Lfm.App",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.csproj",
+          ".github/workflows/deploy-app-build.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-app",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "render SPA",
+              "visibility": "public",
+              "return_type": "WASM app"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "class-api-app",
+      "type": "Class",
+      "label": "Lfm.Api",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Lfm.Api.csproj",
+          "api/Functions/"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "serve /api/v1",
+              "visibility": "public",
+              "return_type": "HTTP API"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-rest-api",
+      "type": "Interface",
+      "label": "REST API (/api/v1/*)",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/",
+          "app/Lfm.App.Core/Services/"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "rest-api",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "call endpoint",
+              "visibility": "public",
+              "return_type": "DTOs"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-managed-identity",
+      "type": "Interface",
+      "label": "Managed identity",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep",
+          "infra/modules/dataprotection.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "managed-identity",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-hosting",
+          "operations": [
+            {
+              "name": "request Azure token",
+              "visibility": "public",
+              "return_type": "Access token"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-cosmos-data-plane",
+      "type": "Interface",
+      "label": "Cosmos DB data plane",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-account",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "operations": [
+            {
+              "name": "read/write documents",
+              "visibility": "public",
+              "return_type": "Documents"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-storage-data-plane",
+      "type": "Interface",
+      "label": "Blob storage data plane",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/storage.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "storage-account",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "operations": [
+            {
+              "name": "read/write blobs",
+              "visibility": "public",
+              "return_type": "Blob content"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-key-vault-secrets",
+      "type": "Interface",
+      "label": "Key Vault secrets and keys",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/keyvault.bicep",
+          "infra/modules/dataprotection.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "key-vault",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "operations": [
+            {
+              "name": "unwrap keys and read refs",
+              "visibility": "public",
+              "return_type": "Secret/key material"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "interface-telemetry-ingestion",
+      "type": "Interface",
+      "label": "Telemetry ingestion",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "application-insights",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-observability",
+          "operations": [
+            {
+              "name": "publish telemetry",
+              "visibility": "public",
+              "return_type": "Telemetry event"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-cosmos-database",
+      "type": "DataType",
+      "label": "Cosmos SQL database",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-database",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "DatabaseName",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-runs-container",
+      "type": "DataType",
+      "label": "runs container",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep",
+          "api/Repositories/IRunsRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-runs",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "RunDocument",
+              "type": "Document",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-raiders-container",
+      "type": "DataType",
+      "label": "raiders container",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep",
+          "api/Repositories/IRaidersRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-raiders",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "RaiderDocument",
+              "type": "Document",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-guilds-container",
+      "type": "DataType",
+      "label": "guilds container",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep",
+          "api/Repositories/IGuildRepository.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-guilds",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "GuildDocument",
+              "type": "Document",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-idempotency-container",
+      "type": "DataType",
+      "label": "idempotency container",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/cosmos.bicep",
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-idempotency",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "ReplayRecord",
+              "type": "Document",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-wow-reference-blobs",
+      "type": "DataType",
+      "label": "wow reference blobs",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/storage.bicep",
+          "api/Services/ReferenceSync.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-reference-container",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "reference/{kind}/",
+              "type": "Blob prefix",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-data-protection-key-ring",
+      "type": "DataType",
+      "label": "data-protection key ring blob",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/storage.bicep",
+          "infra/modules/dataprotection.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "data-protection-container",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "key ring",
+              "type": "Blob",
+              "visibility": "private",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-deployments-container",
+      "type": "DataType",
+      "label": "deployments blob container",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/storage.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deployment-container",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "deployment artifacts",
+              "type": "Blob",
+              "visibility": "private",
+              "multiplicity": "0..*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "datatype-data-protection-key",
+      "type": "DataType",
+      "label": "Data Protection key",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/keyvault.bicep",
+          "infra/modules/dataprotection.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "data-protection-key",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "versionless key URI",
+              "type": "Key Vault key",
+              "visibility": "private",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "activity-observability",
+      "type": "Activity",
+      "label": "Observability and alerting",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep",
+          "infra/modules/loganalytics.bicep",
+          "infra/modules/alerts.bicep",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "application-insights",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-observability",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "action-emit-api-telemetry",
+      "type": "Action",
+      "label": "Emit API telemetry",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Program.cs",
+          "infra/modules/functions.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "function-app",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-ingest-app-insights",
+      "type": "Action",
+      "label": "Ingest Application Insights",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "application-insights",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-aggregate-log-analytics",
+      "type": "Action",
+      "label": "Aggregate workspace logs",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/loganalytics.bicep",
+          "infra/main.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "log-analytics",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-monitor-cosmos-429",
+      "type": "Action",
+      "label": "Monitor Cosmos 429s",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/alerts.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-throttle-alert",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-notify-throttle-alert",
+      "type": "Action",
+      "label": "Notify throttle alert",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/alerts.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "cosmos-throttle-alert",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-observability",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "activity-production-release",
+      "type": "Activity",
+      "label": "Production release",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-production-release",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "action-run-pre-commit-secret-guard",
+      "type": "Action",
+      "label": "Run pre-commit secret guard",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "scripts/pre-commit",
+          "CLAUDE.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "pre-commit-secret-guard",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-run-pre-push-verification",
+      "type": "Action",
+      "label": "Run pre-push verification",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "scripts/pre-push",
+          "CLAUDE.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "pre-push-verification-gate",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-trigger-deploy-workflow",
+      "type": "Action",
+      "label": "Trigger deploy workflow",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-to-production-event",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-detect-deploy-changes",
+      "type": "Action",
+      "label": "Detect deploy changes",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-change-detection",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-run-secret-scan",
+      "type": "Action",
+      "label": "Run reusable Gitleaks",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/secrets-scan.yml",
+          ".github/workflows/deploy.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "secret-scan-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-release-scope",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-run-infra-analysis",
+      "type": "Action",
+      "label": "Analyze infrastructure",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/analyze-infra.yml",
+          "ps-rule.yaml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "infrastructure-analysis-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-deploy-infra",
+      "type": "Action",
+      "label": "Deploy infrastructure",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy-infra.yml",
+          "infra/main.bicep"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-infra-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-build-app-artifacts",
+      "type": "Action",
+      "label": "Build app artifacts",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy-app-build.yml",
+          "api/Lfm.Api.csproj",
+          "app/Lfm.App.csproj"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-app-build-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-upload-app-artifacts",
+      "type": "Action",
+      "label": "Deploy app artifacts",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          ".github/workflows/deploy-app.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "deploy-app-workflow",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-reach-production",
+      "type": "Action",
+      "label": "Reach production plateau",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/parameters.example.json",
+          ".github/workflows/deploy.yml"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "production-plateau",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-production-release",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {}
+    }
+  ],
+  "relationships": [
+    {
+      "id": "host-swa-deploys-blazor",
+      "type": "Dependency",
+      "source": "class-static-web-apps",
+      "target": "class-blazor-app",
+      "label": "hosts",
+      "properties": {
+        "uml": {
+          "guard": "hosts"
+        }
+      }
+    },
+    {
+      "id": "host-plan-hosts-function",
+      "type": "Dependency",
+      "source": "class-app-service-plan",
+      "target": "class-function-app",
+      "label": "hosts",
+      "properties": {
+        "uml": {
+          "guard": "hosts"
+        }
+      }
+    },
+    {
+      "id": "host-function-composes-runtime",
+      "type": "Composition",
+      "source": "class-function-app",
+      "target": "class-functions-runtime",
+      "label": "runtime",
+      "properties": {
+        "uml": {
+          "guard": "runtime"
+        }
+      }
+    },
+    {
+      "id": "host-function-deploys-api",
+      "type": "Dependency",
+      "source": "class-function-app",
+      "target": "class-api-app",
+      "label": "hosts",
+      "properties": {
+        "uml": {
+          "guard": "hosts"
+        }
+      }
+    },
+    {
+      "id": "api-realizes-rest",
+      "type": "Realization",
+      "source": "class-api-app",
+      "target": "interface-rest-api",
+      "label": "exposes",
+      "properties": {
+        "uml": {
+          "guard": "exposes"
+        }
+      }
+    },
+    {
+      "id": "blazor-calls-rest",
+      "type": "Dependency",
+      "source": "class-blazor-app",
+      "target": "interface-rest-api",
+      "label": "calls",
+      "properties": {
+        "uml": {
+          "guard": "calls"
+        }
+      }
+    },
+    {
+      "id": "function-uses-identity",
+      "type": "Dependency",
+      "source": "class-function-app",
+      "target": "interface-managed-identity",
+      "label": "identity",
+      "properties": {
+        "uml": {
+          "guard": "identity"
+        }
+      }
+    },
+    {
+      "id": "identity-accesses-cosmos",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "interface-cosmos-data-plane",
+      "label": "RBAC",
+      "properties": {
+        "uml": {
+          "guard": "RBAC"
+        }
+      }
+    },
+    {
+      "id": "identity-accesses-storage",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "interface-storage-data-plane",
+      "label": "RBAC",
+      "properties": {
+        "uml": {
+          "guard": "RBAC"
+        }
+      }
+    },
+    {
+      "id": "identity-accesses-key-vault",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "interface-key-vault-secrets",
+      "label": "RBAC",
+      "properties": {
+        "uml": {
+          "guard": "RBAC"
+        }
+      }
+    },
+    {
+      "id": "function-publishes-telemetry",
+      "type": "Dependency",
+      "source": "class-function-app",
+      "target": "interface-telemetry-ingestion",
+      "label": "telemetry",
+      "properties": {
+        "uml": {
+          "guard": "telemetry"
+        }
+      }
+    },
+    {
+      "id": "data-database-composes-runs",
+      "type": "Composition",
+      "source": "datatype-cosmos-database",
+      "target": "datatype-runs-container",
+      "label": "container",
+      "properties": {
+        "uml": {
+          "guard": "container"
+        }
+      }
+    },
+    {
+      "id": "data-database-composes-raiders",
+      "type": "Composition",
+      "source": "datatype-cosmos-database",
+      "target": "datatype-raiders-container",
+      "label": "container",
+      "properties": {
+        "uml": {
+          "guard": "container"
+        }
+      }
+    },
+    {
+      "id": "data-database-composes-guilds",
+      "type": "Composition",
+      "source": "datatype-cosmos-database",
+      "target": "datatype-guilds-container",
+      "label": "container",
+      "properties": {
+        "uml": {
+          "guard": "container"
+        }
+      }
+    },
+    {
+      "id": "data-database-composes-idempotency",
+      "type": "Composition",
+      "source": "datatype-cosmos-database",
+      "target": "datatype-idempotency-container",
+      "label": "container",
+      "properties": {
+        "uml": {
+          "guard": "container"
+        }
+      }
+    },
+    {
+      "id": "data-identity-reads-cosmos",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "datatype-cosmos-database",
+      "label": "Data Contributor",
+      "properties": {
+        "uml": {
+          "guard": "Data Contributor"
+        }
+      }
+    },
+    {
+      "id": "data-identity-reads-blobs",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "datatype-wow-reference-blobs",
+      "label": "Blob roles",
+      "properties": {
+        "uml": {
+          "guard": "Blob roles"
+        }
+      }
+    },
+    {
+      "id": "data-identity-uses-key-vault",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "interface-key-vault-secrets",
+      "label": "Secrets User",
+      "properties": {
+        "uml": {
+          "guard": "Secrets User"
+        }
+      }
+    },
+    {
+      "id": "data-key-vault-composes-key",
+      "type": "Composition",
+      "source": "interface-key-vault-secrets",
+      "target": "datatype-data-protection-key",
+      "label": "key",
+      "properties": {
+        "uml": {
+          "guard": "key"
+        }
+      }
+    },
+    {
+      "id": "data-key-wraps-ring",
+      "type": "Dependency",
+      "source": "datatype-data-protection-key",
+      "target": "datatype-data-protection-key-ring",
+      "label": "wraps",
+      "properties": {
+        "uml": {
+          "guard": "wraps"
+        }
+      }
+    },
+    {
+      "id": "data-storage-holds-reference",
+      "type": "Composition",
+      "source": "interface-storage-data-plane",
+      "target": "datatype-wow-reference-blobs",
+      "label": "blob container",
+      "properties": {
+        "uml": {
+          "guard": "blob container"
+        }
+      }
+    },
+    {
+      "id": "data-storage-holds-key-ring",
+      "type": "Composition",
+      "source": "interface-storage-data-plane",
+      "target": "datatype-data-protection-key-ring",
+      "label": "blob container",
+      "properties": {
+        "uml": {
+          "guard": "blob container"
+        }
+      }
+    },
+    {
+      "id": "data-storage-holds-deployments",
+      "type": "Composition",
+      "source": "interface-storage-data-plane",
+      "target": "datatype-deployments-container",
+      "label": "blob container",
+      "properties": {
+        "uml": {
+          "guard": "blob container"
+        }
+      }
+    },
+    {
+      "id": "flow-observability-emit",
+      "type": "ControlFlow",
+      "source": "initial-observability",
+      "target": "action-emit-api-telemetry",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-observability-ingest",
+      "type": "ControlFlow",
+      "source": "action-emit-api-telemetry",
+      "target": "action-ingest-app-insights",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-observability-aggregate",
+      "type": "ControlFlow",
+      "source": "action-ingest-app-insights",
+      "target": "action-aggregate-log-analytics",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-observability-monitor",
+      "type": "ControlFlow",
+      "source": "action-aggregate-log-analytics",
+      "target": "action-monitor-cosmos-429",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-observability-alert",
+      "type": "ControlFlow",
+      "source": "action-monitor-cosmos-429",
+      "target": "action-notify-throttle-alert",
+      "label": "threshold",
+      "properties": {
+        "uml": {
+          "guard": "threshold"
+        }
+      }
+    },
+    {
+      "id": "flow-observability-final",
+      "type": "ControlFlow",
+      "source": "action-notify-throttle-alert",
+      "target": "final-observability",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-precommit",
+      "type": "ControlFlow",
+      "source": "initial-production-release",
+      "target": "action-run-pre-commit-secret-guard",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-prepush",
+      "type": "ControlFlow",
+      "source": "action-run-pre-commit-secret-guard",
+      "target": "action-run-pre-push-verification",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-trigger",
+      "type": "ControlFlow",
+      "source": "action-run-pre-push-verification",
+      "target": "action-trigger-deploy-workflow",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-detect",
+      "type": "ControlFlow",
+      "source": "action-trigger-deploy-workflow",
+      "target": "action-detect-deploy-changes",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-secret-scan",
+      "type": "ControlFlow",
+      "source": "action-detect-deploy-changes",
+      "target": "action-run-secret-scan",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-scope",
+      "type": "ControlFlow",
+      "source": "action-run-secret-scan",
+      "target": "decision-release-scope",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-infra-analysis",
+      "type": "ControlFlow",
+      "source": "decision-release-scope",
+      "target": "action-run-infra-analysis",
+      "label": "infra",
+      "properties": {
+        "uml": {
+          "guard": "infra"
+        }
+      }
+    },
+    {
+      "id": "flow-release-deploy-infra",
+      "type": "ControlFlow",
+      "source": "action-run-infra-analysis",
+      "target": "action-deploy-infra",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-infra-build",
+      "type": "ControlFlow",
+      "source": "action-deploy-infra",
+      "target": "action-build-app-artifacts",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-app-build",
+      "type": "ControlFlow",
+      "source": "decision-release-scope",
+      "target": "action-build-app-artifacts",
+      "label": "app",
+      "properties": {
+        "uml": {
+          "guard": "app"
+        }
+      }
+    },
+    {
+      "id": "flow-release-app-deploy",
+      "type": "ControlFlow",
+      "source": "action-build-app-artifacts",
+      "target": "action-upload-app-artifacts",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-production",
+      "type": "ControlFlow",
+      "source": "action-upload-app-artifacts",
+      "target": "action-reach-production",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    },
+    {
+      "id": "flow-release-final",
+      "type": "ControlFlow",
+      "source": "action-reach-production",
+      "target": "final-production-release",
+      "label": "",
+      "properties": {
+        "uml": {
+          "guard": ""
+        }
+      }
+    }
+  ],
+  "plugins": {
+    "generic-graph": {
+      "semantic_profile": "uml",
+      "views": [
+        {
+          "id": "platform-hosting-class",
+          "label": "Platform Hosting - UML Class Boundary",
+          "kind": "uml-class",
+          "nodes": [
+            "class-static-web-apps",
+            "class-blazor-app",
+            "interface-rest-api",
+            "class-app-service-plan",
+            "class-function-app",
+            "class-functions-runtime",
+            "class-api-app",
+            "interface-managed-identity",
+            "interface-cosmos-data-plane",
+            "interface-storage-data-plane",
+            "interface-key-vault-secrets",
+            "interface-telemetry-ingestion"
+          ],
+          "relationships": [
+            "host-swa-deploys-blazor",
+            "blazor-calls-rest",
+            "host-plan-hosts-function",
+            "host-function-composes-runtime",
+            "host-function-deploys-api",
+            "api-realizes-rest",
+            "function-uses-identity",
+            "identity-accesses-cosmos",
+            "identity-accesses-storage",
+            "identity-accesses-key-vault",
+            "function-publishes-telemetry"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "platform-data-plane",
+          "label": "Platform Data Plane - UML Data",
+          "kind": "uml-data",
+          "nodes": [
+            "interface-managed-identity",
+            "interface-cosmos-data-plane",
+            "interface-storage-data-plane",
+            "interface-key-vault-secrets",
+            "datatype-cosmos-database",
+            "datatype-runs-container",
+            "datatype-raiders-container",
+            "datatype-guilds-container",
+            "datatype-idempotency-container",
+            "datatype-wow-reference-blobs",
+            "datatype-data-protection-key-ring",
+            "datatype-deployments-container",
+            "datatype-data-protection-key"
+          ],
+          "relationships": [
+            "data-database-composes-runs",
+            "data-database-composes-raiders",
+            "data-database-composes-guilds",
+            "data-database-composes-idempotency",
+            "data-identity-reads-cosmos",
+            "data-identity-reads-blobs",
+            "data-identity-uses-key-vault",
+            "data-key-vault-composes-key",
+            "data-key-wraps-ring",
+            "data-storage-holds-reference",
+            "data-storage-holds-key-ring",
+            "data-storage-holds-deployments"
+          ],
+          "layout_preferences": {
+            "direction": "down",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "observability-activity",
+          "label": "Observability - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-observability",
+            "initial-observability",
+            "action-emit-api-telemetry",
+            "action-ingest-app-insights",
+            "action-aggregate-log-analytics",
+            "action-monitor-cosmos-429",
+            "action-notify-throttle-alert",
+            "final-observability"
+          ],
+          "relationships": [
+            "flow-observability-emit",
+            "flow-observability-ingest",
+            "flow-observability-aggregate",
+            "flow-observability-monitor",
+            "flow-observability-alert",
+            "flow-observability-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
+          "id": "production-release-activity",
+          "label": "Production Release - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-production-release",
+            "initial-production-release",
+            "action-run-pre-commit-secret-guard",
+            "action-run-pre-push-verification",
+            "action-trigger-deploy-workflow",
+            "action-detect-deploy-changes",
+            "action-run-secret-scan",
+            "decision-release-scope",
+            "action-run-infra-analysis",
+            "action-deploy-infra",
+            "action-build-app-artifacts",
+            "action-upload-app-artifacts",
+            "action-reach-production",
+            "final-production-release"
+          ],
+          "relationships": [
+            "flow-release-precommit",
+            "flow-release-prepush",
+            "flow-release-trigger",
+            "flow-release-detect",
+            "flow-release-secret-scan",
+            "flow-release-scope",
+            "flow-release-infra-analysis",
+            "flow-release-deploy-infra",
+            "flow-release-infra-build",
+            "flow-release-app-build",
+            "flow-release-app-deploy",
+            "flow-release-production",
+            "flow-release-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        }
+      ]
+    }
+  }
+}
