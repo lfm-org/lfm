@@ -8,6 +8,7 @@ using Lfm.App.Auth;
 using Lfm.App.i18n;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Instances;
 using Lfm.Contracts.Me;
 using Lfm.Contracts.Runs;
 using Lfm.Contracts.Specializations;
@@ -47,6 +48,7 @@ public abstract class ComponentTestBase : BunitContext
         Services.AddSingleton<IStringLocalizer>(_localizer);
         Services.AddSingleton<IMeClient, DefaultMeClient>();
         Services.AddSingleton<IBattleNetClient, DefaultBattleNetClient>();
+        Services.AddSingleton<IInstancesClient, DefaultInstancesClient>();
         Services.AddSingleton<ISpecializationsClient, DefaultSpecializationsClient>();
         Services.AddSingleton<ISessionExpiryNotifier, SessionExpiryNotifier>();
         Services.AddSingleton<IAuthStateRefresher, NoopAuthStateRefresher>();
@@ -110,6 +112,12 @@ internal sealed class DefaultSpecializationsClient : ISpecializationsClient
 {
     public Task<IReadOnlyList<SpecializationDto>> ListAsync(CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<SpecializationDto>>([]);
+}
+
+internal sealed class DefaultInstancesClient : IInstancesClient
+{
+    public Task<IReadOnlyList<InstanceDto>> ListAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<InstanceDto>>([]);
 }
 
 internal sealed class NoopAuthStateRefresher : IAuthStateRefresher

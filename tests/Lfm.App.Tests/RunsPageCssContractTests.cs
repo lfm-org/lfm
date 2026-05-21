@@ -39,6 +39,16 @@ public class RunsPageCssContractTests
     }
 
     [Fact]
+    public void Artwork_run_detail_card_removes_default_card_padding()
+    {
+        var css = File.ReadAllText(FindRepoFile("app", "Pages", "RunsPage.razor.css"));
+
+        Assert.Contains(".run-detail-main ::deep fluent-card.run-detail-card--artwork", css);
+        Assert.Contains("padding: 0;", css);
+        Assert.Contains("overflow: hidden;", css);
+    }
+
+    [Fact]
     public void Roster_role_icons_use_single_color_outline_styling()
     {
         var css = File.ReadAllText(FindRepoFile("app", "Pages", "RunsPage.razor.css"));

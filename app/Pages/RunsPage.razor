@@ -6,9 +6,11 @@
 @using Lfm.App.Runs
 @using Lfm.App.Services
 @using Lfm.Contracts.Characters
+@using Lfm.Contracts.Instances
 @using Lfm.Contracts.Runs
 @using Lfm.Contracts.Specializations
 @inject IBattleNetClient BattleNetClient
+@inject IInstancesClient InstancesClient
 @inject IMeClient MeClient
 @inject IRunsClient RunsClient
 @inject ISpecializationsClient SpecializationsClient
@@ -162,8 +164,10 @@
 
                         <div class="run-detail-workbench" data-testid="run-detail-workbench">
                             <div class="run-detail-main" data-testid="run-detail-main">
-                                <FluentCard>
-                                    <section class="run-detail-summary" data-testid="run-detail-summary">
+                                <FluentCard Class="@RunDetailCardClass(selectedRun)">
+                                    <section class="@RunDetailSummaryClass(selectedRun)"
+                                             style="@RunDetailSummaryStyle(selectedRun)"
+                                             data-testid="run-detail-summary">
                                         <div class="run-detail-header">
                                             <div class="run-detail-heading">
                                                 <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
@@ -301,6 +305,9 @@
     private bool _specIconsLoading;
     private IReadOnlyDictionary<int, string> _specIconUrls = new Dictionary<int, string>();
     private IReadOnlyDictionary<string, string> _specIconUrlsByClassAndName = new Dictionary<string, string>();
+    private IReadOnlyDictionary<int, string> _instancePortraitUrlsById = new Dictionary<int, string>();
+    private bool _instancePortraitsLoaded;
+    private bool _instancePortraitsLoading;
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
@@ -476,6 +483,11 @@
             }
 
             ApplyRunDetail(detail);
+            if (detail.InstanceId.HasValue)
+            {
+                await EnsureInstancePortraitsLoaded();
+            }
+
             _signupError = null;
             if (NeedsSpecIcons(detail))
             {
@@ -716,6 +728,80 @@
 
     private static bool NeedsSpecIcons(RunDetailDto detail) =>
         detail.RunCharacters.Any(c => c.SpecId is not null || !string.IsNullOrWhiteSpace(c.SpecName));
+
+    private string RunDetailCardClass(RunDetailDto run)
+    {
+        var artworkClass = InstancePortraitUrlFor(run) is null
+            ? null
+            : " run-detail-card--artwork";
+        return $"run-detail-card{artworkClass}";
+    }
+
+    private string RunDetailSummaryClass(RunDetailDto run)
+    {
+        var artworkClass = InstancePortraitUrlFor(run) is null
+            ? null
+            : " run-detail-summary--artwork";
+        return $"run-detail-summary{artworkClass}";
+    }
+
+    private string? RunDetailSummaryStyle(RunDetailDto run)
+    {
+        var portraitUrl = InstancePortraitUrlFor(run);
+        if (portraitUrl is null)
+            return null;
+
+        return "background-image: " +
+            "linear-gradient(90deg, rgba(18, 18, 18, 0.94) 0%, rgba(18, 18, 18, 0.72) 48%, rgba(18, 18, 18, 0.35) 100%), " +
+            $"url('{CssUrlEscape(portraitUrl)}')";
+    }
+
+    private string? InstancePortraitUrlFor(RunDetailDto run)
+    {
+        if (!run.InstanceId.HasValue)
+            return null;
+
+        return _instancePortraitUrlsById.TryGetValue(run.InstanceId.Value, out var portraitUrl)
+            ? portraitUrl
+            : null;
+    }
+
+    private async Task EnsureInstancePortraitsLoaded()
+    {
+        if (_instancePortraitsLoaded || _instancePortraitsLoading)
+            return;
+
+        _instancePortraitsLoading = true;
+        try
+        {
+            var instances = await InstancesClient.ListAsync(CancellationToken.None);
+            _instancePortraitUrlsById = instances
+                .Where(i => i.InstanceNumericId > 0 && IsHttpImageUrl(i.PortraitUrl))
+                .GroupBy(i => i.InstanceNumericId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.First().PortraitUrl!);
+        }
+        catch
+        {
+            _instancePortraitUrlsById = new Dictionary<int, string>();
+        }
+        finally
+        {
+            _instancePortraitsLoaded = true;
+            _instancePortraitsLoading = false;
+        }
+    }
+
+    private static string CssUrlEscape(string value) =>
+        value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("'", "\\27 ", StringComparison.Ordinal);
+
+    private static bool IsHttpImageUrl(string? value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase));
 
     private string? SpecIconUrlFor(RunCharacterDto? character)
     {
