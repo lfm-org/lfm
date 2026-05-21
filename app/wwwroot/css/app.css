@@ -359,9 +359,15 @@ fluent-button.footer-language--active::part(control) {
 
 /* Character row */
 .character-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "name name"
+        ". attendance"
+        "icons .";
     align-items: center;
-    gap: 12px;
+    column-gap: 12px;
+    row-gap: 4px;
     padding: 10px 12px 10px 9px;
     background: var(--neutral-fill-rest);
     border-radius: calc(var(--control-corner-radius) * 1px);
@@ -370,10 +376,11 @@ fluent-button.footer-language--active::part(control) {
 }
 
 .character-row__icons {
+    grid-area: icons;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    flex: none;
+    justify-self: start;
 }
 
 .character-row__icon {
@@ -381,27 +388,17 @@ fluent-button.footer-language--active::part(control) {
     block-size: 1.35rem;
 }
 
-.character-row__main {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
 .character-row__name {
+    grid-area: name;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.character-row__sub {
-    font-size: 0.82em;
-    color: var(--neutral-foreground-hint-rest);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.character-row .attendance-pill {
+    grid-area: attendance;
+    justify-self: end;
 }
 
 /* Attendance pill */
