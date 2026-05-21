@@ -51,6 +51,20 @@ public class RunsPageCssContractTests
     }
 
     [Fact]
+    public void Character_row_places_name_attendance_and_icons_in_requested_card_rows()
+    {
+        var css = File.ReadAllText(FindRepoFile("app", "wwwroot", "css", "app.css"));
+
+        Assert.Contains("grid-template-areas:", css);
+        Assert.Contains("\"name name\"", css);
+        Assert.Contains("\". attendance\"", css);
+        Assert.Contains("\"icons .\"", css);
+        Assert.Contains("grid-area: name;", css);
+        Assert.Contains("grid-area: attendance;", css);
+        Assert.Contains("grid-area: icons;", css);
+    }
+
+    [Fact]
     public void Run_list_composition_chips_are_muted_indicators_not_alerts()
     {
         var css = File.ReadAllText(FindRepoFile("app", "Components", "RunListItem.razor.css"));

@@ -5,7 +5,11 @@
 @inject IStringLocalizer Loc
 @inject IConfiguration Config
 
-<div class="character-row" style="--class-color:@WowClasses.GetColor(Character.CharacterClassId)">
+<div class="character-row" style="--class-color:@WowClasses.GetColor(Character.CharacterClassId)" aria-label="@RowLabel()">
+    <span class="character-row__name">@Character.CharacterName</span>
+    <span class="attendance-pill attendance-pill--@AttendanceClass(Character.ReviewedAttendance)">
+        @AttendanceLabel(Character.ReviewedAttendance)
+    </span>
     <div class="character-row__icons" aria-hidden="true">
         <SpecIcon SpecName="@Character.CharacterClassName"
                   IconUrl="@WowMediaUrls.ClassIconUrl(Character.CharacterClassId, Config["ApiBaseUrl"])"
@@ -16,13 +20,6 @@
                   Class="character-row__icon character-row__spec-icon"
                   Decorative="true" />
     </div>
-    <div class="character-row__main">
-        <span class="character-row__name">@Character.CharacterName</span>
-        <span class="character-row__sub">@ClassSpec()</span>
-    </div>
-    <span class="attendance-pill attendance-pill--@AttendanceClass(Character.ReviewedAttendance)">
-        @AttendanceLabel(Character.ReviewedAttendance)
-    </span>
 </div>
 
 @code {
@@ -35,6 +32,9 @@
         var spec = Character.SpecName;
         return string.IsNullOrWhiteSpace(spec) ? className : $"{className} \u00B7 {spec}";
     }
+
+    private string RowLabel() =>
+        $"{Character.CharacterName}, {ClassSpec()}, {AttendanceLabel(Character.ReviewedAttendance)}";
 
     private string AttendanceClass(string attendance) => attendance switch
     {
