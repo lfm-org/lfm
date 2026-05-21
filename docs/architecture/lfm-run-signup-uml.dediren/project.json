@@ -19,7 +19,7 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-activity.json",
-        "output": "generated/svg/run-signup-activity.svg"
+      "output": "generated/svg/uml-run-signup-activity.svg"
       },
       "metadata": {
         "plugin": "generic-graph",
@@ -43,7 +43,7 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-data.json",
-        "output": "generated/svg/run-signup-data.svg"
+      "output": "generated/svg/uml-run-signup-data.svg"
       },
       "metadata": {
         "plugin": "generic-graph",
@@ -67,7 +67,7 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-class.json",
-        "output": "generated/svg/run-signup-class.svg"
+      "output": "generated/svg/uml-run-signup-class.svg"
       },
       "metadata": {
         "plugin": "generic-graph",

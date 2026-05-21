@@ -3,15 +3,15 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.14.6"
+      "version": "0.14.7"
     },
     {
       "id": "elk-layout",
-      "version": "0.14.6"
+      "version": "0.14.7"
     },
     {
       "id": "svg-render",
-      "version": "0.14.6"
+      "version": "0.14.7"
     }
   ],
   "nodes": [
