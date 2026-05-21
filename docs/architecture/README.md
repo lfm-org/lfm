@@ -46,6 +46,9 @@ filenames instead of creating one package directory per diagram.
 | [`lfm-application-handoff-uml.dediren/project.json`](lfm-application-handoff-uml.dediren/project.json) | UML project manifest for remaining application implementation handoffs |
 | [`lfm-application-handoff-uml.dediren/model.json`](lfm-application-handoff-uml.dediren/model.json) | UML activity, data, and class-boundary source graph for application handoffs linked to ArchiMate context |
 | [`lfm-application-handoff-uml.dediren/render-policy.json`](lfm-application-handoff-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
+| [`lfm-platform-operations-uml.dediren/project.json`](lfm-platform-operations-uml.dediren/project.json) | UML project manifest for platform and operations handoffs |
+| [`lfm-platform-operations-uml.dediren/model.json`](lfm-platform-operations-uml.dediren/model.json) | UML class-boundary, data-plane, observability, and release source graph linked to ArchiMate context |
+| [`lfm-platform-operations-uml.dediren/render-policy.json`](lfm-platform-operations-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
 
 Per-view render metadata, layout output, and intermediate SVGs are generated
 from the packages. `*.dediren/generated/` is reproducible tool output and
@@ -85,12 +88,16 @@ source package directory without the `.dediren` suffix.
 | 9 | Operational Readiness - UML Activity | UML Activity | [`ops-readiness-activity.svg`](renders/lfm-application-handoff-uml/ops-readiness-activity.svg) | health probe, schema migration, Cosmos readiness, and telemetry publication paths |
 | 10 | Application Handoff - UML Class Boundary | UML Class | [`application-handoff-class.svg`](renders/lfm-application-handoff-uml/application-handoff-class.svg) | UI pages, app-core clients, API functions, service layer, repositories, and external ports |
 | 11 | Application Handoff - UML Data | UML Data | [`application-handoff-data.svg`](renders/lfm-application-handoff-uml/application-handoff-data.svg) | LFM contracts, Cosmos document families, idempotency state, blob reference data, and external API data |
+| 12 | Platform Hosting - UML Class Boundary | UML Class | [`platform-hosting-class.svg`](renders/lfm-platform-operations-uml/platform-hosting-class.svg) | Static Web Apps, Function App, runtime, API, identity, data/secrets/telemetry ports |
+| 13 | Platform Data Plane - UML Data | UML Data | [`platform-data-plane.svg`](renders/lfm-platform-operations-uml/platform-data-plane.svg) | Cosmos database/containers, storage blob containers, Key Vault key, data-protection key ring, managed identity access |
+| 14 | Observability - UML Activity | UML Activity | [`observability-activity.svg`](renders/lfm-platform-operations-uml/observability-activity.svg) | API telemetry, Application Insights ingestion, Log Analytics aggregation, Cosmos throttle alert path |
+| 15 | Production Release - UML Activity | UML Activity | [`production-release-activity.svg`](renders/lfm-platform-operations-uml/production-release-activity.svg) | local hook gates, deploy workflow, change detection, secret scan, infra analysis/deploy, app build/deploy |
 
 The UML packages link upward to ArchiMate element ids through
-`properties.uml.architecture_context`. Keep Technology Usage, Data Plane,
-Observability, and Production Migration topology in the ArchiMate package unless
-UML adds concrete implementation handoff value for a flow, class boundary, or
-data shape.
+`properties.uml.architecture_context`. UML remains handoff elaboration:
+ArchiMate stays the canonical architecture topology, while the UML packages show
+implementation handoff flows, boundaries, data shapes, and platform-operation
+sequences.
 
 ## Source Provenance
 
@@ -103,6 +110,7 @@ data shape.
 | Application Process views | [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Lfm.App.Core/Services/MeClient.cs`](../../app/Lfm.App.Core/Services/MeClient.cs), [`api/Functions/RunsCreateFunction.cs`](../../api/Functions/RunsCreateFunction.cs), [`api/Functions/RunsUpdateFunction.cs`](../../api/Functions/RunsUpdateFunction.cs), [`api/Functions/RunsDeleteFunction.cs`](../../api/Functions/RunsDeleteFunction.cs), [`api/Functions/MeDeleteFunction.cs`](../../api/Functions/MeDeleteFunction.cs) |
 | Service realization | [`app/Pages/LoginPage.razor`](../../app/Pages/LoginPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Pages/GoodbyePage.razor`](../../app/Pages/GoodbyePage.razor), [`app/Pages/GuildPage.razor`](../../app/Pages/GuildPage.razor), [`app/Pages/GuildAdminPage.razor`](../../app/Pages/GuildAdminPage.razor), [`app/Pages/InstancesPage.razor`](../../app/Pages/InstancesPage.razor), [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/AdminReferenceRefreshPage.razor`](../../app/Pages/AdminReferenceRefreshPage.razor), [`app/Pages/PrivacyPolicyPage.razor`](../../app/Pages/PrivacyPolicyPage.razor), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
 | Supplemental UML handoff | [`docs/architecture/lfm.dediren/model.json`](lfm.dediren/model.json), [`app/Pages/`](../../app/Pages/), [`app/Lfm.App.Core/Services/`](../../app/Lfm.App.Core/Services/), [`shared/Lfm.Contracts/`](../../shared/Lfm.Contracts/), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
+| Platform and operations UML handoff | [`docs/architecture/lfm.dediren/model.json`](lfm.dediren/model.json), [`infra/modules/`](../../infra/modules/), [`infra/main.bicep`](../../infra/main.bicep), [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml), [`.github/workflows/deploy-infra.yml`](../../.github/workflows/deploy-infra.yml), [`.github/workflows/deploy-app-build.yml`](../../.github/workflows/deploy-app-build.yml), [`.github/workflows/deploy-app.yml`](../../.github/workflows/deploy-app.yml), [`.github/workflows/secrets-scan.yml`](../../.github/workflows/secrets-scan.yml), [`.github/workflows/analyze-infra.yml`](../../.github/workflows/analyze-infra.yml), [`scripts/pre-commit`](../../scripts/pre-commit), [`scripts/pre-push`](../../scripts/pre-push), [`api/Program.cs`](../../api/Program.cs) |
 
 ## Rendering And Validation
 
@@ -116,6 +124,8 @@ dediren validate --input docs/architecture/lfm-run-signup-uml.dediren/model.json
 dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-run-signup-uml.dediren/model.json
 dediren validate --input docs/architecture/lfm-application-handoff-uml.dediren/model.json
 dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-application-handoff-uml.dediren/model.json
+dediren validate --input docs/architecture/lfm-platform-operations-uml.dediren/model.json
+dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-platform-operations-uml.dediren/model.json
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target layout-request
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target render-metadata
 dediren layout --plugin elk-layout --input <projection.json>
