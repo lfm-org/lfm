@@ -3,15 +3,15 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.14.6"
+      "version": "0.14.7"
     },
     {
       "id": "elk-layout",
-      "version": "0.14.6"
+      "version": "0.14.7"
     },
     {
       "id": "svg-render",
-      "version": "0.14.6"
+      "version": "0.14.7"
     }
   ],
   "nodes": [
@@ -379,6 +379,9 @@
           "app/Pages/CharactersPage.razor",
           "api/Functions/BattleNetLoginFunction.cs",
           "api/Functions/BattleNetCallbackFunction.cs",
+          "app/Components/AuthSessionMonitor.razor",
+          "app/Services/CredentialsHandler.cs",
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
           "api/Functions/MeFunction.cs",
           "api/Functions/RaiderCharacterFunction.cs"
         ],
@@ -402,6 +405,16 @@
       }
     },
     {
+      "id": "decision-auth-entry",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
       "id": "action-start-login",
       "type": "Action",
       "label": "Start Battle.net login",
@@ -410,6 +423,67 @@
         "source_evidence": [
           "app/Pages/LoginPage.razor",
           "api/Functions/BattleNetLoginFunction.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "auth-ui-entry",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-detect-expired-session",
+      "type": "Action",
+      "label": "Detect expired session",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Components/AuthSessionMonitor.razor",
+          "app/Services/CredentialsHandler.cs",
+          "app/Lfm.App.Core/Auth/ISessionExpiryNotifier.cs",
+          "app/Lfm.App.Core/Auth/SessionExpiryNotifier.cs",
+          "app/wwwroot/js/lfm-interop.js"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "session-expiry-detection-process",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-refresh-auth-state",
+      "type": "Action",
+      "label": "Refresh auth state",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Lfm.App.Core/Auth/IAuthStateRefresher.cs",
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
+          "app/Lfm.App.Core/Services/MeClient.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "auth-session-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-redirect-expired-session",
+      "type": "Action",
+      "label": "Redirect expired session to login",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Components/AuthSessionMonitor.razor",
+          "app/Components/RedirectToLogin.razor"
         ],
         "uml": {
           "architecture_context": {
@@ -1232,7 +1306,8 @@
           "app/Pages/GuildPage.razor",
           "app/Pages/GuildAdminPage.razor",
           "app/Pages/InstancesPage.razor",
-          "app/Pages/AdminReferenceRefreshPage.razor"
+          "app/Pages/AdminReferenceRefreshPage.razor",
+          "app/Components/AuthSessionMonitor.razor"
         ],
         "uml": {
           "architecture_context": {
@@ -1243,7 +1318,7 @@
           "package": "pkg-ui-pages",
           "operations": [
             {
-              "name": "render flow state",
+              "name": "render flow state and monitor session expiry",
               "visibility": "public",
               "return_type": "Component UI"
             }
@@ -1264,7 +1339,9 @@
           "app/Lfm.App.Core/Services/IInstancesClient.cs",
           "app/Lfm.App.Core/Services/ISpecializationsClient.cs",
           "app/Lfm.App.Core/Services/IExpansionsClient.cs",
-          "app/Lfm.App.Core/Services/IWowReferenceAdminClient.cs"
+          "app/Lfm.App.Core/Services/IWowReferenceAdminClient.cs",
+          "app/Lfm.App.Core/Auth/IAuthStateRefresher.cs",
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs"
         ],
         "uml": {
           "architecture_context": {
@@ -1275,7 +1352,7 @@
           "package": "pkg-app-core-clients",
           "operations": [
             {
-              "name": "call API endpoints",
+              "name": "call API endpoints and refresh auth state",
               "visibility": "public",
               "return_type": "DTOs"
             }
@@ -2119,7 +2196,59 @@
       "id": "flow-auth-start",
       "type": "ControlFlow",
       "source": "initial-auth-profile",
+      "target": "decision-auth-entry",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-start-login",
+      "type": "ControlFlow",
+      "source": "decision-auth-entry",
       "target": "action-start-login",
+      "label": "sign in",
+      "properties": {
+        "uml": {
+          "guard": "sign in"
+        }
+      }
+    },
+    {
+      "id": "flow-auth-detect-expired",
+      "type": "ControlFlow",
+      "source": "decision-auth-entry",
+      "target": "action-detect-expired-session",
+      "label": "resume or 401",
+      "properties": {
+        "uml": {
+          "guard": "resume or 401"
+        }
+      }
+    },
+    {
+      "id": "flow-auth-expired-refresh",
+      "type": "ControlFlow",
+      "source": "action-detect-expired-session",
+      "target": "action-refresh-auth-state",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-auth-expired-redirect",
+      "type": "ControlFlow",
+      "source": "action-refresh-auth-state",
+      "target": "action-redirect-expired-session",
+      "label": "expired",
+      "properties": {
+        "uml": {
+          "guard": "expired"
+        }
+      }
+    },
+    {
+      "id": "flow-auth-expired-final",
+      "type": "ControlFlow",
+      "source": "action-redirect-expired-session",
+      "target": "final-auth-profile",
       "label": "",
       "properties": {}
     },
@@ -2774,7 +2903,11 @@
           "nodes": [
             "activity-auth-profile",
             "initial-auth-profile",
+            "decision-auth-entry",
             "action-start-login",
+            "action-detect-expired-session",
+            "action-refresh-auth-state",
+            "action-redirect-expired-session",
             "action-exchange-oauth-code",
             "action-store-session-profile",
             "action-load-me-and-characters",
@@ -2786,6 +2919,11 @@
           ],
           "relationships": [
             "flow-auth-start",
+            "flow-auth-start-login",
+            "flow-auth-detect-expired",
+            "flow-auth-expired-refresh",
+            "flow-auth-expired-redirect",
+            "flow-auth-expired-final",
             "flow-auth-exchange",
             "flow-auth-store-profile",
             "flow-auth-load-me",
