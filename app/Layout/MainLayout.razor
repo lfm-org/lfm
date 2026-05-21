@@ -59,7 +59,7 @@
                                           aria-expanded="@(_showAccountMenu ? "true" : "false")"
                                           OnClick="@ToggleAccountMenu">
                                 <span class="account-menu-trigger__content">
-                                    @if (SelectedCharacterPortraitUrl(accountAuth.User) is { } portraitUrl)
+                                    @if (CachedMediaUrl(SelectedCharacterPortraitUrl(accountAuth.User)) is { } portraitUrl)
                                     {
                                         <img class="account-avatar" src="@portraitUrl" alt="" />
                                     }
@@ -351,6 +351,8 @@
 
     private string? SelectedCharacterPortraitUrl(ClaimsPrincipal user)
         => user.FindFirst(AppAuthenticationStateProvider.SelectedCharacterPortraitUrlClaim)?.Value;
+
+    private string? CachedMediaUrl(string? sourceUrl) => WowMediaUrls.ToCachedUrl(sourceUrl, Config["ApiBaseUrl"]);
 
     private string SelectedCharacterInitial(ClaimsPrincipal user)
     {

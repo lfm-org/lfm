@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Lfm.Api.Options;
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Media;
 using Microsoft.Extensions.Options;
 
 namespace Lfm.Api.Services;
@@ -252,7 +253,7 @@ public sealed class CharacterPortraitService(
     /// <c>functions/src/lib/character-portrait.ts</c>.
     /// </summary>
     private static bool IsBlizzardRenderUrl(string url)
-        => url.StartsWith("https://render.worldofwarcraft.com/", StringComparison.OrdinalIgnoreCase);
+        => BlizzardMediaCache.IsBlizzardRenderUrl(url);
 
     private sealed record FetchResult(string Id, string Url);
 

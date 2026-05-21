@@ -134,7 +134,11 @@ public sealed class RaiderCharacterEnrichFunction(
         if (persisted is null)
             return Problem.NotFound(req.HttpContext, "raider-not-found", "Raider not found.");
 
-        return new OkObjectResult(RaiderCharacterAddFunction.MapToCharacterDto(stored));
+        var dto = RaiderCharacterAddFunction.MapToCharacterDto(stored) with
+        {
+            PortraitUrl = ApiMediaUrls.ToCachedUrl(req, stored.PortraitUrl),
+        };
+        return new OkObjectResult(dto);
     }
 
     private static RaiderDocument WithStoredCharacter(RaiderDocument raider, StoredSelectedCharacter stored)

@@ -369,6 +369,18 @@ fluent-button.footer-language--active::part(control) {
     min-height: 44px;
 }
 
+.character-row__icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+}
+
+.character-row__icon {
+    inline-size: 1.35rem;
+    block-size: 1.35rem;
+}
+
 .character-row__main {
     flex: 1;
     min-width: 0;
@@ -501,7 +513,7 @@ fluent-button.footer-language--active::part(control) {
     background: var(--neutral-fill-rest);
 }
 
-/* Guild crest — fixed dimensions from Blizzard CDN. */
+/* Guild crest — fixed dimensions for cached Blizzard media. */
 .guild-crest {
     inline-size: 88px;
     block-size: 88px;

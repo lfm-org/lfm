@@ -69,6 +69,12 @@ public static class OpenApiSnapshotGenerator
             [("post", "/api/v1/wow/reference/refresh")] = SchemaRef.Object<WowReferenceRefreshProgress>(),
         };
 
+    private static readonly IReadOnlySet<(string Method, string Path)> BinaryResponseEndpoints =
+        new HashSet<(string, string)>(StringTupleComparer.OrdinalIgnoreCase)
+        {
+            ("get", "/api/v1/wow/media/cache"),
+        };
+
     private static readonly string[] Tags =
     [
         "Health",
@@ -210,7 +216,8 @@ public static class OpenApiSnapshotGenerator
         builder.AppendLine($"      operationId: {OperationId(endpoint.Method, endpoint.Path)}");
 
         var pathParameters = ExtractPathParameters(endpoint.Path);
-        if (pathParameters.Count > 0)
+        var hasMediaSourceQuery = string.Equals(endpoint.Path, "/api/v1/wow/media/cache", StringComparison.OrdinalIgnoreCase);
+        if (pathParameters.Count > 0 || hasMediaSourceQuery)
         {
             builder.AppendLine("      parameters:");
             foreach (var parameter in pathParameters)
@@ -220,6 +227,15 @@ public static class OpenApiSnapshotGenerator
                 builder.AppendLine("          required: true");
                 builder.AppendLine("          schema:");
                 builder.AppendLine("            type: string");
+            }
+            if (hasMediaSourceQuery)
+            {
+                builder.AppendLine("        - name: source");
+                builder.AppendLine("          in: query");
+                builder.AppendLine("          required: true");
+                builder.AppendLine("          schema:");
+                builder.AppendLine("            type: string");
+                builder.AppendLine("          description: Base64url-encoded Blizzard render-CDN URL.");
             }
         }
 
@@ -247,6 +263,16 @@ public static class OpenApiSnapshotGenerator
             builder.AppendLine("            application/json:");
             builder.AppendLine("              schema:");
             AppendSchemaRef(builder, responseSchema, 16);
+        }
+        else if (BinaryResponseEndpoints.Contains((endpoint.Method, endpoint.Path)))
+        {
+            builder.AppendLine("        '200':");
+            builder.AppendLine("          description: Success.");
+            builder.AppendLine("          content:");
+            builder.AppendLine("            image/*:");
+            builder.AppendLine("              schema:");
+            builder.AppendLine("                type: string");
+            builder.AppendLine("                format: binary");
         }
         else
         {

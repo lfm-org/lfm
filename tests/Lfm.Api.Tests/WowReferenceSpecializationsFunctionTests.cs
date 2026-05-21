@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Moq;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
+using Lfm.Contracts.Media;
 using Lfm.Contracts.Specializations;
 using Xunit;
 
@@ -21,18 +22,27 @@ public class WowReferenceSpecializationsFunctionTests
     };
 
     [Fact]
-    public async Task Returns_specializations_from_repository_unchanged()
+    public async Task Returns_specializations_with_media_urls_routed_through_cache()
     {
         var fixture = RepositoryFixture();
         var repo = new Mock<ISpecializationsRepository>();
         repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(fixture);
         var fn = new WowReferenceSpecializationsFunction(repo.Object);
 
-        var result = await fn.Run(new DefaultHttpContext().Request, CancellationToken.None);
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "https";
+        context.Request.Host = new HostString("api.lfm.test");
+
+        var result = await fn.Run(context.Request, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(fixture, Assert.IsType<List<SpecializationDto>>(ok.Value));
+        var response = Assert.IsType<List<SpecializationDto>>(ok.Value);
+        Assert.Equal(CachedMediaUrl(fixture[0].IconUrl!), response[0].IconUrl);
+        Assert.Null(response[1].IconUrl);
     }
+
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"https://api.lfm.test/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
 
     [Fact]
     public void Function_has_correct_function_attribute()

@@ -170,6 +170,8 @@ builder.Services.AddSingleton<BlobContainerClient>(sp =>
         "Storage:BlobServiceUri or Storage:BlobConnectionString must be configured for reference-data reads.");
 });
 builder.Services.AddSingleton<Lfm.Api.Services.IBlobReferenceClient, Lfm.Api.Services.BlobReferenceClient>();
+builder.Services.AddHttpClient<Lfm.Api.Services.IWowMediaCache, Lfm.Api.Services.WowMediaCache>()
+    .AddHttpMessageHandler<Lfm.Api.Services.BlizzardRateLimitHandler>();
 
 builder.Services.AddScoped<Lfm.Api.Repositories.IInstancesRepository, Lfm.Api.Repositories.InstancesRepository>();
 builder.Services.AddScoped<Lfm.Api.Repositories.IExpansionsRepository, Lfm.Api.Repositories.ExpansionsRepository>();

@@ -7,6 +7,7 @@ using Lfm.App.Auth;
 using Lfm.App.Layout;
 using Lfm.App.Services;
 using Lfm.App.i18n;
+using Lfm.Contracts.Media;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -18,6 +19,9 @@ namespace Lfm.App.Tests;
 
 public class LayoutTests : ComponentTestBase
 {
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"http://localhost:7071/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
+
     [Fact]
     public void MainLayout_Renders_App_Name()
     {
@@ -255,7 +259,8 @@ public class LayoutTests : ComponentTestBase
             var trigger = cut.Find("fluent-button.account-menu-trigger");
             Assert.Contains("Aelrin", trigger.TextContent);
             Assert.Equal("Account menu for Aelrin", trigger.GetAttribute("aria-label"));
-            Assert.Contains("https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg", cut.Markup);
+            Assert.Contains(CachedMediaUrl("https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg"), cut.Markup);
+            Assert.DoesNotContain("https://render.worldofwarcraft.com/eu/aelrin-avatar.jpg", cut.Markup);
         });
     }
 

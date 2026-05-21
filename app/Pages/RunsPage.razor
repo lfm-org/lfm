@@ -221,7 +221,9 @@
                                                         {
                                                             @foreach (var character in roleChars)
                                                             {
-                                                                <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
+                                                                <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)"
+                                                                              Character="character"
+                                                                              SpecIconUrl="@SpecIconUrlFor(character)" />
                                                             }
                                                         }
                                                     </div>
@@ -237,7 +239,9 @@
                                             <div class="roster-rows">
                                                 @foreach (var character in notAttending)
                                                 {
-                                                    <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)" Character="character" />
+                                                    <CharacterRow @key="@(character.CharacterRealm + "/" + character.CharacterName)"
+                                                                  Character="character"
+                                                                  SpecIconUrl="@SpecIconUrlFor(character)" />
                                                 }
                                             </div>
                                         }
@@ -303,6 +307,7 @@
     private bool _specIconsLoaded;
     private bool _specIconsLoading;
     private IReadOnlyDictionary<int, string> _specIconUrls = new Dictionary<int, string>();
+    private IReadOnlyDictionary<string, string> _specIconUrlsByClassAndName = new Dictionary<string, string>();
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
@@ -479,11 +484,12 @@
 
             ApplyRunDetail(detail);
             _signupError = null;
-            if (HasCurrentUserSignup(detail))
+            if (NeedsSpecIcons(detail))
             {
                 await EnsureSpecIconsLoaded();
             }
-            else if (!IsSignupClosed(detail.SignupCloseTime))
+
+            if (!HasCurrentUserSignup(detail) && !IsSignupClosed(detail.SignupCloseTime))
             {
                 await EnsureSignupOptionsLoaded();
             }
@@ -636,11 +642,16 @@
                 .Where(spec => !string.IsNullOrWhiteSpace(spec.IconUrl))
                 .GroupBy(spec => spec.Id)
                 .ToDictionary(group => group.Key, group => group.First().IconUrl!);
+            _specIconUrlsByClassAndName = specializations
+                .Where(spec => !string.IsNullOrWhiteSpace(spec.IconUrl) && !string.IsNullOrWhiteSpace(spec.Name))
+                .GroupBy(spec => SpecIconLookupKey(spec.ClassId, spec.Name))
+                .ToDictionary(group => group.Key, group => group.First().IconUrl!);
             _specIconsLoaded = true;
         }
         catch
         {
             _specIconUrls = new Dictionary<int, string>();
+            _specIconUrlsByClassAndName = new Dictionary<string, string>();
         }
         finally
         {
@@ -710,10 +721,25 @@
     private static bool HasCurrentUserSignup(RunDetailDto detail) =>
         detail.RunCharacters.Any(c => c.IsCurrentUser);
 
-    private string? SpecIconUrlFor(RunCharacterDto? signup) =>
-        signup?.SpecId is int specId && _specIconUrls.TryGetValue(specId, out var iconUrl)
-            ? iconUrl
+    private static bool NeedsSpecIcons(RunDetailDto detail) =>
+        detail.RunCharacters.Any(c => c.SpecId is not null || !string.IsNullOrWhiteSpace(c.SpecName));
+
+    private string? SpecIconUrlFor(RunCharacterDto? character)
+    {
+        if (character?.SpecId is int specId && _specIconUrls.TryGetValue(specId, out var iconUrl))
+            return iconUrl;
+
+        return character is not null &&
+               !string.IsNullOrWhiteSpace(character.SpecName) &&
+               _specIconUrlsByClassAndName.TryGetValue(
+                   SpecIconLookupKey(character.CharacterClassId, character.SpecName),
+                   out var iconUrlByName)
+            ? iconUrlByName
             : null;
+    }
+
+    private static string SpecIconLookupKey(int classId, string specName) =>
+        $"{classId}:{specName.Trim().ToUpperInvariant()}";
 
     private void TogglePast() => _showPast = !_showPast;
 

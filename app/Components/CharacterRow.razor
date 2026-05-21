@@ -1,8 +1,21 @@
 @using Lfm.Contracts.Runs
 @using Lfm.Contracts.WoW
+@using Lfm.App.Components.Runs
+@using Lfm.App.Services
 @inject IStringLocalizer Loc
+@inject IConfiguration Config
 
 <div class="character-row" style="--class-color:@WowClasses.GetColor(Character.CharacterClassId)">
+    <div class="character-row__icons" aria-hidden="true">
+        <SpecIcon SpecName="@Character.CharacterClassName"
+                  IconUrl="@WowMediaUrls.ClassIconUrl(Character.CharacterClassId, Config["ApiBaseUrl"])"
+                  Class="character-row__icon character-row__class-icon"
+                  Decorative="true" />
+        <SpecIcon SpecName="@Character.SpecName"
+                  IconUrl="@SpecIconUrl"
+                  Class="character-row__icon character-row__spec-icon"
+                  Decorative="true" />
+    </div>
     <div class="character-row__main">
         <span class="character-row__name">@Character.CharacterName</span>
         <span class="character-row__sub">@ClassSpec()</span>
@@ -14,6 +27,7 @@
 
 @code {
     [Parameter, EditorRequired] public RunCharacterDto Character { get; set; } = default!;
+    [Parameter] public string? SpecIconUrl { get; set; }
 
     private string ClassSpec()
     {

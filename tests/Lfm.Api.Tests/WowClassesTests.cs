@@ -80,6 +80,25 @@ public class WowClassesTests
     }
 
     [Theory]
+    [InlineData(6, "icons/56/spell_deathknight_classicon.jpg")]
+    [InlineData(9, "icons/56/classicon_warlock.jpg")]
+    [InlineData(13, "icons/56/classicon_evoker.jpg")]
+    public void GetIconPath_returns_render_asset_path_for_known_classId(int classId, string expected)
+    {
+        Assert.Equal(expected, WowClasses.GetIconPath(classId));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(99)]
+    [InlineData(14)]
+    public void GetIconPath_returns_null_for_invalid_classId(int classId)
+    {
+        Assert.Null(WowClasses.GetIconPath(classId));
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(13)]
     public void GetName_returns_non_unknown_for_valid_ids(int classId)
