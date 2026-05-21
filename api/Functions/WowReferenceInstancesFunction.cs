@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Lfm.Api.Auth;
+using Lfm.Api.Helpers;
 using Lfm.Api.Repositories;
 
 namespace Lfm.Api.Functions;
@@ -18,7 +19,10 @@ public class WowReferenceInstancesFunction(IInstancesRepository repo)
         CancellationToken ct)
     {
         var items = await repo.ListAsync(ct);
-        return new OkObjectResult(items);
+        var response = items
+            .Select(item => item with { PortraitUrl = ApiMediaUrls.ToCachedUrl(req, item.PortraitUrl) })
+            .ToList();
+        return new OkObjectResult(response);
     }
 
     /// <summary>

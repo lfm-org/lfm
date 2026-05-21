@@ -165,7 +165,7 @@ New endpoint → add a new file under `api/Functions/` and register `app.MapXxx(
 
 Static Blizzard reference data (journal-instance, playable-specialization, playable-class, playable-race, hero-talent-tree) lives in blob at `lfmstore/wow/reference/{kind}/`. Dynamic per-user / per-guild / per-run data lives in Cosmos (`lfm-cosmos/lfm/{raiders,runs,guilds}`). Per-entity caches of Blizzard responses (e.g. one user's account profile, one guild's roster) stay **embedded** inside the owning Cosmos document with a `*FetchedAt` timestamp, not in blob.
 
-See [docs/storage-architecture.md](docs/storage-architecture.md) for the full data-kind matrix, rationale, image-caching policy (URL caches only — browser HTTP cache handles bytes), and the decision flow for a new data kind. When adding something new that needs to persist, start there.
+See [docs/storage-architecture.md](docs/storage-architecture.md) for the full data-kind matrix, rationale, Blizzard media image-caching policy, and the decision flow for a new data kind. When adding something new that needs to persist, start there.
 
 **Never hardcode the Cosmos database name.** Read `Cosmos__DatabaseName` from configuration — E2E runs against a different database than production.
 

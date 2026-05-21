@@ -11,6 +11,7 @@ using Moq;
 using Lfm.App.Pages;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Media;
 using Lfm.Contracts.Me;
 using Xunit;
 
@@ -19,6 +20,9 @@ namespace Lfm.App.Tests;
 public class CharactersPagesTests : ComponentTestBase
 {
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"http://localhost:7071/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
 
     private static MeResponse MakeMeResponse(
         string? selectedCharacterId = null,
@@ -382,6 +386,31 @@ public class CharactersPagesTests : ComponentTestBase
         await Task.Delay(TimeSpan.FromMilliseconds(100));
 
         Assert.Equal("page-2-char4.png", cut.Find("[data-char-id='eu-silvermoon-char4'] img").GetAttribute("src"));
+    }
+
+    [Fact]
+    public void CharactersPage_Routes_Blizzard_Portraits_Through_Media_Cache()
+    {
+        this.AddAuthorization().SetAuthorized("player#1234");
+        const string SourceUrl = "https://render.worldofwarcraft.com/eu/character/silvermoon/1/aelrin-avatar.jpg";
+        var battleNet = new Mock<IBattleNetClient>();
+        battleNet.Setup(c => c.GetCharactersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CharactersFetchResult.Cached([MakeChar("Aelrin")]));
+        battleNet.Setup(c => c.GetPortraitsAsync(It.IsAny<IEnumerable<CharacterPortraitRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>
+            {
+                ["eu-silvermoon-aelrin"] = SourceUrl,
+            });
+        Services.AddSingleton(battleNet.Object);
+
+        var cut = Render<CharactersPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var img = cut.Find("[data-char-id='eu-silvermoon-aelrin'] img");
+            Assert.Equal(CachedMediaUrl(SourceUrl), img.GetAttribute("src"));
+            Assert.DoesNotContain(SourceUrl, cut.Markup);
+        });
     }
 
     [Fact]

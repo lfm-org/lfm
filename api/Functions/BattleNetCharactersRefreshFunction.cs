@@ -103,7 +103,12 @@ public class BattleNetCharactersRefreshFunction(
 
         var region = _blizzardOpts.Region.ToLowerInvariant();
         var characters = AccountCharacterMapper.MapToCharacterDtos(
-            freshSummaryStored, region, raider.Characters, raider.PortraitCache);
+            freshSummaryStored, region, raider.Characters, raider.PortraitCache)
+            .Select(character => character with
+            {
+                PortraitUrl = ApiMediaUrls.ToCachedUrl(req, character.PortraitUrl),
+            })
+            .ToList();
 
         return new OkObjectResult(characters);
     }

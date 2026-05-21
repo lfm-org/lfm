@@ -56,6 +56,24 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
         }
     }
 
+    public async Task<ReferenceBlobContent?> GetContentAsync(string blobName, CancellationToken ct)
+    {
+        var blob = container.GetBlobClient(blobName);
+        try
+        {
+            var response = await blob.DownloadContentAsync(ct);
+            var contentType = response.Value.Details.ContentType;
+            if (string.IsNullOrWhiteSpace(contentType))
+                contentType = "application/octet-stream";
+
+            return new ReferenceBlobContent(response.Value.Content.ToArray(), contentType);
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            return null;
+        }
+    }
+
     public async IAsyncEnumerable<T> ListAsync<T>(
         string prefix,
         [EnumeratorCancellation] CancellationToken ct) where T : class
@@ -84,6 +102,23 @@ public sealed class BlobReferenceClient(BlobContainerClient container) : IBlobRe
                 HttpHeaders = new BlobHttpHeaders
                 {
                     ContentType = "application/json",
+                },
+            },
+            ct);
+    }
+
+    public async Task UploadContentAsync(string blobName, byte[] content, string contentType, CancellationToken ct)
+    {
+        await EnsureContainerExistsAsync(ct);
+        var blob = container.GetBlobClient(blobName);
+        using var stream = new MemoryStream(content);
+        await blob.UploadAsync(
+            stream,
+            new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders
+                {
+                    ContentType = contentType,
                 },
             },
             ct);

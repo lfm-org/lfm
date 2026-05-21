@@ -147,6 +147,7 @@ public class OpenApiContractTests
     [InlineData("/api/v1/wow/reference/expansions")]
     [InlineData("/api/v1/wow/reference/instances")]
     [InlineData("/api/v1/wow/reference/specializations")]
+    [InlineData("/api/v1/wow/media/cache")]
     [InlineData("/api/v1/wow/reference/refresh")]
     [InlineData("/api/v1/admin/runs/migrate-schema")]
     [InlineData("/api/v1/privacy-contact/email")]

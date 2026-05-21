@@ -10,6 +10,7 @@ using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
 using Lfm.Contracts.Characters;
+using Lfm.Contracts.Media;
 using Xunit;
 
 namespace Lfm.Api.Tests;
@@ -48,6 +49,20 @@ public class BattleNetCharacterPortraitsFunctionTests
         Mock<IRaidersRepository> repoMock,
         Mock<ICharacterPortraitService> portraitServiceMock)
         => new(repoMock.Object, portraitServiceMock.Object);
+
+    private static HttpRequest JsonRequest(object body)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new HostString("api.lfm.test");
+        httpContext.Request.ContentType = "application/json";
+        var bodyJson = System.Text.Json.JsonSerializer.Serialize(body);
+        httpContext.Request.Body = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(bodyJson));
+        return httpContext.Request;
+    }
+
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"https://api.lfm.test/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
 
     // -------------------------------------------------------------------------
     // Happy path — portrait cached in portraitCache
@@ -90,22 +105,19 @@ public class BattleNetCharacterPortraitsFunctionTests
         var fn = MakeFunction(repo, portraitService);
         var ctx = MakeFunctionContext(FakePrincipal());
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.ContentType = "application/json";
-        var bodyJson = System.Text.Json.JsonSerializer.Serialize(new[]
+        var request = JsonRequest(new[]
         {
             new { region = "eu", realm = "silvermoon", name = "Legolas" },
         });
-        httpContext.Request.Body = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(bodyJson));
 
         // Act
-        var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
+        var result = await fn.Run(request, ctx, CancellationToken.None);
 
-        // Assert: 200 with the cached portrait URL
+        // Assert: 200 with the cached portrait URL routed through the media cache.
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<PortraitResponse>(ok.Value);
         Assert.True(response.Portraits.ContainsKey(CharacterId));
-        Assert.Equal(CachedPortraitUrl, response.Portraits[CharacterId]);
+        Assert.Equal(CachedMediaUrl(CachedPortraitUrl), response.Portraits[CharacterId]);
     }
 
     // -------------------------------------------------------------------------
@@ -145,22 +157,19 @@ public class BattleNetCharacterPortraitsFunctionTests
         var fn = MakeFunction(repo, portraitService);
         var ctx = MakeFunctionContext(FakePrincipal());
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.ContentType = "application/json";
-        var bodyJson = System.Text.Json.JsonSerializer.Serialize(new[]
+        var request = JsonRequest(new[]
         {
             new { region = "eu", realm = "draenor", name = "Thrall" },
         });
-        httpContext.Request.Body = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(bodyJson));
 
         // Act
-        var result = await fn.Run(httpContext.Request, ctx, CancellationToken.None);
+        var result = await fn.Run(request, ctx, CancellationToken.None);
 
-        // Assert: 200 with Blizzard-fetched portrait URL
+        // Assert: 200 with Blizzard-fetched portrait URL routed through the media cache.
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<PortraitResponse>(ok.Value);
         Assert.True(response.Portraits.ContainsKey(CharacterId));
-        Assert.Equal(BlizzardPortraitUrl, response.Portraits[CharacterId]);
+        Assert.Equal(CachedMediaUrl(BlizzardPortraitUrl), response.Portraits[CharacterId]);
 
         // Verify service was called with the access token
         portraitService.Verify(

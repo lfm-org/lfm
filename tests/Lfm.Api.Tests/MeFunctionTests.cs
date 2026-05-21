@@ -9,6 +9,7 @@ using Lfm.Api.Auth;
 using Lfm.Api.Functions;
 using Lfm.Api.Repositories;
 using Lfm.Api.Services;
+using Lfm.Contracts.Media;
 using Lfm.Contracts.Me;
 using Xunit;
 
@@ -25,6 +26,17 @@ public class MeFunctionTests
         ctx.Setup(c => c.Items).Returns(items);
         return ctx.Object;
     }
+
+    private static HttpRequest Request()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "https";
+        context.Request.Host = new HostString("api.lfm.test");
+        return context.Request;
+    }
+
+    private static string CachedMediaUrl(string sourceUrl) =>
+        $"https://api.lfm.test/api/v1/wow/media/cache?source={BlizzardMediaCache.EncodeSource(sourceUrl)}";
 
     [Fact]
     public async Task Returns_me_response_when_raider_exists()
@@ -63,7 +75,7 @@ public class MeFunctionTests
         var fn = new MeFunction(repo.Object, siteAdmin.Object);
         var ctx = MakeFunctionContext(principal);
 
-        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+        var result = await fn.Run(Request(), ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var me = Assert.IsType<MeResponse>(ok.Value);
@@ -112,7 +124,7 @@ public class MeFunctionTests
         var fn = new MeFunction(repo.Object, siteAdmin.Object);
         var ctx = MakeFunctionContext(principal);
 
-        var result = await fn.RunV1(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+        var result = await fn.RunV1(Request(), ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var selected = ok.Value!.GetType().GetProperty("SelectedCharacter")?.GetValue(ok.Value);
@@ -120,7 +132,7 @@ public class MeFunctionTests
         Assert.Equal("char-1", selected.GetType().GetProperty("Id")?.GetValue(selected));
         Assert.Equal("Testchar", selected.GetType().GetProperty("Name")?.GetValue(selected));
         Assert.Equal(
-            "https://render.worldofwarcraft.com/eu/testchar-avatar.jpg",
+            CachedMediaUrl("https://render.worldofwarcraft.com/eu/testchar-avatar.jpg"),
             selected.GetType().GetProperty("PortraitUrl")?.GetValue(selected));
     }
 
@@ -170,14 +182,14 @@ public class MeFunctionTests
         var fn = new MeFunction(repo.Object, siteAdmin.Object);
         var ctx = MakeFunctionContext(principal);
 
-        var result = await fn.RunV1(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+        var result = await fn.RunV1(Request(), ctx, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var me = Assert.IsType<MeResponse>(ok.Value);
         Assert.NotNull(me.SelectedCharacter);
         Assert.Equal("eu-doomhammer-shalena", me.SelectedCharacter.Id);
         Assert.Equal("Shalena", me.SelectedCharacter.Name);
-        Assert.Equal("https://render.worldofwarcraft.com/eu/shalena-avatar.jpg", me.SelectedCharacter.PortraitUrl);
+        Assert.Equal(CachedMediaUrl("https://render.worldofwarcraft.com/eu/shalena-avatar.jpg"), me.SelectedCharacter.PortraitUrl);
     }
 
     [Fact]
@@ -200,7 +212,7 @@ public class MeFunctionTests
         var fn = new MeFunction(repo.Object, siteAdmin.Object);
         var ctx = MakeFunctionContext(principal);
 
-        var result = await fn.Run(new DefaultHttpContext().Request, ctx, CancellationToken.None);
+        var result = await fn.Run(Request(), ctx, CancellationToken.None);
 
         var notFound = Assert.IsType<ObjectResult>(result);
         Assert.Equal(404, notFound.StatusCode);

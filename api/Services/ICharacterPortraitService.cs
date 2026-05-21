@@ -10,7 +10,7 @@ namespace Lfm.Api.Services;
 /// Resolves portrait URLs for a set of WoW characters.
 ///
 /// Portrait URL resolution order (mirrors battlenet-character-portraits.ts):
-///   1. Stored character's portraitUrl (if it is a Blizzard CDN URL).
+///   1. Stored character's portraitUrl (if it is a Blizzard render source URL).
 ///   2. Stored character's mediaSummary.assets[key="avatar"].
 ///   3. The raider's portraitCache map.
 ///   4. Blizzard character-media API call (requires the user's access token).

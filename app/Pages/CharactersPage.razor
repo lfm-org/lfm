@@ -11,6 +11,7 @@
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
 @inject IJSRuntime JS
+@inject IConfiguration Config
 
 <PageTitle>@Loc["characters.title"] — @Loc["nav.logo"]</PageTitle>
 
@@ -71,7 +72,7 @@
             <div class="characters-grid">
                 @foreach (var c in visibleCharacters)
                 {
-                    var portraitSrc = c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null);
+                    var portraitSrc = CachedMediaUrl(c.PortraitUrl ?? (portraits.TryGetValue(CharKey(c), out var p) ? p : null));
                     var isSelected = CharKey(c) == selectedCharacterId;
                     var wrapperStyle = isSelected
                         ? "position:relative;cursor:default;outline:2px solid var(--accent-fill-rest);outline-offset:-1px;border-radius:4px"
@@ -222,6 +223,7 @@
     private string deleteConfirmation = "";
     private string? deleteError;
     private bool deleting;
+    private string? CachedMediaUrl(string? sourceUrl) => WowMediaUrls.ToCachedUrl(sourceUrl, Config["ApiBaseUrl"]);
 
     private bool deleteConfirmationValid => deleteConfirmation == "FORGET ME";
     private static int ComponentPageSize => MobilePageSize;
