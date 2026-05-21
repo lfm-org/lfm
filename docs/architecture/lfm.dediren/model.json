@@ -3,15 +3,15 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.11.2"
+      "version": "0.14.7"
     },
     {
       "id": "elk-layout",
-      "version": "0.11.2"
+      "version": "0.14.7"
     },
     {
       "id": "svg-render",
-      "version": "0.11.2"
+      "version": "0.14.7"
     }
   ],
   "nodes": [
@@ -98,10 +98,14 @@
         "source_evidence": [
           "api/Functions/BattleNetLoginFunction.cs",
           "api/Functions/BattleNetCallbackFunction.cs",
+          "api/Functions/BattleNetLogoutFunction.cs",
           "api/Functions/MeFunction.cs",
-          "api/Middleware/AuthMiddleware.cs"
+          "api/Middleware/AuthMiddleware.cs",
+          "app/Components/AuthSessionMonitor.razor",
+          "app/Services/CredentialsHandler.cs",
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs"
         ],
-        "documentation": "Battle.net login/callback/logout and current-user session surface."
+        "documentation": "Battle.net login/callback/logout, current-user session surface, and client-side expired-session detection."
       }
     },
     {
@@ -224,9 +228,29 @@
           "app/Pages/LoginPage.razor",
           "app/Pages/LoginFailedPage.razor",
           "app/Pages/GoodbyePage.razor",
-          "app/Components/RedirectToLogin.razor"
+          "app/Components/RedirectToLogin.razor",
+          "app/Components/AuthSessionMonitor.razor"
         ],
-        "documentation": "Blazor entry points for Battle.net sign-in, callback failure recovery, sign-out, and protected-route redirection."
+        "documentation": "Blazor entry points for Battle.net sign-in, callback failure recovery, sign-out, protected-route redirection, and expired-session redirect."
+      }
+    },
+    {
+      "id": "session-expiry-detection-process",
+      "type": "ApplicationProcess",
+      "label": "Detect expired session",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "app/Components/AuthSessionMonitor.razor",
+          "app/Services/CredentialsHandler.cs",
+          "app/Lfm.App.Core/Auth/IAuthStateRefresher.cs",
+          "app/Lfm.App.Core/Auth/ISessionExpiryNotifier.cs",
+          "app/Lfm.App.Core/Auth/SessionExpiryNotifier.cs",
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
+          "app/wwwroot/js/lfm-interop.js"
+        ],
+        "documentation": "Client-side resume and HTTP 401 detection probes the current session and redirects expired sessions to login."
       }
     },
     {
@@ -1268,7 +1292,9 @@
       "properties": {
         "source_evidence": [
           "app/Pages/LoginPage.razor",
-          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs"
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
+          "app/Components/AuthSessionMonitor.razor",
+          "app/Services/CredentialsHandler.cs"
         ]
       }
     },
@@ -2214,8 +2240,36 @@
         "source_evidence": [
           "app/Pages/LoginPage.razor",
           "app/Components/RedirectToLogin.razor",
+          "app/Components/AuthSessionMonitor.razor",
           "api/Functions/BattleNetLoginFunction.cs",
           "api/Functions/BattleNetCallbackFunction.cs"
+        ]
+      }
+    },
+    {
+      "id": "auth-ui-performs-session-expiry-detection",
+      "type": "Assignment",
+      "source": "auth-ui-entry",
+      "target": "session-expiry-detection-process",
+      "label": "monitors",
+      "properties": {
+        "source_evidence": [
+          "app/Components/AuthSessionMonitor.razor",
+          "app/wwwroot/js/lfm-interop.js"
+        ]
+      }
+    },
+    {
+      "id": "auth-service-serves-session-expiry-detection",
+      "type": "Serving",
+      "source": "auth-session-service",
+      "target": "session-expiry-detection-process",
+      "label": "probes session",
+      "properties": {
+        "source_evidence": [
+          "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
+          "app/Lfm.App.Core/Services/MeClient.cs",
+          "api/Functions/MeFunction.cs"
         ]
       }
     },
@@ -3163,6 +3217,7 @@
           "nodes": [
             "auth-ui-entry",
             "profile-ui-entry",
+            "session-expiry-detection-process",
             "auth-session-service",
             "raider-profile-service",
             "lfm-api",
@@ -3174,6 +3229,8 @@
           ],
           "relationships": [
             "auth-service-serves-auth-ui",
+            "auth-ui-performs-session-expiry-detection",
+            "auth-service-serves-session-expiry-detection",
             "raider-service-serves-profile-ui",
             "api-realizes-auth-service",
             "api-realizes-raider-service",
@@ -3200,7 +3257,8 @@
               "label": "Auth and profile UI",
               "members": [
                 "auth-ui-entry",
-                "profile-ui-entry"
+                "profile-ui-entry",
+                "session-expiry-detection-process"
               ]
             },
             {
