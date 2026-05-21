@@ -1504,6 +1504,60 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_DetailSummary_Uses_Instance_Portrait_As_Artwork_Background()
+    {
+        const string SourceUrl = "https://render.worldofwarcraft.com/eu/dungeon/maisara-caverns.jpg";
+        var artworkUrl = CachedMediaUrl(SourceUrl);
+        var summary = MakeSummary() with
+        {
+            InstanceName = "Maisara Caverns",
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var detail = MakeDetail() with
+        {
+            InstanceName = "Maisara Caverns",
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(detail);
+        Services.AddSingleton(client.Object);
+
+        var instances = new Mock<IInstancesClient>();
+        instances.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto>
+            {
+                MakeInstanceFixture() with
+                {
+                    Name = "Maisara Caverns",
+                    Category = "DUNGEON",
+                    Difficulty = "MYTHIC_KEYSTONE",
+                    Size = 5,
+                    PortraitUrl = artworkUrl,
+                },
+            });
+        Services.AddSingleton(instances.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var detailSummary = cut.Find("[data-testid='run-detail-summary']");
+            Assert.Contains("run-detail-summary--artwork", detailSummary.ClassName ?? "");
+            Assert.Contains("run-detail-card--artwork", detailSummary.Closest("fluent-card")?.ClassName ?? "");
+            var style = detailSummary.GetAttribute("style") ?? "";
+            Assert.Contains("background-image:", style);
+            Assert.Contains(BlizzardMediaCache.EncodeSource(SourceUrl), style);
+        });
+        instances.Verify(c => c.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public void RunsPage_RunCards_Render_Mobile_Detail_Toggles()
     {
         var client = new Mock<IRunsClient>();

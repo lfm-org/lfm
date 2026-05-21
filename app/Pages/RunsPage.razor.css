@@ -278,6 +278,11 @@
     order: 0;
 }
 
+.run-detail-main ::deep fluent-card.run-detail-card--artwork {
+    padding: 0;
+    overflow: hidden;
+}
+
 .run-signup-rail {
     order: 1;
     min-inline-size: 0;
@@ -319,6 +324,17 @@
     gap: 12px;
 }
 
+.run-detail-summary--artwork {
+    min-block-size: 6.5rem;
+    padding-block: 20px;
+    padding-inline: 22px;
+    color: white;
+    background-position: center;
+    background-size: cover;
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    overflow: hidden;
+}
+
 .run-detail-header {
     display: flex;
     flex-wrap: wrap;
@@ -343,6 +359,26 @@
     font-style: italic;
     color: var(--neutral-foreground-hint-rest);
     margin: 4px 0 0 0;
+}
+
+.run-detail-summary--artwork .run-detail-title {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.run-detail-summary--artwork .run-detail-description,
+.run-detail-summary--artwork ::deep .run-detail-meta {
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.run-detail-summary--artwork ::deep .run-detail-meta strong {
+    color: white;
+}
+
+.run-detail-summary--artwork fluent-button {
+    --neutral-stroke-rest: rgba(255, 255, 255, 0.58);
+    --neutral-foreground-rest: white;
 }
 
 ::deep .run-detail-meta {
