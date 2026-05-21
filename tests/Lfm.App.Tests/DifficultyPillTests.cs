@@ -45,6 +45,17 @@ public class DifficultyPillTests : ComponentTestBase
     }
 
     [Fact]
+    public void MythicKeystone_Appends_Key_Level_When_Provided()
+    {
+        var cut = Render<DifficultyPill>(p => p
+            .Add(x => x.Difficulty, "MYTHIC_KEYSTONE")
+            .Add(x => x.KeystoneLevel, 10));
+
+        var pill = cut.Find(".difficulty-pill");
+        Assert.Equal("M+10", pill.TextContent.Trim());
+    }
+
+    [Fact]
     public void Unknown_Difficulty_Falls_Back_To_TitleCased_Label()
     {
         var cut = Render<DifficultyPill>(p => p.Add(x => x.Difficulty, "PVP"));

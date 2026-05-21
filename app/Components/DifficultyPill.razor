@@ -4,15 +4,16 @@
     populated (see RunModeResolver) so no client-side ModeKey parsing.
 *@
 <span class="difficulty-pill difficulty-pill--@DifficultyClass(Difficulty)" title="@Difficulty">
-    @DifficultyLabel(Difficulty)
+    @DifficultyLabel(Difficulty, KeystoneLevel)
 </span>
 
 @code {
     [Parameter, EditorRequired] public string? Difficulty { get; set; }
+    [Parameter] public int? KeystoneLevel { get; set; }
 
-    private static string DifficultyLabel(string? difficulty) => difficulty switch
+    private static string DifficultyLabel(string? difficulty, int? keystoneLevel) => difficulty switch
     {
-        "MYTHIC_KEYSTONE" => "M+",
+        "MYTHIC_KEYSTONE" => keystoneLevel is > 0 ? $"M+{keystoneLevel}" : "M+",
         "MYTHIC" => "Mythic",
         "HEROIC" => "Heroic",
         "NORMAL" => "Normal",
