@@ -959,7 +959,7 @@ public class RunsPagesTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             var row = cut.Find(".character-row");
-            Assert.Contains("Warlock \u00B7 Demonology", row.TextContent);
+            Assert.Contains("Warlock \u00B7 Demonology", row.GetAttribute("aria-label") ?? "");
 
             var classIcon = row.QuerySelector(".character-row__class-icon img");
             Assert.NotNull(classIcon);
