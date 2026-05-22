@@ -1,6 +1,7 @@
 @page "/runs"
 @page "/runs/{RunId}"
 @attribute [Authorize]
+@implements IDisposable
 @using Lfm.App.Components
 @using Lfm.App.Components.Runs
 @using Lfm.App.Runs
@@ -16,6 +17,7 @@
 @inject ISpecializationsClient SpecializationsClient
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
+@inject TimeProvider TimeProvider
 
 <PageTitle>@Loc["runs.title"]</PageTitle>
 
@@ -306,8 +308,12 @@
     private IReadOnlyDictionary<int, string> _specIconUrls = new Dictionary<int, string>();
     private IReadOnlyDictionary<string, string> _specIconUrlsByClassAndName = new Dictionary<string, string>();
     private IReadOnlyDictionary<int, string> _instancePortraitUrlsById = new Dictionary<int, string>();
+    private IReadOnlyList<string> _dungeonPortraitUrls = [];
+    private int _rotatingInstancePortraitIndex;
+    private ITimer? _instancePortraitRotationTimer;
     private bool _instancePortraitsLoaded;
     private bool _instancePortraitsLoading;
+    private static readonly TimeSpan InstancePortraitRotationInterval = TimeSpan.FromSeconds(5);
 
     private static readonly (string Key, string LocKey)[] RoleColumnKeys =
     [
@@ -342,6 +348,7 @@
                 selectedRun = null;
                 _runDetailError = null;
                 _runDetailLoading = false;
+                StopInstancePortraitRotation();
             }
         }
     }
@@ -458,6 +465,7 @@
         _runDetailLoading = false;
         _signupError = null;
         ResetSignupOptions();
+        StopInstancePortraitRotation();
         Nav.NavigateTo("/runs", replace: true);
     }
 
@@ -465,6 +473,7 @@
     {
         _runDetailLoading = true;
         _runDetailError = null;
+        StopInstancePortraitRotation();
 
         try
         {
@@ -474,6 +483,7 @@
                 selectedRun = null;
                 _runDetailError = Loc["runs.detailUnavailable.notFound"];
                 ResetSignupOptions();
+                StopInstancePortraitRotation();
                 return;
             }
 
@@ -483,10 +493,11 @@
             }
 
             ApplyRunDetail(detail);
-            if (detail.InstanceId.HasValue)
+            if (UsesInstanceArtwork(detail))
             {
                 await EnsureInstancePortraitsLoaded();
             }
+            ConfigureInstancePortraitRotation(detail);
 
             _signupError = null;
             if (NeedsSpecIcons(detail))
@@ -506,6 +517,7 @@
                 ? Loc["runs.detailUnavailable.failed"]
                 : ex.Message;
             ResetSignupOptions();
+            StopInstancePortraitRotation();
         }
         finally
         {
@@ -759,11 +771,59 @@
     private string? InstancePortraitUrlFor(RunDetailDto run)
     {
         if (!run.InstanceId.HasValue)
-            return null;
+        {
+            if (!UsesRotatingDungeonPortrait(run) || _dungeonPortraitUrls.Count == 0)
+                return null;
+
+            return _dungeonPortraitUrls[_rotatingInstancePortraitIndex % _dungeonPortraitUrls.Count];
+        }
 
         return _instancePortraitUrlsById.TryGetValue(run.InstanceId.Value, out var portraitUrl)
             ? portraitUrl
             : null;
+    }
+
+    private static bool UsesInstanceArtwork(RunDetailDto run) =>
+        run.InstanceId.HasValue || UsesRotatingDungeonPortrait(run);
+
+    private static bool UsesRotatingDungeonPortrait(RunDetailDto run) =>
+        !run.InstanceId.HasValue &&
+        string.Equals(run.Difficulty, "MYTHIC_KEYSTONE", StringComparison.OrdinalIgnoreCase) &&
+        run.Size == 5;
+
+    private void ConfigureInstancePortraitRotation(RunDetailDto run)
+    {
+        _rotatingInstancePortraitIndex = 0;
+        StopInstancePortraitRotation();
+
+        if (!UsesRotatingDungeonPortrait(run) || _dungeonPortraitUrls.Count <= 1)
+            return;
+
+        _instancePortraitRotationTimer = TimeProvider.CreateTimer(
+            _ => _ = InvokeAsync(AdvanceInstancePortraitRotation),
+            null,
+            InstancePortraitRotationInterval,
+            InstancePortraitRotationInterval);
+    }
+
+    private void AdvanceInstancePortraitRotation()
+    {
+        if (selectedRun is null ||
+            !UsesRotatingDungeonPortrait(selectedRun) ||
+            _dungeonPortraitUrls.Count <= 1)
+        {
+            StopInstancePortraitRotation();
+            return;
+        }
+
+        _rotatingInstancePortraitIndex = (_rotatingInstancePortraitIndex + 1) % _dungeonPortraitUrls.Count;
+        StateHasChanged();
+    }
+
+    private void StopInstancePortraitRotation()
+    {
+        _instancePortraitRotationTimer?.Dispose();
+        _instancePortraitRotationTimer = null;
     }
 
     private async Task EnsureInstancePortraitsLoaded()
@@ -781,10 +841,18 @@
                 .ToDictionary(
                     group => group.Key,
                     group => group.First().PortraitUrl!);
+            _dungeonPortraitUrls = instances
+                .Where(i => string.Equals(i.Category, "DUNGEON", StringComparison.OrdinalIgnoreCase) &&
+                            IsHttpImageUrl(i.PortraitUrl))
+                .OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(i => i.PortraitUrl!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
         }
         catch
         {
             _instancePortraitUrlsById = new Dictionary<int, string>();
+            _dungeonPortraitUrls = [];
         }
         finally
         {
@@ -802,6 +870,8 @@
         Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
          string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase));
+
+    public void Dispose() => StopInstancePortraitRotation();
 
     private string? SpecIconUrlFor(RunCharacterDto? character)
     {
