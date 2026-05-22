@@ -1562,13 +1562,15 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
-    public void RunsPage_AnyDungeonDetail_Rotates_Dungeon_Portrait_Backgrounds()
+    public void RunsPage_AnyDungeonDetail_Uses_Shuffled_Dungeon_Portrait_Backgrounds()
     {
         const string FirstDungeonSource = "https://render.worldofwarcraft.com/eu/dungeon/cinderbrew-meadery.jpg";
         const string SecondDungeonSource = "https://render.worldofwarcraft.com/eu/dungeon/rookery.jpg";
+        const string ThirdDungeonSource = "https://render.worldofwarcraft.com/eu/dungeon/stonevault.jpg";
         const string RaidSource = "https://render.worldofwarcraft.com/eu/raid/liberation-of-undermine.jpg";
         var timeProvider = new ManualTimerTimeProvider();
         Services.AddSingleton<TimeProvider>(timeProvider);
+        Services.AddSingleton<IArtworkRotationRandomizer>(new SequenceArtworkRotationRandomizer([1, 0]));
         var summary = MakeSummary() with
         {
             InstanceId = null,
@@ -1615,6 +1617,15 @@ public class RunsPagesTests : ComponentTestBase
                 MakeInstanceFixture() with
                 {
                     InstanceNumericId = 4,
+                    Name = "The Stonevault",
+                    Category = "DUNGEON",
+                    Difficulty = "MYTHIC_KEYSTONE",
+                    Size = 5,
+                    PortraitUrl = CachedMediaUrl(ThirdDungeonSource),
+                },
+                MakeInstanceFixture() with
+                {
+                    InstanceNumericId = 5,
                     Name = "Liberation of Undermine",
                     Category = "RAID",
                     Difficulty = "HEROIC",
@@ -1633,7 +1644,7 @@ public class RunsPagesTests : ComponentTestBase
             Assert.Equal(2, layers.Count);
             var activeLayer = layers.Single(l => (l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal));
             var style = activeLayer.GetAttribute("style") ?? "";
-            Assert.Contains(BlizzardMediaCache.EncodeSource(FirstDungeonSource), style);
+            Assert.Contains(BlizzardMediaCache.EncodeSource(ThirdDungeonSource), style);
             Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), style);
             Assert.Equal(TimeSpan.FromSeconds(5), timeProvider.CreatedTimer?.DueTime);
             Assert.Equal(TimeSpan.FromSeconds(5), timeProvider.CreatedTimer?.Period);
@@ -1649,10 +1660,21 @@ public class RunsPagesTests : ComponentTestBase
                 .GetAttribute("style") ?? "";
             var outgoingStyle = layers.Single(l => !(l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal))
                 .GetAttribute("style") ?? "";
-            Assert.Contains(BlizzardMediaCache.EncodeSource(SecondDungeonSource), activeStyle);
-            Assert.Contains(BlizzardMediaCache.EncodeSource(FirstDungeonSource), outgoingStyle);
+            Assert.Contains(BlizzardMediaCache.EncodeSource(FirstDungeonSource), activeStyle);
+            Assert.Contains(BlizzardMediaCache.EncodeSource(ThirdDungeonSource), outgoingStyle);
             Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), activeStyle);
             Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), outgoingStyle);
+        });
+
+        timeProvider.CreatedTimer!.Fire();
+
+        cut.WaitForAssertion(() =>
+        {
+            var activeStyle = cut.FindAll("[data-testid='run-detail-artwork-layer']")
+                .Single(l => (l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal))
+                .GetAttribute("style") ?? "";
+            Assert.Contains(BlizzardMediaCache.EncodeSource(SecondDungeonSource), activeStyle);
+            Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), activeStyle);
         });
     }
 
@@ -2339,6 +2361,13 @@ public class RunsPagesTests : ComponentTestBase
             Dispose();
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class SequenceArtworkRotationRandomizer(IReadOnlyList<int> values) : IArtworkRotationRandomizer
+    {
+        private int _index;
+
+        public int Next(int exclusiveMax) => values[_index++];
     }
 
     [Fact]
