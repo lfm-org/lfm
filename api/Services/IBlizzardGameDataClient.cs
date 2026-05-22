@@ -12,7 +12,8 @@ namespace Lfm.Api.Services;
 /// user access token, mirroring fetchBlizzardToken in reference-sync-blizzard.ts.
 ///
 /// Base URL: https://{region}.api.blizzard.com/ (set in Program.cs).
-/// All static-data requests append namespace=static-{region}&amp;locale=en_US.
+/// Static-data requests append namespace=static-{region}&amp;locale=en_US.
+/// Dynamic Mythic Keystone requests append namespace=dynamic-{region}&amp;locale=en_US.
 /// </summary>
 public interface IBlizzardGameDataClient
 {
@@ -50,10 +51,35 @@ public interface IBlizzardGameDataClient
     /// Fetches the journal-expansion index — the canonical ordered list of
     /// WoW expansions. Used to populate the expansion selector on the
     /// create-run form. Each entry carries only <c>Id</c> and <c>Name</c>;
-    /// we never fetch per-expansion detail because the dungeon / raid
-    /// membership is already carried on each journal-instance row.
+    /// per-expansion detail carries the non-M+ dungeon / raid membership.
     /// </summary>
     Task<BlizzardJournalExpansionIndex> GetJournalExpansionIndexAsync(string accessToken, CancellationToken ct);
+
+    /// <summary>
+    /// Fetches a single journal-expansion detail document, including Blizzard's
+    /// dungeon and raid membership lists for that expansion.
+    /// </summary>
+    Task<BlizzardJournalExpansionDetail> GetJournalExpansionAsync(
+        int expansionId,
+        string accessToken,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Fetches the Mythic Keystone season index from the dynamic namespace.
+    /// </summary>
+    Task<BlizzardMythicKeystoneSeasonIndex> GetMythicKeystoneSeasonIndexAsync(
+        string accessToken,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Fetches one Mythic Keystone season detail document from the dynamic namespace.
+    /// Blizzard's current response may omit dungeon membership; callers must
+    /// tolerate <see cref="BlizzardMythicKeystoneSeasonDetail.Dungeons"/> being null.
+    /// </summary>
+    Task<BlizzardMythicKeystoneSeasonDetail> GetMythicKeystoneSeasonAsync(
+        int seasonId,
+        string accessToken,
+        CancellationToken ct);
 
     /// <summary>
     /// Fetches the journal-instance index.
@@ -107,6 +133,24 @@ public sealed record BlizzardMediaAssets(IReadOnlyList<BlizzardMediaAsset>? Asse
 public sealed record BlizzardJournalExpansionIndex(
     [property: JsonPropertyName("tiers")]
     IReadOnlyList<BlizzardIndexEntry> Tiers);
+
+public sealed record BlizzardJournalExpansionDetail(
+    int Id,
+    string Name,
+    IReadOnlyList<BlizzardIndexEntry>? Dungeons,
+    IReadOnlyList<BlizzardIndexEntry>? Raids);
+
+public sealed record BlizzardMythicKeystoneSeasonReference(int Id);
+
+public sealed record BlizzardMythicKeystoneSeasonIndex(
+    [property: JsonPropertyName("current_season")]
+    BlizzardMythicKeystoneSeasonReference? CurrentSeason,
+    IReadOnlyList<BlizzardMythicKeystoneSeasonReference> Seasons);
+
+public sealed record BlizzardMythicKeystoneSeasonDetail(
+    int Id,
+    [property: JsonPropertyName("season_name")] string? SeasonName,
+    IReadOnlyList<BlizzardIndexEntry>? Dungeons);
 
 public sealed record BlizzardJournalInstanceIndex(IReadOnlyList<BlizzardIndexEntry> Instances);
 
