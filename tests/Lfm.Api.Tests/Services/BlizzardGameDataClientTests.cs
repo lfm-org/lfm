@@ -54,7 +54,7 @@ public class BlizzardGameDataClientTests
 
         Assert.Equal(1201, result.CurrentLeaderboards!.Single().Id);
         Assert.Equal(
-            "https://eu.api.blizzard.com/data/wow/connected-realm/1084/mythic-leaderboard/index?namespace=dynamic-eu&locale=en_US",
+            "https://eu.api.blizzard.com/data/wow/connected-realm/1084/mythic-leaderboard/?namespace=dynamic-eu&locale=en_US",
             handler.RequestUri!.ToString());
         Assert.Equal("Bearer", handler.Authorization!.Scheme);
         Assert.Equal("access-token-2", handler.Authorization.Parameter);
