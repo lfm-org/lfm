@@ -2097,7 +2097,7 @@ public class RunsPagesTests : ComponentTestBase
             instances:
             [
                 new("1:MYTHIC_KEYSTONE:5", 1, "Windrunner Spire", "MYTHIC_KEYSTONE:5",
-                    "Midnight", "DUNGEON", 700, "MYTHIC_KEYSTONE", 5),
+                    "Midnight", "DUNGEON", 700, "MYTHIC_KEYSTONE", 5, IsCurrentMythicKeystone: true),
                 new("2:HEROIC:25", 2, "The Voidspire", "HEROIC:25",
                     "Midnight", "RAID", 700, "HEROIC", 25),
             ],
@@ -2227,11 +2227,10 @@ public class RunsPagesTests : ComponentTestBase
     [Fact]
     public void CreateRunPage_DoesNotRenderExpansionSelector()
     {
-        // The create-run form scopes its instance list to the Blizzard
-        // "Current Season" tier unconditionally — M+, raids, and non-M+
-        // dungeons all come from the current rotation. Pin the absence of
-        // an expansion dropdown so a regression that reintroduces cross-
-        // expansion selection surfaces here.
+        // The create-run form chooses the current expansion / M+ membership
+        // from reference data instead of exposing an expansion selector.
+        // Pin the absence of an expansion dropdown so a regression that
+        // reintroduces cross-expansion selection surfaces here.
         WireCreateRunServices(expansions: new List<ExpansionDto>
         {
             new(505, "The War Within"),
@@ -2492,7 +2491,8 @@ public class RunsPagesTests : ComponentTestBase
             "DUNGEON",
             505,
             "MYTHIC_KEYSTONE",
-            5);
+            5,
+            IsCurrentMythicKeystone: true);
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RunDetailWithEtag(
@@ -2538,7 +2538,7 @@ public class RunsPagesTests : ComponentTestBase
     public void EditRunPage_DoesNotRenderExpansionSelector()
     {
         // Same rationale as CreateRunPage_DoesNotRenderExpansionSelector:
-        // the edit form also scopes to the Current Season tier only.
+        // the edit form also derives instance scope from reference data.
         var runsClient = new Mock<IRunsClient>();
         runsClient.Setup(c => c.GetWithEtagAsync("run-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RunDetailWithEtag(MakeDetail(), "\"etag-v1\""));
