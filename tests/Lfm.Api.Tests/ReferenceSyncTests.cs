@@ -247,7 +247,7 @@ public class ReferenceSyncTests
     }
 
     [Fact]
-    public async Task SyncInstancesAsync_uses_journal_expansion_membership_and_current_keystone_season()
+    public async Task SyncInstancesAsync_uses_current_raid_tier_and_current_keystone_season()
     {
         var (sut, blizzard, blobs, _) = MakeSut();
         blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
@@ -259,7 +259,8 @@ public class ReferenceSyncTests
             .ReturnsAsync(MakeExpansionDetail(
                 516,
                 "Midnight",
-                dungeons: [new BlizzardIndexEntry(1311, "Den of Nalorakk")]));
+                dungeons: [new BlizzardIndexEntry(1311, "Den of Nalorakk")],
+                raids: [new BlizzardIndexEntry(1400, "The Voidspire")]));
         blizzard.Setup(b => b.GetJournalExpansionAsync(503, FakeToken, It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeExpansionDetail(503, "Dragonflight"));
         blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
@@ -272,6 +273,7 @@ public class ReferenceSyncTests
         blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeJournalIndex(
                 (1311, "Den of Nalorakk"),
+                (1400, "The Voidspire"),
                 (1201, "Algeth'ar Academy"),
                 (1319, "Keystone Dungeons")));
         blizzard.Setup(b => b.GetJournalInstanceAsync(1311, FakeToken, It.IsAny<CancellationToken>()))
@@ -304,6 +306,21 @@ public class ReferenceSyncTests
                         true),
                 ],
                 Media: null));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1400, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1400,
+                Name: "The Voidspire",
+                Category: new BlizzardJournalInstanceCategory("RAID"),
+                Expansion: new BlizzardJournalExpansion(516, "Midnight"),
+                MinimumLevel: 80,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("HEROIC", "Heroic"),
+                        20,
+                        true),
+                ],
+                Media: null));
         blizzard.Setup(b => b.GetJournalInstanceAsync(1319, FakeToken, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new BlizzardJournalInstanceDetail(
                 Id: 1319,
@@ -326,10 +343,12 @@ public class ReferenceSyncTests
             "reference/journal-instance/index.json",
             It.Is<List<InstanceIndexEntry>>(ix =>
                 ix.Count == 2 &&
-                ix.Any(e => e.Id == 1311 && !e.IsCurrentMythicKeystone) &&
+                ix.Any(e => e.Id == 1400 && !e.IsCurrentMythicKeystone) &&
                 ix.Any(e => e.Id == 1201 && e.IsCurrentMythicKeystone) &&
+                ix.All(e => e.Id != 1311) &&
                 ix.All(e => e.Id != 1319)),
             It.IsAny<CancellationToken>()), Times.Once);
+        blizzard.Verify(b => b.GetJournalInstanceAsync(1311, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
         blizzard.Verify(b => b.GetJournalExpansionAsync(505, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
     }
 
