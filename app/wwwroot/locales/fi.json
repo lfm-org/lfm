@@ -288,7 +288,7 @@
     "guildAdmin.saveSuccess": "Asetukset tallennettu onnistuneesti.",
     "guildAdmin.saveError": "Virhe tallennettaessa.",
     "adminReference.title": "Referenssitiedot",
-    "adminReference.description": "Hakee uusimmat journal-instance-, playable-specialization-, journal-expansion- ja Mythic Keystone -kausitiedot Blizzardin Game Data API:sta ja kirjoittaa ne blobiin. Kest\u00e4\u00e4 noin minuutin.",
+    "adminReference.description": "Hakee uusimmat nykyisen raid-tierin, Mythic Keystone -kauden, playable-specialization- ja journal-expansion-tiedot Blizzardin Game Data API:sta ja kirjoittaa ne blobiin. Kest\u00e4\u00e4 noin minuutin.",
     "adminReference.status.idle": "T\u00e4ss\u00e4 istunnossa ei ole viel\u00e4 ajettu referenssip\u00e4ivityst\u00e4.",
     "adminReference.status.refreshing": "Referenssip\u00e4ivitys on k\u00e4ynniss\u00e4.",
     "adminReference.status.success": "Referenssip\u00e4ivitys valmistui t\u00e4ss\u00e4 istunnossa.",
