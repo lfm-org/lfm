@@ -57,23 +57,36 @@ Docker volume mounted into the Functions container as
 such as `PRIVACY_EMAIL`, `API_HOSTNAME`, and `FRONTEND_HOSTNAME` are documented
 under Deployment and are intentionally not part of the local `.env` template.
 
-### 3. Start local stack
+### 3. Start the local dev environment
 
 ```bash
-docker compose -f docker-compose.local.yml up
+scripts/start-worktree-dev.sh
 ```
 
-This starts:
+This starts the Docker stack and the Blazor app together. In the main checkout
+it uses the documented default ports. In a `.worktrees/<name>` checkout it
+reuses the main checkout `.env` when the worktree has none, chooses stable
+worktree-specific ports, and writes the ignored
+`app/wwwroot/appsettings.Development.json` so the app talks to the matching API.
+
+With the default port set, the helper starts:
 
 - Cosmos emulator on `http://127.0.0.1:8081` (explorer on port 1234)
 - Azurite blob storage on `http://127.0.0.1:10000`
 - a one-shot local init container that creates the `lfm` Cosmos database and
   `raiders`, `guilds`, `runs`, and `idempotency` containers
 - Azure Functions on `http://localhost:7071`
+- the Blazor app on `http://localhost:5138`
 
-### 4. Run the Blazor app
+Use `scripts/start-worktree-dev.sh --print` to see the selected ports without
+starting Docker or the app. Use `--keep-compose` to leave Docker services
+running after the app exits, or `--compose-only` / `--app-only` when you want
+split terminals.
+
+Manual split-terminal flow:
 
 ```bash
+docker compose -f docker-compose.local.yml up
 dotnet run --project app/Lfm.App.csproj
 ```
 
