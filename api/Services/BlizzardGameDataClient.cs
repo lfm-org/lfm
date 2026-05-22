@@ -138,7 +138,7 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
         string accessToken,
         CancellationToken ct)
         => GetDynamicJsonAsync<BlizzardMythicKeystoneLeaderboardIndex>(
-            $"data/wow/connected-realm/{connectedRealmId}/mythic-leaderboard/index", accessToken, ct);
+            $"data/wow/connected-realm/{connectedRealmId}/mythic-leaderboard/", accessToken, ct);
 
     /// <inheritdoc/>
     public Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct)
