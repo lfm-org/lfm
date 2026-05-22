@@ -50,6 +50,11 @@ namespace Lfm.Contracts.Instances;
 /// exception — see docs/wire-payload-contract.md. If the portrait surface is
 /// dropped, trim this field at the next audit.
 /// </param>
+/// <param name="IsCurrentMythicKeystone">
+/// True when the row belongs to the current Mythic Keystone season membership.
+/// The create/edit run forms use this to populate specific M+ dungeon choices
+/// separately from normal journal-expansion dungeon membership.
+/// </param>
 public sealed record InstanceDto(
     string Id,
     int InstanceNumericId,
@@ -60,4 +65,5 @@ public sealed record InstanceDto(
     int? ExpansionId = null,
     string Difficulty = "",
     int Size = 0,
-    string? PortraitUrl = null);
+    string? PortraitUrl = null,
+    bool IsCurrentMythicKeystone = false);

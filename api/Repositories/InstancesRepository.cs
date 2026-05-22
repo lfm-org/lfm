@@ -31,7 +31,8 @@ internal sealed record InstanceIndexEntry(
     string? Expansion,
     string? PortraitUrl,
     string? Category = null,
-    int? ExpansionId = null);
+    int? ExpansionId = null,
+    bool IsCurrentMythicKeystone = false);
 
 /// <summary>
 /// Per-mode manifest entry. <c>ModeKey</c> is the legacy composite
@@ -172,7 +173,8 @@ public sealed class InstancesRepository(IBlobReferenceClient blobs) : IInstances
                     ExpansionId: entry.ExpansionId,
                     Difficulty: "UNKNOWN",
                     Size: 0,
-                    PortraitUrl: entry.PortraitUrl));
+                    PortraitUrl: entry.PortraitUrl,
+                    IsCurrentMythicKeystone: entry.IsCurrentMythicKeystone));
                 continue;
             }
 
@@ -189,7 +191,8 @@ public sealed class InstancesRepository(IBlobReferenceClient blobs) : IInstances
                     ExpansionId: entry.ExpansionId,
                     Difficulty: difficulty,
                     Size: size,
-                    PortraitUrl: entry.PortraitUrl));
+                    PortraitUrl: entry.PortraitUrl,
+                    IsCurrentMythicKeystone: entry.IsCurrentMythicKeystone));
             }
         }
         return rows;

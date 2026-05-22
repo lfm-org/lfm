@@ -880,6 +880,8 @@ components:
           format: int32
         portraitUrl:
           type: string
+        isCurrentMythicKeystone:
+          type: boolean
       additionalProperties: false
     MeResponse:
       type: object

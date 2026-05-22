@@ -8,8 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace Lfm.Api.Services;
 
 /// <summary>
-/// Syncs static Blizzard reference data (journal-instance, playable-specialization,
-/// plus their media blobs) from the Blizzard Game Data API into the
+/// Syncs Blizzard reference data (journal-instance, journal-expansion,
+/// playable-specialization, Mythic Keystone season membership, plus media blobs)
+/// from the Blizzard Game Data API into the
 /// <c>lfmstore/wow/reference/</c> blob container — see
 /// <c>docs/storage-architecture.md</c>.
 ///
@@ -28,6 +29,9 @@ public sealed class ReferenceSync(
     IBlobReferenceClient blobs,
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
+    private const string CurrentSeasonExpansion = "Current Season";
+    private const string KeystoneDungeonsGroup = "Keystone Dungeons";
+
     /// <inheritdoc/>
     public async Task<WowReferenceRefreshResponse> SyncAllAsync(
         CancellationToken ct,
@@ -106,6 +110,10 @@ public sealed class ReferenceSync(
         IProgress<WowReferenceRefreshProgress>? progress,
         CancellationToken ct)
     {
+        var expansions = await gameData.GetJournalExpansionIndexAsync(token, ct);
+        var journalExpansionIds = await ResolveJournalExpansionInstanceIdsAsync(expansions, token, ct);
+        var currentKeystoneIds = await ResolveCurrentMythicKeystoneDungeonIdsAsync(expansions, token, ct);
+        var hasMembershipFilter = journalExpansionIds.Count > 0 || currentKeystoneIds.Count > 0;
         var index = await gameData.GetJournalInstanceIndexAsync(token, ct);
         var manifest = new List<InstanceIndexEntry>();
         var total = index.Instances.Count;
@@ -115,6 +123,13 @@ public sealed class ReferenceSync(
 
         foreach (var entry in index.Instances)
         {
+            if (hasMembershipFilter
+                && !journalExpansionIds.Contains(entry.Id)
+                && !currentKeystoneIds.Contains(entry.Id))
+            {
+                continue;
+            }
+
             processed++;
             progress?.Report(new WowReferenceRefreshProgress(
                 "instances", "progress", processed, total, Current: entry.Name));
@@ -179,11 +194,76 @@ public sealed class ReferenceSync(
                 Expansion: detail.Expansion?.Name ?? "",
                 PortraitUrl: portraitUrl,
                 Category: detail.Category?.Type,
-                ExpansionId: detail.Expansion?.Id));
+                ExpansionId: detail.Expansion?.Id,
+                IsCurrentMythicKeystone: currentKeystoneIds.Contains(detail.Id)));
         }
 
         await blobs.UploadAsync("reference/journal-instance/index.json", manifest, ct);
         return manifest.Count;
+    }
+
+    private async Task<HashSet<int>> ResolveJournalExpansionInstanceIdsAsync(
+        BlizzardJournalExpansionIndex expansions,
+        string token,
+        CancellationToken ct)
+    {
+        var ids = new HashSet<int>();
+        foreach (var expansion in expansions.Tiers.Where(e => e.Name != CurrentSeasonExpansion))
+        {
+            var detail = await FetchWithRetryAsync(
+                () => gameData.GetJournalExpansionAsync(expansion.Id, token, ct),
+                $"journal expansion {expansion.Id}",
+                ct);
+            if (detail is null) continue;
+
+            foreach (var dungeon in detail.Dungeons ?? [])
+                ids.Add(dungeon.Id);
+            foreach (var raid in detail.Raids ?? [])
+                ids.Add(raid.Id);
+        }
+
+        return ids;
+    }
+
+    private async Task<HashSet<int>> ResolveCurrentMythicKeystoneDungeonIdsAsync(
+        BlizzardJournalExpansionIndex expansions,
+        string token,
+        CancellationToken ct)
+    {
+        try
+        {
+            var index = await gameData.GetMythicKeystoneSeasonIndexAsync(token, ct);
+            var currentSeasonId = index.CurrentSeason?.Id;
+            if (currentSeasonId is null) return [];
+
+            var season = await FetchWithRetryAsync(
+                () => gameData.GetMythicKeystoneSeasonAsync(currentSeasonId.Value, token, ct),
+                $"mythic keystone season {currentSeasonId.Value}",
+                ct);
+
+            if (season?.Dungeons is { Count: > 0 })
+                return season.Dungeons.Select(d => d.Id).ToHashSet();
+
+            var currentSeasonExpansion = expansions.Tiers.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
+            if (currentSeasonExpansion is null) return [];
+
+            var detail = await FetchWithRetryAsync(
+                () => gameData.GetJournalExpansionAsync(currentSeasonExpansion.Id, token, ct),
+                $"journal expansion {currentSeasonExpansion.Id}",
+                ct);
+
+            return detail?.Dungeons is null
+                ? []
+                : detail.Dungeons
+                    .Where(d => d.Name != KeystoneDungeonsGroup)
+                    .Select(d => d.Id)
+                    .ToHashSet();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not resolve current Mythic Keystone season dungeons");
+            return [];
+        }
     }
 
     // ---------------------------------------------------------------------------
