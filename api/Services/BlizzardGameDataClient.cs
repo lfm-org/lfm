@@ -103,6 +103,29 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
             "data/wow/journal-expansion/index", accessToken, ct);
 
     /// <inheritdoc/>
+    public Task<BlizzardJournalExpansionDetail> GetJournalExpansionAsync(
+        int expansionId,
+        string accessToken,
+        CancellationToken ct)
+        => GetStaticJsonAsync<BlizzardJournalExpansionDetail>(
+            $"data/wow/journal-expansion/{expansionId}", accessToken, ct);
+
+    /// <inheritdoc/>
+    public Task<BlizzardMythicKeystoneSeasonIndex> GetMythicKeystoneSeasonIndexAsync(
+        string accessToken,
+        CancellationToken ct)
+        => GetDynamicJsonAsync<BlizzardMythicKeystoneSeasonIndex>(
+            "data/wow/mythic-keystone/season/index", accessToken, ct);
+
+    /// <inheritdoc/>
+    public Task<BlizzardMythicKeystoneSeasonDetail> GetMythicKeystoneSeasonAsync(
+        int seasonId,
+        string accessToken,
+        CancellationToken ct)
+        => GetDynamicJsonAsync<BlizzardMythicKeystoneSeasonDetail>(
+            $"data/wow/mythic-keystone/season/{seasonId}", accessToken, ct);
+
+    /// <inheritdoc/>
     public Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct)
         => GetStaticJsonAsync<BlizzardJournalInstanceIndex>(
             "data/wow/journal-instance/index", accessToken, ct);
@@ -118,20 +141,27 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
             $"data/wow/media/journal-instance/{instanceId}", accessToken, ct);
 
     // ---------------------------------------------------------------------------
-    // Generic static-namespace fetch
+    // Generic namespace fetch
     // ---------------------------------------------------------------------------
 
-    private async Task<T> GetStaticJsonAsync<T>(string path, string accessToken, CancellationToken ct)
-    {
-        var region = _opts.Region.ToLowerInvariant();
-        var staticNamespace = $"static-{region}";
+    private Task<T> GetStaticJsonAsync<T>(string path, string accessToken, CancellationToken ct)
+        => GetJsonAsync<T>(path, $"static-{_opts.Region.ToLowerInvariant()}", accessToken, ct);
 
+    private Task<T> GetDynamicJsonAsync<T>(string path, string accessToken, CancellationToken ct)
+        => GetJsonAsync<T>(path, $"dynamic-{_opts.Region.ToLowerInvariant()}", accessToken, ct);
+
+    private async Task<T> GetJsonAsync<T>(
+        string path,
+        string ns,
+        string accessToken,
+        CancellationToken ct)
+    {
         // path is a relative path; HttpClient base address is already set to
         // https://{region}.api.blizzard.com/  in Program.cs.
         var uriBuilder = new UriBuilder(_httpClient.BaseAddress!)
         {
             Path = $"/{path}",
-            Query = $"namespace={Uri.EscapeDataString(staticNamespace)}&locale=en_US",
+            Query = $"namespace={Uri.EscapeDataString(ns)}&locale=en_US",
         };
 
         var request = new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri);
