@@ -30,6 +30,7 @@ public sealed class ReferenceSync(
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
     private const string CurrentSeasonExpansion = "Current Season";
+    private const int CurrentRaidTierJournalExpansionId = 516;
     private const string KeystoneDungeonsGroup = "Keystone Dungeons";
 
     /// <inheritdoc/>
@@ -111,9 +112,9 @@ public sealed class ReferenceSync(
         CancellationToken ct)
     {
         var expansions = await gameData.GetJournalExpansionIndexAsync(token, ct);
-        var journalExpansionIds = await ResolveJournalExpansionInstanceIdsAsync(expansions, token, ct);
+        var currentRaidTierIds = await ResolveCurrentRaidTierRaidIdsAsync(token, ct);
         var currentKeystoneIds = await ResolveCurrentMythicKeystoneDungeonIdsAsync(expansions, token, ct);
-        var hasMembershipFilter = journalExpansionIds.Count > 0 || currentKeystoneIds.Count > 0;
+        var hasMembershipFilter = currentRaidTierIds.Count > 0 || currentKeystoneIds.Count > 0;
         var index = await gameData.GetJournalInstanceIndexAsync(token, ct);
         var manifest = new List<InstanceIndexEntry>();
         var total = index.Instances.Count;
@@ -124,7 +125,7 @@ public sealed class ReferenceSync(
         foreach (var entry in index.Instances)
         {
             if (hasMembershipFilter
-                && !journalExpansionIds.Contains(entry.Id)
+                && !currentRaidTierIds.Contains(entry.Id)
                 && !currentKeystoneIds.Contains(entry.Id))
             {
                 continue;
@@ -202,27 +203,18 @@ public sealed class ReferenceSync(
         return manifest.Count;
     }
 
-    private async Task<HashSet<int>> ResolveJournalExpansionInstanceIdsAsync(
-        BlizzardJournalExpansionIndex expansions,
+    private async Task<HashSet<int>> ResolveCurrentRaidTierRaidIdsAsync(
         string token,
         CancellationToken ct)
     {
-        var ids = new HashSet<int>();
-        foreach (var expansion in expansions.Tiers.Where(e => e.Name != CurrentSeasonExpansion))
-        {
-            var detail = await FetchWithRetryAsync(
-                () => gameData.GetJournalExpansionAsync(expansion.Id, token, ct),
-                $"journal expansion {expansion.Id}",
-                ct);
-            if (detail is null) continue;
+        var detail = await FetchWithRetryAsync(
+            () => gameData.GetJournalExpansionAsync(CurrentRaidTierJournalExpansionId, token, ct),
+            $"journal expansion {CurrentRaidTierJournalExpansionId}",
+            ct);
 
-            foreach (var dungeon in detail.Dungeons ?? [])
-                ids.Add(dungeon.Id);
-            foreach (var raid in detail.Raids ?? [])
-                ids.Add(raid.Id);
-        }
-
-        return ids;
+        return detail?.Raids is null
+            ? []
+            : detail.Raids.Select(r => r.Id).ToHashSet();
     }
 
     private async Task<HashSet<int>> ResolveCurrentMythicKeystoneDungeonIdsAsync(
