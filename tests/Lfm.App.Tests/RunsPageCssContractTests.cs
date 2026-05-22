@@ -49,6 +49,17 @@ public class RunsPageCssContractTests
     }
 
     [Fact]
+    public void Artwork_layers_crossfade_by_opacity()
+    {
+        var css = File.ReadAllText(FindRepoFile("app", "Pages", "RunsPage.razor.css"));
+
+        Assert.Contains(".run-detail-artwork-layer", css);
+        Assert.Contains("transition: opacity 700ms ease-in-out;", css);
+        Assert.Contains(".run-detail-artwork-layer--active", css);
+        Assert.Contains("@media (prefers-reduced-motion: reduce)", css);
+    }
+
+    [Fact]
     public void Roster_role_icons_use_single_color_outline_styling()
     {
         var css = File.ReadAllText(FindRepoFile("app", "Pages", "RunsPage.razor.css"));
