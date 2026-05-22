@@ -53,7 +53,7 @@ namespace Lfm.Contracts.Instances;
 /// <param name="IsCurrentMythicKeystone">
 /// True when the row belongs to the current Mythic Keystone season membership.
 /// The create/edit run forms use this to populate specific M+ dungeon choices
-/// separately from normal journal-expansion dungeon membership.
+/// because non-keystone dungeons are not scheduleable.
 /// </param>
 public sealed record InstanceDto(
     string Id,
