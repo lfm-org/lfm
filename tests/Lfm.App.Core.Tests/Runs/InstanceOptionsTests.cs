@@ -15,7 +15,8 @@ public class InstanceOptionsTests
         string difficulty,
         int size,
         string? category = "RAID",
-        int? expansionId = 505) =>
+        int? expansionId = 505,
+        bool isCurrentMythicKeystone = false) =>
         new(
             Id: $"{numericId}:{difficulty}:{size}",
             InstanceNumericId: numericId,
@@ -25,7 +26,8 @@ public class InstanceOptionsTests
             Category: category,
             ExpansionId: expansionId,
             Difficulty: difficulty,
-            Size: size);
+            Size: size,
+            IsCurrentMythicKeystone: isCurrentMythicKeystone);
 
     [Fact]
     public void Groups_multiple_mode_rows_into_one_option_per_instance()
@@ -122,5 +124,19 @@ public class InstanceOptionsTests
         var flat = new List<InstanceDto> { Row(1200, "L", "HEROIC", 25, expansionId: 505) };
         var opt = Assert.Single(InstanceOptions.Build(flat));
         Assert.Equal(505, opt.ExpansionId);
+    }
+
+    [Fact]
+    public void Carries_current_mythic_keystone_membership_from_any_row()
+    {
+        var flat = new List<InstanceDto>
+        {
+            Row(1200, "L", "HEROIC", 5),
+            Row(1200, "L", "MYTHIC_KEYSTONE", 5, isCurrentMythicKeystone: true),
+        };
+
+        var opt = Assert.Single(InstanceOptions.Build(flat));
+
+        Assert.True(opt.IsCurrentMythicKeystone);
     }
 }

@@ -21,7 +21,8 @@ public sealed record InstanceOption(
     string Name,
     ActivityKind Activity,
     int? ExpansionId,
-    IReadOnlyList<DifficultyOption> Difficulties);
+    IReadOnlyList<DifficultyOption> Difficulties,
+    bool IsCurrentMythicKeystone = false);
 
 public static class InstanceOptions
 {
@@ -54,7 +55,8 @@ public static class InstanceOptions
                     Name: first.Name,
                     Activity: activity,
                     ExpansionId: first.ExpansionId,
-                    Difficulties: difficulties);
+                    Difficulties: difficulties,
+                    IsCurrentMythicKeystone: rows.Any(i => i.IsCurrentMythicKeystone));
             })
             .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
