@@ -10,6 +10,7 @@ using Microsoft.JSInterop;
 using Lfm.App;
 using Lfm.App.Auth;
 using Lfm.App.i18n;
+using Lfm.App.Runs;
 using Lfm.App.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -23,6 +24,7 @@ builder.Services.AddSingleton<IDataCache, InMemoryDataCache>();
 builder.Services.AddSingleton<IThemeService, ThemeService>();
 builder.Services.AddScoped<ToastHelper>();
 builder.Services.AddSingleton<ILocaleService, LocaleService>();
+builder.Services.AddSingleton<IArtworkRotationRandomizer, ArtworkRotationRandomizer>();
 builder.Services.AddLocalization();
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
