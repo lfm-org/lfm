@@ -1550,7 +1550,11 @@ public class RunsPagesTests : ComponentTestBase
             var detailSummary = cut.Find("[data-testid='run-detail-summary']");
             Assert.Contains("run-detail-summary--artwork", detailSummary.ClassName ?? "");
             Assert.Contains("run-detail-card--artwork", detailSummary.Closest("fluent-card")?.ClassName ?? "");
-            var style = detailSummary.GetAttribute("style") ?? "";
+            var artworkLayers = cut.FindAll("[data-testid='run-detail-artwork-layer']");
+            Assert.Equal(2, artworkLayers.Count);
+            var activeLayer = artworkLayers.Single(l => (l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal));
+            var style = activeLayer.GetAttribute("style") ?? "";
+            Assert.Contains("run-detail-artwork-layer--active", activeLayer.ClassName ?? "");
             Assert.Contains("background-image:", style);
             Assert.Contains(BlizzardMediaCache.EncodeSource(SourceUrl), style);
         });
@@ -1625,7 +1629,10 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            var style = cut.Find("[data-testid='run-detail-summary']").GetAttribute("style") ?? "";
+            var layers = cut.FindAll("[data-testid='run-detail-artwork-layer']");
+            Assert.Equal(2, layers.Count);
+            var activeLayer = layers.Single(l => (l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal));
+            var style = activeLayer.GetAttribute("style") ?? "";
             Assert.Contains(BlizzardMediaCache.EncodeSource(FirstDungeonSource), style);
             Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), style);
             Assert.Equal(TimeSpan.FromSeconds(5), timeProvider.CreatedTimer?.DueTime);
@@ -1636,9 +1643,16 @@ public class RunsPagesTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            var style = cut.Find("[data-testid='run-detail-summary']").GetAttribute("style") ?? "";
-            Assert.Contains(BlizzardMediaCache.EncodeSource(SecondDungeonSource), style);
-            Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), style);
+            var layers = cut.FindAll("[data-testid='run-detail-artwork-layer']");
+            Assert.Equal(2, layers.Count);
+            var activeStyle = layers.Single(l => (l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal))
+                .GetAttribute("style") ?? "";
+            var outgoingStyle = layers.Single(l => !(l.ClassName ?? "").Contains("run-detail-artwork-layer--active", StringComparison.Ordinal))
+                .GetAttribute("style") ?? "";
+            Assert.Contains(BlizzardMediaCache.EncodeSource(SecondDungeonSource), activeStyle);
+            Assert.Contains(BlizzardMediaCache.EncodeSource(FirstDungeonSource), outgoingStyle);
+            Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), activeStyle);
+            Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), outgoingStyle);
         });
     }
 

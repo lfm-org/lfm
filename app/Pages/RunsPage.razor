@@ -163,33 +163,43 @@
                         var currentSignup = selectedRun.RunCharacters.FirstOrDefault(c => c.IsCurrentUser);
                         var attending = selectedRun.RunCharacters.Where(c => RunVisualization.IsAttending(c.ReviewedAttendance)).ToList();
                         var notAttending = selectedRun.RunCharacters.Where(c => c.ReviewedAttendance is "OUT" or "AWAY").ToList();
+                        var artworkLayers = RunDetailArtworkLayers(selectedRun);
 
                         <div class="run-detail-workbench" data-testid="run-detail-workbench">
                             <div class="run-detail-main" data-testid="run-detail-main">
                                 <FluentCard Class="@RunDetailCardClass(selectedRun)">
                                     <section class="@RunDetailSummaryClass(selectedRun)"
-                                             style="@RunDetailSummaryStyle(selectedRun)"
                                              data-testid="run-detail-summary">
-                                        <div class="run-detail-header">
-                                            <div class="run-detail-heading">
-                                                <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
-                                                @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
-                                                {
-                                                    <p class="run-detail-description">@selectedRun.Description</p>
-                                                }
-                                            </div>
-                                            <FluentButton Appearance="Appearance.Outline"
-                                                          OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
-                                                          Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
-                                                @Loc["runs.edit"]
-                                            </FluentButton>
-                                        </div>
+                                        @foreach (var artworkLayer in artworkLayers)
+                                        {
+                                            <div class="@artworkLayer.Class"
+                                                 style="@artworkLayer.Style"
+                                                 data-testid="run-detail-artwork-layer"
+                                                 aria-hidden="true"></div>
+                                        }
 
-                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
-                                            <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
-                                            <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
-                                            <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
-                                        </FluentStack>
+                                        <div class="run-detail-summary-content">
+                                            <div class="run-detail-header">
+                                                <div class="run-detail-heading">
+                                                    <h2 class="run-detail-title">@RenderTitle(selectedRun.InstanceName)</h2>
+                                                    @if (!string.IsNullOrWhiteSpace(selectedRun.Description))
+                                                    {
+                                                        <p class="run-detail-description">@selectedRun.Description</p>
+                                                    }
+                                                </div>
+                                                <FluentButton Appearance="Appearance.Outline"
+                                                              OnClick="@(() => Nav.NavigateTo($"/runs/{Uri.EscapeDataString(selectedRun.Id)}/edit"))"
+                                                              Disabled="@IsSignupClosed(selectedRun.SignupCloseTime)">
+                                                    @Loc["runs.edit"]
+                                                </FluentButton>
+                                            </div>
+
+                                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" Class="run-detail-meta">
+                                                <span><strong>@Loc["runs.start"]</strong> @FormatDate(selectedRun.StartTime)</span>
+                                                <span><strong>@Loc["runs.signupCloses"]</strong> @FormatDate(selectedRun.SignupCloseTime)</span>
+                                                <span><strong>@Loc["runs.guild"]</strong> @selectedRun.CreatorGuild</span>
+                                            </FluentStack>
+                                        </div>
                                     </section>
                                 </FluentCard>
 
@@ -309,6 +319,9 @@
     private IReadOnlyDictionary<string, string> _specIconUrlsByClassAndName = new Dictionary<string, string>();
     private IReadOnlyDictionary<int, string> _instancePortraitUrlsById = new Dictionary<int, string>();
     private IReadOnlyList<string> _dungeonPortraitUrls = [];
+    private string? _currentInstancePortraitUrl;
+    private string? _previousInstancePortraitUrl;
+    private bool _currentInstancePortraitUsesSecondLayer;
     private int _rotatingInstancePortraitIndex;
     private ITimer? _instancePortraitRotationTimer;
     private bool _instancePortraitsLoaded;
@@ -348,7 +361,7 @@
                 selectedRun = null;
                 _runDetailError = null;
                 _runDetailLoading = false;
-                StopInstancePortraitRotation();
+                ResetInstanceArtwork();
             }
         }
     }
@@ -465,7 +478,7 @@
         _runDetailLoading = false;
         _signupError = null;
         ResetSignupOptions();
-        StopInstancePortraitRotation();
+        ResetInstanceArtwork();
         Nav.NavigateTo("/runs", replace: true);
     }
 
@@ -483,7 +496,7 @@
                 selectedRun = null;
                 _runDetailError = Loc["runs.detailUnavailable.notFound"];
                 ResetSignupOptions();
-                StopInstancePortraitRotation();
+                ResetInstanceArtwork();
                 return;
             }
 
@@ -497,7 +510,7 @@
             {
                 await EnsureInstancePortraitsLoaded();
             }
-            ConfigureInstancePortraitRotation(detail);
+            ConfigureInstanceArtwork(detail);
 
             _signupError = null;
             if (NeedsSpecIcons(detail))
@@ -517,7 +530,7 @@
                 ? Loc["runs.detailUnavailable.failed"]
                 : ex.Message;
             ResetSignupOptions();
-            StopInstancePortraitRotation();
+            ResetInstanceArtwork();
         }
         finally
         {
@@ -757,16 +770,51 @@
         return $"run-detail-summary{artworkClass}";
     }
 
-    private string? RunDetailSummaryStyle(RunDetailDto run)
+    private IReadOnlyList<ArtworkLayer> RunDetailArtworkLayers(RunDetailDto run)
     {
-        var portraitUrl = InstancePortraitUrlFor(run);
-        if (portraitUrl is null)
-            return null;
+        var currentUrl = _currentInstancePortraitUrl ?? InstancePortraitUrlFor(run);
+        if (currentUrl is null)
+            return [];
 
-        return "background-image: " +
+        if (_previousInstancePortraitUrl is null || string.Equals(_previousInstancePortraitUrl, currentUrl, StringComparison.Ordinal))
+        {
+            return
+            [
+                new ArtworkLayer(
+                    "run-detail-artwork-layer run-detail-artwork-layer--slot-a run-detail-artwork-layer--active",
+                    ArtworkLayerStyle(currentUrl)),
+                new ArtworkLayer(
+                    "run-detail-artwork-layer run-detail-artwork-layer--slot-b",
+                    ArtworkLayerStyle(currentUrl)),
+            ];
+        }
+
+        var firstUrl = _currentInstancePortraitUsesSecondLayer
+            ? _previousInstancePortraitUrl
+            : currentUrl;
+        var secondUrl = _currentInstancePortraitUsesSecondLayer
+            ? currentUrl
+            : _previousInstancePortraitUrl;
+
+        return
+        [
+            new ArtworkLayer(
+                _currentInstancePortraitUsesSecondLayer
+                    ? "run-detail-artwork-layer run-detail-artwork-layer--slot-a"
+                    : "run-detail-artwork-layer run-detail-artwork-layer--slot-a run-detail-artwork-layer--active",
+                ArtworkLayerStyle(firstUrl)),
+            new ArtworkLayer(
+                _currentInstancePortraitUsesSecondLayer
+                    ? "run-detail-artwork-layer run-detail-artwork-layer--slot-b run-detail-artwork-layer--active"
+                    : "run-detail-artwork-layer run-detail-artwork-layer--slot-b",
+                ArtworkLayerStyle(secondUrl)),
+        ];
+    }
+
+    private static string ArtworkLayerStyle(string portraitUrl) =>
+        "background-image: " +
             "linear-gradient(90deg, rgba(18, 18, 18, 0.94) 0%, rgba(18, 18, 18, 0.72) 48%, rgba(18, 18, 18, 0.35) 100%), " +
             $"url('{CssUrlEscape(portraitUrl)}')";
-    }
 
     private string? InstancePortraitUrlFor(RunDetailDto run)
     {
@@ -791,9 +839,15 @@
         string.Equals(run.Difficulty, "MYTHIC_KEYSTONE", StringComparison.OrdinalIgnoreCase) &&
         run.Size == 5;
 
-    private void ConfigureInstancePortraitRotation(RunDetailDto run)
+    private void ConfigureInstanceArtwork(RunDetailDto run)
     {
         _rotatingInstancePortraitIndex = 0;
+        SetInstancePortraitUrl(InstancePortraitUrlFor(run), crossfade: false);
+        ConfigureInstancePortraitRotation(run);
+    }
+
+    private void ConfigureInstancePortraitRotation(RunDetailDto run)
+    {
         StopInstancePortraitRotation();
 
         if (!UsesRotatingDungeonPortrait(run) || _dungeonPortraitUrls.Count <= 1)
@@ -817,13 +871,42 @@
         }
 
         _rotatingInstancePortraitIndex = (_rotatingInstancePortraitIndex + 1) % _dungeonPortraitUrls.Count;
+        SetInstancePortraitUrl(InstancePortraitUrlFor(selectedRun), crossfade: true);
         StateHasChanged();
+    }
+
+    private void SetInstancePortraitUrl(string? nextPortraitUrl, bool crossfade)
+    {
+        if (string.Equals(_currentInstancePortraitUrl, nextPortraitUrl, StringComparison.Ordinal))
+            return;
+
+        if (crossfade && _currentInstancePortraitUrl is not null && nextPortraitUrl is not null)
+        {
+            _previousInstancePortraitUrl = _currentInstancePortraitUrl;
+            _currentInstancePortraitUsesSecondLayer = !_currentInstancePortraitUsesSecondLayer;
+        }
+        else
+        {
+            _previousInstancePortraitUrl = null;
+            _currentInstancePortraitUsesSecondLayer = false;
+        }
+
+        _currentInstancePortraitUrl = nextPortraitUrl;
     }
 
     private void StopInstancePortraitRotation()
     {
         _instancePortraitRotationTimer?.Dispose();
         _instancePortraitRotationTimer = null;
+    }
+
+    private void ResetInstanceArtwork()
+    {
+        StopInstancePortraitRotation();
+        _currentInstancePortraitUrl = null;
+        _previousInstancePortraitUrl = null;
+        _currentInstancePortraitUsesSecondLayer = false;
+        _rotatingInstancePortraitIndex = 0;
     }
 
     private async Task EnsureInstancePortraitsLoaded()
@@ -871,7 +954,9 @@
         (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
          string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase));
 
-    public void Dispose() => StopInstancePortraitRotation();
+    public void Dispose() => ResetInstanceArtwork();
+
+    private sealed record ArtworkLayer(string Class, string Style);
 
     private string? SpecIconUrlFor(RunCharacterDto? character)
     {

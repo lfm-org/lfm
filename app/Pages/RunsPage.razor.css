@@ -324,15 +324,48 @@
     gap: 12px;
 }
 
+.run-detail-summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .run-detail-summary--artwork {
+    position: relative;
     min-block-size: 6.5rem;
     padding-block: 20px;
     padding-inline: 22px;
     color: white;
-    background-position: center;
-    background-size: cover;
+    background-color: rgb(18 18 18);
     border-radius: calc(var(--layer-corner-radius) * 1px);
     overflow: hidden;
+    isolation: isolate;
+}
+
+.run-detail-summary--artwork .run-detail-summary-content {
+    position: relative;
+    z-index: 1;
+}
+
+.run-detail-artwork-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0;
+    background-position: center;
+    background-size: cover;
+    transition: opacity 700ms ease-in-out;
+    pointer-events: none;
+}
+
+.run-detail-artwork-layer--active {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .run-detail-artwork-layer {
+        transition: none;
+    }
 }
 
 .run-detail-header {
