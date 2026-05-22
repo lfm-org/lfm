@@ -6,7 +6,7 @@ This document is the rule for where any piece of data the app persists should li
 
 | Kind | Store | Location |
 |---|---|---|
-| **Static Blizzard reference data** (journal-instance, playable-specialization, playable-class, playable-race, hero-talent-tree — same shape for every user) | **Blob** | `lfmstore/wow/reference/{kind}/{id}.json` + `reference/{kind}/index.json` manifest |
+| **Static Blizzard reference data** (journal-instance, journal-expansion membership, Mythic Keystone season membership, playable-specialization, playable-class, playable-race, hero-talent-tree — same shape for every user) | **Blob** | `lfmstore/wow/reference/{kind}/{id}.json` + `reference/{kind}/index.json` manifest |
 | **Dynamic per-user / per-guild / per-run data** (raider profiles, run signups, guild docs, admin overrides) | **Cosmos** | `lfm-cosmos/lfm/{raiders,runs,guilds}` |
 | **Per-entity caches of Blizzard responses** (one user's account profile, one guild's roster) | **Cosmos, embedded** | inside the owning raider/guild document, with a `*FetchedAt` timestamp |
 | **Operational bytes** (ASP.NET Data Protection keys, Functions runtime state, deploy zip artifacts) | **Blob** | `lfmstore/{dataprotection,deployments,azure-webjobs-hosts,azure-webjobs-secrets}` |
@@ -85,12 +85,22 @@ For every reference kind that has a list endpoint, the ingester emits `reference
   { "id": 1200, "name": "Liberation of Undermine",
     "modes": [ { "modeKey": "NORMAL:25" }, { "modeKey": "HEROIC:25" } ],
     "expansion": "The War Within",
+    "isCurrentMythicKeystone": false,
     "portraitUrl": "https://render.worldofwarcraft.com/.../tile.jpg" },
   ...
 ]
 ```
 
 The per-id detail blobs (`{kind}/{id}.json`, `{kind}-media/{id}.json`) stay for future endpoints (detail pages, hero talents) and as the source of truth the manifest is derived from. Manifest media fields store Blizzard source URLs; HTTP handlers and Blazor image components convert them to `/api/v1/wow/media/cache` before browser rendering.
+
+The journal-instance manifest is filtered through `journal-expansion/{id}` detail
+membership for non-M+ raid/dungeon choices. The `Current Season` journal-expansion
+alias is not used as a normal expansion because Blizzard can place grouping rows
+such as `Keystone Dungeons` there. Current Mythic Keystone membership is stored as
+`isCurrentMythicKeystone` when Blizzard's Mythic Keystone season detail exposes
+dungeon ids. When the season detail omits dungeon ids, the ingester falls back to
+the `Current Season` journal-expansion detail for M+ membership and filters out
+the `Keystone Dungeons` grouping row.
 
 ## Known exceptions to flag
 
