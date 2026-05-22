@@ -307,7 +307,7 @@
     "guildAdmin.saveError": "An error occurred while saving.",
 
     "adminReference.title": "Reference data",
-    "adminReference.description": "Pulls the latest journal-instance, playable-specialization, journal-expansion, and Mythic Keystone season data from the Blizzard Game Data API and writes it to blob. Takes about a minute.",
+    "adminReference.description": "Pulls the latest current raid tier, Mythic Keystone season, playable-specialization, and journal-expansion data from the Blizzard Game Data API and writes it to blob. Takes about a minute.",
     "adminReference.status.idle": "No reference refresh has run in this session yet.",
     "adminReference.status.refreshing": "Reference refresh is running.",
     "adminReference.status.success": "Reference refresh completed in this session.",
