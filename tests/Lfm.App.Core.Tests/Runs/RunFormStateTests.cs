@@ -27,7 +27,8 @@ public class RunFormStateTests
             {
                 new DifficultyOption("MYTHIC_KEYSTONE", 5, "Mythic+ (5)"),
                 new DifficultyOption("HEROIC", 5, "Heroic (5)"),
-            }),
+            },
+            IsCurrentMythicKeystone: true),
         new InstanceOption(
             InstanceId: 2055,
             Name: "Some Raid",
@@ -55,11 +56,11 @@ public class RunFormStateTests
     }
 
     [Fact]
-    public void FilteredInstances_include_global_options_and_match_activity_and_expansion()
+    public void FilteredInstances_match_activity_and_expansion_without_global_pseudo_entries()
     {
-        var globalDungeon = new InstanceOption(
+        var pseudoDungeon = new InstanceOption(
             InstanceId: 1001,
-            Name: "Global Dungeon",
+            Name: "Keystone Dungeons",
             Activity: ActivityKind.Dungeon,
             ExpansionId: null,
             Difficulties: [new DifficultyOption("MYTHIC_KEYSTONE", 5, "Mythic+ (5)")]);
@@ -76,14 +77,42 @@ public class RunFormStateTests
             ExpansionId: 14,
             Difficulties: [new DifficultyOption("NORMAL", 10, "Normal (10)")]);
         var state = new RunFormState();
-        state.LoadOptions([globalDungeon, oldDungeon, currentRaid], Expansions);
+        state.LoadOptions([pseudoDungeon, oldDungeon, currentRaid], Expansions);
 
         var dungeonIds = state.FilteredInstances.Select(i => i.InstanceId).ToArray();
 
-        Assert.Equal(new[] { 1001 }, dungeonIds);
+        Assert.Empty(dungeonIds);
 
         state.OnActivityChanged(ActivityKind.Raid);
         Assert.Equal(new[] { 1003 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
+    }
+
+    [Fact]
+    public void FilteredInstances_uses_current_mythic_keystone_membership_for_mplus_specific_dungeons()
+    {
+        var seasonDungeon = new InstanceOption(
+            InstanceId: 1001,
+            Name: "Season Dungeon",
+            Activity: ActivityKind.Dungeon,
+            ExpansionId: 11,
+            Difficulties: [new DifficultyOption("MYTHIC_KEYSTONE", 5, "Mythic+ (5)")],
+            IsCurrentMythicKeystone: true);
+        var expansionDungeon = new InstanceOption(
+            InstanceId: 1002,
+            Name: "Expansion Dungeon",
+            Activity: ActivityKind.Dungeon,
+            ExpansionId: 14,
+            Difficulties: [new DifficultyOption("MYTHIC_KEYSTONE", 5, "Mythic+ (5)")]);
+        var state = new RunFormState();
+        state.LoadOptions([seasonDungeon, expansionDungeon], Expansions);
+
+        state.OnDungeonScopeChanged(false);
+
+        Assert.Equal(new[] { 1001 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
+
+        state.OnDifficultyChanged("HEROIC");
+
+        Assert.Equal(new[] { 1002 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
     }
 
     [Fact]

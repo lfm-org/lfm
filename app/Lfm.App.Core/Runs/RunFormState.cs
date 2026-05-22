@@ -43,10 +43,21 @@ public sealed class RunFormState
     public bool CanCreateGuildRuns { get; set; }
     public IReadOnlyList<DifficultyOption> DifficultyOptions { get; private set; } = Array.Empty<DifficultyOption>();
 
-    public IEnumerable<InstanceOption> FilteredInstances =>
-        AllInstances.Where(o =>
-            (o.ExpansionId is null || o.ExpansionId == ExpansionId) &&
-            o.Activity == Activity);
+    public IEnumerable<InstanceOption> FilteredInstances
+    {
+        get
+        {
+            var isSpecificMythicPlus = Activity == ActivityKind.Dungeon
+                && Difficulty == "MYTHIC_KEYSTONE"
+                && !AnyDungeon;
+
+            return AllInstances.Where(o =>
+                o.Activity == Activity &&
+                (isSpecificMythicPlus
+                    ? o.IsCurrentMythicKeystone
+                    : o.ExpansionId == ExpansionId));
+        }
+    }
 
     public bool ShowInstanceDropdown =>
         !(Activity == ActivityKind.Dungeon && Difficulty == "MYTHIC_KEYSTONE" && AnyDungeon);
