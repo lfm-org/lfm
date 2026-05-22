@@ -39,8 +39,9 @@ builder.Services.AddHttpClient("api", client =>
 }).AddHttpMessageHandler<CredentialsHandler>();
 
 // Long-running admin operations. POST /api/wow/reference/refresh iterates
-// every Blizzard journal-instance + playable-specialization + journal-expansion
-// sequentially with ~80 rps rate-limiting — a cold-cache run takes minutes,
+// every Blizzard journal-instance + playable-specialization + journal-expansion,
+// plus Mythic Keystone season membership, sequentially with ~80 rps
+// rate-limiting — a cold-cache run takes minutes,
 // well past the 10 s default the regular "api" client uses. Shares the same
 // credentials handler; just relaxes the per-request ceiling.
 builder.Services.AddHttpClient("api-admin", client =>
