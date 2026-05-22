@@ -98,9 +98,11 @@ the current raid tier (`journal-expansion/516` raids) and dungeons from the
 current Mythic Keystone season only. Normal/heroic/mythic non-keystone dungeons
 are not scheduleable. Current Mythic Keystone membership is stored as
 `isCurrentMythicKeystone` when Blizzard's Mythic Keystone season detail exposes
-dungeon ids. When the season detail omits dungeon ids, the ingester falls back to
-the `Current Season` journal-expansion detail for M+ membership and filters out
-the `Keystone Dungeons` grouping row.
+dungeon ids. When the season detail omits dungeon ids, the ingester resolves a
+connected realm from Blizzard's dynamic connected-realm index and reads the
+current Mythic Keystone leaderboard index for dungeon membership. The
+`Current Season` journal-expansion detail remains a last-resort fallback and
+filters out the `Keystone Dungeons` grouping row.
 
 ## Known exceptions to flag
 
@@ -109,7 +111,7 @@ These look like they violate the rule but don't, because they are per-entity *ca
 - `raiders.PortraitCache` — map of `characterId → render URL`, refreshed by the portrait-fetch flow, tied to the raider doc's TTL.
 - `raiders.AccountProfileSummary` — cached Blizzard WoW account profile, tracked by `AccountProfileFetchedAt`.
 - `raiders.Characters[*].MediaSummary` — cached Blizzard character media, tracked by `MediaFetchedAt`.
-- `guilds.BlizzardRosterRaw` + `guilds.BlizzardProfileRaw` — cached Blizzard guild roster + profile, tracked by `BlizzardRosterFetchedAt` / `BlizzardProfileFetchedAt`.
+- `guilds.BlizzardRosterRaw` + `guilds.BlizzardProfileRaw` — cached Blizzard guild roster + profile, tracked by `BlizzardRosterFetchedAt`.
 
 Splitting any of these out to blob would add round-trips and a consistency surface for zero cost win, because each cache's lifecycle is *the owner's* lifecycle, not a shared patch-day lifecycle.
 

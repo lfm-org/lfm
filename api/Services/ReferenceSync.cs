@@ -32,6 +32,7 @@ public sealed class ReferenceSync(
     private const string CurrentSeasonExpansion = "Current Season";
     private const int CurrentRaidTierJournalExpansionId = 516;
     private const string KeystoneDungeonsGroup = "Keystone Dungeons";
+    private const int MaxLeaderboardConnectedRealmProbeCount = 5;
 
     /// <inheritdoc/>
     public async Task<WowReferenceRefreshResponse> SyncAllAsync(
@@ -236,6 +237,9 @@ public sealed class ReferenceSync(
             if (season?.Dungeons is { Count: > 0 })
                 return season.Dungeons.Select(d => d.Id).ToHashSet();
 
+            var leaderboards = await ResolveCurrentMythicKeystoneDungeonIdsFromLeaderboardsAsync(token, ct);
+            if (leaderboards.Count > 0) return leaderboards;
+
             var currentSeasonExpansion = expansions.Tiers.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
             if (currentSeasonExpansion is null) return [];
 
@@ -256,6 +260,52 @@ public sealed class ReferenceSync(
             logger.LogWarning(ex, "Could not resolve current Mythic Keystone season dungeons");
             return [];
         }
+    }
+
+    private async Task<HashSet<int>> ResolveCurrentMythicKeystoneDungeonIdsFromLeaderboardsAsync(
+        string token,
+        CancellationToken ct)
+    {
+        try
+        {
+            var connectedRealms = await FetchWithRetryAsync(
+                () => gameData.GetConnectedRealmIndexAsync(token, ct),
+                "connected realm index",
+                ct);
+            if (connectedRealms?.ConnectedRealms is null) return [];
+
+            foreach (var connectedRealmId in connectedRealms.ConnectedRealms
+                         .Select(r => TryGetConnectedRealmId(r.Key.Href))
+                         .Where(id => id.HasValue)
+                         .Select(id => id!.Value)
+                         .Take(MaxLeaderboardConnectedRealmProbeCount))
+            {
+                var leaderboards = await FetchWithRetryAsync(
+                    () => gameData.GetMythicKeystoneLeaderboardsIndexAsync(connectedRealmId, token, ct),
+                    $"mythic keystone leaderboard index {connectedRealmId}",
+                    ct);
+
+                if (leaderboards?.CurrentLeaderboards is { Count: > 0 })
+                    return leaderboards.CurrentLeaderboards.Select(d => d.Id).ToHashSet();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not resolve current Mythic Keystone dungeons from leaderboard index");
+        }
+
+        return [];
+    }
+
+    private static int? TryGetConnectedRealmId(string href)
+    {
+        if (!Uri.TryCreate(href, UriKind.Absolute, out var uri)) return null;
+
+        var lastSegment = uri.Segments
+            .Select(s => s.Trim('/'))
+            .LastOrDefault(s => s.Length > 0);
+
+        return int.TryParse(lastSegment, out var id) ? id : null;
     }
 
     // ---------------------------------------------------------------------------
