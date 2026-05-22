@@ -49,6 +49,27 @@ public class ReferenceSyncTests
     private static BlizzardJournalExpansionIndex MakeExpansionIndex(params (int Id, string Name)[] entries) =>
         new(entries.Select(e => new BlizzardIndexEntry(e.Id, e.Name)).ToList());
 
+    private static BlizzardJournalExpansionDetail MakeExpansionDetail(
+        int id,
+        string name,
+        IReadOnlyList<BlizzardIndexEntry>? dungeons = null,
+        IReadOnlyList<BlizzardIndexEntry>? raids = null) =>
+        new(Id: id, Name: name, Dungeons: dungeons ?? [], Raids: raids ?? []);
+
+    private static BlizzardMythicKeystoneSeasonIndex MakeKeystoneSeasonIndex(int? currentSeasonId = null) =>
+        new(
+            CurrentSeason: currentSeasonId is null
+                ? null
+                : new BlizzardMythicKeystoneSeasonReference(currentSeasonId.Value),
+            Seasons: currentSeasonId is null
+                ? []
+                : [new BlizzardMythicKeystoneSeasonReference(currentSeasonId.Value)]);
+
+    private static BlizzardMythicKeystoneSeasonDetail MakeKeystoneSeasonDetail(
+        int id,
+        IReadOnlyList<BlizzardIndexEntry>? dungeons = null) =>
+        new(Id: id, SeasonName: $"Season {id}", Dungeons: dungeons);
+
     private static BlizzardPlayableSpecDetail MakeSpecDetail(
         int id, string name, int classId, string roleType) =>
         new(
@@ -72,6 +93,8 @@ public class ReferenceSyncTests
             .ReturnsAsync(MakeSpecIndex());
         blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeExpansionIndex());
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonIndex());
 
         var blobs = new Mock<IBlobReferenceClient>();
         var logger = new TestLogger<ReferenceSync>();
@@ -221,6 +244,148 @@ public class ReferenceSyncTests
                 ix.Single().Modes!.Count == 3 &&
                 ix.Single().Modes!.Any(m => m.ModeKey == "HEROIC:25")),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncInstancesAsync_uses_journal_expansion_membership_and_current_keystone_season()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex(
+                (505, "Current Season"),
+                (516, "Midnight"),
+                (503, "Dragonflight")));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(516, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(
+                516,
+                "Midnight",
+                dungeons: [new BlizzardIndexEntry(1311, "Den of Nalorakk")]));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(503, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(503, "Dragonflight"));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonIndex(currentSeasonId: 17));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonAsync(17, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonDetail(
+                17,
+                dungeons: [new BlizzardIndexEntry(1201, "Algeth'ar Academy")]));
+
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalIndex(
+                (1311, "Den of Nalorakk"),
+                (1201, "Algeth'ar Academy"),
+                (1319, "Keystone Dungeons")));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1311, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1311,
+                Name: "Den of Nalorakk",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: new BlizzardJournalExpansion(516, "Midnight"),
+                MinimumLevel: 80,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1201, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1201,
+                Name: "Algeth'ar Academy",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: new BlizzardJournalExpansion(503, "Dragonflight"),
+                MinimumLevel: 70,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1319, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1319,
+                Name: "Keystone Dungeons",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: null,
+                MinimumLevel: null,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+
+        await sut.SyncAllAsync(CancellationToken.None);
+
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/index.json",
+            It.Is<List<InstanceIndexEntry>>(ix =>
+                ix.Count == 2 &&
+                ix.Any(e => e.Id == 1311 && !e.IsCurrentMythicKeystone) &&
+                ix.Any(e => e.Id == 1201 && e.IsCurrentMythicKeystone) &&
+                ix.All(e => e.Id != 1319)),
+            It.IsAny<CancellationToken>()), Times.Once);
+        blizzard.Verify(b => b.GetJournalExpansionAsync(505, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncInstancesAsync_falls_back_to_current_season_expansion_when_keystone_season_has_no_dungeons()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex(
+                (505, "Current Season"),
+                (516, "Midnight")));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(505, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(
+                505,
+                "Current Season",
+                dungeons:
+                [
+                    new BlizzardIndexEntry(1201, "Algeth'ar Academy"),
+                    new BlizzardIndexEntry(1319, "Keystone Dungeons"),
+                ]));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(516, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(516, "Midnight"));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonIndex(currentSeasonId: 17));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonAsync(17, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonDetail(17, dungeons: null));
+
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalIndex(
+                (1201, "Algeth'ar Academy"),
+                (1319, "Keystone Dungeons")));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1201, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1201,
+                Name: "Algeth'ar Academy",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: new BlizzardJournalExpansion(503, "Dragonflight"),
+                MinimumLevel: 70,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+
+        await sut.SyncAllAsync(CancellationToken.None);
+
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/index.json",
+            It.Is<List<InstanceIndexEntry>>(ix =>
+                ix.Single().Id == 1201 &&
+                ix.Single().IsCurrentMythicKeystone),
+            It.IsAny<CancellationToken>()), Times.Once);
+        blizzard.Verify(b => b.GetJournalInstanceAsync(1319, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ── Resilience ───────────────────────────────────────────────────────────
@@ -386,7 +551,7 @@ public class ReferenceSyncTests
     }
 
     [Fact]
-    public async Task SyncAllAsync_records_failure_for_expansions_but_still_syncs_others()
+    public async Task SyncAllAsync_records_expansion_source_failure_for_instances_and_expansions_but_still_syncs_specializations()
     {
         var (sut, blizzard, _, logger) = MakeSut();
         blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
@@ -394,11 +559,12 @@ public class ReferenceSyncTests
 
         var response = await sut.SyncAllAsync(CancellationToken.None);
 
+        var instancesResult = response.Results.Single(r => r.Name == "instances");
         var expansionsResult = response.Results.Single(r => r.Name == "expansions");
+        Assert.StartsWith("failed:", instancesResult.Status);
         Assert.StartsWith("failed:", expansionsResult.Status);
-        // instances + specializations should still have succeeded (empty indexes)
-        Assert.StartsWith("synced", response.Results.Single(r => r.Name == "instances").Status);
         Assert.StartsWith("synced", response.Results.Single(r => r.Name == "specializations").Status);
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error && (e.Message ?? "").Contains("instances"));
         Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error && (e.Message ?? "").Contains("expansions"));
     }
 
