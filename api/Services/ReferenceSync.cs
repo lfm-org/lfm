@@ -229,6 +229,9 @@ public sealed class ReferenceSync(
             var currentSeasonId = index.CurrentSeason?.Id;
             if (currentSeasonId is null) return [];
 
+            var leaderboards = await ResolveCurrentMythicKeystoneDungeonIdsFromLeaderboardsAsync(token, ct);
+            if (leaderboards.Count > 0) return leaderboards;
+
             var season = await FetchWithRetryAsync(
                 () => gameData.GetMythicKeystoneSeasonAsync(currentSeasonId.Value, token, ct),
                 $"mythic keystone season {currentSeasonId.Value}",
@@ -236,9 +239,6 @@ public sealed class ReferenceSync(
 
             if (season?.Dungeons is { Count: > 0 })
                 return season.Dungeons.Select(d => d.Id).ToHashSet();
-
-            var leaderboards = await ResolveCurrentMythicKeystoneDungeonIdsFromLeaderboardsAsync(token, ct);
-            if (leaderboards.Count > 0) return leaderboards;
 
             var currentSeasonExpansion = expansions.Tiers.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
             if (currentSeasonExpansion is null) return [];
