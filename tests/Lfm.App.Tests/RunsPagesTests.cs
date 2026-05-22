@@ -1558,6 +1558,91 @@ public class RunsPagesTests : ComponentTestBase
     }
 
     [Fact]
+    public void RunsPage_AnyDungeonDetail_Rotates_Dungeon_Portrait_Backgrounds()
+    {
+        const string FirstDungeonSource = "https://render.worldofwarcraft.com/eu/dungeon/cinderbrew-meadery.jpg";
+        const string SecondDungeonSource = "https://render.worldofwarcraft.com/eu/dungeon/rookery.jpg";
+        const string RaidSource = "https://render.worldofwarcraft.com/eu/raid/liberation-of-undermine.jpg";
+        var timeProvider = new ManualTimerTimeProvider();
+        Services.AddSingleton<TimeProvider>(timeProvider);
+        var summary = MakeSummary() with
+        {
+            InstanceId = null,
+            InstanceName = null,
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var detail = MakeDetail() with
+        {
+            InstanceId = null,
+            InstanceName = null,
+            Difficulty = "MYTHIC_KEYSTONE",
+            Size = 5,
+        };
+        var client = new Mock<IRunsClient>();
+        client.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RunSummaryDto> { summary });
+        client.Setup(c => c.GetAsync("run-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(detail);
+        Services.AddSingleton(client.Object);
+
+        var instances = new Mock<IInstancesClient>();
+        instances.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InstanceDto>
+            {
+                MakeInstanceFixture() with
+                {
+                    InstanceNumericId = 2,
+                    Name = "Cinderbrew Meadery",
+                    Category = "DUNGEON",
+                    Difficulty = "MYTHIC_KEYSTONE",
+                    Size = 5,
+                    PortraitUrl = CachedMediaUrl(FirstDungeonSource),
+                },
+                MakeInstanceFixture() with
+                {
+                    InstanceNumericId = 3,
+                    Name = "The Rookery",
+                    Category = "DUNGEON",
+                    Difficulty = "MYTHIC_KEYSTONE",
+                    Size = 5,
+                    PortraitUrl = CachedMediaUrl(SecondDungeonSource),
+                },
+                MakeInstanceFixture() with
+                {
+                    InstanceNumericId = 4,
+                    Name = "Liberation of Undermine",
+                    Category = "RAID",
+                    Difficulty = "HEROIC",
+                    Size = 25,
+                    PortraitUrl = CachedMediaUrl(RaidSource),
+                },
+            });
+        Services.AddSingleton(instances.Object);
+        WireSignupSupport(client);
+
+        var cut = Render<RunsPage>(p => p.Add(x => x.RunId, "run-1"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var style = cut.Find("[data-testid='run-detail-summary']").GetAttribute("style") ?? "";
+            Assert.Contains(BlizzardMediaCache.EncodeSource(FirstDungeonSource), style);
+            Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), style);
+            Assert.Equal(TimeSpan.FromSeconds(5), timeProvider.CreatedTimer?.DueTime);
+            Assert.Equal(TimeSpan.FromSeconds(5), timeProvider.CreatedTimer?.Period);
+        });
+
+        timeProvider.CreatedTimer!.Fire();
+
+        cut.WaitForAssertion(() =>
+        {
+            var style = cut.Find("[data-testid='run-detail-summary']").GetAttribute("style") ?? "";
+            Assert.Contains(BlizzardMediaCache.EncodeSource(SecondDungeonSource), style);
+            Assert.DoesNotContain(BlizzardMediaCache.EncodeSource(RaidSource), style);
+        });
+    }
+
+    [Fact]
     public void RunsPage_RunCards_Render_Mobile_Detail_Toggles()
     {
         var client = new Mock<IRunsClient>();
@@ -2189,6 +2274,57 @@ public class RunsPagesTests : ComponentTestBase
         Assert.NotNull(field);
         cut.WaitForAssertion(() =>
             Assert.False((bool)field!.GetValue(instance)!));
+    }
+
+    private sealed class ManualTimerTimeProvider : TimeProvider
+    {
+        public ManualTimer? CreatedTimer { get; private set; }
+
+        public override ITimer CreateTimer(
+            TimerCallback callback,
+            object? state,
+            TimeSpan dueTime,
+            TimeSpan period)
+        {
+            CreatedTimer = new ManualTimer(callback, state, dueTime, period);
+            return CreatedTimer;
+        }
+    }
+
+    private sealed class ManualTimer(
+        TimerCallback callback,
+        object? state,
+        TimeSpan dueTime,
+        TimeSpan period) : ITimer
+    {
+        public TimeSpan DueTime { get; private set; } = dueTime;
+
+        public TimeSpan Period { get; private set; } = period;
+
+        public bool Disposed { get; private set; }
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            DueTime = dueTime;
+            Period = period;
+            return true;
+        }
+
+        public void Fire()
+        {
+            if (!Disposed)
+            {
+                callback(state);
+            }
+        }
+
+        public void Dispose() => Disposed = true;
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
     }
 
     [Fact]
