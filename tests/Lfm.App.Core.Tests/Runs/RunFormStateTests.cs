@@ -88,7 +88,7 @@ public class RunFormStateTests
     }
 
     [Fact]
-    public void FilteredInstances_uses_current_mythic_keystone_membership_for_mplus_specific_dungeons()
+    public void FilteredInstances_uses_current_mythic_keystone_membership_for_all_dungeon_scheduling()
     {
         var seasonDungeon = new InstanceOption(
             InstanceId: 1001,
@@ -112,7 +112,20 @@ public class RunFormStateTests
 
         state.OnDifficultyChanged("HEROIC");
 
-        Assert.Equal(new[] { 1002 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
+        Assert.Equal("MYTHIC_KEYSTONE", state.Difficulty);
+        Assert.Equal(new[] { 1001 }, state.FilteredInstances.Select(i => i.InstanceId).ToArray());
+    }
+
+    [Fact]
+    public void Dungeon_scheduling_does_not_offer_non_mythic_plus_difficulty_toggle()
+    {
+        var state = new RunFormState();
+        state.LoadOptions(Instances, Expansions);
+
+        state.OnDungeonScopeChanged(false);
+        state.OnInstanceChanged(1023);
+
+        Assert.False(state.ShowDifficultyToggle);
     }
 
     [Fact]
@@ -123,7 +136,8 @@ public class RunFormStateTests
             Name: "Current Dungeon",
             Activity: ActivityKind.Dungeon,
             ExpansionId: 700,
-            Difficulties: [new DifficultyOption("MYTHIC_KEYSTONE", 5, "M+")]);
+            Difficulties: [new DifficultyOption("MYTHIC_KEYSTONE", 5, "M+")],
+            IsCurrentMythicKeystone: true);
         var raid = new InstanceOption(
             InstanceId: 1002,
             Name: "Current Raid",
@@ -151,7 +165,7 @@ public class RunFormStateTests
         state.LoadOptions(Instances, Expansions);
 
         Assert.False(state.ShowInstanceDropdown);
-        Assert.True(state.ShowDifficultyToggle);
+        Assert.False(state.ShowDifficultyToggle);
 
         state.OnDungeonScopeChanged(false);
 
@@ -161,7 +175,7 @@ public class RunFormStateTests
         state.OnInstanceChanged(1023);
 
         Assert.True(state.ShowInstanceDropdown);
-        Assert.True(state.ShowDifficultyToggle);
+        Assert.False(state.ShowDifficultyToggle);
 
         state.OnActivityChanged(ActivityKind.Raid);
 
@@ -171,7 +185,8 @@ public class RunFormStateTests
         state.OnActivityChanged(ActivityKind.Dungeon);
         state.SetMode("HEROIC", 5, null);
 
-        Assert.True(state.ShowInstanceDropdown);
+        Assert.False(state.ShowInstanceDropdown);
+        Assert.Equal("MYTHIC_KEYSTONE", state.Difficulty);
     }
 
     [Fact]
@@ -232,7 +247,7 @@ public class RunFormStateTests
     }
 
     [Fact]
-    public void OnDifficultyChanged_NonMythicPlus_ClearsKeystone()
+    public void OnDifficultyChanged_DungeonNonMythicPlus_keeps_mythic_plus_and_keystone()
     {
         var state = new RunFormState();
         state.LoadOptions(Instances, Expansions);
@@ -241,8 +256,8 @@ public class RunFormStateTests
         state.KeystoneLevel = 12;
         state.OnDifficultyChanged("HEROIC");
 
-        Assert.Equal("HEROIC", state.Difficulty);
-        Assert.Null(state.KeystoneLevel);
+        Assert.Equal("MYTHIC_KEYSTONE", state.Difficulty);
+        Assert.Equal(12, state.KeystoneLevel);
     }
 
     [Fact]
@@ -256,9 +271,9 @@ public class RunFormStateTests
 
         state.OnDifficultyChanged("HEROIC");
 
-        Assert.Equal("HEROIC", state.Difficulty);
+        Assert.Equal("MYTHIC_KEYSTONE", state.Difficulty);
         Assert.Equal(5, state.Size);
-        Assert.Null(state.KeystoneLevel);
+        Assert.Equal(12, state.KeystoneLevel);
 
         state.KeystoneLevel = 10;
         state.OnDifficultyChanged("MYTHIC_KEYSTONE");
@@ -373,13 +388,17 @@ public class RunFormStateTests
     }
 
     [Fact]
-    public void CanSubmit_DungeonHeroicWithInstance_does_not_require_keystone()
+    public void CanSubmit_DungeonNonMythicPlusInput_still_requires_mythic_plus_keystone()
     {
         var state = new RunFormState();
         state.LoadOptions(Instances, Expansions);
         state.OnInstanceChanged(1023);
         state.OnDifficultyChanged("HEROIC");
         state.StartTimeLocal = DateTime.Now.AddDays(1);
+
+        Assert.False(state.CanSubmit);
+
+        state.KeystoneLevel = 10;
 
         Assert.True(state.CanSubmit);
     }
@@ -436,8 +455,8 @@ public class RunFormStateTests
         {
             new InstanceOption(
                 InstanceId: 3001,
-                Name: "Flexible Dungeon",
-                Activity: ActivityKind.Dungeon,
+                Name: "Flexible Raid",
+                Activity: ActivityKind.Raid,
                 ExpansionId: 14,
                 Difficulties: new[]
                 {
@@ -447,6 +466,7 @@ public class RunFormStateTests
         };
         var state = new RunFormState();
         state.LoadOptions(customInstances, Expansions);
+        state.OnActivityChanged(ActivityKind.Raid);
 
         state.OnDifficultyChanged("SMALL");
 
@@ -524,6 +544,7 @@ public class RunFormStateTests
     public void SetMode_replaces_difficulty_size_and_keystone()
     {
         var state = new RunFormState();
+        state.OnActivityChanged(ActivityKind.Raid);
 
         state.SetMode("HEROIC", 10, 7);
 
