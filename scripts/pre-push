@@ -19,6 +19,8 @@ shell_scripts=(
   scripts/pre-commit
   scripts/pre-push
   scripts/run-tests-parallel.sh
+  scripts/start-worktree-dev.sh
+  scripts/test-start-worktree-dev.sh
   scripts/wait-api-ready.sh
   scripts/write-performance-summary.sh
 )
