@@ -12,7 +12,7 @@ COPY api/ api/
 ARG E2ETest=false
 RUN dotnet publish api/Lfm.Api.csproj -c Release -p:E2ETest=$E2ETest -o /app/publish
 
-FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0@sha256:4ffd7dcb738c69eb97bfdaeb157975fcdf197ea75eb52ac07e08cb5e2e3828d0
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0@sha256:a72bc040278f00001210db769d602f4aa515843e006b5c81f39156b1f7286635
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
 COPY --from=build /app/publish /home/site/wwwroot
 # Runs as the base image's default user. Adding `USER app` with the .NET 8+ non-root
