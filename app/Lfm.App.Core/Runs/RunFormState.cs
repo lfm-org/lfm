@@ -23,6 +23,7 @@ public enum RunFormSubmitBlocker
 public sealed class RunFormState
 {
     public const string CurrentSeasonExpansion = "Current Season";
+    private const string MythicKeystoneDifficulty = "MYTHIC_KEYSTONE";
 
     public IReadOnlyList<InstanceOption> AllInstances { get; private set; } = Array.Empty<InstanceOption>();
     public IReadOnlyList<ExpansionDto> Expansions { get; private set; } = Array.Empty<ExpansionDto>();
@@ -47,22 +48,19 @@ public sealed class RunFormState
     {
         get
         {
-            var isSpecificMythicPlus = Activity == ActivityKind.Dungeon
-                && Difficulty == "MYTHIC_KEYSTONE"
-                && !AnyDungeon;
-
             return AllInstances.Where(o =>
                 o.Activity == Activity &&
-                (isSpecificMythicPlus
+                (Activity == ActivityKind.Dungeon
                     ? o.IsCurrentMythicKeystone
                     : o.ExpansionId == ExpansionId));
         }
     }
 
     public bool ShowInstanceDropdown =>
-        !(Activity == ActivityKind.Dungeon && Difficulty == "MYTHIC_KEYSTONE" && AnyDungeon);
+        !(Activity == ActivityKind.Dungeon && AnyDungeon);
 
-    public bool ShowDifficultyToggle => InstanceId != 0 || !ShowInstanceDropdown;
+    public bool ShowDifficultyToggle =>
+        Activity != ActivityKind.Dungeon && (InstanceId != 0 || !ShowInstanceDropdown);
 
     public RunFormSubmitBlocker SubmitBlocker
     {
@@ -70,7 +68,7 @@ public sealed class RunFormState
         {
             if (StartTimeLocal is null) return RunFormSubmitBlocker.MissingStartTime;
 
-            var isMythicPlus = Activity == ActivityKind.Dungeon && Difficulty == "MYTHIC_KEYSTONE";
+            var isMythicPlus = Activity == ActivityKind.Dungeon && Difficulty == MythicKeystoneDifficulty;
             if (isMythicPlus && AnyDungeon)
             {
                 if (KeystoneLevel is null) return RunFormSubmitBlocker.MissingKeystoneLevel;
@@ -102,7 +100,7 @@ public sealed class RunFormState
         Activity = value;
         InstanceId = 0;
         AnyDungeon = value == ActivityKind.Dungeon;
-        Difficulty = value == ActivityKind.Dungeon ? "MYTHIC_KEYSTONE" : "";
+        Difficulty = value == ActivityKind.Dungeon ? MythicKeystoneDifficulty : "";
         Size = value == ActivityKind.Dungeon ? 5 : 0;
         KeystoneLevel = null;
         RefreshDifficultyOptions();
@@ -112,6 +110,11 @@ public sealed class RunFormState
     {
         AnyDungeon = anyDungeon;
         if (anyDungeon) InstanceId = 0;
+        if (Activity == ActivityKind.Dungeon)
+        {
+            Difficulty = MythicKeystoneDifficulty;
+            Size = 5;
+        }
         RefreshDifficultyOptions();
     }
 
@@ -134,26 +137,42 @@ public sealed class RunFormState
 
     public void OnDifficultyChanged(string value)
     {
+        if (Activity == ActivityKind.Dungeon)
+        {
+            Difficulty = MythicKeystoneDifficulty;
+            Size = FilteredInstances
+                .FirstOrDefault(o => o.InstanceId == InstanceId)?
+                .Difficulties.FirstOrDefault(d => d.DifficultyId == MythicKeystoneDifficulty)?
+                .Size ?? 5;
+            return;
+        }
+
         Difficulty = value;
         var match = FilteredInstances
             .FirstOrDefault(o => o.InstanceId == InstanceId)?
             .Difficulties.FirstOrDefault(d => d.DifficultyId == value);
         Size = match?.Size ?? 0;
-        if (value != "MYTHIC_KEYSTONE") KeystoneLevel = null;
+        if (value != MythicKeystoneDifficulty) KeystoneLevel = null;
     }
 
     public void RefreshDifficultyOptions()
     {
         var match = FilteredInstances.FirstOrDefault(o => o.InstanceId == InstanceId);
-        DifficultyOptions = match is null
-            ? Array.Empty<DifficultyOption>()
+        if (match is null)
+        {
+            DifficultyOptions = Array.Empty<DifficultyOption>();
+            return;
+        }
+
+        DifficultyOptions = Activity == ActivityKind.Dungeon
+            ? match.Difficulties.Where(d => d.DifficultyId == MythicKeystoneDifficulty).ToList()
             : match.Difficulties.ToList();
     }
 
     public void SetMode(string difficulty, int size, int? keystoneLevel)
     {
-        Difficulty = difficulty;
-        Size = size;
+        Difficulty = Activity == ActivityKind.Dungeon ? MythicKeystoneDifficulty : difficulty;
+        Size = Activity == ActivityKind.Dungeon ? 5 : size;
         KeystoneLevel = keystoneLevel;
     }
 
@@ -179,8 +198,8 @@ public sealed class RunFormState
         Activity = activity;
         ExpansionId = expansionId;
         InstanceId = instanceId;
-        Difficulty = difficulty;
-        Size = size;
+        Difficulty = activity == ActivityKind.Dungeon ? MythicKeystoneDifficulty : difficulty;
+        Size = activity == ActivityKind.Dungeon ? 5 : size;
         KeystoneLevel = keystoneLevel;
         AnyDungeon = anyDungeon;
         StartTimeLocal = startTimeLocal;
