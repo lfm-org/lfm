@@ -111,7 +111,7 @@ These look like they violate the rule but don't, because they are per-entity *ca
 - `raiders.PortraitCache` — map of `characterId → render URL`, refreshed by the portrait-fetch flow, tied to the raider doc's TTL.
 - `raiders.AccountProfileSummary` — cached Blizzard WoW account profile, tracked by `AccountProfileFetchedAt`.
 - `raiders.Characters[*].MediaSummary` — cached Blizzard character media, tracked by `MediaFetchedAt`.
-- `guilds.BlizzardRosterRaw` + `guilds.BlizzardProfileRaw` — cached Blizzard guild roster + profile, tracked by `BlizzardRosterFetchedAt`.
+- `guilds.BlizzardRosterRaw` + `guilds.BlizzardProfileRaw` — cached Blizzard guild roster + profile, tracked by `BlizzardRosterFetchedAt` / `BlizzardProfileFetchedAt`.
 
 Splitting any of these out to blob would add round-trips and a consistency surface for zero cost win, because each cache's lifecycle is *the owner's* lifecycle, not a shared patch-day lifecycle.
 
