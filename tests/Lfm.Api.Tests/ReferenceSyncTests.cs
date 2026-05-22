@@ -477,6 +477,63 @@ public class ReferenceSyncTests
         blizzard.Verify(b => b.GetJournalInstanceAsync(9999, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task SyncInstancesAsync_prefers_current_leaderboard_index_over_broader_keystone_season_dungeons()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex(
+                (505, "Current Season"),
+                (516, "Midnight")));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(516, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(516, "Midnight"));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonIndex(currentSeasonId: 17));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonAsync(17, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonDetail(
+                17,
+                dungeons:
+                [
+                    new BlizzardIndexEntry(1201, "Algeth'ar Academy"),
+                    new BlizzardIndexEntry(9999, "Broader Season Dungeon"),
+                ]));
+        blizzard.Setup(b => b.GetConnectedRealmIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConnectedRealmIndex(1084));
+        blizzard.Setup(b => b.GetMythicKeystoneLeaderboardsIndexAsync(1084, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeLeaderboardIndex((1201, "Algeth'ar Academy")));
+
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalIndex(
+                (1201, "Algeth'ar Academy"),
+                (9999, "Broader Season Dungeon")));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1201, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1201,
+                Name: "Algeth'ar Academy",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: new BlizzardJournalExpansion(503, "Dragonflight"),
+                MinimumLevel: 70,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+
+        await sut.SyncAllAsync(CancellationToken.None);
+
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/index.json",
+            It.Is<List<InstanceIndexEntry>>(ix =>
+                ix.Count == 1 &&
+                ix[0].Id == 1201 &&
+                ix[0].IsCurrentMythicKeystone),
+            It.IsAny<CancellationToken>()), Times.Once);
+        blizzard.Verify(b => b.GetJournalInstanceAsync(9999, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     // ── Resilience ───────────────────────────────────────────────────────────
 
     [Fact]
