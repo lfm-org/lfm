@@ -15,6 +15,7 @@
 @inject IMeClient MeClient
 @inject IRunsClient RunsClient
 @inject ISpecializationsClient SpecializationsClient
+@inject IArtworkRotationRandomizer ArtworkRotationRandomizer
 @inject NavigationManager Nav
 @inject IStringLocalizer Loc
 @inject TimeProvider TimeProvider
@@ -319,6 +320,7 @@
     private IReadOnlyDictionary<string, string> _specIconUrlsByClassAndName = new Dictionary<string, string>();
     private IReadOnlyDictionary<int, string> _instancePortraitUrlsById = new Dictionary<int, string>();
     private IReadOnlyList<string> _dungeonPortraitUrls = [];
+    private IReadOnlyList<string> _dungeonPortraitRotationUrls = [];
     private string? _currentInstancePortraitUrl;
     private string? _previousInstancePortraitUrl;
     private bool _currentInstancePortraitUsesSecondLayer;
@@ -820,10 +822,11 @@
     {
         if (!run.InstanceId.HasValue)
         {
-            if (!UsesRotatingDungeonPortrait(run) || _dungeonPortraitUrls.Count == 0)
+            var portraitUrls = DungeonPortraitRotationUrls;
+            if (!UsesRotatingDungeonPortrait(run) || portraitUrls.Count == 0)
                 return null;
 
-            return _dungeonPortraitUrls[_rotatingInstancePortraitIndex % _dungeonPortraitUrls.Count];
+            return portraitUrls[_rotatingInstancePortraitIndex % portraitUrls.Count];
         }
 
         return _instancePortraitUrlsById.TryGetValue(run.InstanceId.Value, out var portraitUrl)
@@ -842,15 +845,28 @@
     private void ConfigureInstanceArtwork(RunDetailDto run)
     {
         _rotatingInstancePortraitIndex = 0;
+        ConfigureDungeonPortraitRotationOrder(run);
         SetInstancePortraitUrl(InstancePortraitUrlFor(run), crossfade: false);
         ConfigureInstancePortraitRotation(run);
+    }
+
+    private IReadOnlyList<string> DungeonPortraitRotationUrls =>
+        _dungeonPortraitRotationUrls.Count > 0
+            ? _dungeonPortraitRotationUrls
+            : _dungeonPortraitUrls;
+
+    private void ConfigureDungeonPortraitRotationOrder(RunDetailDto run)
+    {
+        _dungeonPortraitRotationUrls = UsesRotatingDungeonPortrait(run) && _dungeonPortraitUrls.Count > 0
+            ? RunArtworkRotation.Shuffle(_dungeonPortraitUrls, ArtworkRotationRandomizer)
+            : [];
     }
 
     private void ConfigureInstancePortraitRotation(RunDetailDto run)
     {
         StopInstancePortraitRotation();
 
-        if (!UsesRotatingDungeonPortrait(run) || _dungeonPortraitUrls.Count <= 1)
+        if (!UsesRotatingDungeonPortrait(run) || DungeonPortraitRotationUrls.Count <= 1)
             return;
 
         _instancePortraitRotationTimer = TimeProvider.CreateTimer(
@@ -864,13 +880,13 @@
     {
         if (selectedRun is null ||
             !UsesRotatingDungeonPortrait(selectedRun) ||
-            _dungeonPortraitUrls.Count <= 1)
+            DungeonPortraitRotationUrls.Count <= 1)
         {
             StopInstancePortraitRotation();
             return;
         }
 
-        _rotatingInstancePortraitIndex = (_rotatingInstancePortraitIndex + 1) % _dungeonPortraitUrls.Count;
+        _rotatingInstancePortraitIndex = (_rotatingInstancePortraitIndex + 1) % DungeonPortraitRotationUrls.Count;
         SetInstancePortraitUrl(InstancePortraitUrlFor(selectedRun), crossfade: true);
         StateHasChanged();
     }
@@ -907,6 +923,7 @@
         _previousInstancePortraitUrl = null;
         _currentInstancePortraitUsesSecondLayer = false;
         _rotatingInstancePortraitIndex = 0;
+        _dungeonPortraitRotationUrls = [];
     }
 
     private async Task EnsureInstancePortraitsLoaded()

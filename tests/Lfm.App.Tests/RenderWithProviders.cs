@@ -6,6 +6,7 @@ using System.Text.Json;
 using Bunit;
 using Lfm.App.Auth;
 using Lfm.App.i18n;
+using Lfm.App.Runs;
 using Lfm.App.Services;
 using Lfm.Contracts.Characters;
 using Lfm.Contracts.Instances;
@@ -42,6 +43,7 @@ public abstract class ComponentTestBase : BunitContext
 
         Services.AddSingleton<IThemeService, ThemeService>();
         Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<IArtworkRotationRandomizer, ArtworkRotationRandomizer>();
 
         Services.AddSingleton<IDataCache, InMemoryDataCache>();
         Services.AddSingleton<ILocaleService, LocaleService>();
