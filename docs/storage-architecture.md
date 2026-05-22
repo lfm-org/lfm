@@ -93,10 +93,10 @@ For every reference kind that has a list endpoint, the ingester emits `reference
 
 The per-id detail blobs (`{kind}/{id}.json`, `{kind}-media/{id}.json`) stay for future endpoints (detail pages, hero talents) and as the source of truth the manifest is derived from. Manifest media fields store Blizzard source URLs; HTTP handlers and Blazor image components convert them to `/api/v1/wow/media/cache` before browser rendering.
 
-The journal-instance manifest is filtered through `journal-expansion/{id}` detail
-membership for non-M+ raid/dungeon choices. The `Current Season` journal-expansion
-alias is not used as a normal expansion because Blizzard can place grouping rows
-such as `Keystone Dungeons` there. Current Mythic Keystone membership is stored as
+The journal-instance manifest is filtered to the scheduleable surface: raids from
+the current raid tier (`journal-expansion/516` raids) and dungeons from the
+current Mythic Keystone season only. Normal/heroic/mythic non-keystone dungeons
+are not scheduleable. Current Mythic Keystone membership is stored as
 `isCurrentMythicKeystone` when Blizzard's Mythic Keystone season detail exposes
 dungeon ids. When the season detail omits dungeon ids, the ingester falls back to
 the `Current Season` journal-expansion detail for M+ membership and filters out
