@@ -51,7 +51,7 @@ namespace Lfm.Contracts.Instances;
 /// dropped, trim this field at the next audit.
 /// </param>
 /// <param name="IsCurrentMythicKeystone">
-/// True when the row belongs to the current Mythic Keystone season membership.
+/// True when the row appears in the current Mythic Keystone leaderboard.
 /// The create/edit run forms use this to populate specific M+ dungeon choices
 /// because non-keystone dungeons are not scheduleable.
 /// </param>

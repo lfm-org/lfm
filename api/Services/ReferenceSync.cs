@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
+using Lfm.Api.Options;
 using Lfm.Api.Repositories;
 using Lfm.Contracts.Admin;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Lfm.Api.Services;
 
 /// <summary>
 /// Syncs Blizzard reference data (journal-instance, journal-expansion,
-/// playable-specialization, Mythic Keystone season membership, plus media blobs)
+/// playable-specialization, Mythic Keystone leaderboard membership, plus media blobs)
 /// from the Blizzard Game Data API into the
 /// <c>lfmstore/wow/reference/</c> blob container — see
 /// <c>docs/storage-architecture.md</c>.
@@ -27,12 +29,16 @@ namespace Lfm.Api.Services;
 public sealed class ReferenceSync(
     IBlizzardGameDataClient gameData,
     IBlobReferenceClient blobs,
+    IOptions<BlizzardOptions> blizzardOptions,
     ILogger<ReferenceSync> logger) : IReferenceSync
 {
-    private const string CurrentSeasonExpansion = "Current Season";
     private const int CurrentRaidTierJournalExpansionId = 516;
-    private const string KeystoneDungeonsGroup = "Keystone Dungeons";
-    private const int MaxLeaderboardConnectedRealmProbeCount = 5;
+    private static readonly IReadOnlyDictionary<string, int> DefaultLeaderboardConnectedRealms =
+        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["eu"] = 1080,
+            ["us"] = 11,
+        };
 
     /// <inheritdoc/>
     public async Task<WowReferenceRefreshResponse> SyncAllAsync(
@@ -114,7 +120,7 @@ public sealed class ReferenceSync(
     {
         var expansions = await gameData.GetJournalExpansionIndexAsync(token, ct);
         var currentRaidTierIds = await ResolveCurrentRaidTierRaidIdsAsync(token, ct);
-        var currentKeystoneIds = await ResolveCurrentMythicKeystoneDungeonIdsAsync(expansions, token, ct);
+        var currentKeystoneIds = await ResolveCurrentMythicKeystoneDungeonIdsAsync(token, ct);
         var hasMembershipFilter = currentRaidTierIds.Count > 0 || currentKeystoneIds.Count > 0;
         var index = await gameData.GetJournalInstanceIndexAsync(token, ct);
         var manifest = new List<InstanceIndexEntry>();
@@ -219,45 +225,19 @@ public sealed class ReferenceSync(
     }
 
     private async Task<HashSet<int>> ResolveCurrentMythicKeystoneDungeonIdsAsync(
-        BlizzardJournalExpansionIndex expansions,
         string token,
         CancellationToken ct)
     {
         try
         {
             var index = await gameData.GetMythicKeystoneSeasonIndexAsync(token, ct);
-            var currentSeasonId = index.CurrentSeason?.Id;
-            if (currentSeasonId is null) return [];
+            if (index.CurrentSeason is null) return [];
 
-            var leaderboards = await ResolveCurrentMythicKeystoneDungeonIdsFromLeaderboardsAsync(token, ct);
-            if (leaderboards.Count > 0) return leaderboards;
-
-            var season = await FetchWithRetryAsync(
-                () => gameData.GetMythicKeystoneSeasonAsync(currentSeasonId.Value, token, ct),
-                $"mythic keystone season {currentSeasonId.Value}",
-                ct);
-
-            if (season?.Dungeons is { Count: > 0 })
-                return season.Dungeons.Select(d => d.Id).ToHashSet();
-
-            var currentSeasonExpansion = expansions.Tiers.FirstOrDefault(e => e.Name == CurrentSeasonExpansion);
-            if (currentSeasonExpansion is null) return [];
-
-            var detail = await FetchWithRetryAsync(
-                () => gameData.GetJournalExpansionAsync(currentSeasonExpansion.Id, token, ct),
-                $"journal expansion {currentSeasonExpansion.Id}",
-                ct);
-
-            return detail?.Dungeons is null
-                ? []
-                : detail.Dungeons
-                    .Where(d => d.Name != KeystoneDungeonsGroup)
-                    .Select(d => d.Id)
-                    .ToHashSet();
+            return await ResolveCurrentMythicKeystoneDungeonIdsFromLeaderboardsAsync(token, ct);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not resolve current Mythic Keystone season dungeons");
+            logger.LogWarning(ex, "Could not resolve current Mythic Keystone leaderboard dungeons");
             return [];
         }
     }
@@ -268,6 +248,18 @@ public sealed class ReferenceSync(
     {
         try
         {
+            var defaultConnectedRealmId = ResolveDefaultLeaderboardConnectedRealmId();
+            if (defaultConnectedRealmId is int id)
+            {
+                var leaderboards = await FetchWithRetryAsync(
+                    () => gameData.GetMythicKeystoneLeaderboardsIndexAsync(id, token, ct),
+                    $"mythic keystone leaderboard index {id}",
+                    ct);
+
+                if (leaderboards?.CurrentLeaderboards is { Count: > 0 })
+                    return leaderboards.CurrentLeaderboards.Select(d => d.Id).ToHashSet();
+            }
+
             var connectedRealms = await FetchWithRetryAsync(
                 () => gameData.GetConnectedRealmIndexAsync(token, ct),
                 "connected realm index",
@@ -277,8 +269,7 @@ public sealed class ReferenceSync(
             foreach (var connectedRealmId in connectedRealms.ConnectedRealms
                          .Select(r => TryGetConnectedRealmId(r.Key.Href))
                          .Where(id => id.HasValue)
-                         .Select(id => id!.Value)
-                         .Take(MaxLeaderboardConnectedRealmProbeCount))
+                         .Select(id => id!.Value))
             {
                 var leaderboards = await FetchWithRetryAsync(
                     () => gameData.GetMythicKeystoneLeaderboardsIndexAsync(connectedRealmId, token, ct),
@@ -295,6 +286,14 @@ public sealed class ReferenceSync(
         }
 
         return [];
+    }
+
+    private int? ResolveDefaultLeaderboardConnectedRealmId()
+    {
+        var region = blizzardOptions.Value.Region.ToLowerInvariant();
+        return DefaultLeaderboardConnectedRealms.TryGetValue(region, out var connectedRealmId)
+            ? connectedRealmId
+            : null;
     }
 
     private static int? TryGetConnectedRealmId(string href)

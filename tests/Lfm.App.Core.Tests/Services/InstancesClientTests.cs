@@ -66,6 +66,30 @@ public class InstancesClientTests
     }
 
     [Fact]
+    public async Task ListAsync_reuses_successful_response()
+    {
+        var first = new[]
+        {
+            new InstanceDto("1234:raid", 1234, "Liberation of Undermine", "raid", "tww"),
+        };
+        var second = new[]
+        {
+            new InstanceDto("5678:mythic-plus", 5678, "Operation: Mechagon", "mythic-plus", "bfa"),
+        };
+        var handlerCallCount = 0;
+        var handler = new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, handlerCallCount++ == 0 ? first : second));
+        var (client, _) = MakeClient(handler);
+
+        var firstResult = await client.ListAsync(CancellationToken.None);
+        var secondResult = await client.ListAsync(CancellationToken.None);
+
+        Assert.Equal("1234:raid", Assert.Single(firstResult).Id);
+        Assert.Equal("1234:raid", Assert.Single(secondResult).Id);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task ListAsync_throws_HttpRequestException_on_5xx()
     {
         // InstancesClient doesn't catch — pinning current contract.

@@ -93,15 +93,22 @@ For every reference kind that has a list endpoint, the ingester emits `reference
 
 The per-id detail blobs (`{kind}/{id}.json`, `{kind}-media/{id}.json`) stay for future endpoints (detail pages, hero talents) and as the source of truth the manifest is derived from. Manifest media fields store Blizzard source URLs; HTTP handlers and Blazor image components convert them to `/api/v1/wow/media/cache` before browser rendering.
 
+The Blazor app memoizes successful reference-list API responses for the current
+browser session (`instances`, `expansions`, and `specializations`). This avoids
+a fresh app-to-API request each time a user revisits create/edit run screens.
+Failed requests are not cached, so a later navigation can retry.
+
 The journal-instance manifest is filtered to the scheduleable surface: raids from
 the current raid tier (`journal-expansion/516` raids) and dungeons from the
-current Mythic Keystone season only. Normal/heroic/mythic non-keystone dungeons
-are not scheduleable. Current Mythic Keystone membership is stored as
+current Mythic Keystone leaderboard only. Normal/heroic/mythic non-keystone
+dungeons are not scheduleable. Current Mythic Keystone membership is stored as
 `isCurrentMythicKeystone` from Blizzard's current Mythic Keystone leaderboard
-index, scoped through a connected realm from the dynamic connected-realm index.
-The Mythic Keystone season detail remains a fallback when the leaderboard index
-is unavailable; the `Current Season` journal-expansion detail is the last-resort
-fallback and filters out the `Keystone Dungeons` grouping row.
+index. Reference sync uses stable default connected-realm ids for the common
+regions (`eu` → `1080`, `us` → `11`) to avoid an extra index fetch. If the
+configured region has no default or the default does not return leaderboard
+rows, it falls back to Blizzard's region-scoped dynamic connected-realm index
+and probes connected-realm leaderboard indexes from that same Blizzard region
+until one returns the current leaderboard rows.
 
 ## Known exceptions to flag
 

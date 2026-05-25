@@ -8,7 +8,12 @@ namespace Lfm.App.Services;
 
 public sealed class ExpansionsClient(IHttpClientFactory factory) : IExpansionsClient
 {
-    public async Task<IReadOnlyList<ExpansionDto>> ListAsync(CancellationToken ct)
+    private readonly ReferenceListCache<ExpansionDto> _cache = new();
+
+    public Task<IReadOnlyList<ExpansionDto>> ListAsync(CancellationToken ct) =>
+        _cache.GetOrLoadAsync(FetchAsync, ct);
+
+    private async Task<IReadOnlyList<ExpansionDto>> FetchAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
         var items = await http.GetFromJsonAsync<List<ExpansionDto>>("api/v1/wow/reference/expansions", ct);
