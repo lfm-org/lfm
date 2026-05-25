@@ -97,10 +97,11 @@ The journal-instance manifest is filtered to the scheduleable surface: raids fro
 the current raid tier (`journal-expansion/516` raids) and dungeons from the
 current Mythic Keystone season only. Normal/heroic/mythic non-keystone dungeons
 are not scheduleable. Current Mythic Keystone membership is stored as
-`isCurrentMythicKeystone` when Blizzard's Mythic Keystone season detail exposes
-dungeon ids. When the season detail omits dungeon ids, the ingester falls back to
-the `Current Season` journal-expansion detail for M+ membership and filters out
-the `Keystone Dungeons` grouping row.
+`isCurrentMythicKeystone` from Blizzard's current Mythic Keystone leaderboard
+index, scoped through a connected realm from the dynamic connected-realm index.
+The Mythic Keystone season detail remains a fallback when the leaderboard index
+is unavailable; the `Current Season` journal-expansion detail is the last-resort
+fallback and filters out the `Keystone Dungeons` grouping row.
 
 ## Known exceptions to flag
 

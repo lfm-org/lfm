@@ -1,11 +1,55 @@
-[allowlist]
-  description = "Allow test-mode fixture tokens and placeholder secrets"
-  paths = [
-    '''example\.env''',
-    '''frontend/example\.env''',
-  ]
-  regexTarget = "line"
-  regexes = [
-    '''test_battlenet_token''',
-    '''0{64}''',
-  ]
+title = "LFM gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Allow empty sample Blizzard client secret placeholder spillover"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = [
+  '''(^|/)example\.env$''',
+]
+regexTarget = "secret"
+regexes = [
+  '''^Blizzard__Region=eu$''',
+]
+
+[[allowlists]]
+description = "Allow public Azurite development storage account key"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = [
+  '''^Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==$''',
+]
+
+[[allowlists]]
+description = "Allow deterministic local test harness secrets from removed dev scripts"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = [
+  '''^C2y6yDjf5/R\+ob0N8A7Cgv30VRDJIWEHLM\+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==$''',
+  '''^00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff$''',
+  '''^0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef$''',
+  '''^1234567890abcdef$''',
+]
+
+[[allowlists]]
+description = "Allow Azure built-in Key Vault Secrets User role definition id"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = [
+  '''^4633458b-17de-408a-b874-0445c86b69e6$''',
+]
+
+[[allowlists]]
+description = "Allow deterministic character ids used as component-test cache keys"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = [
+  '''(^|/)tests/Lfm\.App\.Tests/CharactersPagesTests\.cs$''',
+]
+regexTarget = "secret"
+regexes = [
+  '''^eu-silvermoon-[a-z0-9]+$''',
+]

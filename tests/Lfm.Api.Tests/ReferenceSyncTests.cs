@@ -70,6 +70,16 @@ public class ReferenceSyncTests
         IReadOnlyList<BlizzardIndexEntry>? dungeons = null) =>
         new(Id: id, SeasonName: $"Season {id}", Dungeons: dungeons);
 
+    private static BlizzardConnectedRealmIndex MakeConnectedRealmIndex(params int[] connectedRealmIds) =>
+        new(connectedRealmIds
+            .Select(id => new BlizzardConnectedRealmReference(
+                new BlizzardHrefReference($"https://eu.api.blizzard.com/data/wow/connected-realm/{id}?namespace=dynamic-eu")))
+            .ToList());
+
+    private static BlizzardMythicKeystoneLeaderboardIndex MakeLeaderboardIndex(
+        params (int Id, string Name)[] currentLeaderboards) =>
+        new(currentLeaderboards.Select(l => new BlizzardIndexEntry(l.Id, l.Name)).ToList());
+
     private static BlizzardPlayableSpecDetail MakeSpecDetail(
         int id, string name, int classId, string roleType) =>
         new(
@@ -95,6 +105,8 @@ public class ReferenceSyncTests
             .ReturnsAsync(MakeExpansionIndex());
         blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeKeystoneSeasonIndex());
+        blizzard.Setup(b => b.GetConnectedRealmIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConnectedRealmIndex());
 
         var blobs = new Mock<IBlobReferenceClient>();
         var logger = new TestLogger<ReferenceSync>();
@@ -401,10 +413,125 @@ public class ReferenceSyncTests
         blobs.Verify(b => b.UploadAsync(
             "reference/journal-instance/index.json",
             It.Is<List<InstanceIndexEntry>>(ix =>
-                ix.Single().Id == 1201 &&
-                ix.Single().IsCurrentMythicKeystone),
+                ix.Count == 1 &&
+                ix[0].Id == 1201 &&
+                ix[0].IsCurrentMythicKeystone),
             It.IsAny<CancellationToken>()), Times.Once);
         blizzard.Verify(b => b.GetJournalInstanceAsync(1319, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncInstancesAsync_uses_current_leaderboard_index_when_keystone_season_has_no_dungeons()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex(
+                (505, "Current Season"),
+                (516, "Midnight")));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(516, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(516, "Midnight"));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(505, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(
+                505,
+                "Current Season",
+                dungeons: [new BlizzardIndexEntry(9999, "Stale Current Season Dungeon")]));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonIndex(currentSeasonId: 17));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonAsync(17, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonDetail(17, dungeons: null));
+        blizzard.Setup(b => b.GetConnectedRealmIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConnectedRealmIndex(1084));
+        blizzard.Setup(b => b.GetMythicKeystoneLeaderboardsIndexAsync(1084, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeLeaderboardIndex((1201, "Algeth'ar Academy")));
+
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalIndex(
+                (1201, "Algeth'ar Academy"),
+                (9999, "Stale Current Season Dungeon")));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1201, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1201,
+                Name: "Algeth'ar Academy",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: new BlizzardJournalExpansion(503, "Dragonflight"),
+                MinimumLevel: 70,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+
+        await sut.SyncAllAsync(CancellationToken.None);
+
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/index.json",
+            It.Is<List<InstanceIndexEntry>>(ix =>
+                ix.Count == 1 &&
+                ix[0].Id == 1201 &&
+                ix[0].IsCurrentMythicKeystone),
+            It.IsAny<CancellationToken>()), Times.Once);
+        blizzard.Verify(b => b.GetJournalExpansionAsync(505, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
+        blizzard.Verify(b => b.GetJournalInstanceAsync(9999, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncInstancesAsync_prefers_current_leaderboard_index_over_broader_keystone_season_dungeons()
+    {
+        var (sut, blizzard, blobs, _) = MakeSut();
+        blizzard.Setup(b => b.GetJournalExpansionIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionIndex(
+                (505, "Current Season"),
+                (516, "Midnight")));
+        blizzard.Setup(b => b.GetJournalExpansionAsync(516, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeExpansionDetail(516, "Midnight"));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonIndex(currentSeasonId: 17));
+        blizzard.Setup(b => b.GetMythicKeystoneSeasonAsync(17, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeKeystoneSeasonDetail(
+                17,
+                dungeons:
+                [
+                    new BlizzardIndexEntry(1201, "Algeth'ar Academy"),
+                    new BlizzardIndexEntry(9999, "Broader Season Dungeon"),
+                ]));
+        blizzard.Setup(b => b.GetConnectedRealmIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConnectedRealmIndex(1084));
+        blizzard.Setup(b => b.GetMythicKeystoneLeaderboardsIndexAsync(1084, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeLeaderboardIndex((1201, "Algeth'ar Academy")));
+
+        blizzard.Setup(b => b.GetJournalInstanceIndexAsync(FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeJournalIndex(
+                (1201, "Algeth'ar Academy"),
+                (9999, "Broader Season Dungeon")));
+        blizzard.Setup(b => b.GetJournalInstanceAsync(1201, FakeToken, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlizzardJournalInstanceDetail(
+                Id: 1201,
+                Name: "Algeth'ar Academy",
+                Category: new BlizzardJournalInstanceCategory("DUNGEON"),
+                Expansion: new BlizzardJournalExpansion(503, "Dragonflight"),
+                MinimumLevel: 70,
+                Modes:
+                [
+                    new BlizzardJournalInstanceMode(
+                        new BlizzardJournalModeRef("MYTHIC_KEYSTONE", "Mythic Keystone"),
+                        5,
+                        true),
+                ],
+                Media: null));
+
+        await sut.SyncAllAsync(CancellationToken.None);
+
+        blobs.Verify(b => b.UploadAsync(
+            "reference/journal-instance/index.json",
+            It.Is<List<InstanceIndexEntry>>(ix =>
+                ix.Count == 1 &&
+                ix[0].Id == 1201 &&
+                ix[0].IsCurrentMythicKeystone),
+            It.IsAny<CancellationToken>()), Times.Once);
+        blizzard.Verify(b => b.GetJournalInstanceAsync(9999, FakeToken, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ── Resilience ───────────────────────────────────────────────────────────
