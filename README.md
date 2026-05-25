@@ -57,7 +57,7 @@ Docker volume mounted into the Functions container as
 such as `PRIVACY_EMAIL`, `API_HOSTNAME`, and `FRONTEND_HOSTNAME` are documented
 under Deployment and are intentionally not part of the local `.env` template.
 
-### 3. Start the local dev environment
+### 3. Start local stack
 
 ```bash
 scripts/start-worktree-dev.sh
