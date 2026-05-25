@@ -126,6 +126,21 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
             $"data/wow/mythic-keystone/season/{seasonId}", accessToken, ct);
 
     /// <inheritdoc/>
+    public Task<BlizzardConnectedRealmIndex> GetConnectedRealmIndexAsync(
+        string accessToken,
+        CancellationToken ct)
+        => GetDynamicJsonAsync<BlizzardConnectedRealmIndex>(
+            "data/wow/connected-realm/index", accessToken, ct);
+
+    /// <inheritdoc/>
+    public Task<BlizzardMythicKeystoneLeaderboardIndex> GetMythicKeystoneLeaderboardsIndexAsync(
+        int connectedRealmId,
+        string accessToken,
+        CancellationToken ct)
+        => GetDynamicJsonAsync<BlizzardMythicKeystoneLeaderboardIndex>(
+            $"data/wow/connected-realm/{connectedRealmId}/mythic-leaderboard/index", accessToken, ct);
+
+    /// <inheritdoc/>
     public Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct)
         => GetStaticJsonAsync<BlizzardJournalInstanceIndex>(
             "data/wow/journal-instance/index", accessToken, ct);
