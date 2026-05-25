@@ -82,6 +82,23 @@ public interface IBlizzardGameDataClient
         CancellationToken ct);
 
     /// <summary>
+    /// Fetches the connected-realm index from the dynamic namespace. The
+    /// Mythic Keystone leaderboard index is scoped by connected realm.
+    /// </summary>
+    Task<BlizzardConnectedRealmIndex> GetConnectedRealmIndexAsync(
+        string accessToken,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Fetches the current Mythic Keystone leaderboard index for a connected realm
+    /// from the dynamic namespace.
+    /// </summary>
+    Task<BlizzardMythicKeystoneLeaderboardIndex> GetMythicKeystoneLeaderboardsIndexAsync(
+        int connectedRealmId,
+        string accessToken,
+        CancellationToken ct);
+
+    /// <summary>
     /// Fetches the journal-instance index.
     /// </summary>
     Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct);
@@ -151,6 +168,18 @@ public sealed record BlizzardMythicKeystoneSeasonDetail(
     int Id,
     [property: JsonPropertyName("season_name")] string? SeasonName,
     IReadOnlyList<BlizzardIndexEntry>? Dungeons);
+
+public sealed record BlizzardHrefReference(string Href);
+
+public sealed record BlizzardConnectedRealmReference(BlizzardHrefReference Key);
+
+public sealed record BlizzardConnectedRealmIndex(
+    [property: JsonPropertyName("connected_realms")]
+    IReadOnlyList<BlizzardConnectedRealmReference> ConnectedRealms);
+
+public sealed record BlizzardMythicKeystoneLeaderboardIndex(
+    [property: JsonPropertyName("current_leaderboards")]
+    IReadOnlyList<BlizzardIndexEntry>? CurrentLeaderboards);
 
 public sealed record BlizzardJournalInstanceIndex(IReadOnlyList<BlizzardIndexEntry> Instances);
 
