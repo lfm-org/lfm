@@ -8,7 +8,12 @@ namespace Lfm.App.Services;
 
 public sealed class InstancesClient(IHttpClientFactory factory) : IInstancesClient
 {
-    public async Task<IReadOnlyList<InstanceDto>> ListAsync(CancellationToken ct)
+    private readonly ReferenceListCache<InstanceDto> _cache = new();
+
+    public Task<IReadOnlyList<InstanceDto>> ListAsync(CancellationToken ct) =>
+        _cache.GetOrLoadAsync(FetchAsync, ct);
+
+    private async Task<IReadOnlyList<InstanceDto>> FetchAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
         var items = await http.GetFromJsonAsync<List<InstanceDto>>("api/v1/wow/reference/instances", ct);

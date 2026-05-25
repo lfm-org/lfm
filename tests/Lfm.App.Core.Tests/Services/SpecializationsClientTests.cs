@@ -55,6 +55,30 @@ public class SpecializationsClientTests
     }
 
     [Fact]
+    public async Task ListAsync_reuses_successful_response()
+    {
+        var first = new[]
+        {
+            new SpecializationDto(257, "Holy", 5, "HEALER", "https://render.example/holy.jpg"),
+        };
+        var second = new[]
+        {
+            new SpecializationDto(258, "Shadow", 5, "DPS", "https://render.example/shadow.jpg"),
+        };
+        var handlerCallCount = 0;
+        var handler = new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, handlerCallCount++ == 0 ? first : second));
+        var (client, _) = MakeClient(handler);
+
+        var firstResult = await client.ListAsync(CancellationToken.None);
+        var secondResult = await client.ListAsync(CancellationToken.None);
+
+        Assert.Equal(257, Assert.Single(firstResult).Id);
+        Assert.Equal(257, Assert.Single(secondResult).Id);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task ListAsync_throws_HttpRequestException_on_5xx()
     {
         var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));

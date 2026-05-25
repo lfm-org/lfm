@@ -54,6 +54,30 @@ public class ExpansionsClientTests
     }
 
     [Fact]
+    public async Task ListAsync_reuses_successful_response()
+    {
+        var first = new[]
+        {
+            new ExpansionDto(505, "The War Within"),
+        };
+        var second = new[]
+        {
+            new ExpansionDto(503, "Dragonflight"),
+        };
+        var handlerCallCount = 0;
+        var handler = new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.CreateJsonResponse(HttpStatusCode.OK, handlerCallCount++ == 0 ? first : second));
+        var (client, _) = MakeClient(handler);
+
+        var firstResult = await client.ListAsync(CancellationToken.None);
+        var secondResult = await client.ListAsync(CancellationToken.None);
+
+        Assert.Equal(505, Assert.Single(firstResult).Id);
+        Assert.Equal(505, Assert.Single(secondResult).Id);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task ListAsync_throws_HttpRequestException_on_5xx()
     {
         var (client, _) = MakeClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable));

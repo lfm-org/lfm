@@ -8,7 +8,12 @@ namespace Lfm.App.Services;
 
 public sealed class SpecializationsClient(IHttpClientFactory factory) : ISpecializationsClient
 {
-    public async Task<IReadOnlyList<SpecializationDto>> ListAsync(CancellationToken ct)
+    private readonly ReferenceListCache<SpecializationDto> _cache = new();
+
+    public Task<IReadOnlyList<SpecializationDto>> ListAsync(CancellationToken ct) =>
+        _cache.GetOrLoadAsync(FetchAsync, ct);
+
+    private async Task<IReadOnlyList<SpecializationDto>> FetchAsync(CancellationToken ct)
     {
         var http = factory.CreateClient("api");
         var items = await http.GetFromJsonAsync<List<SpecializationDto>>("api/v1/wow/reference/specializations", ct);
