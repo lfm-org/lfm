@@ -14,13 +14,13 @@ namespace Lfm.Api.Services;
 /// Implements <see cref="IBlizzardGameDataClient"/> against the Blizzard Game Data API.
 ///
 /// Mirrors the pattern in reference-sync-blizzard.ts:
-///   fetchBlizzardToken  → <see cref="GetClientCredentialsTokenAsync"/>
-///   fetchStaticJson     → <see cref="GetStaticJsonAsync{T}"/>
+///   fetchBlizzardToken  -> <see cref="GetClientCredentialsTokenAsync"/>
+///   fetchStaticJson     -> <see cref="GetStaticJsonAsync{T}"/>
 ///
 /// HttpClient base address: https://{region}.api.blizzard.com/ (set in Program.cs).
 /// Token endpoint:          https://{region}.battle.net/oauth/token (separate request).
 ///
-/// JSON deserialization uses camelCase → PascalCase via PropertyNameCaseInsensitive.
+/// JSON deserialization uses camelCase -> PascalCase via PropertyNameCaseInsensitive.
 /// The Blizzard API uses snake_case for some fields; those are mapped with
 /// [JsonPropertyName] on the DTO record properties.
 /// </summary>
@@ -138,7 +138,7 @@ public sealed class BlizzardGameDataClient : IBlizzardGameDataClient
         string accessToken,
         CancellationToken ct)
         => GetDynamicJsonAsync<BlizzardMythicKeystoneLeaderboardIndex>(
-            $"data/wow/connected-realm/{connectedRealmId}/mythic-leaderboard/", accessToken, ct);
+            $"data/wow/connected-realm/{connectedRealmId}/mythic-leaderboard/index", accessToken, ct);
 
     /// <inheritdoc/>
     public Task<BlizzardJournalInstanceIndex> GetJournalInstanceIndexAsync(string accessToken, CancellationToken ct)
