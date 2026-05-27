@@ -3,29 +3,32 @@
 
 namespace Lfm.App.i18n;
 
+using System.Globalization;
+using Lfm.Contracts.Localization;
+
 public static class SupportedLocales
 {
-    public const string English = "en";
-    public const string Finnish = "fi";
-    public const string Default = English;
+    public const string English = SupportedAppLocales.English;
+    public const string Finnish = SupportedAppLocales.Finnish;
+    public const string Default = SupportedAppLocales.Default;
 
-    private static readonly HashSet<string> Values = new(StringComparer.OrdinalIgnoreCase)
-    {
-        English,
-        Finnish,
-    };
-
-    public static IReadOnlyList<string> All { get; } = [English, Finnish];
+    public static IReadOnlyList<string> All => SupportedAppLocales.Codes;
 
     public static bool Contains(string? locale) =>
-        !string.IsNullOrWhiteSpace(locale) && Values.Contains(locale);
+        SupportedAppLocales.Contains(locale);
 
-    public static string NormalizeOrDefault(string? locale)
-    {
-        if (string.IsNullOrWhiteSpace(locale))
-            return Default;
+    public static string NormalizeOrDefault(string? locale) =>
+        SupportedAppLocales.NormalizeOrDefault(locale);
 
-        var normalized = locale.ToLowerInvariant();
-        return Values.Contains(normalized) ? normalized : Default;
-    }
+    public static string MatchBrowserLanguageOrDefault(string? browserLanguage) =>
+        SupportedAppLocales.MatchBrowserLanguageOrDefault(browserLanguage);
+
+    public static string LabelKeyOrDefault(string? locale) =>
+        SupportedAppLocales.LabelKeyOrDefault(locale);
+
+    public static CultureInfo CultureOrDefault(string? locale) =>
+        CultureInfo.GetCultureInfo(SupportedAppLocales.CultureNameOrDefault(locale));
+
+    public static bool IsRtl(string? locale) =>
+        SupportedAppLocales.IsRtl(locale);
 }

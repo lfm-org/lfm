@@ -4,11 +4,15 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Lfm.App.Auth
 @using Lfm.App.Services
+@using Lfm.Contracts.Me
 @inject NavigationManager Nav
 @inject IConfiguration Config
 @inject IThemeService ThemeService
 @inject IStringLocalizer Loc
 @inject ILocaleService LocaleService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IMeClient MeClient
+@inject ToastHelper Toast
 @inject IJSRuntime JS
 
 <FluentToastProvider />
@@ -145,20 +149,17 @@
             <FluentAnchor Href="@_sourceUrl" Target="_blank" rel="noopener external">@Loc["footer.source"]</FluentAnchor>
         </FluentStack>
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Wrap="true" Class="footer-language">
-            <FluentButton Appearance="Appearance.Stealth"
-                          Class="@LanguageButtonClass("en")"
-                          aria-pressed="@IsCurrentLocale("en").ToString().ToLowerInvariant()"
-                          OnClick="@(() => LocaleService.SetLocale("en"))"
-                          Title="@Loc["locale.en"]">
-                @Loc["locale.en"]
-            </FluentButton>
-            <FluentButton Appearance="Appearance.Stealth"
-                          Class="@LanguageButtonClass("fi")"
-                          aria-pressed="@IsCurrentLocale("fi").ToString().ToLowerInvariant()"
-                          OnClick="@(() => LocaleService.SetLocale("fi"))"
-                          Title="@Loc["locale.fi"]">
-                @Loc["locale.fi"]
-            </FluentButton>
+            @foreach (var locale in SupportedLocales.All)
+            {
+                var labelKey = SupportedLocales.LabelKeyOrDefault(locale);
+                <FluentButton Appearance="Appearance.Stealth"
+                              Class="@LanguageButtonClass(locale)"
+                              aria-pressed="@IsCurrentLocale(locale).ToString().ToLowerInvariant()"
+                              OnClick="@(() => ChangeLocaleAsync(locale))"
+                              Title="@Loc[labelKey]">
+                    @Loc[labelKey]
+                </FluentButton>
+            }
         </FluentStack>
     </footer>
 </div>
@@ -379,6 +380,51 @@
 
     private string LanguageButtonClass(string locale) =>
         IsCurrentLocale(locale) ? "footer-language__button footer-language--active" : "footer-language__button";
+
+    private async Task ChangeLocaleAsync(string locale)
+    {
+        if (!SupportedLocales.Contains(locale))
+        {
+            return;
+        }
+
+        var normalized = SupportedLocales.NormalizeOrDefault(locale);
+        LocaleService.SetLocale(normalized);
+        await PersistLocalePreferenceAsync(normalized);
+    }
+
+    private async Task PersistLocalePreferenceAsync(string locale)
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                return;
+            }
+
+            var updated = await MeClient.UpdateAsync(new UpdateMeRequest(locale), CancellationToken.None);
+            if (updated is null)
+            {
+                Toast.ShowError(Loc["locale.saveFailed"]);
+                return;
+            }
+
+            var persistedLocale = SupportedLocales.NormalizeOrDefault(updated.Locale);
+            if (!IsCurrentLocale(persistedLocale))
+            {
+                LocaleService.SetLocale(persistedLocale);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The user navigated away while the preference save was in flight.
+        }
+        catch
+        {
+            Toast.ShowError(Loc["locale.saveFailed"]);
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

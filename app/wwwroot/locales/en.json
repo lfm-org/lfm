@@ -358,5 +358,6 @@
     "guildAdmin.settings.save": "Save Settings",
 
     "locale.en": "EN",
-    "locale.fi": "FI"
+    "locale.fi": "FI",
+    "locale.saveFailed": "Language changed for this session, but it could not be saved to your profile."
 }

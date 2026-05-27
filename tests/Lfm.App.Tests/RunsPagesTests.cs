@@ -325,9 +325,9 @@ public class RunsPagesTests : ComponentTestBase
             var runButton = cut.Find("button.run-list-item");
             var ariaLabel = runButton.GetAttribute("aria-label") ?? string.Empty;
             // FormatDate (private in RunsPage) parses the ISO string and
-            // formats as "yyyy-MM-dd HH:mm" with InvariantCulture; mirror that
-            // here so the test pins the exact localized output screen readers
-            // get, without reaching into the page object's private helpers.
+            // delegates culture-sensitive display formatting; mirror that here
+            // so the test pins the exact localized output screen readers get,
+            // without reaching into the page object's private helpers.
             var formattedDate = RunDateFormatter.FormatDisplay(summary.StartTime);
             var expected = Loc("runs.listItemAriaLabel", summary.InstanceName ?? "", formattedDate);
             Assert.Equal(expected, ariaLabel);

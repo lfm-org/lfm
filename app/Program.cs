@@ -87,11 +87,12 @@ var js = host.Services.GetRequiredService<IJSRuntime>();
 try
 {
     var browserLang = await js.InvokeAsync<string>("lfmGetBrowserLanguage");
-    if (browserLang?.StartsWith("fi", StringComparison.OrdinalIgnoreCase) == true)
+    var browserLocale = SupportedLocales.MatchBrowserLanguageOrDefault(browserLang);
+    if (browserLocale != SupportedLocales.Default)
     {
         var localeService = host.Services.GetRequiredService<ILocaleService>();
-        await localizer.LoadLocaleAsync("fi");
-        localeService.SetLocale("fi");
+        await localizer.LoadLocaleAsync(browserLocale);
+        localeService.SetLocale(browserLocale);
     }
 }
 catch
