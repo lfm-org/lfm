@@ -47,7 +47,7 @@
         <button type="button"
                 role="radio"
                 aria-checked="@(isSelected ? "true" : "false")"
-                tabindex="@(isSelected ? 0 : -1)"
+                tabindex="@(isSelected ? "0" : "-1")"
                 disabled="@Disabled"
                 class="toggle-group__option @OptionClassFor(opt.Value)"
                 style="@OptionStyleFor(opt.Value)"

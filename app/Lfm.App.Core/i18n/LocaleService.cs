@@ -3,6 +3,8 @@
 
 namespace Lfm.App.i18n;
 
+using System.Globalization;
+
 /// <summary>
 /// Singleton locale tracker. Default is "en"; callers may switch to any
 /// supported locale ("en", "fi") via <see cref="SetLocale"/>.
@@ -12,6 +14,11 @@ public sealed class LocaleService : ILocaleService
     public string CurrentLocale { get; private set; } = SupportedLocales.Default;
 
     public event Action? OnLocaleChanged;
+
+    public LocaleService()
+    {
+        ApplyCulture(CurrentLocale);
+    }
 
     public void SetLocale(string locale)
     {
@@ -23,6 +30,16 @@ public sealed class LocaleService : ILocaleService
             return;
 
         CurrentLocale = normalized;
+        ApplyCulture(normalized);
         OnLocaleChanged?.Invoke();
+    }
+
+    private static void ApplyCulture(string locale)
+    {
+        var culture = SupportedLocales.CultureOrDefault(locale);
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
     }
 }

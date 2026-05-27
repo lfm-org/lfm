@@ -11,7 +11,7 @@ public static class RunDateFormatter
     {
         if (string.IsNullOrEmpty(isoDate)) return "\u2014";
         return DateTimeOffset.TryParse(isoDate, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dto)
-            ? dto.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+            ? dto.ToString("g", CultureInfo.CurrentCulture)
             : isoDate;
     }
 }

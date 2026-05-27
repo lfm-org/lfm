@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using FluentValidation;
 using Lfm.Contracts.Guild;
+using Lfm.Contracts.Localization;
 using Lfm.Contracts.Me;
 using Lfm.Contracts.Raiders;
 using Lfm.Contracts.Runs;
@@ -178,15 +179,13 @@ public partial class AddCharacterRequestValidator : AbstractValidator<AddCharact
 
 public sealed class UpdateMeRequestValidator : AbstractValidator<UpdateMeRequest>
 {
-    private static readonly string[] SupportedLocales = ["en", "fi"];
-
     public UpdateMeRequestValidator()
     {
         RuleFor(x => x.Locale)
             .NotEmpty()
             .WithMessage("locale is required")
-            .Must(l => l is not null && SupportedLocales.Contains(l))
-            .WithMessage($"Invalid locale. Supported: {string.Join(", ", SupportedLocales)}");
+            .Must(l => SupportedAppLocales.Contains(l))
+            .WithMessage($"Invalid locale. Supported: {string.Join(", ", SupportedAppLocales.Codes)}");
     }
 }
 

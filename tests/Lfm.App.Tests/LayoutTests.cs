@@ -7,7 +7,9 @@ using Lfm.App.Auth;
 using Lfm.App.Layout;
 using Lfm.App.Services;
 using Lfm.App.i18n;
+using Lfm.Contracts.Characters;
 using Lfm.Contracts.Media;
+using Lfm.Contracts.Me;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -152,6 +154,48 @@ public class LayoutTests : ComponentTestBase
         handler.ReleaseFinnishLocale();
 
         cut.WaitForAssertion(() => Assert.Contains("Tietosuojaseloste", cut.Markup));
+    }
+
+    [Fact]
+    public void MainLayout_Footer_Language_Click_Persists_Authenticated_User_Locale()
+    {
+        var auth = this.AddAuthorization();
+        auth.SetAuthorized("player#1234");
+        var meClient = new RecordingMeClient(new UpdateMeResponse("fi"));
+        Services.RemoveAll<IMeClient>();
+        Services.AddSingleton<IMeClient>(meClient);
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.Find("fluent-button[title='FI']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("fi", meClient.LastLocale);
+            Assert.Equal(1, meClient.UpdateCalls);
+        });
+    }
+
+    [Fact]
+    public void MainLayout_Footer_Language_Click_Does_Not_Persist_Anonymous_Locale()
+    {
+        this.AddAuthorization();
+        var meClient = new RecordingMeClient(new UpdateMeResponse("fi"));
+        Services.RemoveAll<IMeClient>();
+        Services.AddSingleton<IMeClient>(meClient);
+
+        var cut = Render<MainLayout>(p =>
+            p.Add(x => x.Body, builder => builder.AddContent(0, "page content")));
+
+        cut.Find("fluent-button[title='FI']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var localeService = Services.GetRequiredService<ILocaleService>();
+            Assert.Equal("fi", localeService.CurrentLocale);
+        });
+        Assert.Equal(0, meClient.UpdateCalls);
     }
 
     [Fact]
@@ -504,5 +548,30 @@ public class LayoutTests : ComponentTestBase
                 Content = new StringContent(JsonSerializer.Serialize(strings)),
             };
         }
+    }
+
+    private sealed class RecordingMeClient(UpdateMeResponse? updateResponse) : IMeClient
+    {
+        public int UpdateCalls { get; private set; }
+        public string? LastLocale { get; private set; }
+
+        public Task<MeResponse?> GetAsync(CancellationToken ct) =>
+            Task.FromResult<MeResponse?>(null);
+
+        public Task<UpdateMeResponse?> UpdateAsync(UpdateMeRequest request, CancellationToken ct)
+        {
+            UpdateCalls++;
+            LastLocale = request.Locale;
+            return Task.FromResult(updateResponse);
+        }
+
+        public Task<bool> SelectCharacterAsync(string id, CancellationToken ct) =>
+            Task.FromResult(false);
+
+        public Task<bool> DeleteAsync(CancellationToken ct) =>
+            Task.FromResult(false);
+
+        public Task<CharacterDto?> EnrichCharacterAsync(string id, CancellationToken ct) =>
+            Task.FromResult<CharacterDto?>(null);
     }
 }

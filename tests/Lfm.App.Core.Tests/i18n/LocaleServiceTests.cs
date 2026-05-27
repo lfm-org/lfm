@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LFM contributors
 
 using Lfm.App.i18n;
+using System.Globalization;
 using Xunit;
 
 namespace Lfm.App.Core.Tests.i18n;
@@ -71,6 +72,33 @@ public class LocaleServiceTests
         sut.SetLocale("FI");
 
         Assert.Equal("fi", sut.CurrentLocale);
+    }
+
+    [Fact]
+    public void SetLocale_Updates_Current_Culture()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        var originalDefaultCulture = CultureInfo.DefaultThreadCurrentCulture;
+        var originalDefaultUiCulture = CultureInfo.DefaultThreadCurrentUICulture;
+        try
+        {
+            var sut = new LocaleService();
+
+            sut.SetLocale("fi");
+
+            Assert.Equal("fi-FI", CultureInfo.CurrentCulture.Name);
+            Assert.Equal("fi-FI", CultureInfo.CurrentUICulture.Name);
+            Assert.Equal("fi-FI", CultureInfo.DefaultThreadCurrentCulture?.Name);
+            Assert.Equal("fi-FI", CultureInfo.DefaultThreadCurrentUICulture?.Name);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+            CultureInfo.DefaultThreadCurrentCulture = originalDefaultCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = originalDefaultUiCulture;
+        }
     }
 
     [Theory]
