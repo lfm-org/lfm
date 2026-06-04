@@ -1149,6 +1149,232 @@
       }
     },
     {
+      "id": "activity-wow-media-cache",
+      "type": "Activity",
+      "label": "WoW media cache",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "api/Services/WowMediaCache.cs",
+          "shared/Lfm.Contracts/Media/BlizzardMediaCache.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "initial-wow-media-cache",
+      "type": "InitialNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-receive-media-cache-request",
+      "type": "Action",
+      "label": "GET media cache",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "app/Lfm.App.Core/Services/WowMediaUrls.cs",
+          "api/Helpers/ApiMediaUrls.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-decode-media-source",
+      "type": "Action",
+      "label": "Decode source URL",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "shared/Lfm.Contracts/Media/BlizzardMediaCache.cs",
+          "api/Services/WowMediaCache.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-media-source-valid",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-read-media-cache-blob",
+      "type": "Action",
+      "label": "Read cached image blob",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/WowMediaCache.cs",
+          "api/Services/BlobReferenceClient.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-blobs",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-media-cache-hit",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-fetch-render-cdn-image",
+      "type": "Action",
+      "label": "Fetch render-CDN image",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/WowMediaCache.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "blizzard-render-cdn",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-validate-media-response",
+      "type": "Action",
+      "label": "Validate image type and size",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/WowMediaCache.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "decision-media-response-valid",
+      "type": "DecisionNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
+      "id": "action-write-media-cache-blob",
+      "type": "Action",
+      "label": "Write cached image blob",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/WowMediaCache.cs",
+          "api/Services/BlobReferenceClient.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-blobs",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-media-content",
+      "type": "Action",
+      "label": "Return image content",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "api/Services/WowMediaCache.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "action-return-media-problem",
+      "type": "Action",
+      "label": "Return media problem",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "api/Services/WowMediaCache.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-service",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "final-wow-media-cache",
+      "type": "ActivityFinalNode",
+      "label": "",
+      "properties": {
+        "uml": {
+          "package": "pkg-application-handoff-uml"
+        }
+      }
+    },
+    {
       "id": "activity-ops-readiness",
       "type": "Activity",
       "label": "Operational readiness",
@@ -2077,6 +2303,47 @@
           ]
         }
       }
+    },
+    {
+      "id": "class-media-cache-blob-content",
+      "type": "DataType",
+      "label": "Media cache blob content",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/WowMediaCache.cs",
+          "api/Services/BlobReferenceClient.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-blobs",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-contracts",
+          "attributes": [
+            {
+              "name": "media-cache/render/{sha256}.{ext}",
+              "type": "Blob prefix",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "ContentType",
+              "type": "image/*",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Content",
+              "type": "Binary <= 5 MiB",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
     }
   ],
   "relationships": [
@@ -2573,6 +2840,150 @@
       "properties": {}
     },
     {
+      "id": "flow-media-receive",
+      "type": "ControlFlow",
+      "source": "initial-wow-media-cache",
+      "target": "action-receive-media-cache-request",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-decode",
+      "type": "ControlFlow",
+      "source": "action-receive-media-cache-request",
+      "target": "action-decode-media-source",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-source-decision",
+      "type": "ControlFlow",
+      "source": "action-decode-media-source",
+      "target": "decision-media-source-valid",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-source-valid",
+      "type": "ControlFlow",
+      "source": "decision-media-source-valid",
+      "target": "action-read-media-cache-blob",
+      "label": "valid",
+      "properties": {
+        "uml": {
+          "guard": "valid"
+        }
+      }
+    },
+    {
+      "id": "flow-media-source-invalid",
+      "type": "ControlFlow",
+      "source": "decision-media-source-valid",
+      "target": "action-return-media-problem",
+      "label": "invalid",
+      "properties": {
+        "uml": {
+          "guard": "invalid"
+        }
+      }
+    },
+    {
+      "id": "flow-media-cache-decision",
+      "type": "ControlFlow",
+      "source": "action-read-media-cache-blob",
+      "target": "decision-media-cache-hit",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-cache-hit",
+      "type": "ControlFlow",
+      "source": "decision-media-cache-hit",
+      "target": "action-return-media-content",
+      "label": "hit",
+      "properties": {
+        "uml": {
+          "guard": "hit"
+        }
+      }
+    },
+    {
+      "id": "flow-media-cache-miss",
+      "type": "ControlFlow",
+      "source": "decision-media-cache-hit",
+      "target": "action-fetch-render-cdn-image",
+      "label": "miss",
+      "properties": {
+        "uml": {
+          "guard": "miss"
+        }
+      }
+    },
+    {
+      "id": "flow-media-validate",
+      "type": "ControlFlow",
+      "source": "action-fetch-render-cdn-image",
+      "target": "action-validate-media-response",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-response-decision",
+      "type": "ControlFlow",
+      "source": "action-validate-media-response",
+      "target": "decision-media-response-valid",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-response-valid",
+      "type": "ControlFlow",
+      "source": "decision-media-response-valid",
+      "target": "action-write-media-cache-blob",
+      "label": "image <= 5 MiB",
+      "properties": {
+        "uml": {
+          "guard": "image <= 5 MiB"
+        }
+      }
+    },
+    {
+      "id": "flow-media-response-invalid",
+      "type": "ControlFlow",
+      "source": "decision-media-response-valid",
+      "target": "action-return-media-problem",
+      "label": "reject",
+      "properties": {
+        "uml": {
+          "guard": "reject"
+        }
+      }
+    },
+    {
+      "id": "flow-media-write-return",
+      "type": "ControlFlow",
+      "source": "action-write-media-cache-blob",
+      "target": "action-return-media-content",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-content-final",
+      "type": "ControlFlow",
+      "source": "action-return-media-content",
+      "target": "final-wow-media-cache",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "flow-media-problem-final",
+      "type": "ControlFlow",
+      "source": "action-return-media-problem",
+      "target": "final-wow-media-cache",
+      "label": "",
+      "properties": {}
+    },
+    {
       "id": "flow-ops-mode",
       "type": "ControlFlow",
       "source": "initial-ops-readiness",
@@ -2809,6 +3220,30 @@
       "properties": {
         "uml": {
           "guard": "writes"
+        }
+      }
+    },
+    {
+      "id": "dep-reference-dtos-media-cache",
+      "type": "Dependency",
+      "source": "datatype-reference-dtos",
+      "target": "class-media-cache-blob-content",
+      "label": "image URLs",
+      "properties": {
+        "uml": {
+          "guard": "image URLs"
+        }
+      }
+    },
+    {
+      "id": "dep-character-dto-media-cache",
+      "type": "Dependency",
+      "source": "datatype-character-dto",
+      "target": "class-media-cache-blob-content",
+      "label": "portrait URLs",
+      "properties": {
+        "uml": {
+          "guard": "portrait URLs"
         }
       }
     },
@@ -3061,6 +3496,54 @@
           "groups": []
         },
         {
+          "id": "wow-media-cache-activity",
+          "label": "WoW Media Cache - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "activity-wow-media-cache",
+            "initial-wow-media-cache",
+            "action-receive-media-cache-request",
+            "action-decode-media-source",
+            "decision-media-source-valid",
+            "action-read-media-cache-blob",
+            "decision-media-cache-hit",
+            "action-fetch-render-cdn-image",
+            "action-validate-media-response",
+            "decision-media-response-valid",
+            "action-write-media-cache-blob",
+            "action-return-media-content",
+            "action-return-media-problem",
+            "final-wow-media-cache"
+          ],
+          "relationships": [
+            "flow-media-receive",
+            "flow-media-decode",
+            "flow-media-source-decision",
+            "flow-media-source-valid",
+            "flow-media-source-invalid",
+            "flow-media-cache-decision",
+            "flow-media-cache-hit",
+            "flow-media-cache-miss",
+            "flow-media-validate",
+            "flow-media-response-decision",
+            "flow-media-response-valid",
+            "flow-media-response-invalid",
+            "flow-media-write-return",
+            "flow-media-content-final",
+            "flow-media-problem-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": []
+        },
+        {
           "id": "ops-readiness-activity",
           "label": "Operational Readiness - UML Activity",
           "kind": "uml-activity",
@@ -3178,13 +3661,16 @@
             "class-raider-document",
             "class-guild-document",
             "class-idempotency-entry",
-            "class-reference-blob-documents"
+            "class-reference-blob-documents",
+            "class-media-cache-blob-content"
           ],
           "relationships": [
             "dep-create-run-request-run-document",
             "dep-update-run-request-run-document",
             "comp-me-character",
             "dep-reference-dtos-blobs",
+            "dep-reference-dtos-media-cache",
+            "dep-character-dto-media-cache",
             "assoc-run-raider-documents",
             "assoc-guild-raider-documents",
             "assoc-idempotency-raider"

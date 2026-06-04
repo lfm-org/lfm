@@ -609,6 +609,42 @@
       }
     },
     {
+      "id": "datatype-wow-media-cache-blobs",
+      "type": "DataType",
+      "label": "wow media-cache blobs",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/storage.bicep",
+          "api/Services/WowMediaCache.cs",
+          "api/Services/BlobReferenceClient.cs",
+          "docs/storage-architecture.md"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "wow-media-cache-blobs",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-data-plane",
+          "attributes": [
+            {
+              "name": "media-cache/render/{sha256}.{ext}",
+              "type": "Blob prefix",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "ContentType",
+              "type": "image/*",
+              "visibility": "public",
+              "multiplicity": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "datatype-data-protection-key-ring",
       "type": "DataType",
       "label": "data-protection key ring blob",
@@ -1261,6 +1297,18 @@
       }
     },
     {
+      "id": "data-identity-reads-media-cache",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "datatype-wow-media-cache-blobs",
+      "label": "Blob roles",
+      "properties": {
+        "uml": {
+          "guard": "Blob roles"
+        }
+      }
+    },
+    {
       "id": "data-identity-uses-key-vault",
       "type": "Dependency",
       "source": "interface-managed-identity",
@@ -1305,6 +1353,18 @@
       "properties": {
         "uml": {
           "guard": "blob container"
+        }
+      }
+    },
+    {
+      "id": "data-storage-holds-media-cache",
+      "type": "Composition",
+      "source": "interface-storage-data-plane",
+      "target": "datatype-wow-media-cache-blobs",
+      "label": "blob prefix",
+      "properties": {
+        "uml": {
+          "guard": "blob prefix"
         }
       }
     },
@@ -1622,6 +1682,7 @@
             "datatype-guilds-container",
             "datatype-idempotency-container",
             "datatype-wow-reference-blobs",
+            "datatype-wow-media-cache-blobs",
             "datatype-data-protection-key-ring",
             "datatype-deployments-container",
             "datatype-data-protection-key"
@@ -1633,10 +1694,12 @@
             "data-database-composes-idempotency",
             "data-identity-reads-cosmos",
             "data-identity-reads-blobs",
+            "data-identity-reads-media-cache",
             "data-identity-uses-key-vault",
             "data-key-vault-composes-key",
             "data-key-wraps-ring",
             "data-storage-holds-reference",
+            "data-storage-holds-media-cache",
             "data-storage-holds-key-ring",
             "data-storage-holds-deployments"
           ],
