@@ -124,6 +124,30 @@
       }
     },
     {
+      "id": "wow-media-cache-activity",
+      "title": "WoW Media Cache - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/wow-media-cache-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/wow-media-cache-activity.json",
+        "output": "generated/svg/wow-media-cache-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/wow-media-cache-activity.json"
+      }
+    },
+    {
       "id": "ops-readiness-activity",
       "title": "Operational Readiness - UML Activity",
       "diagramKind": "UML Activity",
