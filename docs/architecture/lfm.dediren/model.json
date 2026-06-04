@@ -175,6 +175,23 @@
       }
     },
     {
+      "id": "wow-media-cache-service",
+      "type": "ApplicationService",
+      "label": "WoW media cache service",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "api/Services/WowMediaCache.cs",
+          "app/Lfm.App.Core/Services/WowMediaUrls.cs",
+          "shared/Lfm.Contracts/Media/BlizzardMediaCache.cs",
+          "docs/storage-architecture.md"
+        ],
+        "documentation": "Browser-facing image proxy and cache for Blizzard render-CDN assets served through /api/v1/wow/media/cache."
+      }
+    },
+    {
       "id": "ops-health-service",
       "type": "ApplicationService",
       "label": "Operational readiness service",
@@ -368,9 +385,11 @@
         "authority": "lifted-from-source",
         "source_evidence": [
           "api/Services/CharacterPortraitService.cs",
-          "app/Pages/CharactersPage.razor"
+          "api/Services/WowMediaCache.cs",
+          "app/Pages/CharactersPage.razor",
+          "docs/storage-architecture.md"
         ],
-        "documentation": "External image URL source for character render assets."
+        "documentation": "External image URL and byte source consumed through LFM's media cache service."
       }
     },
     {
@@ -553,6 +572,22 @@
           "docs/storage-architecture.md"
         ],
         "documentation": "Blob container content under reference/{kind}/ for static Blizzard reference data."
+      }
+    },
+    {
+      "id": "wow-media-cache-blobs",
+      "type": "Artifact",
+      "label": "wow media-cache blobs",
+      "properties": {
+        "layer": "Technology",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "docs/storage-architecture.md",
+          "api/Services/WowMediaCache.cs",
+          "api/Services/BlobReferenceClient.cs",
+          "infra/modules/storage.bicep"
+        ],
+        "documentation": "Cached Blizzard render image bytes under wow/media-cache/render/{sha256}.{ext} in blob storage."
       }
     },
     {
@@ -1259,6 +1294,19 @@
       }
     },
     {
+      "id": "api-realizes-media-cache-service",
+      "type": "Realization",
+      "source": "lfm-api",
+      "target": "wow-media-cache-service",
+      "label": "realizes",
+      "properties": {
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "api/openapi.yaml"
+        ]
+      }
+    },
+    {
       "id": "api-realizes-ops-service",
       "type": "Realization",
       "source": "lfm-api",
@@ -1350,6 +1398,20 @@
       }
     },
     {
+      "id": "media-cache-service-serves-app",
+      "type": "Serving",
+      "source": "wow-media-cache-service",
+      "target": "lfm-app",
+      "label": "image proxy",
+      "properties": {
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/WowMediaUrls.cs",
+          "app/Layout/MainLayout.razor",
+          "docs/storage-architecture.md"
+        ]
+      }
+    },
+    {
       "id": "privacy-contact-service-serves-app",
       "type": "Serving",
       "source": "privacy-contact-service",
@@ -1401,15 +1463,16 @@
       }
     },
     {
-      "id": "render-cdn-serves-app",
+      "id": "render-cdn-serves-media-cache-service",
       "type": "Serving",
       "source": "blizzard-render-cdn",
-      "target": "lfm-app",
-      "label": "images",
+      "target": "wow-media-cache-service",
+      "label": "image bytes",
       "properties": {
         "source_evidence": [
+          "api/Services/WowMediaCache.cs",
           "api/Services/CharacterPortraitService.cs",
-          "app/Pages/CharactersPage.razor"
+          "docs/storage-architecture.md"
         ]
       }
     },
@@ -1626,6 +1689,19 @@
       "properties": {
         "source_evidence": [
           "infra/modules/storage.bicep"
+        ]
+      }
+    },
+    {
+      "id": "storage-composes-wow-media-cache",
+      "type": "Association",
+      "source": "storage-account",
+      "target": "wow-media-cache-blobs",
+      "label": "media cache path",
+      "properties": {
+        "source_evidence": [
+          "infra/modules/storage.bicep",
+          "docs/storage-architecture.md"
         ]
       }
     },
@@ -2302,6 +2378,21 @@
       }
     },
     {
+      "id": "media-cache-service-serves-profile-ui",
+      "type": "Serving",
+      "source": "wow-media-cache-service",
+      "target": "profile-ui-entry",
+      "label": "portraits",
+      "properties": {
+        "source_evidence": [
+          "api/Functions/BattleNetCharacterPortraitsFunction.cs",
+          "app/Pages/CharactersPage.razor",
+          "app/Layout/MainLayout.razor",
+          "app/Lfm.App.Core/Services/WowMediaUrls.cs"
+        ]
+      }
+    },
+    {
       "id": "reference-service-serves-reference-ui",
       "type": "Serving",
       "source": "wow-reference-service",
@@ -2327,6 +2418,22 @@
         "source_evidence": [
           "app/Pages/PrivacyPolicyPage.razor",
           "api/Functions/PrivacyContactFunction.cs"
+        ]
+      }
+    },
+    {
+      "id": "media-cache-service-serves-reference-ui",
+      "type": "Serving",
+      "source": "wow-media-cache-service",
+      "target": "reference-ui-entry",
+      "label": "reference images",
+      "properties": {
+        "source_evidence": [
+          "app/Lfm.App.Core/Services/WowMediaUrls.cs",
+          "app/Pages/InstancesPage.razor",
+          "app/Pages/CreateRunPage.razor",
+          "app/Pages/EditRunPage.razor",
+          "docs/storage-architecture.md"
         ]
       }
     },
@@ -2383,19 +2490,6 @@
           "api/Functions/RaiderCharacterAddFunction.cs",
           "api/Functions/RaiderCharacterEnrichFunction.cs",
           "api/Services/BlizzardProfileClient.cs"
-        ]
-      }
-    },
-    {
-      "id": "render-cdn-serves-profile-ui",
-      "type": "Serving",
-      "source": "blizzard-render-cdn",
-      "target": "profile-ui-entry",
-      "label": "portraits",
-      "properties": {
-        "source_evidence": [
-          "api/Services/CharacterPortraitService.cs",
-          "app/Pages/CharactersPage.razor"
         ]
       }
     },
@@ -2791,6 +2885,21 @@
       }
     },
     {
+      "id": "media-cache-service-accesses-wow-media-cache",
+      "type": "Access",
+      "source": "wow-media-cache-service",
+      "target": "wow-media-cache-blobs",
+      "label": "read/write image bytes",
+      "properties": {
+        "source_evidence": [
+          "api/Functions/WowMediaCacheFunction.cs",
+          "api/Services/WowMediaCache.cs",
+          "api/Services/BlobReferenceClient.cs",
+          "docs/storage-architecture.md"
+        ]
+      }
+    },
+    {
       "id": "game-data-api-serves-reference-refresh-service",
       "type": "Serving",
       "source": "blizzard-game-data-api",
@@ -2908,6 +3017,7 @@
             "cosmos-idempotency",
             "storage-account",
             "wow-reference-container",
+            "wow-media-cache-blobs",
             "data-protection-container",
             "deployment-container",
             "key-vault",
@@ -2924,6 +3034,7 @@
             "database-composes-guilds",
             "database-composes-idempotency",
             "storage-composes-wow-reference",
+            "storage-composes-wow-media-cache",
             "storage-composes-data-protection",
             "storage-composes-deployments",
             "key-vault-composes-data-protection-key",
@@ -2969,6 +3080,7 @@
               "members": [
                 "storage-account",
                 "wow-reference-container",
+                "wow-media-cache-blobs",
                 "data-protection-container",
                 "deployment-container"
               ]
@@ -3220,8 +3332,10 @@
             "session-expiry-detection-process",
             "auth-session-service",
             "raider-profile-service",
+            "wow-media-cache-service",
             "lfm-api",
             "cosmos-raiders",
+            "wow-media-cache-blobs",
             "data-protection-container",
             "battlenet-oauth",
             "blizzard-profile-api",
@@ -3234,12 +3348,15 @@
             "raider-service-serves-profile-ui",
             "api-realizes-auth-service",
             "api-realizes-raider-service",
+            "api-realizes-media-cache-service",
             "auth-service-accesses-raiders",
             "auth-service-accesses-data-protection",
             "raider-service-accesses-raiders",
+            "media-cache-service-serves-profile-ui",
+            "media-cache-service-accesses-wow-media-cache",
             "battlenet-oauth-serves-api",
             "profile-api-serves-raider-service",
-            "render-cdn-serves-profile-ui"
+            "render-cdn-serves-media-cache-service"
           ],
           "layout_preferences": {
             "direction": "right",
@@ -3267,14 +3384,16 @@
               "members": [
                 "auth-session-service",
                 "raider-profile-service",
+                "wow-media-cache-service",
                 "lfm-api"
               ]
             },
             {
               "id": "auth-profile-data",
-              "label": "Session and profile state",
+              "label": "Session, profile, and media state",
               "members": [
                 "cosmos-raiders",
+                "wow-media-cache-blobs",
                 "data-protection-container"
               ]
             },
@@ -3543,20 +3662,28 @@
             "reference-refresh-ui-entry",
             "wow-reference-service",
             "reference-refresh-service",
+            "wow-media-cache-service",
             "lfm-api",
             "storage-account",
             "wow-reference-container",
-            "blizzard-game-data-api"
+            "wow-media-cache-blobs",
+            "blizzard-game-data-api",
+            "blizzard-render-cdn"
           ],
           "relationships": [
             "reference-service-serves-reference-ui",
             "reference-refresh-service-serves-ui",
             "api-realizes-reference-service",
             "api-realizes-reference-refresh-service",
+            "api-realizes-media-cache-service",
+            "media-cache-service-serves-reference-ui",
             "storage-composes-wow-reference",
+            "storage-composes-wow-media-cache",
             "reference-service-accesses-wow-reference",
             "reference-refresh-service-accesses-wow-reference",
-            "game-data-api-serves-reference-refresh-service"
+            "media-cache-service-accesses-wow-media-cache",
+            "game-data-api-serves-reference-refresh-service",
+            "render-cdn-serves-media-cache-service"
           ],
           "layout_preferences": {
             "direction": "right",
@@ -3589,22 +3716,25 @@
               "members": [
                 "wow-reference-service",
                 "reference-refresh-service",
+                "wow-media-cache-service",
                 "lfm-api"
               ]
             },
             {
               "id": "reference-blob-store",
-              "label": "Reference blob store",
+              "label": "Reference and media blob store",
               "members": [
                 "storage-account",
-                "wow-reference-container"
+                "wow-reference-container",
+                "wow-media-cache-blobs"
               ]
             },
             {
               "id": "reference-refresh-external",
-              "label": "Reference refresh dependency",
+              "label": "Reference and media dependencies",
               "members": [
-                "blizzard-game-data-api"
+                "blizzard-game-data-api",
+                "blizzard-render-cdn"
               ]
             }
           ]
