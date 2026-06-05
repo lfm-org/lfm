@@ -35,17 +35,17 @@
       },
       "Microsoft.OpenApi": {
         "type": "Direct",
-        "requested": "[3.5.4, )",
-        "resolved": "3.5.4",
-        "contentHash": "Dhiio8mc5aLT8ujQfSP6iBdy4UDdkf3iGl1S7W2XtiAfsPZghkHydnAqivtdPvMB3JcgKVzwkLrq2BW5Lb5uxg=="
+        "requested": "[3.6.0, )",
+        "resolved": "3.6.0",
+        "contentHash": "7iCo00kReXXXxESJMdFBV2LLUYiAa2n/3uIpgTWw1TxUfswUp/0O/QMn0Itp+58Be7H4cuPtPLAGvfwTYQ6BhA=="
       },
       "Microsoft.OpenApi.YamlReader": {
         "type": "Direct",
-        "requested": "[3.5.4, )",
-        "resolved": "3.5.4",
-        "contentHash": "G5PsSU5hmLflVp1tAPmUng2TkgW/DO9K8NJaaYpbD+biDgxSdGZY1G4Gxs3M80ZAdt8hSU8YiHJUKonv+aAMQw==",
+        "requested": "[3.6.0, )",
+        "resolved": "3.6.0",
+        "contentHash": "/032YG8DOcP4eBCPxgHcVY8A8hSClsU9v38l570AmSRx0VMnpiFfeQ9u/9AAEvNo+bM6dC5g950LNqXZDmnxZg==",
         "dependencies": {
-          "Microsoft.OpenApi": "3.5.4",
+          "Microsoft.OpenApi": "3.6.0",
           "SharpYaml": "2.1.4"
         }
       },
@@ -144,19 +144,19 @@
       },
       "Azure.Storage.Blobs": {
         "type": "Transitive",
-        "resolved": "12.28.0",
-        "contentHash": "OK6slT3Hq3Yp2HWA0e23YHheHzKNbYjBZOwdT4fQ1iMH6I/8e6X8kAJLuKqVUeFBy160QSwhsynA3HxhVSHEcg==",
+        "resolved": "12.29.0",
+        "contentHash": "e82Racxat6NsLHD+6Nwf2GxglYdN9T20QHgAsaHB1FYgbJUZilmUR0H+IPCu6AJy8nNyvSONc/erF8vtsyHrRw==",
         "dependencies": {
-          "Azure.Core": "1.51.1",
-          "Azure.Storage.Common": "12.27.0"
+          "Azure.Core": "1.55.0",
+          "Azure.Storage.Common": "12.28.0"
         }
       },
       "Azure.Storage.Common": {
         "type": "Transitive",
-        "resolved": "12.27.0",
-        "contentHash": "PBucMNzot6cYyN0isdte50iPCefJ4Ylg0B+KP4kxmqsc3ciOiDYh1MwVV6fPZPjoPnPvNRLN9TI6J5hgNf4huA==",
+        "resolved": "12.28.0",
+        "contentHash": "5l8YhNrks38zKLGFW2BBFLwieyamH/xauABSASsdpZv79G0f+n2n22IjkRmUqCmALSupkwRHh2LOhbW3yj5Qgw==",
         "dependencies": {
-          "Azure.Core": "1.51.1",
+          "Azure.Core": "1.55.0",
           "System.IO.Hashing": "10.0.3"
         }
       },
@@ -287,8 +287,8 @@
       },
       "Microsoft.Azure.Cosmos": {
         "type": "Transitive",
-        "resolved": "3.60.0",
-        "contentHash": "v7ff0uqu1wSgtqkCjGywDCChzLZjC1xytH+0Dmq7IUwG2oaDpFrKioXTv3f+K8oCjnLDIxqrqe21CTY8kK7gVA==",
+        "resolved": "3.61.0",
+        "contentHash": "o0lhN2nrkC2xidy0lhjnojwqgp/N6GOXAr34xQrU5Scs8MmNG9cwG6MtRJSVTWQYW3gm9Ava3pmVbuuTVQyuYg==",
         "dependencies": {
           "Azure.Core": "1.44.1",
           "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
@@ -307,12 +307,12 @@
       },
       "Microsoft.Azure.Functions.Worker.ApplicationInsights": {
         "type": "Transitive",
-        "resolved": "2.50.0",
-        "contentHash": "mGTYcm1uWUy9IhRrCOGUkFvkRqPTc2GhUxM0xIM7ZFS8YmEtfxw85S5jH+JPWKf6Tx9X7F6bM8rWpR2vjzF3uQ==",
+        "resolved": "2.51.0",
+        "contentHash": "sEuleJa7YLEO83j1+B0QKOIDhjI+R3JWCEPbvEYm9GrzzjoWnaKeF5lB3tRRuiOvcbeGgu1V+cWjelKgDOAxjQ==",
         "dependencies": {
           "Azure.Identity": "1.17.0",
           "Microsoft.ApplicationInsights.PerfCounterCollector": "2.23.0",
-          "Microsoft.Azure.Functions.Worker.Core": "2.50.0",
+          "Microsoft.Azure.Functions.Worker.Core": "2.52.0",
           "Microsoft.Bcl.AsyncInterfaces": "10.0.0"
         }
       },
@@ -1032,13 +1032,13 @@
           "Azure.Extensions.AspNetCore.DataProtection.Keys": "[1.6.3, )",
           "Azure.Identity": "[1.21.0, )",
           "Azure.Security.KeyVault.Secrets": "[4.11.0, )",
-          "Azure.Storage.Blobs": "[12.28.0, )",
+          "Azure.Storage.Blobs": "[12.29.0, )",
           "FluentValidation": "[12.1.1, )",
           "Lfm.Contracts": "[1.0.0, )",
           "Microsoft.ApplicationInsights.WorkerService": "[2.23.0, )",
-          "Microsoft.Azure.Cosmos": "[3.60.0, )",
+          "Microsoft.Azure.Cosmos": "[3.61.0, )",
           "Microsoft.Azure.Functions.Worker": "[2.52.0, )",
-          "Microsoft.Azure.Functions.Worker.ApplicationInsights": "[2.50.0, )",
+          "Microsoft.Azure.Functions.Worker.ApplicationInsights": "[2.51.0, )",
           "Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore": "[2.1.0, )",
           "Microsoft.Azure.Functions.Worker.Extensions.Timer": "[4.3.1, )",
           "Microsoft.Azure.Functions.Worker.Sdk": "[2.0.7, )",
