@@ -218,6 +218,30 @@
         "target": "render-metadata",
         "output": "generated/render-metadata/application-handoff-data.json"
       }
+    },
+    {
+      "id": "api-middleware-pipeline-activity",
+      "title": "API Middleware Pipeline - UML Activity",
+      "diagramKind": "UML Activity",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/api-middleware-pipeline-activity.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/api-middleware-pipeline-activity.json",
+        "output": "generated/svg/api-middleware-pipeline-activity.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/api-middleware-pipeline-activity.json"
+      }
     }
   ]
 }

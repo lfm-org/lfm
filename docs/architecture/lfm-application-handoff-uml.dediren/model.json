@@ -2344,6 +2344,340 @@
           ]
         }
       }
+    },
+    {
+      "id": "class-request-middleware",
+      "type": "Class",
+      "label": "Request middleware pipeline",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Program.cs",
+          "api/Middleware/MiddlewareExtensions.cs",
+          "api/Middleware/CorsMiddleware.cs",
+          "api/Middleware/AuthPolicyMiddleware.cs",
+          "api/Middleware/IdempotencyMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "api-request-pipeline",
+            "relationship": "elaborates"
+          },
+          "package": "pkg-api-functions",
+          "operations": [
+            {
+              "name": "invoke",
+              "visibility": "public",
+              "parameters": [
+                {
+                  "name": "context",
+                  "type": "FunctionContext"
+                },
+                {
+                  "name": "next",
+                  "type": "FunctionExecutionDelegate"
+                }
+              ],
+              "return_type": "Task"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "act-api-pipeline",
+      "type": "Activity",
+      "label": "Process API request",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Program.cs",
+          "api/Middleware/"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "api-request-pipeline",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-start",
+      "type": "InitialNode",
+      "label": "HTTP request received",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Program.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-cors",
+      "type": "Action",
+      "label": "Apply CORS / answer preflight",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/CorsMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-cors",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-security-headers",
+      "type": "Action",
+      "label": "Add security + AGPL headers",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/SecurityHeadersMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-security-headers",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-size",
+      "type": "Action",
+      "label": "Check Content-Length",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RequestSizeLimitMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-request-size-limit",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-d-size",
+      "type": "DecisionNode",
+      "label": "Within size limit?",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RequestSizeLimitMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-413",
+      "type": "ActivityFinalNode",
+      "label": "413 Payload Too Large",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RequestSizeLimitMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-rate",
+      "type": "Action",
+      "label": "Acquire per-IP rate token",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RateLimitMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-rate-limit",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-d-rate",
+      "type": "DecisionNode",
+      "label": "Under tier limit?",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RateLimitMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-429",
+      "type": "ActivityFinalNode",
+      "label": "429 Too Many Requests",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RateLimitMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-audit",
+      "type": "Action",
+      "label": "Write audit record",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuditMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-audit",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-auth",
+      "type": "Action",
+      "label": "Resolve session principal",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuthMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-auth",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-authz",
+      "type": "Action",
+      "label": "Evaluate authorization policy",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuthPolicyMiddleware.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-auth-policy",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-d-auth",
+      "type": "DecisionNode",
+      "label": "Authorized?",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuthPolicyMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-401",
+      "type": "ActivityFinalNode",
+      "label": "401 / 403 rejected",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuthMiddleware.cs",
+          "api/Middleware/AuthPolicyMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-idem",
+      "type": "Action",
+      "label": "Check idempotency store",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/IdempotencyMiddleware.cs",
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "mw-idempotency",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-d-idem",
+      "type": "DecisionNode",
+      "label": "Replay key hit?",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/IdempotencyMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-replay",
+      "type": "ActivityFinalNode",
+      "label": "Replay stored response",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/IdempotencyMiddleware.cs"
+        ]
+      }
+    },
+    {
+      "id": "mwa-handler",
+      "type": "Action",
+      "label": "Invoke Function handler",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Functions/",
+          "api/Program.cs"
+        ],
+        "uml": {
+          "architecture_context": {
+            "profile": "archimate",
+            "element_id": "lfm-api",
+            "relationship": "elaborates"
+          }
+        }
+      }
+    },
+    {
+      "id": "mwa-final",
+      "type": "ActivityFinalNode",
+      "label": "Response returned",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Program.cs"
+        ]
+      }
     }
   ],
   "relationships": [
@@ -3282,6 +3616,190 @@
           "guard": "battleNetId"
         }
       }
+    },
+    {
+      "id": "dep-middleware-functions",
+      "type": "Dependency",
+      "source": "class-request-middleware",
+      "target": "class-function-adapters",
+      "label": "delegates to",
+      "properties": {}
+    },
+    {
+      "id": "mwf-start-cors",
+      "type": "ControlFlow",
+      "source": "mwa-start",
+      "target": "mwa-cors",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-cors-security",
+      "type": "ControlFlow",
+      "source": "mwa-cors",
+      "target": "mwa-security-headers",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-security-size",
+      "type": "ControlFlow",
+      "source": "mwa-security-headers",
+      "target": "mwa-size",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-size-decide",
+      "type": "ControlFlow",
+      "source": "mwa-size",
+      "target": "mwa-d-size",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-size-reject",
+      "type": "ControlFlow",
+      "source": "mwa-d-size",
+      "target": "mwa-413",
+      "label": "over max",
+      "properties": {
+        "uml": {
+          "guard": "Content-Length > max"
+        }
+      }
+    },
+    {
+      "id": "mwf-size-pass",
+      "type": "ControlFlow",
+      "source": "mwa-d-size",
+      "target": "mwa-rate",
+      "label": "within limit",
+      "properties": {
+        "uml": {
+          "guard": "within limit"
+        }
+      }
+    },
+    {
+      "id": "mwf-rate-decide",
+      "type": "ControlFlow",
+      "source": "mwa-rate",
+      "target": "mwa-d-rate",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-rate-reject",
+      "type": "ControlFlow",
+      "source": "mwa-d-rate",
+      "target": "mwa-429",
+      "label": "limited",
+      "properties": {
+        "uml": {
+          "guard": "tier limit exceeded"
+        }
+      }
+    },
+    {
+      "id": "mwf-rate-pass",
+      "type": "ControlFlow",
+      "source": "mwa-d-rate",
+      "target": "mwa-audit",
+      "label": "token acquired",
+      "properties": {
+        "uml": {
+          "guard": "token acquired"
+        }
+      }
+    },
+    {
+      "id": "mwf-audit-auth",
+      "type": "ControlFlow",
+      "source": "mwa-audit",
+      "target": "mwa-auth",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-auth-authz",
+      "type": "ControlFlow",
+      "source": "mwa-auth",
+      "target": "mwa-authz",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-authz-decide",
+      "type": "ControlFlow",
+      "source": "mwa-authz",
+      "target": "mwa-d-auth",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-auth-reject",
+      "type": "ControlFlow",
+      "source": "mwa-d-auth",
+      "target": "mwa-401",
+      "label": "denied",
+      "properties": {
+        "uml": {
+          "guard": "principal missing or policy denied"
+        }
+      }
+    },
+    {
+      "id": "mwf-auth-pass",
+      "type": "ControlFlow",
+      "source": "mwa-d-auth",
+      "target": "mwa-idem",
+      "label": "allowed",
+      "properties": {
+        "uml": {
+          "guard": "authorized"
+        }
+      }
+    },
+    {
+      "id": "mwf-idem-decide",
+      "type": "ControlFlow",
+      "source": "mwa-idem",
+      "target": "mwa-d-idem",
+      "label": "",
+      "properties": {}
+    },
+    {
+      "id": "mwf-idem-replay",
+      "type": "ControlFlow",
+      "source": "mwa-d-idem",
+      "target": "mwa-replay",
+      "label": "replay",
+      "properties": {
+        "uml": {
+          "guard": "Idempotency-Key already stored"
+        }
+      }
+    },
+    {
+      "id": "mwf-idem-new",
+      "type": "ControlFlow",
+      "source": "mwa-d-idem",
+      "target": "mwa-handler",
+      "label": "new request",
+      "properties": {
+        "uml": {
+          "guard": "new or no key"
+        }
+      }
+    },
+    {
+      "id": "mwf-handler-final",
+      "type": "ControlFlow",
+      "source": "mwa-handler",
+      "target": "mwa-final",
+      "label": "",
+      "properties": {}
     }
   ],
   "plugins": {
@@ -3590,7 +4108,8 @@
             "class-domain-services",
             "interface-repositories",
             "interface-external-clients",
-            "interface-idempotency-store"
+            "interface-idempotency-store",
+            "class-request-middleware"
           ],
           "relationships": [
             "dep-ui-clients",
@@ -3598,7 +4117,8 @@
             "dep-functions-services",
             "dep-services-repositories",
             "dep-services-external",
-            "dep-functions-idempotency"
+            "dep-functions-idempotency",
+            "dep-middleware-functions"
           ],
           "layout_preferences": {
             "direction": "right",
@@ -3628,7 +4148,8 @@
               "members": [
                 "class-function-adapters",
                 "class-domain-services",
-                "interface-idempotency-store"
+                "interface-idempotency-store",
+                "class-request-middleware"
               ]
             },
             {
@@ -3685,6 +4206,62 @@
             }
           },
           "groups": []
+        },
+        {
+          "id": "api-middleware-pipeline-activity",
+          "label": "API Middleware Pipeline - UML Activity",
+          "kind": "uml-activity",
+          "nodes": [
+            "act-api-pipeline",
+            "mwa-start",
+            "mwa-cors",
+            "mwa-security-headers",
+            "mwa-size",
+            "mwa-d-size",
+            "mwa-413",
+            "mwa-rate",
+            "mwa-d-rate",
+            "mwa-429",
+            "mwa-audit",
+            "mwa-auth",
+            "mwa-authz",
+            "mwa-d-auth",
+            "mwa-401",
+            "mwa-idem",
+            "mwa-d-idem",
+            "mwa-replay",
+            "mwa-handler",
+            "mwa-final"
+          ],
+          "relationships": [
+            "mwf-start-cors",
+            "mwf-cors-security",
+            "mwf-security-size",
+            "mwf-size-decide",
+            "mwf-size-reject",
+            "mwf-size-pass",
+            "mwf-rate-decide",
+            "mwf-rate-reject",
+            "mwf-rate-pass",
+            "mwf-audit-auth",
+            "mwf-auth-authz",
+            "mwf-authz-decide",
+            "mwf-auth-reject",
+            "mwf-auth-pass",
+            "mwf-idem-decide",
+            "mwf-idem-replay",
+            "mwf-idem-new",
+            "mwf-handler-final"
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          }
         }
       ]
     }
