@@ -45,8 +45,7 @@
       "Write(api/appsettings.Production.json)",
       "Write(app/wwwroot/appsettings.Development.json)",
       "Write(app/wwwroot/appsettings.Local.json)",
-      "Write(app/wwwroot/appsettings.Production.json)",
-      "Read(.codex)"
+      "Write(app/wwwroot/appsettings.Production.json)"
     ]
   },
   "hooks": {
