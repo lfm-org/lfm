@@ -1152,6 +1152,144 @@
         ],
         "documentation": "Admin and timer-driven reference synchronization service that writes refreshed reference data to blob storage."
       }
+    },
+    {
+      "id": "api-request-pipeline",
+      "type": "ApplicationFunction",
+      "label": "API request pipeline",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Program.cs",
+          "api/Middleware/MiddlewareExtensions.cs",
+          "api/Middleware/*.cs"
+        ],
+        "documentation": "Ordered cross-cutting middleware that every HTTP request passes through before a Function handler runs. Registered in api/Program.cs via builder.UseMiddleware in fixed order."
+      }
+    },
+    {
+      "id": "mw-cors",
+      "type": "ApplicationFunction",
+      "label": "CORS handling",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/CorsMiddleware.cs"
+        ],
+        "documentation": "Adds CORS headers and answers preflight OPTIONS; runs first so preflight is not blocked by later auth stages."
+      }
+    },
+    {
+      "id": "mw-security-headers",
+      "type": "ApplicationFunction",
+      "label": "Security headers",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/SecurityHeadersMiddleware.cs"
+        ],
+        "documentation": "Adds standard security response headers, the AGPL section 13 source-code notice, and a default Cache-Control: private, no-store."
+      }
+    },
+    {
+      "id": "mw-request-size-limit",
+      "type": "ApplicationFunction",
+      "label": "Request size limiting",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RequestSizeLimitMiddleware.cs"
+        ],
+        "documentation": "Rejects requests whose Content-Length exceeds the configured maximum with 413 Payload Too Large + RFC 9457 problem+json."
+      }
+    },
+    {
+      "id": "mw-rate-limit",
+      "type": "ApplicationFunction",
+      "label": "Inbound rate limiting",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/RateLimitMiddleware.cs",
+          "api/Options/RateLimitOptions.cs"
+        ],
+        "documentation": "Per-IP sliding-window rate limiting across auth, write, and read endpoint tiers; OPTIONS bypasses (handled by CORS)."
+      }
+    },
+    {
+      "id": "mw-audit",
+      "type": "ApplicationFunction",
+      "label": "Request audit logging",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuditMiddleware.cs",
+          "api/Audit/"
+        ],
+        "documentation": "Emits structured audit records for incoming requests ahead of authentication and authorization."
+      }
+    },
+    {
+      "id": "mw-auth",
+      "type": "ApplicationFunction",
+      "label": "Authentication",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuthMiddleware.cs",
+          "api/Auth/"
+        ],
+        "documentation": "Resolves the session principal from the request before authorization policy is applied."
+      }
+    },
+    {
+      "id": "mw-auth-policy",
+      "type": "ApplicationFunction",
+      "label": "Authorization policy",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/AuthPolicyMiddleware.cs"
+        ],
+        "documentation": "Enforces per-route authorization policy on the resolved principal; rejects unauthorized requests before the handler runs."
+      }
+    },
+    {
+      "id": "mw-idempotency",
+      "type": "ApplicationFunction",
+      "label": "Idempotent replay",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Middleware/IdempotencyMiddleware.cs",
+          "api/Services/IdempotencyStore.cs"
+        ],
+        "documentation": "Durable replay for retried mutations carrying an Idempotency-Key header for an authenticated principal; persists outcomes in the idempotency container."
+      }
+    },
+    {
+      "id": "blizzard-rate-limiting",
+      "type": "ApplicationFunction",
+      "label": "Blizzard rate limiting",
+      "properties": {
+        "layer": "Application",
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "api/Services/BlizzardRateLimiter.cs",
+          "api/Services/BlizzardRateLimitHandler.cs",
+          "api/Program.cs"
+        ],
+        "documentation": "Shared sliding-window limiter (80/s) wired as a DelegatingHandler on every Blizzard HttpClient; on an upstream 429 it pauses the shared limiter so concurrent callers back off together."
+      }
     }
   ],
   "relationships": [
@@ -2911,6 +3049,166 @@
           "api/Services/BlizzardGameDataClient.cs"
         ]
       }
+    },
+    {
+      "id": "pipeline-comprises-cors",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-cors",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-security-headers",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-security-headers",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-request-size-limit",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-request-size-limit",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-rate-limit",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-rate-limit",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-audit",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-audit",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-auth",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-auth",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-auth-policy",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-auth-policy",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "pipeline-comprises-idempotency",
+      "type": "Composition",
+      "source": "api-request-pipeline",
+      "target": "mw-idempotency",
+      "label": "comprises",
+      "properties": {}
+    },
+    {
+      "id": "cors-triggers-security-headers",
+      "type": "Triggering",
+      "source": "mw-cors",
+      "target": "mw-security-headers",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "security-headers-triggers-request-size-limit",
+      "type": "Triggering",
+      "source": "mw-security-headers",
+      "target": "mw-request-size-limit",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "request-size-limit-triggers-rate-limit",
+      "type": "Triggering",
+      "source": "mw-request-size-limit",
+      "target": "mw-rate-limit",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "rate-limit-triggers-audit",
+      "type": "Triggering",
+      "source": "mw-rate-limit",
+      "target": "mw-audit",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "audit-triggers-auth",
+      "type": "Triggering",
+      "source": "mw-audit",
+      "target": "mw-auth",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "auth-triggers-auth-policy",
+      "type": "Triggering",
+      "source": "mw-auth",
+      "target": "mw-auth-policy",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "auth-policy-triggers-idempotency",
+      "type": "Triggering",
+      "source": "mw-auth-policy",
+      "target": "mw-idempotency",
+      "label": "then",
+      "properties": {}
+    },
+    {
+      "id": "api-performs-request-pipeline",
+      "type": "Assignment",
+      "source": "lfm-api",
+      "target": "api-request-pipeline",
+      "label": "performs",
+      "properties": {}
+    },
+    {
+      "id": "api-performs-blizzard-rate-limiting",
+      "type": "Assignment",
+      "source": "lfm-api",
+      "target": "blizzard-rate-limiting",
+      "label": "performs",
+      "properties": {}
+    },
+    {
+      "id": "request-pipeline-serves-rest-api",
+      "type": "Serving",
+      "source": "api-request-pipeline",
+      "target": "rest-api",
+      "label": "guards",
+      "properties": {}
+    },
+    {
+      "id": "idempotency-accesses-idempotency-store",
+      "type": "Access",
+      "source": "mw-idempotency",
+      "target": "cosmos-idempotency",
+      "label": "reads/writes",
+      "properties": {}
+    },
+    {
+      "id": "blizzard-rate-limiting-serves-api",
+      "type": "Serving",
+      "source": "blizzard-rate-limiting",
+      "target": "lfm-api",
+      "label": "throttles outbound",
+      "properties": {}
     }
   ],
   "plugins": {
@@ -3735,6 +4033,90 @@
               "members": [
                 "blizzard-game-data-api",
                 "blizzard-render-cdn"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "api-request-pipeline",
+          "label": "API Request Pipeline - Application Cooperation",
+          "nodes": [
+            "lfm-api",
+            "rest-api",
+            "api-request-pipeline",
+            "mw-cors",
+            "mw-security-headers",
+            "mw-request-size-limit",
+            "mw-rate-limit",
+            "mw-audit",
+            "mw-auth",
+            "mw-auth-policy",
+            "mw-idempotency",
+            "blizzard-rate-limiting",
+            "battlenet-oauth",
+            "blizzard-profile-api",
+            "blizzard-game-data-api",
+            "cosmos-idempotency"
+          ],
+          "relationships": [
+            "api-performs-request-pipeline",
+            "api-performs-blizzard-rate-limiting",
+            "request-pipeline-serves-rest-api",
+            "cors-triggers-security-headers",
+            "security-headers-triggers-request-size-limit",
+            "request-size-limit-triggers-rate-limit",
+            "rate-limit-triggers-audit",
+            "audit-triggers-auth",
+            "auth-triggers-auth-policy",
+            "auth-policy-triggers-idempotency",
+            "idempotency-accesses-idempotency-store",
+            "blizzard-rate-limiting-serves-api",
+            "battlenet-oauth-serves-api",
+            "profile-api-serves-api",
+            "game-data-api-serves-api"
+          ],
+          "layout_preferences": {
+            "direction": "down",
+            "density": "spacious",
+            "wrapping": "multi-edge",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "readable",
+              "endpoint_merging": "local"
+            }
+          },
+          "groups": [
+            {
+              "id": "api-surface",
+              "label": "API surface",
+              "members": [
+                "lfm-api",
+                "rest-api"
+              ]
+            },
+            {
+              "id": "inbound-request-pipeline",
+              "label": "Inbound request pipeline (ordered)",
+              "members": [
+                "api-request-pipeline",
+                "mw-cors",
+                "mw-security-headers",
+                "mw-request-size-limit",
+                "mw-rate-limit",
+                "mw-audit",
+                "mw-auth",
+                "mw-auth-policy",
+                "mw-idempotency"
+              ]
+            },
+            {
+              "id": "outbound-blizzard-gateway",
+              "label": "Outbound Blizzard gateway",
+              "members": [
+                "blizzard-rate-limiting",
+                "battlenet-oauth",
+                "blizzard-profile-api",
+                "blizzard-game-data-api"
               ]
             }
           ]

@@ -290,6 +290,30 @@
         "target": "render-metadata",
         "output": "generated/render-metadata/ops-health-realization.json"
       }
+    },
+    {
+      "id": "api-request-pipeline",
+      "title": "API Request Pipeline - Application Cooperation",
+      "diagramKind": "Application Cooperation",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/api-request-pipeline.json"
+      },
+      "render": {
+        "plugin": "svg-render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/api-request-pipeline.json",
+        "output": "generated/svg/api-request-pipeline.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/api-request-pipeline.json"
+      }
     }
   ]
 }
