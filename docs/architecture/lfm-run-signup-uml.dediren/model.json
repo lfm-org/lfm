@@ -960,12 +960,6 @@
           "package": "pkg-contracts-runs",
           "attributes": [
             {
-              "name": "Id",
-              "type": "String",
-              "visibility": "public",
-              "multiplicity": "1"
-            },
-            {
               "name": "Name",
               "type": "String",
               "visibility": "public",
@@ -978,10 +972,58 @@
               "multiplicity": "1"
             },
             {
-              "name": "ClassId",
-              "type": "Integer",
+              "name": "RealmName",
+              "type": "String",
               "visibility": "public",
               "multiplicity": "1"
+            },
+            {
+              "name": "Level",
+              "type": "Int32",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Region",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "ClassId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "ClassName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "PortraitUrl",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "ActiveSpecId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "SpecName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Specializations",
+              "type": "CharacterSpecializationDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
             }
           ]
         }
@@ -1006,16 +1048,70 @@
               "multiplicity": "1"
             },
             {
-              "name": "RunCharacters",
-              "type": "RunCharacterDto",
+              "name": "StartTime",
+              "type": "String",
               "visibility": "public",
-              "multiplicity": "0..*"
+              "multiplicity": "1"
+            },
+            {
+              "name": "SignupCloseTime",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Description",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
             },
             {
               "name": "Visibility",
               "type": "String",
               "visibility": "public",
               "multiplicity": "1"
+            },
+            {
+              "name": "CreatorGuild",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "InstanceId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "InstanceName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "RunCharacters",
+              "type": "RunCharacterDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
+            },
+            {
+              "name": "Difficulty",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Size",
+              "type": "Int32",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "KeystoneLevel",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
             }
           ]
         }
@@ -1047,16 +1143,52 @@
               "multiplicity": "1"
             },
             {
+              "name": "CharacterRealm",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "CharacterClassId",
+              "type": "Int32",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "CharacterClassName",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
               "name": "DesiredAttendance",
-              "type": "DesiredAttendance",
+              "type": "String",
               "visibility": "public",
               "multiplicity": "1"
             },
             {
               "name": "ReviewedAttendance",
-              "type": "DesiredAttendance",
+              "type": "String",
               "visibility": "public",
               "multiplicity": "1"
+            },
+            {
+              "name": "SpecId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "SpecName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Role",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
             },
             {
               "name": "IsCurrentUser",
@@ -1812,7 +1944,7 @@
         },
         {
           "id": "run-signup-data",
-      "label": "Run Signup - UML Data",
+          "label": "Run Signup - UML Data",
           "kind": "uml-data",
           "nodes": [
             "datatype-signup-request",

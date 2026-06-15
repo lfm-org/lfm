@@ -307,7 +307,7 @@
         "plugin": "svg-render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/api-request-pipeline.json",
-        "output": "generated/svg/api-request-pipeline.svg"
+        "output": "generated/svg/application-request-pipeline.svg"
       },
       "metadata": {
         "plugin": "generic-graph",

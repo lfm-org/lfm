@@ -1349,10 +1349,10 @@
       "type": "Composition",
       "source": "interface-storage-data-plane",
       "target": "datatype-wow-reference-blobs",
-      "label": "blob container",
+      "label": "blob prefix",
       "properties": {
         "uml": {
-          "guard": "blob container"
+          "guard": "blob prefix"
         }
       }
     },
@@ -1619,6 +1619,54 @@
           "guard": ""
         }
       }
+    },
+    {
+      "id": "data-identity-publishes-telemetry",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "interface-telemetry-ingestion",
+      "label": "Metrics Publisher",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/functions.bicep"
+        ],
+        "uml": {
+          "guard": "Metrics Publisher"
+        }
+      }
+    },
+    {
+      "id": "data-identity-crypto-key",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "datatype-data-protection-key",
+      "label": "Crypto User",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/dataprotection.bicep"
+        ],
+        "uml": {
+          "guard": "Crypto User"
+        }
+      }
+    },
+    {
+      "id": "data-identity-writes-key-ring",
+      "type": "Dependency",
+      "source": "interface-managed-identity",
+      "target": "datatype-data-protection-key-ring",
+      "label": "Blob Contributor",
+      "properties": {
+        "authority": "lifted-from-source",
+        "source_evidence": [
+          "infra/modules/dataprotection.bicep"
+        ],
+        "uml": {
+          "guard": "Blob Contributor"
+        }
+      }
     }
   ],
   "plugins": {
@@ -1672,20 +1720,21 @@
           "label": "Platform Data Plane - UML Data",
           "kind": "uml-data",
           "nodes": [
-            "interface-managed-identity",
-            "interface-cosmos-data-plane",
-            "interface-storage-data-plane",
-            "interface-key-vault-secrets",
             "datatype-cosmos-database",
-            "datatype-runs-container",
-            "datatype-raiders-container",
-            "datatype-guilds-container",
-            "datatype-idempotency-container",
-            "datatype-wow-reference-blobs",
-            "datatype-wow-media-cache-blobs",
+            "datatype-data-protection-key",
             "datatype-data-protection-key-ring",
             "datatype-deployments-container",
-            "datatype-data-protection-key"
+            "datatype-guilds-container",
+            "datatype-idempotency-container",
+            "datatype-raiders-container",
+            "datatype-runs-container",
+            "datatype-wow-media-cache-blobs",
+            "datatype-wow-reference-blobs",
+            "interface-cosmos-data-plane",
+            "interface-key-vault-secrets",
+            "interface-managed-identity",
+            "interface-storage-data-plane",
+            "interface-telemetry-ingestion"
           ],
           "relationships": [
             "data-database-composes-runs",
@@ -1701,7 +1750,10 @@
             "data-storage-holds-reference",
             "data-storage-holds-media-cache",
             "data-storage-holds-key-ring",
-            "data-storage-holds-deployments"
+            "data-storage-holds-deployments",
+            "data-identity-publishes-telemetry",
+            "data-identity-crypto-key",
+            "data-identity-writes-key-ring"
           ],
           "layout_preferences": {
             "direction": "down",
