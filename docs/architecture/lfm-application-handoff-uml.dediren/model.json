@@ -1527,12 +1527,17 @@
         "source_evidence": [
           "app/Pages/CreateRunPage.razor",
           "app/Pages/EditRunPage.razor",
+          "app/Pages/RunsPage.razor",
           "app/Pages/LoginPage.razor",
+          "app/Pages/LoginFailedPage.razor",
           "app/Pages/CharactersPage.razor",
           "app/Pages/GuildPage.razor",
           "app/Pages/GuildAdminPage.razor",
           "app/Pages/InstancesPage.razor",
           "app/Pages/AdminReferenceRefreshPage.razor",
+          "app/Pages/LandingPage.razor",
+          "app/Pages/PrivacyPolicyPage.razor",
+          "app/Pages/NotFound.razor",
           "app/Components/AuthSessionMonitor.razor"
         ],
         "uml": {
@@ -1566,6 +1571,7 @@
           "app/Lfm.App.Core/Services/ISpecializationsClient.cs",
           "app/Lfm.App.Core/Services/IExpansionsClient.cs",
           "app/Lfm.App.Core/Services/IWowReferenceAdminClient.cs",
+          "app/Lfm.App.Core/Services/IBattleNetClient.cs",
           "app/Lfm.App.Core/Auth/IAuthStateRefresher.cs",
           "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs"
         ],
@@ -1596,9 +1602,20 @@
           "api/Functions/RunsCreateFunction.cs",
           "api/Functions/RunsUpdateFunction.cs",
           "api/Functions/RunsDeleteFunction.cs",
+          "api/Functions/RunsListFunction.cs",
+          "api/Functions/RunsDetailFunction.cs",
+          "api/Functions/RunsSignupFunction.cs",
+          "api/Functions/RunsSignupOptionsFunction.cs",
+          "api/Functions/RunsCancelSignupFunction.cs",
           "api/Functions/BattleNetLoginFunction.cs",
+          "api/Functions/BattleNetLogoutFunction.cs",
           "api/Functions/MeFunction.cs",
+          "api/Functions/MeUpdateFunction.cs",
+          "api/Functions/MeDeleteFunction.cs",
+          "api/Functions/RaiderCharacterAddFunction.cs",
+          "api/Functions/RaiderCharacterEnrichFunction.cs",
           "api/Functions/GuildFunction.cs",
+          "api/Functions/GuildAdminFunction.cs",
           "api/Functions/WowReferenceInstancesFunction.cs",
           "api/Functions/HealthFunction.cs"
         ],
@@ -1759,26 +1776,56 @@
           "package": "pkg-contracts",
           "attributes": [
             {
-              "name": "Title",
-              "type": "String",
+              "name": "StartTime",
+              "type": "String?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
             },
             {
-              "name": "StartsAt",
-              "type": "DateTimeOffset",
+              "name": "SignupCloseTime",
+              "type": "String?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Description",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
             },
             {
               "name": "Visibility",
-              "type": "String",
+              "type": "String?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
             },
             {
-              "name": "SignupDeadline",
-              "type": "DateTimeOffset?",
+              "name": "InstanceId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "InstanceName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Difficulty",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Size",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "KeystoneLevel",
+              "type": "Int32?",
               "visibility": "public",
               "multiplicity": "0..1"
             }
@@ -1804,22 +1851,58 @@
           "package": "pkg-contracts",
           "attributes": [
             {
-              "name": "Title",
-              "type": "String",
+              "name": "StartTime",
+              "type": "String?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
             },
             {
-              "name": "StartsAt",
-              "type": "DateTimeOffset",
+              "name": "SignupCloseTime",
+              "type": "String?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Description",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
             },
             {
               "name": "Visibility",
-              "type": "String",
+              "type": "String?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "InstanceId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "InstanceName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Difficulty",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Size",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "KeystoneLevel",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
             }
           ]
         }
@@ -1844,13 +1927,25 @@
           "attributes": [
             {
               "name": "Guild",
-              "type": "GuildInfoDto",
+              "type": "GuildInfoDto?",
               "visibility": "public",
               "multiplicity": "0..1"
             },
             {
               "name": "Setup",
               "type": "GuildSetupDto",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Settings",
+              "type": "GuildSettingsDto?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Editor",
+              "type": "GuildEditorDto",
               "visibility": "public",
               "multiplicity": "1"
             },
@@ -1881,6 +1976,12 @@
           },
           "package": "pkg-contracts",
           "attributes": [
+            {
+              "name": "Timezone",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
             {
               "name": "Locale",
               "type": "String?",
@@ -1921,10 +2022,10 @@
           "package": "pkg-contracts",
           "attributes": [
             {
-              "name": "BattleTag",
-              "type": "String?",
+              "name": "BattleNetId",
+              "type": "String",
               "visibility": "public",
-              "multiplicity": "0..1"
+              "multiplicity": "1"
             },
             {
               "name": "GuildName",
@@ -1933,8 +2034,26 @@
               "multiplicity": "0..1"
             },
             {
+              "name": "SelectedCharacterId",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
               "name": "SelectedCharacter",
-              "type": "SelectedCharacterSummaryDto",
+              "type": "SelectedCharacterSummaryDto?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "IsSiteAdmin",
+              "type": "Boolean",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Locale",
+              "type": "String?",
               "visibility": "public",
               "multiplicity": "0..1"
             }
@@ -1960,12 +2079,6 @@
           "package": "pkg-contracts",
           "attributes": [
             {
-              "name": "Id",
-              "type": "String",
-              "visibility": "public",
-              "multiplicity": "1"
-            },
-            {
               "name": "Name",
               "type": "String",
               "visibility": "public",
@@ -1978,10 +2091,58 @@
               "multiplicity": "1"
             },
             {
+              "name": "RealmName",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Level",
+              "type": "Int32",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Region",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "ClassId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "ClassName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
               "name": "PortraitUrl",
               "type": "String?",
               "visibility": "public",
               "multiplicity": "0..1"
+            },
+            {
+              "name": "ActiveSpecId",
+              "type": "Int32?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "SpecName",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "Specializations",
+              "type": "CharacterSpecializationDto",
+              "visibility": "public",
+              "multiplicity": "0..*"
             }
           ]
         }
@@ -2203,10 +2364,10 @@
               "multiplicity": "1"
             },
             {
-              "name": "Settings",
-              "type": "GuildSetup",
+              "name": "Setup",
+              "type": "GuildSetup?",
               "visibility": "public",
-              "multiplicity": "1"
+              "multiplicity": "0..1"
             },
             {
               "name": "Roster",
@@ -2236,6 +2397,12 @@
           "package": "pkg-contracts",
           "attributes": [
             {
+              "name": "Id",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
               "name": "BattleNetId",
               "type": "String",
               "visibility": "public",
@@ -2254,8 +2421,26 @@
               "multiplicity": "1"
             },
             {
-              "name": "ExpiresAt",
-              "type": "DateTimeOffset",
+              "name": "ETag",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "BodyHash",
+              "type": "String?",
+              "visibility": "public",
+              "multiplicity": "0..1"
+            },
+            {
+              "name": "CreatedAt",
+              "type": "String",
+              "visibility": "public",
+              "multiplicity": "1"
+            },
+            {
+              "name": "Ttl",
+              "type": "Int32",
               "visibility": "public",
               "multiplicity": "1"
             }
@@ -2599,11 +2784,10 @@
     {
       "id": "mwa-401",
       "type": "ActivityFinalNode",
-      "label": "401 / 403 rejected",
+      "label": "401 Unauthorized",
       "properties": {
         "authority": "lifted-from-source",
         "source_evidence": [
-          "api/Middleware/AuthMiddleware.cs",
           "api/Middleware/AuthPolicyMiddleware.cs"
         ]
       }
@@ -3506,18 +3690,6 @@
       "properties": {
         "uml": {
           "guard": "updates"
-        }
-      }
-    },
-    {
-      "id": "comp-guild-dto-info",
-      "type": "Composition",
-      "source": "datatype-guild-dto",
-      "target": "datatype-update-guild-request",
-      "label": "settings",
-      "properties": {
-        "uml": {
-          "guard": "settings"
         }
       }
     },

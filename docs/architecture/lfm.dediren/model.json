@@ -1823,7 +1823,7 @@
       "type": "Association",
       "source": "storage-account",
       "target": "wow-reference-container",
-      "label": "blob container",
+      "label": "blob path",
       "properties": {
         "source_evidence": [
           "infra/modules/storage.bicep"
@@ -1835,7 +1835,7 @@
       "type": "Association",
       "source": "storage-account",
       "target": "wow-media-cache-blobs",
-      "label": "media cache path",
+      "label": "blob path",
       "properties": {
         "source_evidence": [
           "infra/modules/storage.bicep",
@@ -3209,6 +3209,19 @@
       "target": "lfm-api",
       "label": "throttles outbound",
       "properties": {}
+    },
+    {
+      "id": "raider-service-accesses-runs",
+      "type": "Access",
+      "source": "raider-profile-service",
+      "target": "cosmos-runs",
+      "label": "scrub raider refs",
+      "properties": {
+        "source_evidence": [
+          "api/Functions/RaiderCleanupFunction.cs",
+          "api/Repositories/IRunsRepository.cs"
+        ]
+      }
     }
   ],
   "plugins": {
@@ -3837,7 +3850,8 @@
             "raider-service-serves-account-deletion",
             "account-deletion-accesses-runs",
             "account-deletion-accesses-raiders",
-            "account-deletion-accesses-idempotency"
+            "account-deletion-accesses-idempotency",
+            "raider-service-accesses-runs"
           ],
           "layout_preferences": {
             "direction": "right",
