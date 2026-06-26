@@ -1,6 +1,6 @@
 # Base images pinned to sha256 digests (Phase 1.2 of devsecops remediation).
 # Tags kept as the human-readable reference. Dependabot docker ecosystem refreshes weekly.
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:548d93f8a18a1acbe6cc127bc4f47281430d34a9e35c18afa80a8d6741c2adc3 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:ea8bde36c11b6e7eec2656d0e59101d4462f6bd630730f2c8201ed0572b295d5 AS build
 WORKDIR /src
 
 COPY shared/Lfm.Contracts/Lfm.Contracts.csproj shared/Lfm.Contracts/
