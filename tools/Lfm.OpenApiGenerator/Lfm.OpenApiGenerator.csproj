@@ -6,6 +6,16 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Lfm.OpenApiGenerator</RootNamespace>
+    <!--
+      Build-time codegen tool with no direct PackageReferences: its dependency
+      closure is purely transitive via the ProjectReferences below. Dependabot
+      does not regenerate this transitive lock when lfm.api's packages bump, so
+      a committed lock here goes stale and breaks CI's locked restore (NU1004).
+      lfm.api's own lock already pins the real versions, so opt this leaf tool
+      out of lock files. If this project ever gains direct PackageReferences,
+      re-enable this property and commit a fresh lock.
+    -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\api\Lfm.Api.csproj" />
