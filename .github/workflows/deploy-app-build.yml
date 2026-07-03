@@ -157,21 +157,21 @@ jobs:
           retention-days: 1
 
       - name: Attest API deploy artifact
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: ./publish/artifacts/deploy-api.tar
           create-storage-record: false
           show-summary: false
 
       - name: Attest App deploy artifact
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: ./publish/artifacts/deploy-app.tar
           create-storage-record: false
           show-summary: false
 
       - name: Attest API SBOM
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: ./publish/artifacts/deploy-api.tar
           sbom-path: ./publish/sbom.cdx.json
@@ -179,7 +179,7 @@ jobs:
           show-summary: false
 
       - name: Attest App SBOM
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: ./publish/artifacts/deploy-app.tar
           sbom-path: ./publish/sbom.cdx.json
