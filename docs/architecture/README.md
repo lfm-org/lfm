@@ -1,10 +1,12 @@
 # LFM Architecture
 
-The canonical architecture source is now the ArchiMate dediren package
-[`lfm.dediren/`](lfm.dediren/). It was extracted from the current .NET solution,
-Azure Bicep infrastructure, GitHub Actions deploy workflows, and Blazor route/API
-surface. UML handoff detail lives in separate UML dediren packages when a flow
-needs implementation-level structure beyond the ArchiMate views.
+The canonical architecture source is the single consolidated ArchiMate dediren
+package [`lfm.dediren/`](lfm.dediren/). It was extracted from the current .NET
+solution, Azure Bicep infrastructure, GitHub Actions deploy workflows, and Blazor
+route/API surface. Every layer — Application, Technology, Business process
+candidates, and Implementation & Migration — plus a portfolio `system-landscape`
+front-page lives in this one package; behavior is expressed with ArchiMate
+process, function, and cooperation views rather than separate UML packages.
 
 The package is intentionally source-first:
 
@@ -27,28 +29,19 @@ docs/architecture/<system>.dediren/
 docs/architecture/<system>-<scope>-<profile>.dediren/
 ```
 
-Use the short system name for the canonical system-level package, such as
-`lfm.dediren`. Use `<system>-<scope>-<profile>.dediren` for supplemental
-implementation handoff packages, such as `lfm-run-signup-uml.dediren`. The
-`<scope>` segment should identify a durable domain, workflow, or capability
-slice; the `<profile>` segment should identify the notation/profile when the
-package is profile-specific. Keep per-view detail in `project.json` and render
-filenames instead of creating one package directory per diagram.
+Use the short system name for the canonical system-level package,
+`lfm.dediren`. The repository currently ships this one consolidated package. The
+`<system>-<scope>-<profile>.dediren` form is reserved for any future supplemental
+package: `<scope>` identifies a durable domain, workflow, or capability slice, and
+`<profile>` identifies the notation/profile when the package is profile-specific.
+Keep per-view detail in `project.json` and render filenames instead of creating one
+package directory per diagram.
 
 | File | Purpose |
 |---|---|
 | [`lfm.dediren/project.json`](lfm.dediren/project.json) | Project manifest and actual view list |
 | [`lfm.dediren/model.json`](lfm.dediren/model.json) | Canonical source graph, relationships, source evidence, and view membership |
-| [`lfm.dediren/render-policy.json`](lfm.dediren/render-policy.json) | SVG page, colors, decorators, and relationship markers |
-| [`lfm-run-signup-uml.dediren/project.json`](lfm-run-signup-uml.dediren/project.json) | UML project manifest for the run-signup implementation handoff |
-| [`lfm-run-signup-uml.dediren/model.json`](lfm-run-signup-uml.dediren/model.json) | UML activity, data, and class-boundary source graph linked to ArchiMate context |
-| [`lfm-run-signup-uml.dediren/render-policy.json`](lfm-run-signup-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
-| [`lfm-application-handoff-uml.dediren/project.json`](lfm-application-handoff-uml.dediren/project.json) | UML project manifest for remaining application implementation handoffs |
-| [`lfm-application-handoff-uml.dediren/model.json`](lfm-application-handoff-uml.dediren/model.json) | UML activity, data, and class-boundary source graph for application handoffs linked to ArchiMate context |
-| [`lfm-application-handoff-uml.dediren/render-policy.json`](lfm-application-handoff-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
-| [`lfm-platform-operations-uml.dediren/project.json`](lfm-platform-operations-uml.dediren/project.json) | UML project manifest for platform and operations handoffs |
-| [`lfm-platform-operations-uml.dediren/model.json`](lfm-platform-operations-uml.dediren/model.json) | UML class-boundary, data-plane, observability, and release source graph linked to ArchiMate context |
-| [`lfm-platform-operations-uml.dediren/render-policy.json`](lfm-platform-operations-uml.dediren/render-policy.json) | Black-and-white UML SVG render policy |
+| [`lfm.dediren/render-policy.json`](lfm.dediren/render-policy.json) | ArchiMate SVG page, layer fills, per-type decorators, and relationship markers |
 
 Per-view render metadata, layout output, and intermediate SVGs are generated
 from the packages. `*.dediren/generated/` is reproducible tool output and
@@ -60,47 +53,20 @@ source package directory without the `.dediren` suffix.
 
 | # | View | Diagram kind | Render | Source scope |
 |---|---|---|---|---|
-| 1 | LFM - Technology Usage Overview | Technology Usage | [`technology-usage.svg`](renders/lfm/technology-usage.svg) | top-level Azure hosting, runtime identity, platform dependencies, telemetry |
-| 2 | LFM - Data Plane and Secrets | Technology Usage | [`technology-data-plane.svg`](renders/lfm/technology-data-plane.svg) | Cosmos containers, blob reference/media-cache paths, Key Vault, data-protection key, Function App managed identity |
-| 3 | LFM - Observability and Alerting | Technology Usage | [`technology-observability.svg`](renders/lfm/technology-observability.svg) | Application Insights, Log Analytics, Cosmos throttle alert, telemetry publishing role |
-| 4 | LFM - Production Release Migration | Migration | [`implementation-migration-production-release-migration.svg`](renders/lfm/implementation-migration-production-release-migration.svg) | local hook gates, `.github/workflows/deploy*.yml`, `secrets-scan.yml`, `analyze-infra.yml`, `infra/**/*.bicep`, deployable app/API projects |
-| 5 | Run Signup - Business Process Candidate | Business Process Cooperation | [`business-run-signup-process-candidate.svg`](renders/lfm/business-run-signup-process-candidate.svg) | `/runs` UI flow and `Runs*Function` signup endpoints; source-derived candidate |
-| 6 | Run Signup - Service Realization | Service Realization | [`application-run-signup-service-realization.svg`](renders/lfm/application-run-signup-service-realization.svg) | run-signup process candidate, `Run Management` service, `Lfm.Api`, Cosmos containers |
-| 7 | Run Maintenance - Application Process | Application Process | [`application-run-maintenance-application-process.svg`](renders/lfm/application-run-maintenance-application-process.svg) | `CreateRunPage`, `EditRunPage`, `RunsCreateFunction`, `RunsUpdateFunction`, `RunsDeleteFunction`, run Cosmos state |
-| 8 | Auth and Profile - Service Realization | Service Realization | [`application-auth-profile-realization.svg`](renders/lfm/application-auth-profile-realization.svg) | sign-in UI, expired-session detection, `BattleNet*Function`, `Me*Function`, `Raider*Function`, `WowMediaCacheFunction`, raider Cosmos state, media-cache blobs, Battle.net OAuth, WoW Profile API, render CDN source |
-| 9 | Account Deletion - Application Process | Application Process | [`application-account-deletion-application-process.svg`](renders/lfm/application-account-deletion-application-process.svg) | `CharactersPage`, `MeClient.DeleteAsync`, `MeDeleteFunction`, raider/run/idempotency data effects |
-| 10 | Guild - Service Realization | Service Realization | [`application-guild-realization.svg`](renders/lfm/application-guild-realization.svg) | `/guild` and `/guild/admin` UI, `GuildFunction`, `GuildAdminFunction`, guild/raider Cosmos state, WoW Profile API guild refresh |
-| 11 | WoW Reference Data - Service Realization | Service Realization | [`application-wow-reference-realization.svg`](renders/lfm/application-wow-reference-realization.svg) | reference-data UI consumers, admin refresh UI, `WowReference*` read endpoints, `WowReferenceRefresh*` endpoints, `WowMediaCacheFunction`, blob reference/media-cache data, WoW Game Data API, render CDN source |
-| 12 | Operational Readiness - Service Realization | Service Realization | [`application-ops-health-realization.svg`](renders/lfm/application-ops-health-realization.svg) | `HealthFunction`, `RunsMigrateSchemaFunction`, Cosmos readiness, Application Insights |
-| 13 | API Request Pipeline - Application Cooperation | Application Cooperation | [`application-request-pipeline.svg`](renders/lfm/application-request-pipeline.svg) | ordered `api/Middleware/*` request stages (CORS → security headers → request size → rate limit → audit → auth → auth policy → idempotency) wired in `api/Program.cs`, plus the outbound `BlizzardRateLimiter`/`BlizzardRateLimitHandler` gateway over the Blizzard services |
-
-## UML Handoff Views
-
-| # | View | Diagram kind | Render | Source scope |
-|---|---|---|---|---|
-| 1 | Run Signup - UML Activity | UML Activity | [`uml-run-signup-activity.svg`](renders/lfm-run-signup-uml/uml-run-signup-activity.svg) | `RunsPage`, `RunsClient`, signup-options, signup, and cancel-signup HTTP paths |
-| 2 | Run Signup - UML Data | UML Data | [`uml-run-signup-data.svg`](renders/lfm-run-signup-uml/uml-run-signup-data.svg) | signup request/options/detail DTOs plus `RunDocument`, `RunCharacterEntry`, and raider character state |
-| 3 | Run Signup - UML Class Boundary | UML Class | [`uml-run-signup-class.svg`](renders/lfm-run-signup-uml/uml-run-signup-class.svg) | Blazor client boundary, Function adapters, run-signup services, policy gates, and repositories |
-| 4 | Run Maintenance - UML Activity | UML Activity | [`run-maintenance-activity.svg`](renders/lfm-application-handoff-uml/run-maintenance-activity.svg) | create, edit, and delete run UI/API paths plus run repository effects |
-| 5 | Auth and Profile - UML Activity | UML Activity | [`auth-profile-activity.svg`](renders/lfm-application-handoff-uml/auth-profile-activity.svg) | Battle.net sign-in, identity probe, expired-session detection, profile refresh, and raider profile persistence paths |
-| 6 | Account Deletion - UML Activity | UML Activity | [`account-deletion-activity.svg`](renders/lfm-application-handoff-uml/account-deletion-activity.svg) | account deletion request, goodbye redirect, raider cleanup, run cleanup, and idempotency effects |
-| 7 | Guild - UML Activity | UML Activity | [`guild-activity.svg`](renders/lfm-application-handoff-uml/guild-activity.svg) | guild read and admin refresh flows across UI, API, repository, and WoW Profile API |
-| 8 | WoW Reference Data - UML Activity | UML Activity | [`wow-reference-activity.svg`](renders/lfm-application-handoff-uml/wow-reference-activity.svg) | reference-data reads, admin refresh, blob reference storage, and WoW Game Data API |
-| 9 | WoW Media Cache - UML Activity | UML Activity | [`wow-media-cache-activity.svg`](renders/lfm-application-handoff-uml/wow-media-cache-activity.svg) | media-cache endpoint, render URL allow-listing, blob cache hit/miss, render-CDN fetch, image validation, and cached image response |
-| 10 | Operational Readiness - UML Activity | UML Activity | [`ops-readiness-activity.svg`](renders/lfm-application-handoff-uml/ops-readiness-activity.svg) | health probe, schema migration, Cosmos readiness, and telemetry publication paths |
-| 11 | Application Handoff - UML Class Boundary | UML Class | [`application-handoff-class.svg`](renders/lfm-application-handoff-uml/application-handoff-class.svg) | UI pages, app-core clients, API functions, request middleware pipeline, service layer, repositories, and external ports |
-| 12 | Application Handoff - UML Data | UML Data | [`application-handoff-data.svg`](renders/lfm-application-handoff-uml/application-handoff-data.svg) | LFM contracts, Cosmos document families, idempotency state, blob reference data, media-cache blob content, and external API data |
-| 13 | API Middleware Pipeline - UML Activity | UML Activity | [`api-middleware-pipeline-activity.svg`](renders/lfm-application-handoff-uml/api-middleware-pipeline-activity.svg) | ordered `api/Middleware/*` request flow with early-exit branches: CORS, security headers, size limit (413), per-IP rate limit (429), audit, authentication, authorization policy (401/403), idempotent replay, then handler |
-| 14 | Platform Hosting - UML Class Boundary | UML Class | [`platform-hosting-class.svg`](renders/lfm-platform-operations-uml/platform-hosting-class.svg) | Static Web Apps, Function App, runtime, API, identity, data/secrets/telemetry ports |
-| 15 | Platform Data Plane - UML Data | UML Data | [`platform-data-plane.svg`](renders/lfm-platform-operations-uml/platform-data-plane.svg) | Cosmos database/containers, storage reference/media-cache blob paths, Key Vault key, data-protection key ring, managed identity access |
-| 16 | Observability - UML Activity | UML Activity | [`observability-activity.svg`](renders/lfm-platform-operations-uml/observability-activity.svg) | API telemetry, Application Insights ingestion, Log Analytics aggregation, Cosmos throttle alert path |
-| 17 | Production Release - UML Activity | UML Activity | [`production-release-activity.svg`](renders/lfm-platform-operations-uml/production-release-activity.svg) | local hook gates, deploy workflow, change detection, secret scan, infra analysis/deploy, app build/deploy |
-
-The UML packages link upward to ArchiMate element ids through
-`properties.uml.architecture_context`. UML remains handoff elaboration:
-ArchiMate stays the canonical architecture topology, while the UML packages show
-implementation handoff flows, boundaries, data shapes, and platform-operation
-sequences.
+| 1 | LFM - System Landscape | Landscape | [`system-landscape.svg`](renders/lfm/system-landscape.svg) | portfolio front-page: `Lfm.App`, `Lfm.Api`, `Lfm.Contracts`, the REST API surface, the Azure hosting platform (Static Web Apps, Function App, Cosmos, Storage, Key Vault, Application Insights), and the Battle.net/Blizzard external services |
+| 2 | LFM - Technology Usage Overview | Technology Usage | [`technology-usage.svg`](renders/lfm/technology-usage.svg) | top-level Azure hosting, runtime identity, platform dependencies, telemetry |
+| 3 | LFM - Data Plane and Secrets | Technology Usage | [`technology-data-plane.svg`](renders/lfm/technology-data-plane.svg) | Cosmos containers, blob reference/media-cache paths, Key Vault, data-protection key, Function App managed identity |
+| 4 | LFM - Observability and Alerting | Technology Usage | [`technology-observability.svg`](renders/lfm/technology-observability.svg) | Application Insights, Log Analytics, Cosmos throttle alert, telemetry publishing role |
+| 5 | LFM - Production Release Migration | Migration | [`implementation-migration-production-release-migration.svg`](renders/lfm/implementation-migration-production-release-migration.svg) | local hook gates, `.github/workflows/deploy*.yml`, `secrets-scan.yml`, `analyze-infra.yml`, `infra/**/*.bicep`, deployable app/API projects |
+| 6 | Run Signup - Business Process Candidate | Business Process Cooperation | [`business-run-signup-process-candidate.svg`](renders/lfm/business-run-signup-process-candidate.svg) | `/runs` UI flow and `Runs*Function` signup endpoints; source-derived candidate |
+| 7 | Run Signup - Service Realization | Service Realization | [`application-run-signup-service-realization.svg`](renders/lfm/application-run-signup-service-realization.svg) | run-signup process candidate, `Run Management` service, `Lfm.Api`, Cosmos containers |
+| 8 | Run Maintenance - Application Process | Application Process | [`application-run-maintenance-application-process.svg`](renders/lfm/application-run-maintenance-application-process.svg) | `CreateRunPage`, `EditRunPage`, `RunsCreateFunction`, `RunsUpdateFunction`, `RunsDeleteFunction`, run Cosmos state |
+| 9 | Auth and Profile - Service Realization | Service Realization | [`application-auth-profile-realization.svg`](renders/lfm/application-auth-profile-realization.svg) | sign-in UI, expired-session detection, `BattleNet*Function`, `Me*Function`, `Raider*Function`, `WowMediaCacheFunction`, raider Cosmos state, media-cache blobs, Battle.net OAuth, WoW Profile API, render CDN source |
+| 10 | Account Deletion - Application Process | Application Process | [`application-account-deletion-application-process.svg`](renders/lfm/application-account-deletion-application-process.svg) | `CharactersPage`, `MeClient.DeleteAsync`, `MeDeleteFunction`, raider/run/idempotency data effects |
+| 11 | Guild - Service Realization | Service Realization | [`application-guild-realization.svg`](renders/lfm/application-guild-realization.svg) | `/guild` and `/guild/admin` UI, `GuildFunction`, `GuildAdminFunction`, guild/raider Cosmos state, WoW Profile API guild refresh |
+| 12 | WoW Reference Data - Service Realization | Service Realization | [`application-wow-reference-realization.svg`](renders/lfm/application-wow-reference-realization.svg) | reference-data UI consumers, admin refresh UI, `WowReference*` read endpoints, `WowReferenceRefresh*` endpoints, `WowMediaCacheFunction`, blob reference/media-cache data, WoW Game Data API, render CDN source |
+| 13 | Operational Readiness - Service Realization | Service Realization | [`application-ops-health-realization.svg`](renders/lfm/application-ops-health-realization.svg) | `HealthFunction`, `RunsMigrateSchemaFunction`, Cosmos readiness, Application Insights |
+| 14 | API Request Pipeline - Application Cooperation | Application Cooperation | [`application-request-pipeline.svg`](renders/lfm/application-request-pipeline.svg) | ordered `api/Middleware/*` request stages (CORS → security headers → request size → rate limit → audit → auth → auth policy → idempotency) wired in `api/Program.cs`, plus the outbound `BlizzardRateLimiter`/`BlizzardRateLimitHandler` gateway over the Blizzard services |
 
 ## Source Provenance
 
@@ -112,8 +78,6 @@ sequences.
 | Business Process candidates | [`app/Pages/RunsPage.razor`](../../app/Pages/RunsPage.razor), [`app/Lfm.App.Core/Services/RunsClient.cs`](../../app/Lfm.App.Core/Services/RunsClient.cs), [`api/Functions/RunsListFunction.cs`](../../api/Functions/RunsListFunction.cs), [`api/Functions/RunsDetailFunction.cs`](../../api/Functions/RunsDetailFunction.cs), [`api/Functions/RunsSignupFunction.cs`](../../api/Functions/RunsSignupFunction.cs), [`api/Functions/RunsSignupOptionsFunction.cs`](../../api/Functions/RunsSignupOptionsFunction.cs), [`api/Functions/RunsCancelSignupFunction.cs`](../../api/Functions/RunsCancelSignupFunction.cs) |
 | Application Process views | [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Lfm.App.Core/Services/MeClient.cs`](../../app/Lfm.App.Core/Services/MeClient.cs), [`api/Functions/RunsCreateFunction.cs`](../../api/Functions/RunsCreateFunction.cs), [`api/Functions/RunsUpdateFunction.cs`](../../api/Functions/RunsUpdateFunction.cs), [`api/Functions/RunsDeleteFunction.cs`](../../api/Functions/RunsDeleteFunction.cs), [`api/Functions/MeDeleteFunction.cs`](../../api/Functions/MeDeleteFunction.cs) |
 | Service realization | [`app/Pages/LoginPage.razor`](../../app/Pages/LoginPage.razor), [`app/Pages/CharactersPage.razor`](../../app/Pages/CharactersPage.razor), [`app/Pages/GoodbyePage.razor`](../../app/Pages/GoodbyePage.razor), [`app/Pages/GuildPage.razor`](../../app/Pages/GuildPage.razor), [`app/Pages/GuildAdminPage.razor`](../../app/Pages/GuildAdminPage.razor), [`app/Pages/InstancesPage.razor`](../../app/Pages/InstancesPage.razor), [`app/Pages/CreateRunPage.razor`](../../app/Pages/CreateRunPage.razor), [`app/Pages/EditRunPage.razor`](../../app/Pages/EditRunPage.razor), [`app/Pages/AdminReferenceRefreshPage.razor`](../../app/Pages/AdminReferenceRefreshPage.razor), [`app/Pages/PrivacyPolicyPage.razor`](../../app/Pages/PrivacyPolicyPage.razor), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
-| Supplemental UML handoff | [`docs/architecture/lfm.dediren/model.json`](lfm.dediren/model.json), [`app/Pages/`](../../app/Pages/), [`app/Lfm.App.Core/Services/`](../../app/Lfm.App.Core/Services/), [`shared/Lfm.Contracts/`](../../shared/Lfm.Contracts/), [`api/Functions/`](../../api/Functions/), [`api/Services/`](../../api/Services/), [`api/Repositories/`](../../api/Repositories/) |
-| Platform and operations UML handoff | [`docs/architecture/lfm.dediren/model.json`](lfm.dediren/model.json), [`infra/modules/`](../../infra/modules/), [`infra/main.bicep`](../../infra/main.bicep), [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml), [`.github/workflows/deploy-infra.yml`](../../.github/workflows/deploy-infra.yml), [`.github/workflows/deploy-app-build.yml`](../../.github/workflows/deploy-app-build.yml), [`.github/workflows/deploy-app.yml`](../../.github/workflows/deploy-app.yml), [`.github/workflows/secrets-scan.yml`](../../.github/workflows/secrets-scan.yml), [`.github/workflows/analyze-infra.yml`](../../.github/workflows/analyze-infra.yml), [`scripts/pre-commit`](../../scripts/pre-commit), [`scripts/pre-push`](../../scripts/pre-push), [`api/Program.cs`](../../api/Program.cs) |
 
 ## Rendering And Validation
 
@@ -123,23 +87,19 @@ plugin. The canonical evidence loop is:
 ```bash
 dediren validate --input docs/architecture/lfm.dediren/model.json
 dediren validate --plugin generic-graph --profile archimate --input docs/architecture/lfm.dediren/model.json
-dediren validate --input docs/architecture/lfm-run-signup-uml.dediren/model.json
-dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-run-signup-uml.dediren/model.json
-dediren validate --input docs/architecture/lfm-application-handoff-uml.dediren/model.json
-dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-application-handoff-uml.dediren/model.json
-dediren validate --input docs/architecture/lfm-platform-operations-uml.dediren/model.json
-dediren validate --plugin generic-graph --profile uml --input docs/architecture/lfm-platform-operations-uml.dediren/model.json
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target layout-request
 dediren project --input docs/architecture/lfm.dediren/model.json --plugin generic-graph --view technology-usage --target render-metadata
 dediren layout --plugin elk-layout --input <projection.json>
 dediren validate-layout --input <layout.json>
-dediren render --plugin svg-render --policy docs/architecture/lfm.dediren/render-policy.json --metadata <render-metadata.json> --input <layout.json> > <view>.render.json
-jq -r '.data.content' <view>.render.json > <view>.svg
+dediren render --plugin render --policy docs/architecture/lfm.dediren/render-policy.json --metadata <render-metadata.json> --input <layout.json> > <view>.render.json
+jq -r '.data.artifacts[] | select(.artifact_kind=="svg") | .content' <view>.render.json > <view>.svg
 ```
 
-Repeat projection/layout/render for every view listed in the relevant package
-manifest. `dediren render` emits a JSON result envelope; the SVG payload is
-`.data.content` and should be extracted to the `.svg` path declared by the
-project manifest. Copy reviewable SVG snapshots to the package-matching
-subdirectory under [`renders/`](renders/) and keep the README view inventory,
-render links, and source provenance aligned with the package.
+Repeat projection/layout/render for every view listed in the package manifest.
+`dediren render` emits a JSON result envelope; the SVG payload is the
+`.data.artifacts[]` entry whose `artifact_kind` is `svg`, extracted to the `.svg`
+path declared by the project manifest. Each rendered SVG then gets the
+architecture-design skill's `svg-accessible-name.sh` post-render step (a
+`role="img"` accessible name and a visible per-view title band). Copy reviewable
+SVG snapshots to [`renders/lfm/`](renders/lfm/) and keep the README view
+inventory, render links, and source provenance aligned with the package.
