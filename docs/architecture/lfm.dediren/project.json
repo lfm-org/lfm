@@ -4,6 +4,30 @@
   "model": "model.json",
   "views": [
     {
+      "id": "system-landscape",
+      "title": "LFM - System Landscape",
+      "diagramKind": "Landscape",
+      "projection": {
+        "plugin": "generic-graph",
+        "target": "layout-request"
+      },
+      "layout": {
+        "plugin": "elk-layout",
+        "output": "generated/layout/system-landscape.json"
+      },
+      "render": {
+        "plugin": "render",
+        "policy": "render-policy.json",
+        "metadata": "generated/render-metadata/system-landscape.json",
+        "output": "generated/svg/system-landscape.svg"
+      },
+      "metadata": {
+        "plugin": "generic-graph",
+        "target": "render-metadata",
+        "output": "generated/render-metadata/system-landscape.json"
+      }
+    },
+    {
       "id": "technology-usage",
       "title": "LFM - Technology Usage Overview",
       "diagramKind": "Technology Usage",
@@ -16,7 +40,7 @@
         "output": "generated/layout/technology-usage.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/technology-usage.json",
         "output": "generated/svg/technology-usage.svg"
@@ -40,7 +64,7 @@
         "output": "generated/layout/technology-data-plane.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/technology-data-plane.json",
         "output": "generated/svg/technology-data-plane.svg"
@@ -64,7 +88,7 @@
         "output": "generated/layout/technology-observability.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/technology-observability.json",
         "output": "generated/svg/technology-observability.svg"
@@ -88,7 +112,7 @@
         "output": "generated/layout/production-release-migration.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/production-release-migration.json",
         "output": "generated/svg/implementation-migration-production-release-migration.svg"
@@ -112,7 +136,7 @@
         "output": "generated/layout/run-signup-process-candidate.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-process-candidate.json",
         "output": "generated/svg/business-run-signup-process-candidate.svg"
@@ -136,7 +160,7 @@
         "output": "generated/layout/run-signup-service-realization.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-signup-service-realization.json",
         "output": "generated/svg/application-run-signup-service-realization.svg"
@@ -160,7 +184,7 @@
         "output": "generated/layout/run-maintenance-application-process.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/run-maintenance-application-process.json",
         "output": "generated/svg/application-run-maintenance-application-process.svg"
@@ -184,7 +208,7 @@
         "output": "generated/layout/auth-profile-realization.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/auth-profile-realization.json",
         "output": "generated/svg/application-auth-profile-realization.svg"
@@ -208,7 +232,7 @@
         "output": "generated/layout/account-deletion-application-process.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/account-deletion-application-process.json",
         "output": "generated/svg/application-account-deletion-application-process.svg"
@@ -232,7 +256,7 @@
         "output": "generated/layout/guild-realization.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/guild-realization.json",
         "output": "generated/svg/application-guild-realization.svg"
@@ -256,7 +280,7 @@
         "output": "generated/layout/wow-reference-realization.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/wow-reference-realization.json",
         "output": "generated/svg/application-wow-reference-realization.svg"
@@ -280,7 +304,7 @@
         "output": "generated/layout/ops-health-realization.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/ops-health-realization.json",
         "output": "generated/svg/application-ops-health-realization.svg"
@@ -304,7 +328,7 @@
         "output": "generated/layout/api-request-pipeline.json"
       },
       "render": {
-        "plugin": "svg-render",
+        "plugin": "render",
         "policy": "render-policy.json",
         "metadata": "generated/render-metadata/api-request-pipeline.json",
         "output": "generated/svg/application-request-pipeline.svg"
