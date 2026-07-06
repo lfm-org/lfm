@@ -3262,8 +3262,8 @@
             "wrapping": "multi-edge",
             "routing": {
               "style": "orthogonal",
-              "profile": "readable",
-              "endpoint_merging": "local"
+              "profile": "spacious",
+              "endpoint_merging": "off"
             },
             "algorithm": "layered",
             "placement": {
@@ -3553,7 +3553,17 @@
                 "lfm-api"
               ]
             }
-          ]
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "wrapping": "multi-edge",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "spacious",
+              "endpoint_merging": "off"
+            }
+          }
         },
         {
           "id": "run-signup-process-candidate",
@@ -3994,13 +4004,12 @@
             "render-cdn-serves-media-cache-service"
           ],
           "layout_preferences": {
-            "direction": "right",
+            "direction": "down",
             "density": "spacious",
-            "wrapping": "multi-edge",
             "routing": {
               "style": "orthogonal",
-              "profile": "readable",
-              "endpoint_merging": "local"
+              "profile": "spacious",
+              "endpoint_merging": "off"
             }
           },
           "groups": [
@@ -4196,7 +4205,21 @@
                 "blizzard-game-data-api"
               ]
             }
-          ]
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "wrapping": "multi-edge",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "spacious",
+              "endpoint_merging": "off"
+            },
+            "algorithm": "layered",
+            "placement": {
+              "strategy": "network-simplex"
+            }
+          }
         }
       ]
     }
