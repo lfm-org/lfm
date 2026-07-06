@@ -3264,6 +3264,10 @@
               "style": "orthogonal",
               "profile": "readable",
               "endpoint_merging": "local"
+            },
+            "algorithm": "layered",
+            "placement": {
+              "strategy": "network-simplex"
             }
           },
           "groups": [
