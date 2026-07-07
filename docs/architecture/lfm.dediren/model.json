@@ -3,15 +3,7 @@
   "required_plugins": [
     {
       "id": "generic-graph",
-      "version": "0.14.7"
-    },
-    {
-      "id": "elk-layout",
-      "version": "0.14.7"
-    },
-    {
-      "id": "svg-render",
-      "version": "0.14.7"
+      "version": "2026.07.1"
     }
   ],
   "nodes": [
@@ -21,13 +13,13 @@
       "label": "Lfm.App",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Lfm.App.csproj",
           "app/Program.cs",
           "app/Pages/*.razor"
         ],
-        "documentation": "Blazor WebAssembly SPA hosted by Azure Static Web Apps."
+        "rationale": "Blazor WebAssembly SPA hosted by Azure Static Web Apps."
       }
     },
     {
@@ -36,12 +28,12 @@
       "label": "Lfm.App.Core",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Lfm.App.Core/Lfm.App.Core.csproj",
           "app/Lfm.App.Core/Services/*.cs"
         ],
-        "documentation": "Framework-neutral app services, API clients, localization, and auth state."
+        "rationale": "Framework-neutral app services, API clients, localization, and auth state."
       }
     },
     {
@@ -50,12 +42,12 @@
       "label": "Lfm.Contracts",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "shared/Lfm.Contracts/Lfm.Contracts.csproj",
           "shared/Lfm.Contracts/**/*.cs"
         ],
-        "documentation": "Shared wire-contract library referenced by the SPA, app-core, and API."
+        "rationale": "Shared wire-contract library referenced by the SPA, app-core, and API."
       }
     },
     {
@@ -64,13 +56,13 @@
       "label": "Lfm.Api",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Lfm.Api.csproj",
           "api/Program.cs",
           "api/Functions/*.cs"
         ],
-        "documentation": ".NET isolated Azure Functions backend."
+        "rationale": ".NET isolated Azure Functions backend."
       }
     },
     {
@@ -79,13 +71,13 @@
       "label": "REST API (/api/v1/*)",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/*.cs",
           "api/openapi.yaml",
           "app/Lfm.App.Core/Services/*.cs"
         ],
-        "documentation": "Versioned HTTP surface consumed by the SPA. Unversioned aliases remain present in the Functions source."
+        "rationale": "Versioned HTTP surface consumed by the SPA. Unversioned aliases remain present in the Functions source."
       }
     },
     {
@@ -94,8 +86,8 @@
       "label": "Auth and session service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/BattleNetLoginFunction.cs",
           "api/Functions/BattleNetCallbackFunction.cs",
           "api/Functions/BattleNetLogoutFunction.cs",
@@ -105,7 +97,7 @@
           "app/Services/CredentialsHandler.cs",
           "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs"
         ],
-        "documentation": "Battle.net login/callback/logout, current-user session surface, and client-side expired-session detection."
+        "rationale": "Battle.net login/callback/logout, current-user session surface, and client-side expired-session detection."
       }
     },
     {
@@ -114,15 +106,15 @@
       "label": "Run management service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/Runs*.cs",
           "app/Lfm.App.Core/Services/RunsClient.cs",
           "app/Pages/RunsPage.razor",
           "app/Pages/CreateRunPage.razor",
           "app/Pages/EditRunPage.razor"
         ],
-        "documentation": "Create, list, inspect, edit, delete, sign up for, and cancel signup for runs."
+        "rationale": "Create, list, inspect, edit, delete, sign up for, and cancel signup for runs."
       }
     },
     {
@@ -131,13 +123,13 @@
       "label": "Guild service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/GuildFunction.cs",
           "app/Lfm.App.Core/Services/GuildClient.cs",
           "app/Pages/GuildPage.razor"
         ],
-        "documentation": "Current-user guild home and guild settings service."
+        "rationale": "Current-user guild home and guild settings service."
       }
     },
     {
@@ -146,14 +138,14 @@
       "label": "Raider profile service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/Me*.cs",
           "api/Functions/Raider*.cs",
           "app/Lfm.App.Core/Services/MeClient.cs",
           "app/Pages/CharactersPage.razor"
         ],
-        "documentation": "Current-user profile, character management, enrichment, and cleanup."
+        "rationale": "Current-user profile, character management, enrichment, and cleanup."
       }
     },
     {
@@ -162,8 +154,8 @@
       "label": "WoW reference lookup service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/WowReferenceInstancesFunction.cs",
           "api/Functions/WowReferenceExpansionsFunction.cs",
           "api/Functions/WowReferenceSpecializationsFunction.cs",
@@ -171,7 +163,7 @@
           "app/Lfm.App.Core/Services/ExpansionsClient.cs",
           "app/Lfm.App.Core/Services/SpecializationsClient.cs"
         ],
-        "documentation": "Read-only reference lookup service backed by blob-projected reference repositories."
+        "rationale": "Read-only reference lookup service backed by blob-projected reference repositories."
       }
     },
     {
@@ -180,15 +172,15 @@
       "label": "WoW media cache service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/WowMediaCacheFunction.cs",
           "api/Services/WowMediaCache.cs",
           "app/Lfm.App.Core/Services/WowMediaUrls.cs",
           "shared/Lfm.Contracts/Media/BlizzardMediaCache.cs",
           "docs/storage-architecture.md"
         ],
-        "documentation": "Browser-facing image proxy and cache for Blizzard render-CDN assets served through /api/v1/wow/media/cache."
+        "rationale": "Browser-facing image proxy and cache for Blizzard render-CDN assets served through /api/v1/wow/media/cache."
       }
     },
     {
@@ -197,12 +189,12 @@
       "label": "Operational readiness service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/HealthFunction.cs",
           "api/Functions/RunsMigrateSchemaFunction.cs"
         ],
-        "documentation": "Health/readiness and admin schema migration endpoints."
+        "rationale": "Health/readiness and admin schema migration endpoints."
       }
     },
     {
@@ -211,12 +203,12 @@
       "label": "Privacy contact service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/PrivacyContactFunction.cs",
           "app/Pages/PrivacyPolicyPage.razor"
         ],
-        "documentation": "Public privacy contact endpoint consumed by the privacy policy page."
+        "rationale": "Public privacy contact endpoint consumed by the privacy policy page."
       }
     },
     {
@@ -225,12 +217,12 @@
       "label": "Run signup UI pages",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/RunsPage.razor",
           "app/Lfm.App.Core/Services/RunsClient.cs"
         ],
-        "documentation": "Blazor page interactions for browsing run detail and managing signup/cancel actions."
+        "rationale": "Blazor page interactions for browsing run detail and managing signup/cancel actions."
       }
     },
     {
@@ -239,8 +231,8 @@
       "label": "Auth UI pages",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/LandingPage.razor",
           "app/Pages/LoginPage.razor",
           "app/Pages/LoginFailedPage.razor",
@@ -248,7 +240,7 @@
           "app/Components/RedirectToLogin.razor",
           "app/Components/AuthSessionMonitor.razor"
         ],
-        "documentation": "Blazor entry points for Battle.net sign-in, callback failure recovery, sign-out, protected-route redirection, and expired-session redirect."
+        "rationale": "Blazor entry points for Battle.net sign-in, callback failure recovery, sign-out, protected-route redirection, and expired-session redirect."
       }
     },
     {
@@ -257,8 +249,8 @@
       "label": "Detect expired session",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Components/AuthSessionMonitor.razor",
           "app/Services/CredentialsHandler.cs",
           "app/Lfm.App.Core/Auth/IAuthStateRefresher.cs",
@@ -267,7 +259,7 @@
           "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
           "app/wwwroot/js/lfm-interop.js"
         ],
-        "documentation": "Client-side resume and HTTP 401 detection probes the current session and redirects expired sessions to login."
+        "rationale": "Client-side resume and HTTP 401 detection probes the current session and redirects expired sessions to login."
       }
     },
     {
@@ -276,13 +268,13 @@
       "label": "Character profile UI",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/CharactersPage.razor",
           "app/Lfm.App.Core/Services/MeClient.cs",
           "app/Lfm.App.Core/Services/BattleNetClient.cs"
         ],
-        "documentation": "Blazor character/profile surface for account characters, selected character, enrichment, and account deletion."
+        "rationale": "Blazor character/profile surface for account characters, selected character, enrichment, and account deletion."
       }
     },
     {
@@ -291,13 +283,13 @@
       "label": "Guild UI pages",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/GuildPage.razor",
           "app/Components/Guild/GuildSetupGate.razor",
           "app/Lfm.App.Core/Services/GuildClient.cs"
         ],
-        "documentation": "Blazor guild home and current-guild settings pages."
+        "rationale": "Blazor guild home and current-guild settings pages."
       }
     },
     {
@@ -306,8 +298,8 @@
       "label": "Reference data consumption UI",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/InstancesPage.razor",
           "app/Pages/CreateRunPage.razor",
           "app/Pages/EditRunPage.razor",
@@ -315,7 +307,7 @@
           "app/Lfm.App.Core/Services/SpecializationsClient.cs",
           "app/Lfm.App.Core/Services/ExpansionsClient.cs"
         ],
-        "documentation": "Blazor consumers of static WoW instance, expansion, and specialization reference data."
+        "rationale": "Blazor consumers of static WoW instance, expansion, and specialization reference data."
       }
     },
     {
@@ -324,11 +316,11 @@
       "label": "Privacy contact UI",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/PrivacyPolicyPage.razor"
         ],
-        "documentation": "Blazor utility page that consumes the privacy contact endpoint."
+        "rationale": "Blazor utility page that consumes the privacy contact endpoint."
       }
     },
     {
@@ -337,13 +329,13 @@
       "label": "Battle.net OAuth 2.0",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Program.cs",
           "api/Services/BlizzardOAuthClient.cs",
           "api/Options/BlizzardOptions.cs"
         ],
-        "documentation": "External OAuth service used for login and callback exchange."
+        "rationale": "External OAuth service used for login and callback exchange."
       }
     },
     {
@@ -352,13 +344,13 @@
       "label": "WoW Profile API",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Program.cs",
           "api/Services/BlizzardProfileClient.cs",
           "api/Services/GuildDocumentRefreshService.cs"
         ],
-        "documentation": "External Blizzard profile and guild data API."
+        "rationale": "External Blizzard profile and guild data API."
       }
     },
     {
@@ -367,13 +359,13 @@
       "label": "WoW Game Data API",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Program.cs",
           "api/Services/BlizzardGameDataClient.cs",
           "api/Services/ReferenceSync.cs"
         ],
-        "documentation": "External Blizzard static game-data API used by reference-data refresh."
+        "rationale": "External Blizzard static game-data API used by reference-data refresh."
       }
     },
     {
@@ -382,14 +374,14 @@
       "label": "Blizzard Render CDN",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Services/CharacterPortraitService.cs",
           "api/Services/WowMediaCache.cs",
           "app/Pages/CharactersPage.razor",
           "docs/storage-architecture.md"
         ],
-        "documentation": "External image URL and byte source consumed through LFM's media cache service."
+        "rationale": "External image URL and byte source consumed through LFM's media cache service."
       }
     },
     {
@@ -398,12 +390,12 @@
       "label": "Azure Static Web Apps",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/swa.bicep",
           ".github/workflows/deploy-app.yml"
         ],
-        "documentation": "Free SKU Static Web App hosting the Blazor app."
+        "rationale": "Free SKU Static Web App hosting the Blazor app."
       }
     },
     {
@@ -412,12 +404,12 @@
       "label": "Azure Function App",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/functions.bicep",
           ".github/workflows/deploy-app.yml"
         ],
-        "documentation": "Function App with system-assigned managed identity."
+        "rationale": "Function App with system-assigned managed identity."
       }
     },
     {
@@ -426,11 +418,11 @@
       "label": "App Service Plan (Y1)",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/functions.bicep"
         ],
-        "documentation": "Dynamic Y1 plan used by the Function App."
+        "rationale": "Dynamic Y1 plan used by the Function App."
       }
     },
     {
@@ -439,13 +431,13 @@
       "label": "Azure Functions runtime",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Lfm.Api.csproj",
           "api/host.json",
           "infra/modules/functions.bicep"
         ],
-        "documentation": ".NET 10 isolated worker on Azure Functions v4."
+        "rationale": ".NET 10 isolated worker on Azure Functions v4."
       }
     },
     {
@@ -454,12 +446,12 @@
       "label": "Function App managed identity",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/functions.bicep",
           "infra/modules/dataprotection.bicep"
         ],
-        "documentation": "System-assigned identity and RBAC access path for data-plane resources."
+        "rationale": "System-assigned identity and RBAC access path for data-plane resources."
       }
     },
     {
@@ -468,12 +460,12 @@
       "label": "Cosmos DB account",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/cosmos.bicep",
           "api/Program.cs"
         ],
-        "documentation": "Free-tier Cosmos account with local auth disabled."
+        "rationale": "Free-tier Cosmos account with local auth disabled."
       }
     },
     {
@@ -482,11 +474,11 @@
       "label": "Cosmos SQL database",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/cosmos.bicep"
         ],
-        "documentation": "LFM logical database."
+        "rationale": "LFM logical database."
       }
     },
     {
@@ -495,12 +487,12 @@
       "label": "runs container",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/cosmos.bicep",
           "api/Repositories/IRunsRepository.cs"
         ],
-        "documentation": "Run documents, partitioned by id."
+        "rationale": "Run documents, partitioned by id."
       }
     },
     {
@@ -509,12 +501,12 @@
       "label": "raiders container",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/cosmos.bicep",
           "api/Repositories/IRaidersRepository.cs"
         ],
-        "documentation": "Raider documents, partitioned by Battle.net id."
+        "rationale": "Raider documents, partitioned by Battle.net id."
       }
     },
     {
@@ -523,12 +515,12 @@
       "label": "guilds container",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/cosmos.bicep",
           "api/Repositories/IGuildRepository.cs"
         ],
-        "documentation": "Guild documents, partitioned by guild id."
+        "rationale": "Guild documents, partitioned by guild id."
       }
     },
     {
@@ -537,12 +529,12 @@
       "label": "idempotency container",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/cosmos.bicep",
           "api/Services/IdempotencyStore.cs"
         ],
-        "documentation": "Idempotency replay records for mutating HTTP requests."
+        "rationale": "Idempotency replay records for mutating HTTP requests."
       }
     },
     {
@@ -551,12 +543,12 @@
       "label": "Storage account",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/storage.bicep",
           "api/Program.cs"
         ],
-        "documentation": "Standard_LRS StorageV2 account with shared key access disabled."
+        "rationale": "Standard_LRS StorageV2 account with shared key access disabled."
       }
     },
     {
@@ -565,13 +557,13 @@
       "label": "wow reference blobs",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/storage.bicep",
           "api/Services/ReferenceSync.cs",
           "docs/storage-architecture.md"
         ],
-        "documentation": "Blob container content under reference/{kind}/ for static Blizzard reference data."
+        "rationale": "Blob container content under reference/{kind}/ for static Blizzard reference data."
       }
     },
     {
@@ -580,14 +572,14 @@
       "label": "wow media-cache blobs",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "docs/storage-architecture.md",
           "api/Services/WowMediaCache.cs",
           "api/Services/BlobReferenceClient.cs",
           "infra/modules/storage.bicep"
         ],
-        "documentation": "Cached Blizzard render image bytes under wow/media-cache/render/{sha256}.{ext} in blob storage."
+        "rationale": "Cached Blizzard render image bytes under wow/media-cache/render/{sha256}.{ext} in blob storage."
       }
     },
     {
@@ -596,13 +588,13 @@
       "label": "data-protection key ring blob",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/storage.bicep",
           "infra/modules/dataprotection.bicep",
           "api/Program.cs"
         ],
-        "documentation": "Durable ASP.NET Data Protection key-ring storage."
+        "rationale": "Durable ASP.NET Data Protection key-ring storage."
       }
     },
     {
@@ -611,11 +603,11 @@
       "label": "deployments blob container",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/storage.bicep"
         ],
-        "documentation": "Private storage container named deployments, provisioned by the storage module."
+        "rationale": "Private storage container named deployments, provisioned by the storage module."
       }
     },
     {
@@ -624,13 +616,13 @@
       "label": "Key Vault",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/keyvault.bicep",
           "infra/modules/functions.bicep",
           "api/Program.cs"
         ],
-        "documentation": "RBAC-enabled vault for app secrets and Data Protection key encryption."
+        "rationale": "RBAC-enabled vault for app secrets and Data Protection key encryption."
       }
     },
     {
@@ -639,13 +631,13 @@
       "label": "Data Protection key",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/keyvault.bicep",
           "infra/modules/dataprotection.bicep",
           "api/Program.cs"
         ],
-        "documentation": "Versionless Key Vault key URI used to wrap Data Protection keys."
+        "rationale": "Versionless Key Vault key URI used to wrap Data Protection keys."
       }
     },
     {
@@ -654,12 +646,12 @@
       "label": "Application Insights",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/functions.bicep",
           "api/Program.cs"
         ],
-        "documentation": "Workspace-based telemetry component."
+        "rationale": "Workspace-based telemetry component."
       }
     },
     {
@@ -668,12 +660,12 @@
       "label": "Log Analytics workspace",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/loganalytics.bicep",
           "infra/main.bicep"
         ],
-        "documentation": "Shared workspace for diagnostics and Application Insights."
+        "rationale": "Shared workspace for diagnostics and Application Insights."
       }
     },
     {
@@ -682,11 +674,11 @@
       "label": "Cosmos throttle alert",
       "properties": {
         "layer": "Technology",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/modules/alerts.bicep"
         ],
-        "documentation": "Metric alert and action group for Cosmos throttling."
+        "rationale": "Metric alert and action group for Cosmos throttling."
       }
     },
     {
@@ -695,13 +687,13 @@
       "label": "Repository baseline",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "scripts/pre-commit",
           "scripts/pre-push",
           ".github/workflows/deploy.yml"
         ],
-        "documentation": "Main branch source, infrastructure, and app artifacts after local hook and workflow gates."
+        "rationale": "Main branch source, infrastructure, and app artifacts after local hook and workflow gates."
       }
     },
     {
@@ -710,12 +702,12 @@
       "label": "Pre-commit secret guard",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "scripts/pre-commit",
           "CLAUDE.md"
         ],
-        "documentation": "Local opt-in hook blocks staged environment files, SSH private keys, certificates, application secrets, Terraform state, and private-key content before commit."
+        "rationale": "Local opt-in hook blocks staged environment files, SSH private keys, certificates, application secrets, Terraform state, and private-key content before commit."
       }
     },
     {
@@ -724,12 +716,12 @@
       "label": "Pre-push verification gate",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "scripts/pre-push",
           "CLAUDE.md"
         ],
-        "documentation": "Local opt-in hook runs shell lint, workflow permission checks, locale readiness, .NET format/build, and vulnerable-package audit before push."
+        "rationale": "Local opt-in hook runs shell lint, workflow permission checks, locale readiness, .NET format/build, and vulnerable-package audit before push."
       }
     },
     {
@@ -738,12 +730,12 @@
       "label": "Production plateau",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/parameters.example.json",
           ".github/workflows/deploy.yml"
         ],
-        "documentation": "Single production environment represented by deploy workflow and environment tags."
+        "rationale": "Single production environment represented by deploy workflow and environment tags."
       }
     },
     {
@@ -752,11 +744,11 @@
       "label": "Release to production gap",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy.yml"
         ],
-        "documentation": "Difference closed by the production deploy workflow."
+        "rationale": "Difference closed by the production deploy workflow."
       }
     },
     {
@@ -765,11 +757,11 @@
       "label": "Deploy to production",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy.yml"
         ],
-        "documentation": "Push or manual deploy event targeting production."
+        "rationale": "Push or manual deploy event targeting production."
       }
     },
     {
@@ -778,11 +770,11 @@
       "label": "Deploy workflow",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy.yml"
         ],
-        "documentation": "Orchestrator workflow for infra and app deployment."
+        "rationale": "Orchestrator workflow for infra and app deployment."
       }
     },
     {
@@ -791,11 +783,11 @@
       "label": "Detect deploy changes",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy.yml"
         ],
-        "documentation": "Deploy workflow job that resolves manual stage input or path-filtered infra/app changes before conditional reusable workflows run."
+        "rationale": "Deploy workflow job that resolves manual stage input or path-filtered infra/app changes before conditional reusable workflows run."
       }
     },
     {
@@ -804,12 +796,12 @@
       "label": "Secret Scanning",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/secrets-scan.yml"
         ],
-        "documentation": "Reusable Gitleaks workflow that gates deploy app build and infrastructure deployment jobs."
+        "rationale": "Reusable Gitleaks workflow that gates deploy app build and infrastructure deployment jobs."
       }
     },
     {
@@ -818,13 +810,13 @@
       "label": "Analyze Infrastructure",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/analyze-infra.yml",
           "ps-rule.yaml"
         ],
-        "documentation": "Reusable PSRule for Azure analysis workflow that gates infrastructure deployment."
+        "rationale": "Reusable PSRule for Azure analysis workflow that gates infrastructure deployment."
       }
     },
     {
@@ -833,12 +825,12 @@
       "label": "Deploy Infrastructure",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy-infra.yml",
           "infra/main.bicep"
         ],
-        "documentation": "Reusable workflow that runs Bicep what-if/apply."
+        "rationale": "Reusable workflow that runs Bicep what-if/apply."
       }
     },
     {
@@ -847,11 +839,11 @@
       "label": "Deploy App - Build",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy-app-build.yml"
         ],
-        "documentation": "Reusable workflow that builds Functions zip and Blazor wwwroot artifacts."
+        "rationale": "Reusable workflow that builds Functions zip and Blazor wwwroot artifacts."
       }
     },
     {
@@ -860,11 +852,11 @@
       "label": "Deploy App",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy-app.yml"
         ],
-        "documentation": "Reusable workflow that uploads the backend and frontend artifacts."
+        "rationale": "Reusable workflow that uploads the backend and frontend artifacts."
       }
     },
     {
@@ -873,12 +865,12 @@
       "label": "Bicep deployment",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "infra/main.bicep",
           "infra/modules/*.bicep"
         ],
-        "documentation": "Infrastructure definition delivered by the deploy-infra workflow."
+        "rationale": "Infrastructure definition delivered by the deploy-infra workflow."
       }
     },
     {
@@ -887,12 +879,12 @@
       "label": "Functions zip",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy-app-build.yml",
           "api/Lfm.Api.csproj"
         ],
-        "documentation": "Backend deployable package."
+        "rationale": "Backend deployable package."
       }
     },
     {
@@ -901,12 +893,12 @@
       "label": "SPA wwwroot bundle",
       "properties": {
         "layer": "ImplementationMigration",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           ".github/workflows/deploy-app-build.yml",
           "app/Lfm.App.csproj"
         ],
-        "documentation": "Frontend static bundle."
+        "rationale": "Frontend static bundle."
       }
     },
     {
@@ -915,16 +907,16 @@
       "label": "Player wants to join a run",
       "properties": {
         "layer": "Business",
-        "authority": "candidate-from-source",
-        "confidence": "medium",
-        "source_evidence": [
+        "evidence": "candidate-from-source",
+        "source": [
           "app/Pages/RunsPage.razor",
           "app/Lfm.App.Core/Services/RunsClient.cs"
         ],
-        "unresolved_architect_questions": [
+        "rationale": "Source-inferred entry event for the run-signup flow.",
+        "confidence": "medium",
+        "open_question": [
           "Confirm actor naming and process boundary with stakeholders."
-        ],
-        "documentation": "Source-inferred entry event for the run-signup flow."
+        ]
       }
     },
     {
@@ -933,13 +925,13 @@
       "label": "Browse open runs",
       "properties": {
         "layer": "Business",
-        "authority": "candidate-from-source",
-        "confidence": "medium",
-        "source_evidence": [
+        "evidence": "candidate-from-source",
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsListFunction.cs"
         ],
-        "documentation": "Source-inferred process candidate backed by GET /api/v1/runs."
+        "rationale": "Source-inferred process candidate backed by GET /api/v1/runs.",
+        "confidence": "medium"
       }
     },
     {
@@ -948,13 +940,13 @@
       "label": "Inspect run detail",
       "properties": {
         "layer": "Business",
-        "authority": "candidate-from-source",
-        "confidence": "medium",
-        "source_evidence": [
+        "evidence": "candidate-from-source",
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsDetailFunction.cs"
         ],
-        "documentation": "Source-inferred process candidate backed by GET /api/v1/runs/{id}."
+        "rationale": "Source-inferred process candidate backed by GET /api/v1/runs/{id}.",
+        "confidence": "medium"
       }
     },
     {
@@ -963,14 +955,14 @@
       "label": "Sign up for run",
       "properties": {
         "layer": "Business",
-        "authority": "candidate-from-source",
-        "confidence": "medium",
-        "source_evidence": [
+        "evidence": "candidate-from-source",
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsSignupFunction.cs",
           "api/Functions/RunsSignupOptionsFunction.cs"
         ],
-        "documentation": "Source-inferred process candidate backed by signup options and POST /api/v1/runs/{id}/signup."
+        "rationale": "Source-inferred process candidate backed by signup options and POST /api/v1/runs/{id}/signup.",
+        "confidence": "medium"
       }
     },
     {
@@ -979,13 +971,13 @@
       "label": "Cancel signup",
       "properties": {
         "layer": "Business",
-        "authority": "candidate-from-source",
-        "confidence": "medium",
-        "source_evidence": [
+        "evidence": "candidate-from-source",
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsCancelSignupFunction.cs"
         ],
-        "documentation": "Source-inferred alternate path backed by DELETE /api/v1/runs/{id}/signup."
+        "rationale": "Source-inferred alternate path backed by DELETE /api/v1/runs/{id}/signup.",
+        "confidence": "medium"
       }
     },
     {
@@ -994,16 +986,16 @@
       "label": "Signup confirmed",
       "properties": {
         "layer": "Business",
-        "authority": "candidate-from-source",
-        "confidence": "medium",
-        "source_evidence": [
+        "evidence": "candidate-from-source",
+        "source": [
           "api/Functions/RunsSignupFunction.cs",
           "shared/Lfm.Contracts/Runs/RunDetailDto.cs"
         ],
-        "unresolved_architect_questions": [
+        "rationale": "Source-inferred terminal event after a successful signup response.",
+        "confidence": "medium",
+        "open_question": [
           "Confirm completion event wording with stakeholders."
-        ],
-        "documentation": "Source-inferred terminal event after a successful signup response."
+        ]
       }
     },
     {
@@ -1012,13 +1004,13 @@
       "label": "Run maintenance UI pages",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/CreateRunPage.razor",
           "app/Pages/EditRunPage.razor",
           "app/Pages/RunsPage.razor"
         ],
-        "documentation": "Blazor pages and actions for creating, editing, and deleting runs."
+        "rationale": "Blazor pages and actions for creating, editing, and deleting runs."
       }
     },
     {
@@ -1027,13 +1019,13 @@
       "label": "Create run",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/CreateRunPage.razor",
           "api/Functions/RunsCreateFunction.cs",
           "api/Runs/RunCreateService.cs"
         ],
-        "documentation": "Source-backed application process for creating a run document."
+        "rationale": "Source-backed application process for creating a run document."
       }
     },
     {
@@ -1042,13 +1034,13 @@
       "label": "Edit run",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/EditRunPage.razor",
           "api/Functions/RunsUpdateFunction.cs",
           "api/Runs/RunUpdateService.cs"
         ],
-        "documentation": "Source-backed application process for updating a run document with optimistic concurrency."
+        "rationale": "Source-backed application process for updating a run document with optimistic concurrency."
       }
     },
     {
@@ -1057,12 +1049,12 @@
       "label": "Delete run",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsDeleteFunction.cs"
         ],
-        "documentation": "Source-backed application process for deleting a run document and its embedded signups."
+        "rationale": "Source-backed application process for deleting a run document and its embedded signups."
       }
     },
     {
@@ -1071,13 +1063,13 @@
       "label": "Account deletion UI",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/CharactersPage.razor",
           "app/Pages/GoodbyePage.razor",
           "app/Lfm.App.Core/Services/MeClient.cs"
         ],
-        "documentation": "Blazor account deletion action and post-delete goodbye navigation."
+        "rationale": "Blazor account deletion action and post-delete goodbye navigation."
       }
     },
     {
@@ -1086,13 +1078,13 @@
       "label": "Delete account",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/CharactersPage.razor",
           "app/Lfm.App.Core/Services/MeClient.cs",
           "api/Functions/MeDeleteFunction.cs"
         ],
-        "documentation": "Source-backed application process that deletes the current raider profile and related references."
+        "rationale": "Source-backed application process that deletes the current raider profile and related references."
       }
     },
     {
@@ -1101,12 +1093,12 @@
       "label": "Guild admin UI pages",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/GuildAdminPage.razor",
           "app/Lfm.App.Core/Services/GuildClient.cs"
         ],
-        "documentation": "Site-admin guild management page that reads and updates arbitrary guild documents."
+        "rationale": "Site-admin guild management page that reads and updates arbitrary guild documents."
       }
     },
     {
@@ -1115,13 +1107,13 @@
       "label": "Guild admin service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/GuildAdminFunction.cs",
           "api/Services/SiteAdminService.cs",
           "api/Services/GuildDocumentRefreshService.cs"
         ],
-        "documentation": "Site-admin guild management service with admin authorization, guild refresh, and settings update behavior."
+        "rationale": "Site-admin guild management service with admin authorization, guild refresh, and settings update behavior."
       }
     },
     {
@@ -1130,12 +1122,12 @@
       "label": "Reference refresh UI",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "app/Pages/AdminReferenceRefreshPage.razor",
           "app/Lfm.App.Core/Services/WowReferenceAdminClient.cs"
         ],
-        "documentation": "Admin UI that starts and observes the WoW reference data refresh stream."
+        "rationale": "Admin UI that starts and observes the WoW reference data refresh stream."
       }
     },
     {
@@ -1144,13 +1136,13 @@
       "label": "WoW reference refresh service",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Functions/WowReferenceRefreshFunction.cs",
           "api/Functions/WowReferenceRefreshTimerFunction.cs",
           "api/Services/ReferenceSync.cs"
         ],
-        "documentation": "Admin and timer-driven reference synchronization service that writes refreshed reference data to blob storage."
+        "rationale": "Admin and timer-driven reference synchronization service that writes refreshed reference data to blob storage."
       }
     },
     {
@@ -1159,13 +1151,13 @@
       "label": "API request pipeline",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Program.cs",
           "api/Middleware/MiddlewareExtensions.cs",
           "api/Middleware/*.cs"
         ],
-        "documentation": "Ordered cross-cutting middleware that every HTTP request passes through before a Function handler runs. Registered in api/Program.cs via builder.UseMiddleware in fixed order."
+        "rationale": "Ordered cross-cutting middleware that every HTTP request passes through before a Function handler runs. Registered in api/Program.cs via builder.UseMiddleware in fixed order."
       }
     },
     {
@@ -1174,11 +1166,11 @@
       "label": "CORS handling",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/CorsMiddleware.cs"
         ],
-        "documentation": "Adds CORS headers and answers preflight OPTIONS; runs first so preflight is not blocked by later auth stages."
+        "rationale": "Adds CORS headers and answers preflight OPTIONS; runs first so preflight is not blocked by later auth stages."
       }
     },
     {
@@ -1187,11 +1179,11 @@
       "label": "Security headers",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/SecurityHeadersMiddleware.cs"
         ],
-        "documentation": "Adds standard security response headers, the AGPL section 13 source-code notice, and a default Cache-Control: private, no-store."
+        "rationale": "Adds standard security response headers, the AGPL section 13 source-code notice, and a default Cache-Control: private, no-store."
       }
     },
     {
@@ -1200,11 +1192,11 @@
       "label": "Request size limiting",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/RequestSizeLimitMiddleware.cs"
         ],
-        "documentation": "Rejects requests whose Content-Length exceeds the configured maximum with 413 Payload Too Large + RFC 9457 problem+json."
+        "rationale": "Rejects requests whose Content-Length exceeds the configured maximum with 413 Payload Too Large + RFC 9457 problem+json."
       }
     },
     {
@@ -1213,12 +1205,12 @@
       "label": "Inbound rate limiting",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/RateLimitMiddleware.cs",
           "api/Options/RateLimitOptions.cs"
         ],
-        "documentation": "Per-IP sliding-window rate limiting across auth, write, and read endpoint tiers; OPTIONS bypasses (handled by CORS)."
+        "rationale": "Per-IP sliding-window rate limiting across auth, write, and read endpoint tiers; OPTIONS bypasses (handled by CORS)."
       }
     },
     {
@@ -1227,12 +1219,12 @@
       "label": "Request audit logging",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/AuditMiddleware.cs",
           "api/Audit/"
         ],
-        "documentation": "Emits structured audit records for incoming requests ahead of authentication and authorization."
+        "rationale": "Emits structured audit records for incoming requests ahead of authentication and authorization."
       }
     },
     {
@@ -1241,12 +1233,12 @@
       "label": "Authentication",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/AuthMiddleware.cs",
           "api/Auth/"
         ],
-        "documentation": "Resolves the session principal from the request before authorization policy is applied."
+        "rationale": "Resolves the session principal from the request before authorization policy is applied."
       }
     },
     {
@@ -1255,11 +1247,11 @@
       "label": "Authorization policy",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/AuthPolicyMiddleware.cs"
         ],
-        "documentation": "Enforces per-route authorization policy on the resolved principal; rejects unauthorized requests before the handler runs."
+        "rationale": "Enforces per-route authorization policy on the resolved principal; rejects unauthorized requests before the handler runs."
       }
     },
     {
@@ -1268,12 +1260,12 @@
       "label": "Idempotent replay",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Middleware/IdempotencyMiddleware.cs",
           "api/Services/IdempotencyStore.cs"
         ],
-        "documentation": "Durable replay for retried mutations carrying an Idempotency-Key header for an authenticated principal; persists outcomes in the idempotency container."
+        "rationale": "Durable replay for retried mutations carrying an Idempotency-Key header for an authenticated principal; persists outcomes in the idempotency container."
       }
     },
     {
@@ -1282,13 +1274,13 @@
       "label": "Blizzard rate limiting",
       "properties": {
         "layer": "Application",
-        "authority": "lifted-from-source",
-        "source_evidence": [
+        "evidence": "source-backed",
+        "source": [
           "api/Services/BlizzardRateLimiter.cs",
           "api/Services/BlizzardRateLimitHandler.cs",
           "api/Program.cs"
         ],
-        "documentation": "Shared sliding-window limiter (80/s) wired as a DelegatingHandler on every Blizzard HttpClient; on an upstream 429 it pauses the shared limiter so concurrent callers back off together."
+        "rationale": "Shared sliding-window limiter (80/s) wired as a DelegatingHandler on every Blizzard HttpClient; on an upstream 429 it pauses the shared limiter so concurrent callers back off together."
       }
     }
   ],
@@ -1300,7 +1292,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.csproj",
           "app/Lfm.App.Core/Lfm.App.Core.csproj"
         ]
@@ -1313,7 +1305,7 @@
       "target": "lfm-app",
       "label": "contracts",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.csproj"
         ]
       }
@@ -1325,7 +1317,7 @@
       "target": "lfm-app-core",
       "label": "contracts",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Lfm.App.Core.csproj"
         ]
       }
@@ -1337,7 +1329,7 @@
       "target": "lfm-api",
       "label": "contracts",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Lfm.Api.csproj"
         ]
       }
@@ -1349,7 +1341,7 @@
       "target": "rest-api",
       "label": "exposes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/*.cs",
           "api/openapi.yaml"
         ]
@@ -1362,7 +1354,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/*.cs"
         ]
       }
@@ -1374,7 +1366,7 @@
       "target": "auth-session-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/BattleNet*.cs",
           "api/Functions/Me*.cs"
         ]
@@ -1387,7 +1379,7 @@
       "target": "run-management-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/Runs*.cs"
         ]
       }
@@ -1399,7 +1391,7 @@
       "target": "guild-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/Guild*.cs"
         ]
       }
@@ -1411,7 +1403,7 @@
       "target": "raider-profile-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/Me*.cs",
           "api/Functions/Raider*.cs",
           "api/Functions/BattleNetCharacters*.cs"
@@ -1425,7 +1417,7 @@
       "target": "wow-reference-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/WowReference*.cs",
           "api/Services/ReferenceSync.cs"
         ]
@@ -1438,7 +1430,7 @@
       "target": "wow-media-cache-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/WowMediaCacheFunction.cs",
           "api/openapi.yaml"
         ]
@@ -1451,7 +1443,7 @@
       "target": "ops-health-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/HealthFunction.cs",
           "api/Functions/RunsMigrateSchemaFunction.cs"
         ]
@@ -1464,7 +1456,7 @@
       "target": "privacy-contact-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/PrivacyContactFunction.cs"
         ]
       }
@@ -1476,7 +1468,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/LoginPage.razor",
           "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
           "app/Components/AuthSessionMonitor.razor",
@@ -1491,7 +1483,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/RunsClient.cs"
         ]
       }
@@ -1503,7 +1495,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/GuildClient.cs"
         ]
       }
@@ -1515,7 +1507,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/MeClient.cs",
           "app/Lfm.App.Core/Services/BattleNetClient.cs"
         ]
@@ -1528,7 +1520,7 @@
       "target": "lfm-app",
       "label": "serves",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/InstancesClient.cs",
           "app/Lfm.App.Core/Services/SpecializationsClient.cs",
           "app/Lfm.App.Core/Services/ExpansionsClient.cs"
@@ -1542,7 +1534,7 @@
       "target": "lfm-app",
       "label": "image proxy",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/WowMediaUrls.cs",
           "app/Layout/MainLayout.razor",
           "docs/storage-architecture.md"
@@ -1556,7 +1548,7 @@
       "target": "lfm-app",
       "label": "privacy contact",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/PrivacyPolicyPage.razor",
           "api/Functions/PrivacyContactFunction.cs"
         ]
@@ -1569,7 +1561,7 @@
       "target": "lfm-api",
       "label": "OAuth",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Services/BlizzardOAuthClient.cs"
         ]
       }
@@ -1581,7 +1573,7 @@
       "target": "lfm-api",
       "label": "profile data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Services/BlizzardProfileClient.cs",
           "api/Services/GuildDocumentRefreshService.cs"
         ]
@@ -1594,7 +1586,7 @@
       "target": "lfm-api",
       "label": "game data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Services/BlizzardGameDataClient.cs",
           "api/Services/ReferenceSync.cs"
         ]
@@ -1607,7 +1599,7 @@
       "target": "wow-media-cache-service",
       "label": "image bytes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Services/WowMediaCache.cs",
           "api/Services/CharacterPortraitService.cs",
           "docs/storage-architecture.md"
@@ -1621,7 +1613,7 @@
       "target": "lfm-app",
       "label": "hosts",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/swa.bicep"
         ]
       }
@@ -1633,7 +1625,7 @@
       "target": "lfm-api",
       "label": "hosts",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep",
           "api/Lfm.Api.csproj"
         ]
@@ -1646,7 +1638,7 @@
       "target": "function-app",
       "label": "hosts plan",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep"
         ]
       }
@@ -1658,7 +1650,7 @@
       "target": "functions-runtime",
       "label": "runtime",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep",
           "api/host.json"
         ]
@@ -1671,7 +1663,7 @@
       "target": "managed-identity",
       "label": "identity",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep"
         ]
       }
@@ -1683,7 +1675,7 @@
       "target": "function-app",
       "label": "data plane",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Program.cs",
           "infra/modules/functions.bicep"
         ]
@@ -1696,7 +1688,7 @@
       "target": "function-app",
       "label": "blob data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Program.cs",
           "infra/modules/functions.bicep"
         ]
@@ -1709,7 +1701,7 @@
       "target": "function-app",
       "label": "secrets",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep",
           "api/Services/KeyVaultSecretResolver.cs"
         ]
@@ -1722,7 +1714,7 @@
       "target": "function-app",
       "label": "telemetry",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep",
           "api/Program.cs"
         ]
@@ -1735,7 +1727,7 @@
       "target": "application-insights",
       "label": "workspace",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep",
           "infra/modules/loganalytics.bicep"
         ]
@@ -1748,7 +1740,7 @@
       "target": "cosmos-account",
       "label": "diagnostics",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/main.bicep",
           "infra/modules/cosmos.bicep",
           "infra/modules/storage.bicep",
@@ -1765,7 +1757,7 @@
       "target": "cosmos-database",
       "label": "database",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/cosmos.bicep"
         ]
       }
@@ -1777,7 +1769,7 @@
       "target": "cosmos-runs",
       "label": "container",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/cosmos.bicep"
         ]
       }
@@ -1789,7 +1781,7 @@
       "target": "cosmos-raiders",
       "label": "container",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/cosmos.bicep"
         ]
       }
@@ -1801,7 +1793,7 @@
       "target": "cosmos-guilds",
       "label": "container",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/cosmos.bicep"
         ]
       }
@@ -1813,7 +1805,7 @@
       "target": "cosmos-idempotency",
       "label": "container",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/cosmos.bicep"
         ]
       }
@@ -1825,7 +1817,7 @@
       "target": "wow-reference-container",
       "label": "blob path",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/storage.bicep"
         ]
       }
@@ -1837,7 +1829,7 @@
       "target": "wow-media-cache-blobs",
       "label": "blob path",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/storage.bicep",
           "docs/storage-architecture.md"
         ]
@@ -1850,7 +1842,7 @@
       "target": "data-protection-container",
       "label": "blob container",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/storage.bicep",
           "api/Program.cs"
         ]
@@ -1863,7 +1855,7 @@
       "target": "deployment-container",
       "label": "blob container",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/storage.bicep"
         ]
       }
@@ -1875,7 +1867,7 @@
       "target": "data-protection-key",
       "label": "key",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/keyvault.bicep",
           "api/Program.cs"
         ]
@@ -1888,7 +1880,7 @@
       "target": "key-vault",
       "label": "Secrets User",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep"
         ]
       }
@@ -1900,7 +1892,7 @@
       "target": "cosmos-account",
       "label": "Data Contributor",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep"
         ]
       }
@@ -1912,7 +1904,7 @@
       "target": "storage-account",
       "label": "Blob/Queue/Table roles",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep",
           "infra/modules/dataprotection.bicep"
         ]
@@ -1925,7 +1917,7 @@
       "target": "application-insights",
       "label": "Metrics Publisher",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep"
         ]
       }
@@ -1937,7 +1929,7 @@
       "target": "data-protection-key",
       "label": "Crypto User",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/dataprotection.bicep"
         ]
       }
@@ -1949,7 +1941,7 @@
       "target": "cosmos-account",
       "label": "monitors 429s",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/alerts.bicep"
         ]
       }
@@ -1961,7 +1953,7 @@
       "target": "deploy-workflow",
       "label": "push/manual",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -1973,7 +1965,7 @@
       "target": "repository-baseline",
       "label": "blocks secret staging",
       "properties": {
-        "source_evidence": [
+        "source": [
           "scripts/pre-commit",
           "CLAUDE.md"
         ]
@@ -1986,7 +1978,7 @@
       "target": "secret-scan-workflow",
       "label": "local + CI secret controls",
       "properties": {
-        "source_evidence": [
+        "source": [
           "scripts/pre-commit",
           ".github/workflows/secrets-scan.yml"
         ]
@@ -1999,7 +1991,7 @@
       "target": "repository-baseline",
       "label": "local verification",
       "properties": {
-        "source_evidence": [
+        "source": [
           "scripts/pre-push",
           "CLAUDE.md"
         ]
@@ -2012,7 +2004,7 @@
       "target": "deploy-change-detection",
       "label": "change filter",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2024,7 +2016,7 @@
       "target": "deploy-infra-workflow",
       "label": "infra",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/deploy-infra.yml"
         ]
@@ -2037,7 +2029,7 @@
       "target": "secret-scan-workflow",
       "label": "secret gate",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/secrets-scan.yml"
         ]
@@ -2050,7 +2042,7 @@
       "target": "infrastructure-analysis-workflow",
       "label": "infra analysis",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/analyze-infra.yml"
         ]
@@ -2063,7 +2055,7 @@
       "target": "deploy-app-build-workflow",
       "label": "build",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/deploy-app-build.yml"
         ]
@@ -2076,7 +2068,7 @@
       "target": "deploy-app-workflow",
       "label": "app",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/deploy-app.yml"
         ]
@@ -2089,7 +2081,7 @@
       "target": "bicep-template",
       "label": "applies",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy-infra.yml",
           "infra/main.bicep"
         ]
@@ -2102,7 +2094,7 @@
       "target": "function-app-package",
       "label": "builds",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy-app-build.yml"
         ]
       }
@@ -2114,7 +2106,7 @@
       "target": "spa-wwwroot-package",
       "label": "builds",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy-app-build.yml"
         ]
       }
@@ -2126,7 +2118,7 @@
       "target": "deploy-app-build-workflow",
       "label": "gate",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2138,7 +2130,7 @@
       "target": "deploy-infra-workflow",
       "label": "gate",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2150,7 +2142,7 @@
       "target": "deploy-infra-workflow",
       "label": "gate",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml",
           ".github/workflows/analyze-infra.yml"
         ]
@@ -2163,7 +2155,7 @@
       "target": "deploy-app-workflow",
       "label": "before app",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2175,7 +2167,7 @@
       "target": "production-plateau",
       "label": "updates",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy-app.yml"
         ]
       }
@@ -2187,7 +2179,7 @@
       "target": "release-to-production-gap",
       "label": "closes",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2199,7 +2191,7 @@
       "target": "deploy-to-production-event",
       "label": "deploys",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2211,7 +2203,7 @@
       "target": "production-plateau",
       "label": "reaches",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy.yml"
         ]
       }
@@ -2223,7 +2215,7 @@
       "target": "static-web-apps",
       "label": "provisions",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/swa.bicep"
         ]
       }
@@ -2235,7 +2227,7 @@
       "target": "function-app",
       "label": "provisions",
       "properties": {
-        "source_evidence": [
+        "source": [
           "infra/modules/functions.bicep"
         ]
       }
@@ -2247,7 +2239,7 @@
       "target": "lfm-api",
       "label": "deploys",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy-app.yml",
           "api/Lfm.Api.csproj"
         ]
@@ -2260,7 +2252,7 @@
       "target": "lfm-app",
       "label": "deploys",
       "properties": {
-        "source_evidence": [
+        "source": [
           ".github/workflows/deploy-app.yml",
           "app/Lfm.App.csproj"
         ]
@@ -2273,7 +2265,7 @@
       "target": "browse-open-runs",
       "label": "starts",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor"
         ]
       }
@@ -2285,7 +2277,7 @@
       "target": "inspect-run-detail",
       "label": "selects",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsDetailFunction.cs"
         ]
@@ -2298,7 +2290,7 @@
       "target": "sign-up-for-run",
       "label": "joins",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsSignupFunction.cs"
         ]
@@ -2311,7 +2303,7 @@
       "target": "signup-confirmed",
       "label": "confirms",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsSignupFunction.cs"
         ]
       }
@@ -2323,7 +2315,7 @@
       "target": "cancel-signup",
       "label": "alternate path",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor",
           "api/Functions/RunsCancelSignupFunction.cs"
         ]
@@ -2336,7 +2328,7 @@
       "target": "browse-open-runs",
       "label": "UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor"
         ]
       }
@@ -2348,7 +2340,7 @@
       "target": "inspect-run-detail",
       "label": "UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor"
         ]
       }
@@ -2360,7 +2352,7 @@
       "target": "sign-up-for-run",
       "label": "UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor"
         ]
       }
@@ -2372,7 +2364,7 @@
       "target": "browse-open-runs",
       "label": "realization",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsListFunction.cs",
           "app/Lfm.App.Core/Services/RunsClient.cs"
         ]
@@ -2385,7 +2377,7 @@
       "target": "inspect-run-detail",
       "label": "realization",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsDetailFunction.cs",
           "app/Lfm.App.Core/Services/RunsClient.cs"
         ]
@@ -2398,7 +2390,7 @@
       "target": "sign-up-for-run",
       "label": "realization",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsSignupFunction.cs",
           "api/Functions/RunsSignupOptionsFunction.cs",
           "app/Lfm.App.Core/Services/RunsClient.cs"
@@ -2412,7 +2404,7 @@
       "target": "cancel-signup",
       "label": "realization",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsCancelSignupFunction.cs",
           "app/Lfm.App.Core/Services/RunsClient.cs"
         ]
@@ -2425,7 +2417,7 @@
       "target": "cosmos-runs",
       "label": "reads/writes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Repositories/IRunsRepository.cs",
           "api/Runs/*.cs"
         ]
@@ -2438,7 +2430,7 @@
       "target": "cosmos-raiders",
       "label": "signup options",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsSignupOptionsFunction.cs",
           "api/Runs/RunSignupService.cs"
         ]
@@ -2451,7 +2443,7 @@
       "target": "auth-ui-entry",
       "label": "auth flow",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/LoginPage.razor",
           "app/Components/RedirectToLogin.razor",
           "app/Components/AuthSessionMonitor.razor",
@@ -2467,7 +2459,7 @@
       "target": "session-expiry-detection-process",
       "label": "monitors",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Components/AuthSessionMonitor.razor",
           "app/wwwroot/js/lfm-interop.js"
         ]
@@ -2480,7 +2472,7 @@
       "target": "session-expiry-detection-process",
       "label": "probes session",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Auth/AppAuthenticationStateProvider.cs",
           "app/Lfm.App.Core/Services/MeClient.cs",
           "api/Functions/MeFunction.cs"
@@ -2494,7 +2486,7 @@
       "target": "profile-ui-entry",
       "label": "profile data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/CharactersPage.razor",
           "app/Lfm.App.Core/Services/MeClient.cs",
           "app/Lfm.App.Core/Services/BattleNetClient.cs"
@@ -2508,7 +2500,7 @@
       "target": "guild-ui-entry",
       "label": "guild data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/GuildPage.razor",
           "app/Pages/GuildAdminPage.razor",
           "app/Lfm.App.Core/Services/GuildClient.cs"
@@ -2522,7 +2514,7 @@
       "target": "profile-ui-entry",
       "label": "portraits",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/BattleNetCharacterPortraitsFunction.cs",
           "app/Pages/CharactersPage.razor",
           "app/Layout/MainLayout.razor",
@@ -2537,7 +2529,7 @@
       "target": "reference-ui-entry",
       "label": "reference data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/InstancesPage.razor",
           "app/Pages/CreateRunPage.razor",
           "app/Pages/EditRunPage.razor",
@@ -2553,7 +2545,7 @@
       "target": "ops-ui-entry",
       "label": "privacy contact",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/PrivacyPolicyPage.razor",
           "api/Functions/PrivacyContactFunction.cs"
         ]
@@ -2566,7 +2558,7 @@
       "target": "reference-ui-entry",
       "label": "reference images",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Lfm.App.Core/Services/WowMediaUrls.cs",
           "app/Pages/InstancesPage.razor",
           "app/Pages/CreateRunPage.razor",
@@ -2582,7 +2574,7 @@
       "target": "cosmos-raiders",
       "label": "session profile",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/BattleNetCallbackFunction.cs",
           "api/Functions/MeFunction.cs",
           "api/Repositories/IRaidersRepository.cs"
@@ -2596,7 +2588,7 @@
       "target": "data-protection-container",
       "label": "cookie keys",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Program.cs",
           "infra/modules/dataprotection.bicep",
           "infra/modules/storage.bicep"
@@ -2610,7 +2602,7 @@
       "target": "cosmos-raiders",
       "label": "characters",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/Me*.cs",
           "api/Functions/Raider*.cs",
           "api/Repositories/IRaidersRepository.cs"
@@ -2624,7 +2616,7 @@
       "target": "raider-profile-service",
       "label": "character data",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RaiderCharacterAddFunction.cs",
           "api/Functions/RaiderCharacterEnrichFunction.cs",
           "api/Services/BlizzardProfileClient.cs"
@@ -2638,7 +2630,7 @@
       "target": "cosmos-guilds",
       "label": "guild state",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildFunction.cs",
           "api/Functions/GuildAdminFunction.cs",
           "api/Repositories/IGuildRepository.cs"
@@ -2652,7 +2644,7 @@
       "target": "cosmos-raiders",
       "label": "current raider",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildFunction.cs",
           "api/Functions/GuildAdminFunction.cs",
           "api/Repositories/IRaidersRepository.cs"
@@ -2666,7 +2658,7 @@
       "target": "guild-service",
       "label": "guild refresh",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildFunction.cs",
           "api/Services/GuildDocumentRefreshService.cs",
           "api/Services/BlizzardProfileClient.cs"
@@ -2680,7 +2672,7 @@
       "target": "wow-reference-container",
       "label": "read blobs",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/WowReferenceInstancesFunction.cs",
           "api/Functions/WowReferenceExpansionsFunction.cs",
           "api/Functions/WowReferenceSpecializationsFunction.cs",
@@ -2696,7 +2688,7 @@
       "target": "wow-reference-service",
       "label": "refresh source",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Services/ReferenceSync.cs",
           "api/Services/BlizzardGameDataClient.cs"
         ]
@@ -2709,7 +2701,7 @@
       "target": "cosmos-database",
       "label": "readiness",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/HealthFunction.cs",
           "api/Functions/RunsMigrateSchemaFunction.cs"
         ]
@@ -2722,7 +2714,7 @@
       "target": "create-run-process",
       "label": "create UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/CreateRunPage.razor"
         ]
       }
@@ -2734,7 +2726,7 @@
       "target": "edit-run-process",
       "label": "edit UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/EditRunPage.razor"
         ]
       }
@@ -2746,7 +2738,7 @@
       "target": "delete-run-process",
       "label": "delete UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/RunsPage.razor"
         ]
       }
@@ -2758,7 +2750,7 @@
       "target": "create-run-process",
       "label": "create",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsCreateFunction.cs",
           "api/Runs/RunCreateService.cs"
         ]
@@ -2771,7 +2763,7 @@
       "target": "edit-run-process",
       "label": "edit",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsUpdateFunction.cs",
           "api/Runs/RunUpdateService.cs"
         ]
@@ -2784,7 +2776,7 @@
       "target": "delete-run-process",
       "label": "delete",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsDeleteFunction.cs"
         ]
       }
@@ -2796,7 +2788,7 @@
       "target": "cosmos-runs",
       "label": "write run",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Runs/RunCreateService.cs",
           "api/Repositories/IRunsRepository.cs"
         ]
@@ -2809,7 +2801,7 @@
       "target": "cosmos-raiders",
       "label": "creator guild",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Runs/RunCreateService.cs",
           "api/Repositories/IRaidersRepository.cs"
         ]
@@ -2822,7 +2814,7 @@
       "target": "cosmos-runs",
       "label": "read/write run",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Runs/RunUpdateService.cs",
           "api/Repositories/IRunsRepository.cs"
         ]
@@ -2835,7 +2827,7 @@
       "target": "cosmos-runs",
       "label": "delete run",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsDeleteFunction.cs",
           "api/Repositories/IRunsRepository.cs"
         ]
@@ -2848,7 +2840,7 @@
       "target": "cosmos-raiders",
       "label": "permission context",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RunsDeleteFunction.cs",
           "api/Repositories/IRaidersRepository.cs"
         ]
@@ -2861,7 +2853,7 @@
       "target": "account-deletion-process",
       "label": "delete UI",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/CharactersPage.razor"
         ]
       }
@@ -2873,7 +2865,7 @@
       "target": "account-deletion-process",
       "label": "delete account",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/MeDeleteFunction.cs",
           "app/Lfm.App.Core/Services/MeClient.cs"
         ]
@@ -2886,7 +2878,7 @@
       "target": "cosmos-runs",
       "label": "scrub raider",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/MeDeleteFunction.cs",
           "api/Repositories/IRunsRepository.cs"
         ]
@@ -2899,7 +2891,7 @@
       "target": "cosmos-raiders",
       "label": "delete raider",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/MeDeleteFunction.cs",
           "api/Repositories/IRaidersRepository.cs"
         ]
@@ -2912,7 +2904,7 @@
       "target": "cosmos-idempotency",
       "label": "purge replay cache",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/MeDeleteFunction.cs",
           "api/Services/IdempotencyStore.cs"
         ]
@@ -2925,7 +2917,7 @@
       "target": "guild-admin-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildAdminFunction.cs"
         ]
       }
@@ -2937,7 +2929,7 @@
       "target": "guild-admin-ui-entry",
       "label": "site admin",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/GuildAdminPage.razor",
           "api/Functions/GuildAdminFunction.cs"
         ]
@@ -2950,7 +2942,7 @@
       "target": "cosmos-guilds",
       "label": "admin guild state",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildAdminFunction.cs",
           "api/Repositories/IGuildRepository.cs"
         ]
@@ -2963,7 +2955,7 @@
       "target": "cosmos-raiders",
       "label": "bootstrap context",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildAdminFunction.cs",
           "api/Repositories/IRaidersRepository.cs"
         ]
@@ -2976,7 +2968,7 @@
       "target": "guild-admin-service",
       "label": "guild refresh",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/GuildAdminFunction.cs",
           "api/Services/GuildDocumentRefreshService.cs",
           "api/Services/BlizzardProfileClient.cs"
@@ -2990,7 +2982,7 @@
       "target": "reference-refresh-service",
       "label": "realizes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/WowReferenceRefreshFunction.cs"
         ]
       }
@@ -3002,7 +2994,7 @@
       "target": "reference-refresh-ui-entry",
       "label": "refresh stream",
       "properties": {
-        "source_evidence": [
+        "source": [
           "app/Pages/AdminReferenceRefreshPage.razor",
           "api/Functions/WowReferenceRefreshFunction.cs"
         ]
@@ -3015,7 +3007,7 @@
       "target": "wow-reference-container",
       "label": "write blobs",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/WowReferenceRefreshFunction.cs",
           "api/Services/ReferenceSync.cs",
           "api/Services/BlobReferenceClient.cs"
@@ -3029,7 +3021,7 @@
       "target": "wow-media-cache-blobs",
       "label": "read/write image bytes",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/WowMediaCacheFunction.cs",
           "api/Services/WowMediaCache.cs",
           "api/Services/BlobReferenceClient.cs",
@@ -3044,7 +3036,7 @@
       "target": "reference-refresh-service",
       "label": "refresh source",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Services/ReferenceSync.cs",
           "api/Services/BlizzardGameDataClient.cs"
         ]
@@ -3217,7 +3209,7 @@
       "target": "cosmos-runs",
       "label": "scrub raider refs",
       "properties": {
-        "source_evidence": [
+        "source": [
           "api/Functions/RaiderCleanupFunction.cs",
           "api/Repositories/IRunsRepository.cs"
         ]
@@ -3270,8 +3262,12 @@
             "wrapping": "multi-edge",
             "routing": {
               "style": "orthogonal",
-              "profile": "readable",
-              "endpoint_merging": "local"
+              "profile": "spacious",
+              "endpoint_merging": "off"
+            },
+            "algorithm": "layered",
+            "placement": {
+              "strategy": "network-simplex"
             }
           },
           "groups": [
@@ -3557,7 +3553,17 @@
                 "lfm-api"
               ]
             }
-          ]
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "wrapping": "multi-edge",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "spacious",
+              "endpoint_merging": "off"
+            }
+          }
         },
         {
           "id": "run-signup-process-candidate",
@@ -3998,13 +4004,12 @@
             "render-cdn-serves-media-cache-service"
           ],
           "layout_preferences": {
-            "direction": "right",
+            "direction": "down",
             "density": "spacious",
-            "wrapping": "multi-edge",
             "routing": {
               "style": "orthogonal",
-              "profile": "readable",
-              "endpoint_merging": "local"
+              "profile": "spacious",
+              "endpoint_merging": "off"
             }
           },
           "groups": [
@@ -4090,13 +4095,13 @@
             "game-data-api-serves-api"
           ],
           "layout_preferences": {
-            "direction": "down",
+            "direction": "right",
             "density": "spacious",
             "wrapping": "multi-edge",
             "routing": {
               "style": "orthogonal",
-              "profile": "readable",
-              "endpoint_merging": "local"
+              "profile": "spacious",
+              "endpoint_merging": "auto"
             }
           },
           "groups": [
@@ -4134,6 +4139,87 @@
               ]
             }
           ]
+        },
+        {
+          "id": "system-landscape",
+          "label": "LFM - System Landscape",
+          "nodes": [
+            "lfm-app",
+            "lfm-api",
+            "lfm-contracts",
+            "rest-api",
+            "battlenet-oauth",
+            "blizzard-profile-api",
+            "blizzard-game-data-api",
+            "static-web-apps",
+            "function-app",
+            "cosmos-account",
+            "storage-account",
+            "key-vault",
+            "application-insights"
+          ],
+          "relationships": [
+            "contracts-serve-app",
+            "contracts-serve-api",
+            "api-realizes-rest-api",
+            "rest-api-serves-app",
+            "battlenet-oauth-serves-api",
+            "profile-api-serves-api",
+            "game-data-api-serves-api",
+            "swa-hosts-app",
+            "function-app-hosts-api",
+            "cosmos-serves-function-app",
+            "storage-serves-function-app",
+            "key-vault-serves-function-app",
+            "app-insights-serves-function-app"
+          ],
+          "groups": [
+            {
+              "id": "system-landscape-applications",
+              "label": "LFM applications",
+              "members": [
+                "lfm-app",
+                "lfm-api",
+                "lfm-contracts",
+                "rest-api"
+              ]
+            },
+            {
+              "id": "system-landscape-platform",
+              "label": "Azure hosting platform",
+              "members": [
+                "static-web-apps",
+                "function-app",
+                "cosmos-account",
+                "storage-account",
+                "key-vault",
+                "application-insights"
+              ]
+            },
+            {
+              "id": "system-landscape-external",
+              "label": "Battle.net & Blizzard services",
+              "members": [
+                "battlenet-oauth",
+                "blizzard-profile-api",
+                "blizzard-game-data-api"
+              ]
+            }
+          ],
+          "layout_preferences": {
+            "direction": "right",
+            "density": "spacious",
+            "wrapping": "multi-edge",
+            "routing": {
+              "style": "orthogonal",
+              "profile": "spacious",
+              "endpoint_merging": "off"
+            },
+            "algorithm": "layered",
+            "placement": {
+              "strategy": "network-simplex"
+            }
+          }
         }
       ]
     }
