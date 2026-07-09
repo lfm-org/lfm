@@ -39,15 +39,24 @@ package directory per diagram.
 
 | File | Purpose |
 |---|---|
-| [`lfm.dediren/project.json`](lfm.dediren/project.json) | Project manifest and actual view list |
+| [`lfm.dediren/project.json`](lfm.dediren/project.json) | Project manifest and actual view list (title, architecture question, diagram kind, render targets per view) |
 | [`lfm.dediren/model.json`](lfm.dediren/model.json) | Canonical source graph, relationships, source evidence, and view membership |
 | [`lfm.dediren/render-policy.json`](lfm.dediren/render-policy.json) | ArchiMate SVG page, layer fills, per-type decorators, and relationship markers |
+| [`lfm.dediren/gallery.html`](lfm.dediren/gallery.html) | Self-contained, shareable browser gallery of all rendered views — open straight from disk, no network or external assets |
 
 Per-view render metadata, layout output, and intermediate SVGs are generated
 from the packages. `*.dediren/generated/` is reproducible tool output and
 ignored by git. Reviewable render snapshots live under
 `docs/architecture/renders/<package-name>/`, where `<package-name>` matches the
 source package directory without the `.dediren` suffix.
+
+`gallery.html` is a committed viewer over those render snapshots: it inlines
+every view's SVG (byte-identical to the matching `renders/<package-name>/`
+snapshot) with a register, per-view node/relationship counts, deep-linkable
+views, and light/dark theming. It is regenerated from the package's own
+`project.json` plus the rendered SVGs and render metadata by the
+`souroldgeezer-architecture` skill's `build-gallery.py`, so a re-render or a
+new view means rebuilding it (`build-gallery.py --check` gates drift).
 
 ## Views
 

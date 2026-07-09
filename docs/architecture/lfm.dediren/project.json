@@ -6,6 +6,7 @@
     {
       "id": "system-landscape",
       "title": "LFM - System Landscape",
+      "question": "At a glance, which applications make up LFM, which external systems they depend on, and which Azure platform hosts them?",
       "diagramKind": "Landscape",
       "projection": {
         "plugin": "generic-graph",
@@ -30,6 +31,7 @@
     {
       "id": "technology-usage",
       "title": "LFM - Technology Usage Overview",
+      "question": "Which technology nodes and system software host the LFM applications?",
       "diagramKind": "Technology Usage",
       "projection": {
         "plugin": "generic-graph",
@@ -54,6 +56,7 @@
     {
       "id": "technology-data-plane",
       "title": "LFM - Data Plane and Secrets",
+      "question": "Which data stores and secrets does the Function App access, and how?",
       "diagramKind": "Technology Usage",
       "projection": {
         "plugin": "generic-graph",
@@ -78,6 +81,7 @@
     {
       "id": "technology-observability",
       "title": "LFM - Observability and Alerting",
+      "question": "Which observability and alerting technology backs the platform?",
       "diagramKind": "Technology Usage",
       "projection": {
         "plugin": "generic-graph",
@@ -102,6 +106,7 @@
     {
       "id": "production-release-migration",
       "title": "LFM - Production Release Migration",
+      "question": "Which work packages and plateaus move LFM from repository baseline to production?",
       "diagramKind": "Migration",
       "projection": {
         "plugin": "generic-graph",
@@ -126,6 +131,7 @@
     {
       "id": "run-signup-process-candidate",
       "title": "Run Signup - Business Process Candidate",
+      "question": "Which business process steps take a player from wanting a run to a confirmed signup?",
       "diagramKind": "Business Process Cooperation",
       "projection": {
         "plugin": "generic-graph",
@@ -150,6 +156,7 @@
     {
       "id": "run-signup-service-realization",
       "title": "Run Signup - Service Realization",
+      "question": "Which application components and services realize run signup?",
       "diagramKind": "Service Realization",
       "projection": {
         "plugin": "generic-graph",
@@ -174,6 +181,7 @@
     {
       "id": "run-maintenance-application-process",
       "title": "Run Maintenance - Application Process",
+      "question": "Which application processes create, edit, and delete runs?",
       "diagramKind": "Application Process",
       "projection": {
         "plugin": "generic-graph",
@@ -198,6 +206,7 @@
     {
       "id": "auth-profile-realization",
       "title": "Auth and Profile - Service Realization",
+      "question": "Which components and services realize Battle.net auth and character profile?",
       "diagramKind": "Service Realization",
       "projection": {
         "plugin": "generic-graph",
@@ -222,6 +231,7 @@
     {
       "id": "account-deletion-application-process",
       "title": "Account Deletion - Application Process",
+      "question": "Which application process deletes a user account and its data?",
       "diagramKind": "Application Process",
       "projection": {
         "plugin": "generic-graph",
@@ -246,6 +256,7 @@
     {
       "id": "guild-realization",
       "title": "Guild - Service Realization",
+      "question": "Which components and services realize guild read and admin?",
       "diagramKind": "Service Realization",
       "projection": {
         "plugin": "generic-graph",
@@ -270,6 +281,7 @@
     {
       "id": "wow-reference-realization",
       "title": "WoW Reference Data - Service Realization",
+      "question": "Which components and services realize WoW reference data and refresh?",
       "diagramKind": "Service Realization",
       "projection": {
         "plugin": "generic-graph",
@@ -294,6 +306,7 @@
     {
       "id": "ops-health-realization",
       "title": "Operational Readiness - Service Realization",
+      "question": "Which components and services realize operational readiness and privacy contact?",
       "diagramKind": "Service Realization",
       "projection": {
         "plugin": "generic-graph",
@@ -318,6 +331,7 @@
     {
       "id": "api-request-pipeline",
       "title": "API Request Pipeline - Application Cooperation",
+      "question": "Which middleware functions cooperate in the API request pipeline?",
       "diagramKind": "Application Cooperation",
       "projection": {
         "plugin": "generic-graph",
