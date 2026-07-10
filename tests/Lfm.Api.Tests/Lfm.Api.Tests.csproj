@@ -28,8 +28,8 @@
          loads it at test-time and asserts zero diagnostic errors so the
          existing verify CI gate fails on malformed spec. 3.x of the library
          supports OpenAPI 3.1; YamlReader is the separate reader package. -->
-    <PackageReference Include="Microsoft.OpenApi" Version="3.7.0" />
-    <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.7.0" />
+    <PackageReference Include="Microsoft.OpenApi" Version="3.8.0" />
+    <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.8.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\api\Lfm.Api.csproj" />
