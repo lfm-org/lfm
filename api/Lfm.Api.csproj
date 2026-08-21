@@ -53,8 +53,8 @@
     <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
          package is deprecated. MS guidance is to use the Azure.Extensions.*
          packages below, which address key security and stability issues. -->
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.3" />
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.3" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.4" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.4" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
     <!-- Microsoft.Extensions.Options.ConfigurationExtensions is provided transitively
          via FrameworkReference; explicit pin causes NU1510 warning-as-error. -->
