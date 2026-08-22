@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
     <!-- 10.0.7 ships the fix for the 10.0.6 MAC-validation regression
          (https://github.com/dotnet/aspnetcore/issues/66335 closed 2026-04-23)
          and closes GHSA-9mv3-2cwr-p262 + GHSA-37gx-xxp4-5rgx. Must stay in
