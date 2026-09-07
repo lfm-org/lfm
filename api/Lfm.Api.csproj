@@ -16,7 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.11.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.11.1" />
     <!-- Worker core packages: .NET 10 REQUIRES v2.50.0+ of Worker and v2.0.5+ of
          Worker.Sdk per MS docs. v2.x of Worker also brings IHostApplicationBuilder
          support (FunctionsApplication.CreateBuilder). -->
@@ -40,7 +40,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <!-- Min 12.24.1 required by Azure.Extensions.AspNetCore.DataProtection.Blobs 1.5.1 -->
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.2" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <!-- Microsoft.AspNetCore.DataProtection is normally supplied by the
          FrameworkReference above; pinned at the app layer to close known

@@ -20,7 +20,7 @@
     <PackageReference Include="Testcontainers.Azurite" Version="4.14.0" />
     <PackageReference Include="Deque.AxeCore.Playwright" Version="4.13.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.62.1" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.2" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json">
