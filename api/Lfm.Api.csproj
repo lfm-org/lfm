@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.51.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.1" />
     <!-- Cosmos SDK 3.x loads Newtonsoft.Json at runtime via DocumentClient even
          when AzureCosmosDisableNewtonsoftJsonCheck bypasses the build-time check.
          Without this the isolated worker crashes with FileNotFoundException. -->
