@@ -155,7 +155,7 @@ public class WowReferenceRefreshFunctionTests
             l => l.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, _) => o.ToString()!.Contains("raider-1")),
+                It.Is<It.IsAnyType>((o, _) => o != null && o.ToString()!.Contains("raider-1")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
