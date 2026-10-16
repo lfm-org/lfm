@@ -87,13 +87,11 @@
       },
       "Microsoft.FluentUI.AspNetCore.Components": {
         "type": "Direct",
-        "requested": "[4.14.5, )",
-        "resolved": "4.14.5",
-        "contentHash": "7ZgWTBA5sBMG9wzTAIoP6la2v7ZM48UU2b2Hx4YbuITtgHMmiLLgk0atG1l+beOnaiief1Ao9HfuQu6uWa4FUA==",
+        "requested": "[5.0.1, )",
+        "resolved": "5.0.1",
+        "contentHash": "0s8w3xy2fQMbOFJjlmtTatBYldo1ipJGexyhSM19fakd+FEeABrcF2dLwnXvLcIaTUR4yPBjuuzKxnNc4r28aA==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "10.0.12",
-          "Microsoft.Extensions.Configuration.Abstractions": "10.0.12",
-          "Microsoft.Extensions.Hosting.Abstractions": "10.0.12",
           "Microsoft.Extensions.Http": "10.0.12"
         }
       },
@@ -272,18 +270,6 @@
         "type": "Transitive",
         "resolved": "10.0.13",
         "contentHash": "vQVzmAbnzlhXSXA2caYnlxtG9GXxEwtj5bODiWLu06A6iqeJmfBtlfKjuOSJGRy0/CFaNUrm7u9nxEUlljc2Rg=="
-      },
-      "Microsoft.Extensions.Hosting.Abstractions": {
-        "type": "Transitive",
-        "resolved": "10.0.12",
-        "contentHash": "ZlIxIJtWmrph0Ikj0svSaTkZ+d+ZYpTAhazpf1b3aoFRmlNnNWwkcvqnqT9yKHjKvfBRthvUrkq11OxfItOhpg==",
-        "dependencies": {
-          "Microsoft.Extensions.Configuration.Abstractions": "10.0.12",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12",
-          "Microsoft.Extensions.Diagnostics.Abstractions": "10.0.12",
-          "Microsoft.Extensions.FileProviders.Abstractions": "10.0.12",
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.12"
-        }
       },
       "Microsoft.Extensions.Localization.Abstractions": {
         "type": "Transitive",
