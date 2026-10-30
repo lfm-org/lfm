@@ -16,7 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.11.2" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.12.0" />
     <!-- Worker core packages: .NET 10 REQUIRES v2.50.0+ of Worker and v2.0.5+ of
          Worker.Sdk per MS docs. v2.x of Worker also brings IHostApplicationBuilder
          support (FunctionsApplication.CreateBuilder). -->
@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.51.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.2" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.3" />
     <!-- Cosmos SDK 3.x loads Newtonsoft.Json at runtime via DocumentClient even
          when AzureCosmosDisableNewtonsoftJsonCheck bypasses the build-time check.
          Without this the isolated worker crashes with FileNotFoundException. -->
@@ -49,12 +49,12 @@
          (https://github.com/dotnet/aspnetcore/issues/66335 closed 2026-04-23)
          and closes GHSA-9mv3-2cwr-p262 + GHSA-37gx-xxp4-5rgx. Must stay in
          sync with the pin in tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj. -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.13" NoWarn="NU1510" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.14" NoWarn="NU1510" />
     <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
          package is deprecated. MS guidance is to use the Azure.Extensions.*
          packages below, which address key security and stability issues. -->
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.4" />
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.4" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.5" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.5" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
     <!-- Microsoft.Extensions.Options.ConfigurationExtensions is provided transitively
          via FrameworkReference; explicit pin causes NU1510 warning-as-error. -->
