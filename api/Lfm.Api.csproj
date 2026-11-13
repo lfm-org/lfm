@@ -49,7 +49,7 @@
          (https://github.com/dotnet/aspnetcore/issues/66335 closed 2026-04-23)
          and closes GHSA-9mv3-2cwr-p262 + GHSA-37gx-xxp4-5rgx. Must stay in
          sync with the pin in tests/Lfm.Api.Tests/Lfm.Api.Tests.csproj. -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.13" NoWarn="NU1510" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="11.0.0" NoWarn="NU1510" />
     <!-- WAF/Security: the older Microsoft.AspNetCore.DataProtection.AzureKeyVault
          package is deprecated. MS guidance is to use the Azure.Extensions.*
          packages below, which address key security and stability issues. -->
